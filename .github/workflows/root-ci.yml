@@ -27,7 +27,11 @@
 #            why `bun run lint` is two commands — pointing Biome at `language`
 #            and `scripts` in one invocation makes it find that same file twice
 #            and fail the same way.
-#   stacks   Every `--stack` the CLI offers actually generates.
+#   stacks   Every `--stack` the CLI offers actually generates, and so does
+#            the shipped `appwithai` binary — a different entry point.
+#   wasm-cli The shipped `appwithai-wasm` binary, on bun 1.3 rather than 1.4.
+#            Its overlay (WebAssembly PostgreSQL in place of `pg`, node in
+#            place of bun) is a stage no other check reaches.
 #
 # That last job is the one worth explaining. Two modules under `language/cli`
 # reach down into `app-with-ai-tanstack/packages` on purpose — the shipped JDM
@@ -74,13 +78,23 @@ on:
 permissions:
   contents: read
 
-# Pinned to the version these steps were verified against, including the
-# `--frozen-lockfile` install of the app-with-ai-tanstack workspace that the
-# tanstack-nestjs target needs. That project's own workflow pins 1.4.0 for its
-# own jobs; this one does not build that project, only drive its generator.
+# Two pins, because the two command-line interfaces do not share a runtime.
+#
+#   BUN_VERSION       1.4 — what app-with-ai-tanstack itself pins, and what the
+#                     Dockerfiles the `appwithai` CLI generates run on. Every
+#                     job here uses it unless it is named below.
+#   BUN_VERSION_WASM  1.3 — the `appwithai-wasm` path. The one job that runs
+#                     that CLI takes this instead.
+#
+# Running the WASM CLI on the other pin would go green and prove nothing about
+# the runtime it actually ships on, which is why it gets a job rather than a
+# step. `check-clis.ts` prints the bun each result came from, so a job wired to
+# the wrong pin says so in its own output.
+#
 # Moving either forward is a deliberate step, taken by running the checks.
 env:
-  BUN_VERSION: "1.3.11"
+  BUN_VERSION: "1.4.0"
+  BUN_VERSION_WASM: "1.3.11"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -139,7 +153,7 @@ jobs:
           fi
 
   stacks:
-    name: Generate with every stack
+    name: Generate with every stack and the appwithai CLI
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -176,6 +190,48 @@ jobs:
 
       - name: Generate with every stack
         run: bun run check:stacks
+
+      # The shipped `appwithai` binary, which check:stacks does not touch — that
+      # one drives this repository's own CLI, which loads the generator as a
+      # library. Different entry point, different argument parsing, different
+      # defaults. On BUN_VERSION (1.4), the runtime this CLI ships on.
+      - name: Generate with the appwithai CLI
+        run: bun run check:cli
+
+  # The WASM CLI, in its own job for one reason: bun 1.3 rather than 1.4. It is
+  # not a variant of the job above — `appwithai-wasm` runs the same pipeline and
+  # then applies an overlay that replaces `pg` with WebAssembly PostgreSQL and
+  # bun with node. The overlay is the part worth checking: it is where a rename
+  # in the generator turns into an application that generates cleanly and then
+  # cannot start, and running the other CLI proves nothing about it.
+  wasm-cli:
+    name: Generate with the appwithai-wasm CLI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION_WASM }}
+
+      - name: Install root tooling
+        run: bun install --frozen-lockfile
+
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: businessappwithai/app-with-ai-tanstack
+          ref: main
+          path: app-with-ai-tanstack
+
+      - name: Install app-with-ai-tanstack
+        working-directory: app-with-ai-tanstack
+        run: bun install --frozen-lockfile
+
+      - name: Generate with the appwithai-wasm CLI
+        run: bun run check:cli:wasm
 
   # The only check that runs the derived reporting SQL against the schema the
   # generator actually emits. The pack is built from a parsed model while the

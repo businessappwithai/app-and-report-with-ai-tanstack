@@ -58,8 +58,12 @@ on:
 permissions:
   contents: read
 
+# 1.4, matching app-with-ai-tanstack's own pin and the Dockerfiles its
+# generator writes. This workflow generates through the full-stack path, so
+# it is that CLI's runtime that matters here; the WASM CLI runs on 1.3 and
+# has its own job in root-ci.yml.
 env:
-  BUN_VERSION: "1.3.11"
+  BUN_VERSION: "1.4.0"
   MODEL: ${{ inputs.model || 'common/language/examples/crm.eml.mmd' }}
   APP_REF: ${{ inputs.app_ref || 'main' }}
   REPORT_REF: ${{ inputs.report_ref || 'main' }}
