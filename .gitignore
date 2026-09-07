@@ -14,3 +14,16 @@ common/.runtime/
 # checked in on purpose and does not match: it is a `.mmd.error`, not an
 # `.eml.mmd.error`.
 *.eml.mmd.error
+
+# The two products, fetched from their own repositories by
+# common/build/fetch-repos.sh and symlinked here.
+#
+# They are symlinks into common/.runtime/repos/, and the symlink is what makes
+# the clone usable: both projects contain relative paths that reach across the
+# folder boundary — the root CLI imports two modules out of
+# app-with-ai-tanstack/packages and loads its generator orchestrator at runtime
+# — so a clone parked anywhere else would need every one of those rewritten.
+# Ignored rather than committed: a symlink in git is a path, and this one points
+# at a directory that exists only after ./start.sh has run.
+/app-with-ai-tanstack
+/enterprise_reporting_tanstack

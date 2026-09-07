@@ -8,6 +8,11 @@
 #   ./start.sh my-app.eml.mmd --profile prod    two database servers
 #   ./start.sh --port 8080                      somewhere other than :80
 #
+# Neither application's source lives here. Both are cloned from their own
+# repositories on every run; pin either to make a build reproducible:
+#
+#   APP_REPO_REF=8f31c7a REPORT_REPO_REF=42a91de ./start.sh
+#
 # When it finishes:
 #
 #   http://localhost/app      the generated application
@@ -68,7 +73,13 @@ APP_NAME="$(basename "$MODEL" | sed 's/\.eml\.mmd$//;s/\.mmd$//')"
 APP_DB_NAME="$(printf '%s' "$APP_NAME" | tr '[:upper:]-' '[:lower:]_' | tr -cd 'a-z0-9_')"
 [[ -n "$APP_DB_NAME" ]] || APP_DB_NAME="appdb"
 
-say "1/6  Checking the model"
+say "1/7  Fetching the applications"
+# Neither application's source is in this repository. Both are cloned from their
+# own repositories at a pinned ref — see common/build/fetch-repos.sh — so that
+# what runs is what those repositories say today.
+bash "${COMMON}/build/fetch-repos.sh"
+
+say "2/7  Checking the model"
 # The checker writes a .error file beside whatever it reads; that is its
 # interface. Removed again unless it was already tracked.
 HAD_ERROR_FILE=""
@@ -79,7 +90,7 @@ if ! (cd "$COMMON" && bun language/checker.ts "../${MODEL}"); then
 fi
 [[ -n "$HAD_ERROR_FILE" ]] || rm -f "${MODEL}.error"
 
-say "2/6  Generating the application"
+say "3/7  Generating the application"
 mkdir -p "$RUNTIME"
 if [[ -n "$KEEP_APP" && -d "$APP_DIR" ]]; then
   echo "  --keep-app: reusing the application already in ${APP_DIR}"
@@ -90,15 +101,15 @@ else
       --stack tanstack-nestjs --force)
 fi
 
-say "3/6  Putting the application on /app"
+say "4/7  Putting the application on /app"
 (cd "$COMMON" && bun build/subpath-overlay.ts --dir "../${APP_DIR}/frontend" --base /app)
 
-say "4/6  Deriving the reporting pack"
+say "5/7  Deriving the reporting pack"
 mkdir -p "$PACK_DIR"
 (cd "$COMMON" && bun build/reporting-pack.ts \
     -i "../${MODEL}" -o "../${PACK_DIR}/reporting-pack.json" --database "$APP_DB_NAME")
 
-say "5/6  Configuration"
+say "6/7  Configuration"
 # Secrets are generated once and then left alone: regenerating ENCRYPTION_KEY
 # would leave every stored data-source password undecryptable, and the failure
 # would look like a broken data source rather than a rotated key.
@@ -146,7 +157,7 @@ sed -i.bak '/^# --- derived/,$d' "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
   fi
 } >> "$ENV_FILE"
 
-say "6/6  Building and starting (profile: ${PROFILE})"
+say "7/7  Building and starting (profile: ${PROFILE})"
 docker compose --env-file "$ENV_FILE" --profile "$PROFILE" up -d --build ${REBUILD:+--no-cache}
 
 ORIGIN="http://localhost"

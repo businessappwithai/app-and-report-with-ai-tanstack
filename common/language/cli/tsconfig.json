@@ -13,7 +13,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "bun-types"]
+    "types": ["node", "bun"]
   },
   "include": ["**/*.ts", "../index.ts"],
   "exclude": ["node_modules", "runtime"]

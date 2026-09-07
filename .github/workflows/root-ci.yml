@@ -39,8 +39,12 @@
 # this folder was first promoted to the root, and running the generator is the
 # only way to notice.
 #
-# `paths:` therefore names those three files as well. A change to them is a
-# change to this folder's dependencies, whichever subfolder it lands in.
+# Those files live in another repository now, checked out beside this one by
+# the step below, so `paths:` cannot watch them: a change to
+# app-with-ai-tanstack does not trigger a run here. `orchestrate.yml` is what
+# notices instead — it builds both repositories at their tips on a weekly
+# schedule, so a move that breaks generation surfaces within the week rather
+# than on whichever pull request next happens to touch common/.
 #
 # A path-filtered run that is skipped reports no status at all, so if these jobs
 # are ever made required checks they need a skip-path fallback too.
@@ -58,11 +62,6 @@ on:
       - "start.sh"
       - "stop.sh"
       - ".github/workflows/root-ci.yml"
-      # The two shipped modules the root CLI imports across the folder
-      # boundary, and the orchestrator it loads at runtime.
-      - "app-with-ai-tanstack/packages/web/src/lib/jdm-converter.ts"
-      - "app-with-ai-tanstack/packages/web/src/lib/mermaid-flowchart-parser.ts"
-      - "app-with-ai-tanstack/packages/generator/src/generators/orchestrator.ts"
   pull_request:
     paths:
       - "common/**"
@@ -70,11 +69,6 @@ on:
       - "start.sh"
       - "stop.sh"
       - ".github/workflows/root-ci.yml"
-      # The two shipped modules the root CLI imports across the folder
-      # boundary, and the orchestrator it loads at runtime.
-      - "app-with-ai-tanstack/packages/web/src/lib/jdm-converter.ts"
-      - "app-with-ai-tanstack/packages/web/src/lib/mermaid-flowchart-parser.ts"
-      - "app-with-ai-tanstack/packages/generator/src/generators/orchestrator.ts"
   workflow_dispatch:
 
 permissions:
@@ -164,6 +158,18 @@ jobs:
       # orchestrator, which needs this workspace's dependencies present: with a
       # node_modules at the repository root and none here, resolution stops at
       # the root and the generate fails on `Cannot find package 'zod'`.
+      # Neither product is vendored here any more; both are fetched from their
+      # own repository. `main` rather than a pin, deliberately: this job is here
+      # to notice when the generator moves under us, and a pinned ref would
+      # notice nothing. The reproducible build is `orchestrate.yml`, which takes
+      # a ref per repository as an input.
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: businessappwithai/app-with-ai-tanstack
+          ref: main
+          path: app-with-ai-tanstack
+
       - name: Install app-with-ai-tanstack
         working-directory: app-with-ai-tanstack
         run: bun install --frozen-lockfile
@@ -214,6 +220,18 @@ jobs:
 
       # The tanstack-nestjs generate this check drives needs that workspace,
       # for the same reason the stacks job does.
+      # Neither product is vendored here any more; both are fetched from their
+      # own repository. `main` rather than a pin, deliberately: this job is here
+      # to notice when the generator moves under us, and a pinned ref would
+      # notice nothing. The reproducible build is `orchestrate.yml`, which takes
+      # a ref per repository as an input.
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: businessappwithai/app-with-ai-tanstack
+          ref: main
+          path: app-with-ai-tanstack
+
       - name: Install app-with-ai-tanstack
         working-directory: app-with-ai-tanstack
         run: bun install --frozen-lockfile

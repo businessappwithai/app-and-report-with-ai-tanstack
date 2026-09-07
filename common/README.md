@@ -4,8 +4,13 @@ Two products and one modelling language.
 
 | | What it is | Where |
 |---|---|---|
-| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | [`app-with-ai-tanstack/`](../app-with-ai-tanstack/) |
-| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | [`enterprise_reporting_tanstack/`](../enterprise_reporting_tanstack/) |
+| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | [businessappwithai/app-with-ai-tanstack](https://github.com/businessappwithai/app-with-ai-tanstack) |
+| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | [businessappwithai/enterprise_reporting_tanstack](https://github.com/businessappwithai/enterprise_reporting_tanstack) |
+
+**Neither product is vendored here.** This repository is the orchestrator: it
+holds the language, the glue and nothing else, and fetches the two products from
+their own repositories when you run it. See *Where the two products come from*
+below.
 
 Both read the same language, and everything that is neither product lives in
 `common/`, one level up from this file:
@@ -28,11 +33,41 @@ Both read the same language, and everything that is neither product lives in
     └── examples/       sample models
 ```
 
-`language/appwithai-language.json` is the canonical definition. Each subfolder
+`language/appwithai-language.json` is the canonical definition. Each product
 keeps its own copy for its own CI — `app-with-ai-tanstack/language/` is
 byte-identical to this one, and `enterprise_reporting_tanstack/language/` is an
 older fork under the name `erdwithai-language.json`. **When any of them disagrees
-with the root copy, the root copy is the language.**
+with this copy, this copy is the language.**
+
+## Where the two products come from
+
+`common/build/fetch-repos.sh` clones both from GitHub into
+`common/.runtime/repos/` and symlinks each to the repository root, so
+`./app-with-ai-tanstack` and `./enterprise_reporting_tanstack` exist as paths
+without either being checked in. `start.sh` runs it as its first step; you can
+also run it alone.
+
+The symlink is what makes this work rather than a plain clone somewhere else.
+Both projects carry relative paths that reach across the folder boundary — the
+`eml` CLI imports two modules out of `app-with-ai-tanstack/packages` and loads
+its generator orchestrator from there at runtime — so the products have to be
+*at* those paths.
+
+Four environment variables choose what is fetched, and pinning them is how a
+build becomes reproducible:
+
+```bash
+APP_REPO_REF=8f31c7a REPORT_REPO_REF=42a91de ./start.sh
+```
+
+| | Default |
+|---|---|
+| `APP_REPO_URL` / `APP_REPO_REF` | the APPWITHAI repository, `main` |
+| `REPORT_REPO_URL` / `REPORT_REPO_REF` | the Enterprise Reporting repository, `main` |
+
+A ref may be a branch, a tag or a commit SHA — the clone is not shallow, so a
+SHA works. If `./app-with-ai-tanstack` is a real directory rather than a symlink
+the script refuses to touch it, so an existing working copy is never clobbered.
 
 ## Running both, from one model
 
@@ -54,11 +89,15 @@ their URL prefix, derives the reporting pack from the model, and brings the stac
 up. `stop.sh` takes it down; `stop.sh --volumes` discards the databases too.
 Everything it writes goes under `common/.runtime/`, which is not checked in.
 
-**The two profiles.** `demo` (the default) runs one Apache AGE PostgreSQL 16
+**The two profiles.** `demo` (the default) runs one pgvector PostgreSQL 16
 holding three databases — the application's, `enterprise_config`, and
 `ers_knowledge`. `prod` runs two servers, each the image its application actually
 asks for: pgvector on PostgreSQL 18 for the generated application, Apache AGE on
-16 for the reporting platform. Under both, the reporting platform's configuration
+16 for the reporting platform. pgvector rather than Apache AGE in the demo is a
+forced choice, not a preference: no published image carries both extensions, and
+pgvector is the one that is not optional — AGE serves only the reporting
+platform's knowledge-graph feature, which is lazy. Under both profiles, the
+reporting platform's configuration
 never shares a database with the application it reports on — regenerating the
 application drops and recreates its tables, and the reports have to survive that.
 
@@ -126,9 +165,10 @@ bun run check            # models, types, lint, every stack, and the reporting S
 | `check:stacks` | All three `--stack` targets actually generate |
 | `check:pack` | Every query in every model's reporting pack runs against a **real** generated schema. Skips itself with a message when no PostgreSQL is reachable |
 
-`check:stacks` is the one that needs `cd app-with-ai-tanstack && bun install`
-first: `tanstack-nestjs` drives the shipped orchestrator, which needs that
-workspace's dependencies. Pass `--skip-heavy` to run only the two
+`check:stacks` is the one that needs both products fetched and
+`cd app-with-ai-tanstack && bun install` run: `tanstack-nestjs` drives the
+shipped orchestrator, which needs that workspace's dependencies.
+`common/build/fetch-repos.sh` does both. Pass `--skip-heavy` to run only the two
 self-contained targets:
 
 ```bash
@@ -137,8 +177,14 @@ bun scripts/check-stacks.ts --skip-heavy
 
 ## CI
 
-`.github/workflows/` holds three workflows, each `paths:`-filtered so a change
-to one area does not run the others' jobs: one per subfolder, and
-`root-language-ci.yml` for everything above them — which is what runs
-`bun run check`. GitHub only executes workflows found in the repository root,
-which is why the subfolders' own `.github/workflows/` files no longer run.
+`.github/workflows/` holds two:
+
+| | |
+|---|---|
+| `root-ci.yml` | On every pull request. Models, types, lint, all three `--stack` targets, and every derived query against a real generated schema. It checks out `app-with-ai-tanstack` at `main` — deliberately not a pin, because the job exists to notice when the generator moves under us |
+| `orchestrate.yml` | The whole thing, for real: check out both products at whatever refs you give it, generate, build the images, bring the stack up and smoke-test `/app` and `/report`. `workflow_dispatch` with a model and a ref per repository, plus a weekly run at both tips |
+
+Since neither product lives here any more, `paths:` cannot watch them: a change
+to `app-with-ai-tanstack` does not trigger a run in this repository. The weekly
+`orchestrate` run is what notices, within the week rather than on whichever pull
+request next happens to touch `common/`.
