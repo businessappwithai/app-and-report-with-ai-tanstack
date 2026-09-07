@@ -134,6 +134,57 @@ entity needs. It does **not** compile workflows or `%%rbac` — see
 `language/README.md` for the coverage table, and the `README.md` the target
 writes beside its output for the integration steps.
 
+## The two shipped CLIs
+
+`eml.ts` above is this repository's CLI. APPWITHAI publishes two binaries of its
+own, and they are not the same entry point — different argument parsing,
+different defaults, and in the WASM case a whole stage afterwards:
+
+```bash
+# The full stack: NestJS on a PostgreSQL server, TanStack Start in front of it
+bun app-with-ai-tanstack/packages/generator/src/cli/generate.ts \
+    generate -i <model> -o ./out --force
+
+# The same pipeline, then an overlay: WebAssembly PostgreSQL in place of `pg`,
+# node in place of bun. No database server at all.
+bun app-with-ai-tanstack/packages/generator/src/cli-wasm/generate.ts \
+    generate -i <model> -o ./out --force
+```
+
+`bun run check:clis` runs both and checks what each produced rather than only
+that it exited 0 — the WASM run has to have written `backend/pg-wasm/`, which is
+the overlay's own footprint and the difference between the overlay running and
+silently doing nothing.
+
+**They do not share a runtime.** `appwithai` runs on bun 1.4 — what
+app-with-ai-tanstack pins, and what the Dockerfiles it generates run on — and
+`appwithai-wasm` on bun 1.3. CI gives each its own job for that reason: a step
+would inherit the other job's bun and go green having proved nothing about the
+runtime it ships on. `check:cli` and `check:cli:wasm` run one each; the check
+always prints the bun a result came from.
+
+Add `--no-setup` to the full-stack CLI to stop after writing files. Without it
+the CLI goes on to install, migrate and seed against a PostgreSQL server on
+127.0.0.1, which is the right default for someone generating an application to
+run and not what a check wants.
+
+## One docker, or two
+
+Both applications run under one `docker-compose.yml`, and the profile decides
+how far apart they sit:
+
+| | |
+|---|---|
+| `demo` (default) | One PostgreSQL 16 holding three databases — the generated application's, the platform's `enterprise_config`, and its `ers_knowledge`. One container, one image to pull |
+| `prod` | A server per application, each the image it actually asks for: pgvector on PostgreSQL 18 for the generated application, Apache AGE on 16 for the reporting platform |
+
+The application containers are separate under both — the generated backend, its
+front end, and the reporting platform are three services either way, behind one
+nginx on port 80. What the profile changes is the databases. And under both, the
+reporting platform's configuration never shares a database with the application
+it reports on: regenerating the application drops and recreates its tables, and
+the reports have to survive that.
+
 ## Reading further
 
 | | |
@@ -154,7 +205,7 @@ from either subfolder's:
 
 ```bash
 bun install
-bun run check            # models, types, lint, every stack, and the reporting SQL
+bun run check            # models, types, lint, every stack, both CLIs, and the reporting SQL
 ```
 
 | | |
@@ -163,6 +214,7 @@ bun run check            # models, types, lint, every stack, and the reporting S
 | `type-check:language` | `language/**` under the strict config |
 | `lint` | Biome over `language/` and `scripts/` |
 | `check:stacks` | All three `--stack` targets actually generate |
+| `check:clis` | Both shipped binaries generate, and wrote what each stage should. `check:cli` / `check:cli:wasm` run one each — CI uses those, so each gets its own bun |
 | `check:pack` | Every query in every model's reporting pack runs against a **real** generated schema. Skips itself with a message when no PostgreSQL is reachable |
 
 `check:stacks` is the one that needs both products fetched and
@@ -181,7 +233,8 @@ bun scripts/check-stacks.ts --skip-heavy
 
 | | |
 |---|---|
-| `root-ci.yml` | On every pull request. Models, types, lint, all three `--stack` targets, and every derived query against a real generated schema. It checks out `app-with-ai-tanstack` at `main` — deliberately not a pin, because the job exists to notice when the generator moves under us |
+| `root-ci.yml` | On every pull request. Models, types, lint, all three `--stack` targets, the `appwithai` CLI, and every derived query against a real generated schema. It checks out `app-with-ai-tanstack` at `main` — deliberately not a pin, because the job exists to notice when the generator moves under us |
+| `root-ci.yml` → `wasm-cli` | The same workflow's own job for `appwithai-wasm`, on bun 1.3 rather than 1.4. It is a job and not a step because a step would inherit the other's bun |
 | `orchestrate.yml` | The whole thing, for real: check out both products at whatever refs you give it, generate, build the images, bring the stack up and smoke-test `/app` and `/report`. `workflow_dispatch` with a model and a ref per repository, plus a weekly run at both tips |
 
 Since neither product lives here any more, `paths:` cannot watch them: a change
