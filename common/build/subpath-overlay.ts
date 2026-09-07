@@ -143,7 +143,8 @@ const PATCHES: Patch[] = [
 ];
 
 /**
- * Rewrite the application's own `fetch("/api/…")` calls to sit under the prefix.
+ * Rewrite the application's own root-absolute `"/api/…"` literals to sit
+ * under the prefix.
  *
  * This is the step that only running the two applications together revealed,
  * and the one without which path-based co-hosting cannot work at all.
@@ -155,10 +156,28 @@ const PATCHES: Patch[] = [
  * side by side they both ask for `/api/...` on the same origin, and no proxy
  * can send one path to two upstreams.
  *
- * So the application that *can* be moved is moved. Only client call sites are
- * touched; `createFileRoute("/api/…")` route definitions are left exactly as
- * they are, because the router already prefixes those with its basepath when it
- * matches a request. Rewriting them too would double the prefix.
+ * So the application that *can* be moved is moved.
+ *
+ * The rule is "every root-absolute `/api/` literal except a route definition",
+ * and it is stated that way round after the narrower one failed. Anchoring on
+ * `fetch(` looked safe and missed most of them, because a request URL is very
+ * often not written inside the `fetch(` call:
+ *
+ *     const url = chartId === "new" ? "/api/charts" : `/api/charts/${chartId}`
+ *     const url = new URL(`/api/charts/${chartId}/data`, location.origin)
+ *     ...createSyncOptions("/api/sync/reports")
+ *     downloadUrl: `/api/report-generation/artifacts/${id}?download=true`
+ *     <CopilotKit runtimeUrl="/api/copilotkit">
+ *
+ * Every one of those is a request that leaves the browser for `/api/…` on a
+ * shared origin, which the proxy hands to the *other* application. The
+ * CopilotKit ones are how this was found: the reporting platform's assistant
+ * was asking the generated application's NestJS backend for a completion.
+ *
+ * `createFileRoute("/api/…")` and `createAPIFileRoute("/api/…")` are the
+ * exception, and the only one: those are route *definitions*, which the router
+ * already prefixes with its basepath when it matches a request. Rewriting them
+ * too would double the prefix.
  *
  * The other application keeps the root, and the proxy routes `/api/` there —
  * see common/docker/nginx/default.conf.
@@ -198,11 +217,18 @@ function rewriteSources(dir: string, rewrite: (src: string) => string): number {
 }
 
 function rewriteApiCalls(dir: string, base: string): number {
-  // `fetch(` then optional space, then a quote or backtick, then /api.
-  // Anchored on `fetch(` so a route definition, a comment or a doc string
-  // mentioning the same path is left alone.
-  const pattern = /(fetch\(\s*)(["'`])\/api\b/g;
-  return rewriteSources(dir, (src) => src.replace(pattern, `$1$2${base}/api`));
+  // A quote or backtick, then /api at a path boundary. The capture keeps
+  // whatever preceded it so the negative lookbehind below can be checked
+  // against real text rather than guessed at.
+  const pattern = /(.{0,24})(["'`])\/api(?=[/"'`?#])/g;
+  // A route definition, and nothing else, is left alone.
+  const routeDef = /create(?:API)?FileRoute\(\s*$/;
+
+  return rewriteSources(dir, (src) =>
+    src.replace(pattern, (whole, before: string, quote: string) =>
+      routeDef.test(before) ? whole : `${before}${quote}${base}/api`
+    )
+  );
 }
 
 /**
@@ -297,7 +323,7 @@ function main(): number {
   if (existsSync(path.join(dir, "vite.config.ts"))) {
     const rewritten = rewriteApiCalls(dir, base);
     if (rewritten > 0) {
-      console.log(`  base ${base}  ${rewritten} file(s) with fetch("/api…") call sites`);
+      console.log(`  base ${base}  ${rewritten} file(s) with "/api…" request URLs`);
       applied += rewritten;
     }
   }
