@@ -33,12 +33,9 @@ function getMastraHeaders(): Record<string, string> {
 
 function getModelConfig() {
   return {
-    reasoningModel:
-      process.env.AI_NL2SQL_MODEL ?? process.env.LLAMA_REASONING_MODEL ?? "qwen3.6",
-    sttModel:
-      process.env.AI_STT_MODEL ?? process.env.LLAMA_STT_MODEL ?? "Qwen3-ASR",
-    ttsModel:
-      process.env.AI_TTS_MODEL ?? process.env.LLAMA_TTS_MODEL ?? "Qwen3-TTS",
+    reasoningModel: process.env.AI_NL2SQL_MODEL ?? process.env.LLAMA_REASONING_MODEL ?? "qwen3.6",
+    sttModel: process.env.AI_STT_MODEL ?? process.env.LLAMA_STT_MODEL ?? "Qwen3-ASR",
+    ttsModel: process.env.AI_TTS_MODEL ?? process.env.LLAMA_TTS_MODEL ?? "Qwen3-TTS",
   };
 }
 
@@ -114,7 +111,9 @@ export async function translateNLToSQLViaMastra(
 /**
  * Validate SQL using Mastra.ai
  */
-export async function validateSQLViaMastra(sql: string): Promise<{ isValid: boolean; errors: string[] }> {
+export async function validateSQLViaMastra(
+  sql: string
+): Promise<{ isValid: boolean; errors: string[] }> {
   const mastraUrl = process.env.MASTRA_URL || "http://localhost:4111";
 
   try {

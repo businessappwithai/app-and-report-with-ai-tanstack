@@ -18,25 +18,25 @@ export function ChartBasicInfo({
 }: ChartBasicInfoProps) {
   return (
     <EditorPanel title="Basic Information" contentClassName="space-y-4">
-        <div>
-          <Label htmlFor="chart-name">Chart Name *</Label>
-          <Input
-            id="chart-name"
-            value={chartName}
-            onChange={(e) => onNameChange(e.target.value)}
-            placeholder="My Sales Chart"
-          />
-        </div>
-        <div>
-          <Label htmlFor="chart-description">Description</Label>
-          <Textarea
-            id="chart-description"
-            value={chartDescription}
-            onChange={(e) => onDescriptionChange(e.target.value)}
-            placeholder="Describe what this chart shows..."
-            rows={3}
-          />
-        </div>
+      <div>
+        <Label htmlFor="chart-name">Chart Name *</Label>
+        <Input
+          id="chart-name"
+          value={chartName}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="My Sales Chart"
+        />
+      </div>
+      <div>
+        <Label htmlFor="chart-description">Description</Label>
+        <Textarea
+          id="chart-description"
+          value={chartDescription}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+          placeholder="Describe what this chart shows..."
+          rows={3}
+        />
+      </div>
     </EditorPanel>
   );
 }

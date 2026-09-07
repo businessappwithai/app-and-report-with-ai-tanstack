@@ -217,9 +217,7 @@ export async function detectRBACDrift(
   }
 
   // Check for newly gained data sources (expansion — informational, not blocking)
-  const newlyAccessible = current.accessibleDataSources.filter(
-    (ds) => !snapshotDsIds.has(ds.id)
-  );
+  const newlyAccessible = current.accessibleDataSources.filter((ds) => !snapshotDsIds.has(ds.id));
   if (newlyAccessible.length > 0) {
     return {
       driftType: "PERMISSION_EXPANDED",

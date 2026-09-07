@@ -21,9 +21,7 @@ const SECURITY_HEADERS: Record<string, string> = {
 const handler = createStartHandler(defaultStreamHandler);
 
 // Start background workers (Trigger.dev or on-premise cron runner)
-initializeWorkers().catch((err) =>
-  console.error("[server] Worker init failed (non-fatal):", err)
-);
+initializeWorkers().catch((err) => console.error("[server] Worker init failed (non-fatal):", err));
 
 // Bootstrap Apache AGE knowledge graph, then sync schema + config metadata
 initGraph()

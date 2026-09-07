@@ -48,7 +48,7 @@ export interface CypherRow {
 export async function cypher(
   cql: string,
   params: Record<string, unknown> = {},
-  aliases: string[] = [],
+  aliases: string[] = []
 ): Promise<CypherRow[]> {
   const pool = getPool();
   const client: PoolClient = await pool.connect();
@@ -87,7 +87,7 @@ export async function cypher(
  */
 export async function cypherWrite(
   cql: string,
-  params: Record<string, unknown> = {},
+  params: Record<string, unknown> = {}
 ): Promise<void> {
   const pool = getPool();
   const client: PoolClient = await pool.connect();
@@ -97,15 +97,16 @@ export async function cypherWrite(
     // Inline parameters into the Cypher string (safe: we own all param values)
     let inlinedCql = cql;
     for (const [key, val] of Object.entries(params)) {
-      const jsonVal = typeof val === "string"
-        ? `'${val.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`
-        : val === null || val === undefined
-        ? "null"
-        : typeof val === "boolean"
-        ? String(val)
-        : typeof val === "number"
-        ? String(val)
-        : `'${String(val).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
+      const jsonVal =
+        typeof val === "string"
+          ? `'${val.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`
+          : val === null || val === undefined
+            ? "null"
+            : typeof val === "boolean"
+              ? String(val)
+              : typeof val === "number"
+                ? String(val)
+                : `'${String(val).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
       inlinedCql = inlinedCql.replace(new RegExp(`\\$${key}\\b`, "g"), jsonVal);
     }
 
@@ -120,7 +121,10 @@ export async function cypherWrite(
  * Run raw PostgreSQL SQL against the graph database (for extension setup,
  * graph creation, and DDL that isn't expressible in Cypher).
  */
-export async function graphSql(sql: string, values: unknown[] = []): Promise<import("pg").QueryResult> {
+export async function graphSql(
+  sql: string,
+  values: unknown[] = []
+): Promise<import("pg").QueryResult> {
   const pool = getPool();
   const client = await pool.connect();
   try {

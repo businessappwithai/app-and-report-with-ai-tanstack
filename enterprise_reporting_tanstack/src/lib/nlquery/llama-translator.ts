@@ -7,14 +7,24 @@
 
 import { createReasoningClient } from "@/lib/voice/llama-client";
 import { isLlamaReasoningAvailable } from "@/lib/voice/llama-client";
+// Re-exported: nl-query.ts and admin-builder.ts both import it from here,
+// which the bundler resolves against this module's exports rather than its
+// imports — the build failed on the name being absent.
+export { isLlamaReasoningAvailable };
 import type { SchemaMetadata } from "@/lib/validation/translation-validator";
 import { validateSQLRBACAccess } from "@/lib/nlquery/sql-ast-validator";
 
 const LLAMA_REASONING_MODEL = process.env.LLAMA_REASONING_MODEL || "qwen3.6";
 
 export interface EnhancedSchemaMetadata extends SchemaMetadata {
-  tableInstructions?: Record<string, { description?: string; instructions?: string; domain?: string }>;
-  fieldInstructions?: Record<string, Record<string, { description?: string; instructions?: string; examples?: string[] }>>;
+  tableInstructions?: Record<
+    string,
+    { description?: string; instructions?: string; domain?: string }
+  >;
+  fieldInstructions?: Record<
+    string,
+    Record<string, { description?: string; instructions?: string; examples?: string[] }>
+  >;
 }
 
 /**
@@ -159,7 +169,10 @@ Generate a SQL SELECT query that answers this question:`;
     }
 
     // Strip markdown code fences if present
-    const stripped = raw.replace(/^```sql\s*/i, "").replace(/```$/, "").trim();
+    const stripped = raw
+      .replace(/^```sql\s*/i, "")
+      .replace(/```$/, "")
+      .trim();
 
     // Extract SELECT statement (handles leading whitespace, CTEs, etc.)
     const sqlMatch = stripped.match(/(WITH\s+.+?SELECT.+|SELECT.+)/is);
@@ -214,7 +227,11 @@ Generate a corrected SQL SELECT query (SELECT only, no mutations):`;
       return null;
     }
 
-    const raw = content.message.content.trim().replace(/^```sql\s*/i, "").replace(/```$/, "").trim();
+    const raw = content.message.content
+      .trim()
+      .replace(/^```sql\s*/i, "")
+      .replace(/```$/, "")
+      .trim();
     const sqlMatch = raw.match(/(WITH\s+.+?SELECT.+|SELECT.+)/is);
     return sqlMatch ? sqlMatch[0].trim() : null;
   } catch (error) {
@@ -226,9 +243,7 @@ Generate a corrected SQL SELECT query (SELECT only, no mutations):`;
 /**
  * Validate generated SQL structure
  */
-function validateGeneratedSQL(
-  sql: string
-): { isValid: boolean; errors: string[] } {
+function validateGeneratedSQL(sql: string): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   // Check if it's a SELECT statement
@@ -237,15 +252,7 @@ function validateGeneratedSQL(
   }
 
   // Check for dangerous keywords
-  const dangerous = [
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "DROP",
-    "ALTER",
-    "CREATE",
-    "TRUNCATE",
-  ];
+  const dangerous = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE"];
   for (const keyword of dangerous) {
     if (sql.toUpperCase().includes(keyword)) {
       errors.push(`Dangerous keyword found: ${keyword}`);
@@ -283,9 +290,10 @@ function buildSchemaContext(schema: EnhancedSchemaMetadata): string {
       const cols = (table.columns ?? [])
         .map((col) => {
           const colName = typeof col === "object" && col !== null ? col.name : String(col);
-          const colType = typeof col === "object" && col !== null && "type" in col
-            ? (col as { name: string; type: string }).type
-            : "text";
+          const colType =
+            typeof col === "object" && col !== null && "type" in col
+              ? (col as { name: string; type: string }).type
+              : "text";
 
           const fieldInstr = schema.fieldInstructions?.[table.name]?.[colName];
           const inlineComment = fieldInstr?.description ? ` -- ${fieldInstr.description}` : "";

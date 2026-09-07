@@ -79,11 +79,7 @@ export const getDataSource = createServerFn({ method: "GET" })
               .catch(console.error);
           }
         } catch (decryptError) {
-          console.error(
-            "Failed to decrypt connection config",
-            { dataSourceId: id },
-            decryptError
-          );
+          console.error("Failed to decrypt connection config", { dataSourceId: id }, decryptError);
           throw decryptError;
         }
 
@@ -335,16 +331,13 @@ export const inspectDataSource = createServerFn({ method: "POST" }).handler(
 
         try {
           // Call the internal API endpoint with proper authentication
-          const response = await fetch(
-            `http://localhost:3000/api/data-sources/${id}/inspect`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Cookie: `session_token=${(await requireAuth()).sessionToken || ""}`,
-              },
-            }
-          );
+          const response = await fetch(`http://localhost:3000/api/data-sources/${id}/inspect`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `session_token=${(await requireAuth()).sessionToken || ""}`,
+            },
+          });
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({
@@ -370,8 +363,7 @@ export const inspectDataSource = createServerFn({ method: "POST" }).handler(
 
           return result;
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Failed to inspect schema";
+          const message = error instanceof Error ? error.message : "Failed to inspect schema";
           console.error("[inspectDataSource] Error:", message, { dataSourceId: id });
           throw error;
         }

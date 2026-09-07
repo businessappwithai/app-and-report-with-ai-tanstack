@@ -41,7 +41,9 @@ export async function cleanupExpiredReportArtifacts(): Promise<{
 
     if (expired.length === 0) return { deletedFiles: 0, deletedRecords: 0, errors: [] };
 
-    console.log(`[report-cleanup] Found ${expired.length} expired artifact(s) older than ${RETENTION_DAYS} days`);
+    console.log(
+      `[report-cleanup] Found ${expired.length} expired artifact(s) older than ${RETENTION_DAYS} days`
+    );
 
     // Delete files from disk
     const deletedDirs = new Set<string>();
@@ -81,14 +83,13 @@ export async function cleanupExpiredReportArtifacts(): Promise<{
     const batchSize = 500;
     for (let i = 0; i < expiredIds.length; i += batchSize) {
       const batch = expiredIds.slice(i, i + batchSize);
-      await (db as any)
-        .deleteFrom("generated_report_artifacts")
-        .where("id", "in", batch)
-        .execute();
+      await (db as any).deleteFrom("generated_report_artifacts").where("id", "in", batch).execute();
       deletedRecords += batch.length;
     }
 
-    console.log(`[report-cleanup] Deleted ${deletedFiles} file(s), ${deletedRecords} record(s), ${errors.length} error(s)`);
+    console.log(
+      `[report-cleanup] Deleted ${deletedFiles} file(s), ${deletedRecords} record(s), ${errors.length} error(s)`
+    );
   } catch (err) {
     errors.push(`Cleanup failed: ${err instanceof Error ? err.message : String(err)}`);
     console.error("[report-cleanup]", errors[errors.length - 1]);

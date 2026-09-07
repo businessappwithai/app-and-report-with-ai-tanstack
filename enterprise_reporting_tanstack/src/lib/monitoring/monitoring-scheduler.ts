@@ -285,7 +285,12 @@ export function startOnPremiseCronRunner(): void {
     now.setUTCSeconds(0, 0);
 
     // ── Monitoring Rules ──
-    let rules: { id: string; cron_expression: string; timezone: string; is_paused: number | boolean }[] = [];
+    let rules: {
+      id: string;
+      cron_expression: string;
+      timezone: string;
+      is_paused: number | boolean;
+    }[] = [];
     try {
       const db = getDb();
       rules = await (db as any)
@@ -307,11 +312,11 @@ export function startOnPremiseCronRunner(): void {
     });
 
     if (dueRules.length > 0) {
-      console.log(`[on-premise-cron] ${dueRules.length} monitoring rule(s) due at ${now.toISOString()}`);
-
-      const { executeMonitoringEvaluation } = await import(
-        "@/lib/jobs/workers/monitoring-worker"
+      console.log(
+        `[on-premise-cron] ${dueRules.length} monitoring rule(s) due at ${now.toISOString()}`
       );
+
+      const { executeMonitoringEvaluation } = await import("@/lib/jobs/workers/monitoring-worker");
 
       await Promise.allSettled(
         dueRules.map(async (rule) => {
@@ -331,7 +336,12 @@ export function startOnPremiseCronRunner(): void {
     }
 
     // ── Scheduled Report Definitions ──
-    let reportDefs: { id: string; schedule_cron: string; schedule_timezone: string; last_run_status: string | null }[] = [];
+    let reportDefs: {
+      id: string;
+      schedule_cron: string;
+      schedule_timezone: string;
+      last_run_status: string | null;
+    }[] = [];
     try {
       const db = getDb();
       reportDefs = await (db as any)
@@ -354,7 +364,9 @@ export function startOnPremiseCronRunner(): void {
     });
 
     if (dueReports.length > 0) {
-      console.log(`[on-premise-cron] ${dueReports.length} scheduled report(s) due at ${now.toISOString()}`);
+      console.log(
+        `[on-premise-cron] ${dueReports.length} scheduled report(s) due at ${now.toISOString()}`
+      );
 
       const { executeReportGeneration } = await import(
         "@/lib/report-generation/report-generation-worker"

@@ -19,7 +19,7 @@ const authSecret = process.env.AUTH_SECRET;
 if (!authSecret || authSecret.length < 32) {
   throw new Error(
     "[FATAL] AUTH_SECRET env var is missing or too short (minimum 32 characters). " +
-    "Set a secure random string: openssl rand -base64 32"
+      "Set a secure random string: openssl rand -base64 32"
   );
 }
 const SECRET = new TextEncoder().encode(authSecret);

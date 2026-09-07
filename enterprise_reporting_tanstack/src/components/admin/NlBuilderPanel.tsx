@@ -181,8 +181,8 @@ export function NlBuilderPanel() {
       if (!preview) return { success: false, error: "Run previewQuery first." };
       setPhase("saving");
 
-      const validFormats = (exportFormats ?? ["csv", "xlsx", "pdf"]).filter((f): f is "csv" | "xlsx" | "pdf" =>
-        ["csv", "xlsx", "pdf"].includes(f)
+      const validFormats = (exportFormats ?? ["csv", "xlsx", "pdf"]).filter(
+        (f): f is "csv" | "xlsx" | "pdf" => ["csv", "xlsx", "pdf"].includes(f)
       );
 
       const result = await nlSaveReport({
@@ -205,7 +205,11 @@ export function NlBuilderPanel() {
       toast.success(`Report "${name}" saved.`);
       queryClient.invalidateQueries({ queryKey: ["reports"] });
 
-      return { success: true, reportId: result.reportId, message: `Report "${name}" created. View it at /reports.` };
+      return {
+        success: true,
+        reportId: result.reportId,
+        message: `Report "${name}" created. View it at /reports.`,
+      };
     },
   });
 
@@ -235,7 +239,8 @@ export function NlBuilderPanel() {
       {
         name: "chartType",
         type: "string",
-        description: "Chart type: bar | line | pie | area | scatter | heatmap | gauge | funnel | sankey | treemap",
+        description:
+          "Chart type: bar | line | pie | area | scatter | heatmap | gauge | funnel | sankey | treemap",
         required: true,
       },
     ],
@@ -250,7 +255,18 @@ export function NlBuilderPanel() {
       if (!preview) return { success: false, error: "Run previewQuery first." };
       setPhase("saving");
 
-      const validTypes = ["bar","line","pie","area","scatter","heatmap","gauge","funnel","sankey","treemap"];
+      const validTypes = [
+        "bar",
+        "line",
+        "pie",
+        "area",
+        "scatter",
+        "heatmap",
+        "gauge",
+        "funnel",
+        "sankey",
+        "treemap",
+      ];
       const safeChartType = validTypes.includes(chartType) ? (chartType as ChartType) : "bar";
 
       const result = await nlSaveChart({
@@ -273,7 +289,11 @@ export function NlBuilderPanel() {
       toast.success(`Chart "${name}" saved.`);
       queryClient.invalidateQueries({ queryKey: ["charts"] });
 
-      return { success: true, chartId: result.chartId, message: `Chart "${name}" created. View it at /charts.` };
+      return {
+        success: true,
+        chartId: result.chartId,
+        message: `Chart "${name}" created. View it at /charts.`,
+      };
     },
   });
 
@@ -288,7 +308,8 @@ export function NlBuilderPanel() {
           NL Report &amp; Chart Builder
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Describe what you want in plain English — the AI generates the SQL and creates the definition for you.
+          Describe what you want in plain English — the AI generates the SQL and creates the
+          definition for you.
         </p>
       </div>
 
@@ -392,7 +413,9 @@ export function NlBuilderPanel() {
                       <BarChart3 className="h-4 w-4 text-purple-500" />
                     )}
                     {item.name}
-                    <Badge variant="outline" className="text-xs capitalize">{item.type}</Badge>
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {item.type}
+                    </Badge>
                   </span>
                   <Button asChild variant="ghost" size="sm">
                     <Link to={item.type === "report" ? "/reports" : "/charts"}>
@@ -411,9 +434,12 @@ export function NlBuilderPanel() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
             <Database className="h-10 w-10 text-muted-foreground/40" />
-            <p className="font-medium text-muted-foreground">Ask the AI assistant to build something</p>
+            <p className="font-medium text-muted-foreground">
+              Ask the AI assistant to build something
+            </p>
             <p className="text-sm text-muted-foreground/70 max-w-xs">
-              Try: "Show me total orders by customer for the last 30 days" — then confirm a name to save it as a report or chart.
+              Try: "Show me total orders by customer for the last 30 days" — then confirm a name to
+              save it as a report or chart.
             </p>
           </CardContent>
         </Card>

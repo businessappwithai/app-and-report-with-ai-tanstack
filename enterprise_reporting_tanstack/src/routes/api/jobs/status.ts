@@ -50,7 +50,10 @@ export const Route = createFileRoute("/api/jobs/status")({
         } catch (error) {
           console.error("Error fetching job status:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch job status" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to fetch job status" },
+            },
             { status: 500 }
           );
         }

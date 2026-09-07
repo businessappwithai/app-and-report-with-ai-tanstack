@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /**
  * Hook for searching collections with instant client-side results
@@ -8,12 +8,12 @@
  * without network latency on each keystroke.
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 export interface SearchOptions<T> {
-  searchFields: (keyof T)[]
-  onLoadComplete?: () => void
-  maxResults?: number
+  searchFields: (keyof T)[];
+  onLoadComplete?: () => void;
+  maxResults?: number;
 }
 
 /**
@@ -24,28 +24,28 @@ export function useCollectionSearch<T extends { id: string }>(
   items: T[],
   options: SearchOptions<T>
 ) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Perform search on items
   const results = useMemo(() => {
     if (!searchQuery.trim()) {
-      return items.slice(0, options.maxResults || 50)
+      return items.slice(0, options.maxResults || 50);
     }
 
-    const query = searchQuery.toLowerCase()
+    const query = searchQuery.toLowerCase();
     const filtered = items.filter((item) => {
       for (const field of options.searchFields) {
-        const value = item[field]
+        const value = item[field];
         if (value && String(value).toLowerCase().includes(query)) {
-          return true
+          return true;
         }
       }
-      return false
-    })
+      return false;
+    });
 
-    return filtered.slice(0, options.maxResults || 50)
-  }, [items, searchQuery, options.searchFields, options.maxResults])
+    return filtered.slice(0, options.maxResults || 50);
+  }, [items, searchQuery, options.searchFields, options.maxResults]);
 
   return {
     searchQuery,
@@ -53,7 +53,7 @@ export function useCollectionSearch<T extends { id: string }>(
     results,
     isLoading,
     resultCount: results.length,
-  }
+  };
 }
 
 /**
@@ -61,9 +61,9 @@ export function useCollectionSearch<T extends { id: string }>(
  */
 export function useReportsSearch(reports: any[]) {
   return useCollectionSearch(reports, {
-    searchFields: ['name', 'description'],
+    searchFields: ["name", "description"],
     maxResults: 50,
-  })
+  });
 }
 
 /**
@@ -71,9 +71,9 @@ export function useReportsSearch(reports: any[]) {
  */
 export function useChartsSearch(charts: any[]) {
   return useCollectionSearch(charts, {
-    searchFields: ['name', 'description', 'chartType'],
+    searchFields: ["name", "description", "chartType"],
     maxResults: 50,
-  })
+  });
 }
 
 /**
@@ -81,7 +81,7 @@ export function useChartsSearch(charts: any[]) {
  */
 export function useDashboardsSearch(dashboards: any[]) {
   return useCollectionSearch(dashboards, {
-    searchFields: ['name', 'description'],
+    searchFields: ["name", "description"],
     maxResults: 50,
-  })
+  });
 }

@@ -71,7 +71,10 @@ export const Route = createFileRoute("/api/reports/$id/data")({
 
           if (!dataSource) {
             return json(
-              { success: false, error: { code: "NOT_FOUND", message: "Data source not found or inactive" } },
+              {
+                success: false,
+                error: { code: "NOT_FOUND", message: "Data source not found or inactive" },
+              },
               { status: 404 }
             );
           }

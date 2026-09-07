@@ -384,7 +384,6 @@ function DataSourcesContent() {
   };
   const testDisabled = isTestConnectionDisabled({ state: formState, testing: testingConnection });
 
-
   // ── CopilotKit ─────────────────────────────────────────────────────────
   useCopilotReadable({
     description: "Current data source connections configured in the system",
@@ -400,9 +399,16 @@ function DataSourcesContent() {
 
   useCopilotAction({
     name: "openAddDataSourceForm",
-    description: "Open the Add Data Source dialog, optionally pre-explaining what fields to fill in for a specific database type.",
+    description:
+      "Open the Add Data Source dialog, optionally pre-explaining what fields to fill in for a specific database type.",
     parameters: [
-      { name: "dbType", type: "string", description: "Database type: pg (PostgreSQL), mysql (MySQL/MariaDB), mssql (SQL Server), sqlite3", required: false },
+      {
+        name: "dbType",
+        type: "string",
+        description:
+          "Database type: pg (PostgreSQL), mysql (MySQL/MariaDB), mssql (SQL Server), sqlite3",
+        required: false,
+      },
       { name: "host", type: "string", description: "Database host", required: false },
       { name: "port", type: "string", description: "Database port", required: false },
       { name: "database", type: "string", description: "Database name", required: false },
@@ -425,15 +431,23 @@ function DataSourcesContent() {
   });
   useCopilotAction({
     name: "explainDatabaseSetup",
-    description: "Explain what connection fields are required for a specific database type, and any tips for connecting.",
+    description:
+      "Explain what connection fields are required for a specific database type, and any tips for connecting.",
     parameters: [
-      { name: "dbType", type: "string", description: "pg, mysql, mssql, or sqlite3", required: true },
+      {
+        name: "dbType",
+        type: "string",
+        description: "pg, mysql, mssql, or sqlite3",
+        required: true,
+      },
     ],
     handler: async ({ dbType }) => {
       const guides: Record<string, string> = {
         pg: "PostgreSQL: host (e.g. localhost), port (5432), database name, user, password. For cloud (Supabase, Neon, RDS), use the connection string option.",
-        mysql: "MySQL/MariaDB: host, port (3306), database, user, password. Ensure the user has SELECT privileges on the target database.",
-        mssql: "SQL Server: host, port (1433), database, user, password. Use Windows Auth by leaving user/password empty if server allows it.",
+        mysql:
+          "MySQL/MariaDB: host, port (3306), database, user, password. Ensure the user has SELECT privileges on the target database.",
+        mssql:
+          "SQL Server: host, port (1433), database, user, password. Use Windows Auth by leaving user/password empty if server allows it.",
         sqlite3: "SQLite: upload the .db file using the file upload option. No host/user needed.",
       };
       return guides[dbType] || "Supported types: pg, mysql, mssql, sqlite3.";
@@ -441,9 +455,15 @@ function DataSourcesContent() {
   });
   useCopilotAction({
     name: "inspectDataSource",
-    description: "Trigger schema inspection for a data source to update table/column metadata used by SQL editor and NL query.",
+    description:
+      "Trigger schema inspection for a data source to update table/column metadata used by SQL editor and NL query.",
     parameters: [
-      { name: "dataSourceId", type: "string", description: "ID of the data source to inspect", required: true },
+      {
+        name: "dataSourceId",
+        type: "string",
+        description: "ID of the data source to inspect",
+        required: true,
+      },
     ],
     handler: async ({ dataSourceId }) => {
       setInspectingDs(dataSourceId);
@@ -466,347 +486,353 @@ function DataSourcesContent() {
 
   return (
     <CopilotSidebar
-      instructions='You are a database connection assistant. Help users connect and manage data sources.\n\nWORKFLOW:\n1. When a user wants to add a data source, call explainDatabaseSetup to tell them what fields they need, then openAddDataSourceForm with the pre-filled values.\n2. After a data source is added, suggest running inspectDataSource to load schema metadata.\n3. Answer questions about connection troubleshooting (firewall rules, credentials, SSL, etc.).\n\nTIPS:\n- PostgreSQL default port: 5432\n- MySQL default port: 3306\n- SQL Server default port: 1433\n- For cloud databases, recommend using the connection string option.'
+      instructions="You are a database connection assistant. Help users connect and manage data sources.\n\nWORKFLOW:\n1. When a user wants to add a data source, call explainDatabaseSetup to tell them what fields they need, then openAddDataSourceForm with the pre-filled values.\n2. After a data source is added, suggest running inspectDataSource to load schema metadata.\n3. Answer questions about connection troubleshooting (firewall rules, credentials, SSL, etc.).\n\nTIPS:\n- PostgreSQL default port: 5432\n- MySQL default port: 3306\n- SQL Server default port: 1433\n- For cloud databases, recommend using the connection string option."
       defaultOpen={false}
       labels={{
         title: "Data Source Assistant",
-        initial: "I can help you connect a new database, troubleshoot connections, or explain what fields to fill in.",
+        initial:
+          "I can help you connect a new database, troubleshoot connections, or explain what fields to fill in.",
         placeholder: "e.g. How do I connect a PostgreSQL database on AWS RDS?",
       }}
     >
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Data Sources" description="Manage database connections for reports and queries" />
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <PageHeader
+            title="Data Sources"
+            description="Manage database connections for reports and queries"
+          />
 
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Data Source
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add Data Source</DialogTitle>
-              <DialogDescription>
-                Configure a new database connection for your reports.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <ConnectionFormFields
-                state={formState}
-                onChange={(patch) => setFormState((prev) => ({ ...prev, ...patch }))}
-                connectionTestResult={connectionTestResult}
-                idPrefix="create-"
-                {...sharedFileProps}
-              />
-            </div>
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              {connectionTestResult?.success && !formState.name && (
-                <div className="w-full flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 rounded-md">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>
-                    Connection verified! Please enter a Name above to enable the Create button.
-                  </span>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Data Source
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add Data Source</DialogTitle>
+                <DialogDescription>
+                  Configure a new database connection for your reports.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <ConnectionFormFields
+                  state={formState}
+                  onChange={(patch) => setFormState((prev) => ({ ...prev, ...patch }))}
+                  connectionTestResult={connectionTestResult}
+                  idPrefix="create-"
+                  {...sharedFileProps}
+                />
+              </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                {connectionTestResult?.success && !formState.name && (
+                  <div className="w-full flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 rounded-md">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>
+                      Connection verified! Please enter a Name above to enable the Create button.
+                    </span>
+                  </div>
+                )}
+                {connectionTestResult?.success && formState.name && (
+                  <div className="w-full flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/10 px-3 py-2 rounded-md">
+                    <Check className="h-4 w-4" />
+                    <span>All set! Click Create to add your data source.</span>
+                  </div>
+                )}
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={testConnection}
+                    disabled={testDisabled}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {testingConnection && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Test Connection
+                  </Button>
+                  <Button
+                    onClick={() => createMutation.mutate()}
+                    disabled={
+                      !formState.name || !connectionTestResult?.success || createMutation.isPending
+                    }
+                    className="flex-1 sm:flex-none"
+                  >
+                    {createMutation.isPending ? "Creating..." : "Create"}
+                  </Button>
                 </div>
-              )}
-              {connectionTestResult?.success && formState.name && (
-                <div className="w-full flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/10 px-3 py-2 rounded-md">
-                  <Check className="h-4 w-4" />
-                  <span>All set! Click Create to add your data source.</span>
-                </div>
-              )}
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  onClick={testConnection}
-                  disabled={testDisabled}
-                  className="flex-1 sm:flex-none"
-                >
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Data Source</DialogTitle>
+                <DialogDescription>
+                  Update the configuration for {editingDataSource?.name}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <ConnectionFormFields
+                  state={formState}
+                  onChange={(patch) => setFormState((prev) => ({ ...prev, ...patch }))}
+                  disableType
+                  passwordPlaceholder="Leave empty to keep current"
+                  connectionTestResult={connectionTestResult}
+                  idPrefix="edit-"
+                  {...sharedFileProps}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={testConnection} disabled={testDisabled}>
                   {testingConnection && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Test Connection
                 </Button>
                 <Button
-                  onClick={() => createMutation.mutate()}
-                  disabled={
-                    !formState.name || !connectionTestResult?.success || createMutation.isPending
-                  }
-                  className="flex-1 sm:flex-none"
+                  variant="outline"
+                  onClick={() => {
+                    setEditDialogOpen(false);
+                    resetForm();
+                    setEditingDataSource(null);
+                  }}
                 >
-                  {createMutation.isPending ? "Creating..." : "Create"}
+                  Cancel
                 </Button>
+                <Button
+                  onClick={() => updateMutation.mutate()}
+                  disabled={!formState.name || updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? "Updating..." : "Update"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Data Source</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete &ldquo;{dataSourceToDelete?.name}&rdquo;? This
+                  action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                {usageInfo &&
+                (usageInfo.queries > 0 || usageInfo.reports > 0 || usageInfo.charts > 0) ? (
+                  <div className="p-4 rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-red-800 dark:text-red-400">
+                          Cannot Delete Data Source
+                        </h4>
+                        <p className="text-sm text-red-700 dark:text-red-400 mt-2">
+                          This data source is currently in use:
+                        </p>
+                        <ul className="text-sm text-red-700 dark:text-red-400 mt-1 list-disc list-inside">
+                          {usageInfo.queries > 0 && (
+                            <li>
+                              {usageInfo.queries} saved quer{usageInfo.queries === 1 ? "y" : "ies"}
+                            </li>
+                          )}
+                          {usageInfo.reports > 0 && (
+                            <li>
+                              {usageInfo.reports} report{usageInfo.reports === 1 ? "" : "s"}
+                            </li>
+                          )}
+                          {usageInfo.charts > 0 && (
+                            <li>
+                              {usageInfo.charts} chart{usageInfo.charts === 1 ? "" : "s"}
+                            </li>
+                          )}
+                        </ul>
+                        <p className="text-sm text-red-700 dark:text-red-400 mt-2">
+                          Please delete or update these items first.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-400">
+                          Warning
+                        </h4>
+                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                          This will soft delete the data source. It will be marked as deleted but
+                          will remain in the database for audit purposes.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setDataSourceToDelete(null);
+                    setUsageInfo(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (!dataSourceToDelete) return;
+                    setIsDeleting(true);
+                    deleteMutation.mutate(dataSourceToDelete.id);
+                  }}
+                  disabled={
+                    !!(
+                      usageInfo &&
+                      (usageInfo.queries > 0 || usageInfo.reports > 0 || usageInfo.charts > 0)
+                    ) || isDeleting
+                  }
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Data Source</DialogTitle>
-              <DialogDescription>
-                Update the configuration for {editingDataSource?.name}.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <ConnectionFormFields
-                state={formState}
-                onChange={(patch) => setFormState((prev) => ({ ...prev, ...patch }))}
-                disableType
-                passwordPlaceholder="Leave empty to keep current"
-                connectionTestResult={connectionTestResult}
-                idPrefix="edit-"
-                {...sharedFileProps}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={testConnection} disabled={testDisabled}>
-                {testingConnection && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Test Connection
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditDialogOpen(false);
-                  resetForm();
-                  setEditingDataSource(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => updateMutation.mutate()}
-                disabled={!formState.name || updateMutation.isPending}
-              >
-                {updateMutation.isPending ? "Updating..." : "Update"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Data Source</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete &ldquo;{dataSourceToDelete?.name}&rdquo;? This
-                action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              {usageInfo &&
-              (usageInfo.queries > 0 || usageInfo.reports > 0 || usageInfo.charts > 0) ? (
-                <div className="p-4 rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-semibold text-red-800 dark:text-red-400">
-                        Cannot Delete Data Source
-                      </h4>
-                      <p className="text-sm text-red-700 dark:text-red-400 mt-2">
-                        This data source is currently in use:
-                      </p>
-                      <ul className="text-sm text-red-700 dark:text-red-400 mt-1 list-disc list-inside">
-                        {usageInfo.queries > 0 && (
-                          <li>
-                            {usageInfo.queries} saved quer{usageInfo.queries === 1 ? "y" : "ies"}
-                          </li>
-                        )}
-                        {usageInfo.reports > 0 && (
-                          <li>
-                            {usageInfo.reports} report{usageInfo.reports === 1 ? "" : "s"}
-                          </li>
-                        )}
-                        {usageInfo.charts > 0 && (
-                          <li>
-                            {usageInfo.charts} chart{usageInfo.charts === 1 ? "" : "s"}
-                          </li>
-                        )}
-                      </ul>
-                      <p className="text-sm text-red-700 dark:text-red-400 mt-2">
-                        Please delete or update these items first.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-400">
-                        Warning
-                      </h4>
-                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                        This will soft delete the data source. It will be marked as deleted but will
-                        remain in the database for audit purposes.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDeleteDialogOpen(false);
-                  setDataSourceToDelete(null);
-                  setUsageInfo(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (!dataSourceToDelete) return;
-                  setIsDeleting(true);
-                  deleteMutation.mutate(dataSourceToDelete.id);
-                }}
-                disabled={
-                  !!(
-                    usageInfo &&
-                    (usageInfo.queries > 0 || usageInfo.reports > 0 || usageInfo.charts > 0)
-                  ) || isDeleting
-                }
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            All Data Sources
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading data sources...</div>
-          ) : dataSources?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No data sources configured. Add your first data source to get started.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-[180px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dataSources?.map((ds) => (
-                  <TableRow key={ds.id} className={ds.is_deleted ? "opacity-60" : ""}>
-                    <TableCell className="font-medium">
-                      {ds.name}
-                      {!!ds.is_deleted && (
-                        <Badge variant="destructive" className="ml-2 text-xs">
-                          Deleted
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{ds.client_type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-tremor-content">{ds.description || "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            ds.is_deleted ? "secondary" : ds.is_active ? "default" : "secondary"
-                          }
-                        >
-                          {ds.is_deleted
-                            ? "Inactive"
-                            : ds.is_active
-                              ? "Connected"
-                              : "No Connection"}
-                        </Badge>
-                        {!!ds.is_inspected && !ds.is_deleted && (
-                          <Badge variant="outline" className="text-emerald-600 border-emerald-600">
-                            <Check className="h-3 w-3 mr-1" />
-                            Inspected
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              All Data Sources
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading data sources...</div>
+            ) : dataSources?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No data sources configured. Add your first data source to get started.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="w-[180px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dataSources?.map((ds) => (
+                    <TableRow key={ds.id} className={ds.is_deleted ? "opacity-60" : ""}>
+                      <TableCell className="font-medium">
+                        {ds.name}
+                        {!!ds.is_deleted && (
+                          <Badge variant="destructive" className="ml-2 text-xs">
+                            Deleted
                           </Badge>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-tremor-content">
-                      {formatDateTime(ds.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {!!ds.is_active && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setInspectingDs(ds.id);
-                              inspectMutation.mutate(ds.id);
-                            }}
-                            disabled={inspectingDs === ds.id}
-                            title="Import schema to enable entity metadata"
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{ds.client_type}</Badge>
+                      </TableCell>
+                      <TableCell className="text-tremor-content">{ds.description || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              ds.is_deleted ? "secondary" : ds.is_active ? "default" : "secondary"
+                            }
                           >
-                            {inspectingDs === ds.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        {!!ds.is_active && (
-                          <Link to="/metadata/entities" search={{ data_source_id: ds.id }}>
+                            {ds.is_deleted
+                              ? "Inactive"
+                              : ds.is_active
+                                ? "Connected"
+                                : "No Connection"}
+                          </Badge>
+                          {!!ds.is_inspected && !ds.is_deleted && (
+                            <Badge
+                              variant="outline"
+                              className="text-emerald-600 border-emerald-600"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Inspected
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-tremor-content">
+                        {formatDateTime(ds.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {!!ds.is_active && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Manage Entity Metadata"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => {
+                                setInspectingDs(ds.id);
+                                inspectMutation.mutate(ds.id);
+                              }}
+                              disabled={inspectingDs === ds.id}
+                              title="Import schema to enable entity metadata"
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                             >
-                              <Settings className="h-4 w-4" />
+                              {inspectingDs === ds.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4" />
+                              )}
                             </Button>
-                          </Link>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(ds)}
-                          title="Edit data source"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(ds)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          title="Delete data source"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                          )}
+                          {!!ds.is_active && (
+                            <Link to="/metadata/entities" search={{ data_source_id: ds.id }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Manage Entity Metadata"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(ds)}
+                            title="Edit data source"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(ds)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete data source"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </CopilotSidebar>
   );
 }
-
 
 function DataSourcesPage() {
   return (

@@ -60,7 +60,7 @@ export const Route = createFileRoute("/api/nl-query/execute")({
             query,
             sql,
             session.user.id,
-            dataSource as unknown as DataSource,
+            dataSource as unknown as DataSource
           );
 
           // Store successful query in RAG for future similarity search
@@ -75,8 +75,8 @@ export const Route = createFileRoute("/api/nl-query/execute")({
                   result.generatedSql,
                   null,
                   result.queryResults!.totalRows,
-                  result.queryResults!.executionTimeMs,
-                ),
+                  result.queryResults!.executionTimeMs
+                )
               )
               .catch((e) => console.warn("[RAG] Failed to store query embedding:", e));
           }

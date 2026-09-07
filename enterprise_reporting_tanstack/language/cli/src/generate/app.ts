@@ -196,7 +196,7 @@ function generateReadme(model: EmlModel, appName: string): string {
   return `# ${appName}
 
 Generated from an **EML** model by the Enterprise Reporting EML CLI
-(`--stack node-rest`). Zero runtime dependencies — it runs on plain Node (or Bun).
+(\`--stack node-rest\`). Zero runtime dependencies — it runs on plain Node (or Bun).
 
 ## Run
 

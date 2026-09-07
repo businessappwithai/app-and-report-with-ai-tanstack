@@ -230,7 +230,10 @@ function PermissionsManagementPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Permission Management" description="Manage resource-level permissions for roles" />
+        <PageHeader
+          title="Permission Management"
+          description="Manage resource-level permissions for roles"
+        />
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Assign Permission
@@ -394,7 +397,9 @@ function PermissionsManagementPage() {
                     <SelectItem key={level.value} value={level.value}>
                       <div className="flex flex-col">
                         <span>{level.label}</span>
-                        <span className="text-tremor-label text-tremor-content">{level.description}</span>
+                        <span className="text-tremor-label text-tremor-content">
+                          {level.description}
+                        </span>
                       </div>
                     </SelectItem>
                   ))}

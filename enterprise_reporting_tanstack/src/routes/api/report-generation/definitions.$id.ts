@@ -62,7 +62,9 @@ export const Route = createFileRoute("/api/report-generation/definitions/$id")({
             return json({ error: "Report is already running" }, { status: 409 });
           }
 
-          const { executeReportGeneration } = await import("@/lib/report-generation/report-generation-worker");
+          const { executeReportGeneration } = await import(
+            "@/lib/report-generation/report-generation-worker"
+          );
           const result = await executeReportGeneration({
             reportDefinitionId: id,
             triggeredBy: "manual",
@@ -75,9 +77,12 @@ export const Route = createFileRoute("/api/report-generation/definitions/$id")({
         const updates: Record<string, unknown> = {};
 
         if (body.scheduleCron !== undefined) updates.schedule_cron = body.scheduleCron;
-        if (body.scheduleEnabled !== undefined) updates.schedule_enabled = body.scheduleEnabled ? 1 : 0;
-        if (body.recipients !== undefined) updates.recipient_config = JSON.stringify(body.recipients);
-        if (body.outputFormats !== undefined) updates.output_formats = JSON.stringify(body.outputFormats);
+        if (body.scheduleEnabled !== undefined)
+          updates.schedule_enabled = body.scheduleEnabled ? 1 : 0;
+        if (body.recipients !== undefined)
+          updates.recipient_config = JSON.stringify(body.recipients);
+        if (body.outputFormats !== undefined)
+          updates.output_formats = JSON.stringify(body.outputFormats);
         if (body.title !== undefined) updates.title = body.title;
 
         if (Object.keys(updates).length > 0) {
@@ -105,10 +110,7 @@ export const Route = createFileRoute("/api/report-generation/definitions/$id")({
         const db = getDb();
         const { id } = params;
 
-        await (db as any)
-          .deleteFrom("nl_report_definitions")
-          .where("id", "=", id)
-          .execute();
+        await (db as any).deleteFrom("nl_report_definitions").where("id", "=", id).execute();
 
         return json({ success: true });
       },

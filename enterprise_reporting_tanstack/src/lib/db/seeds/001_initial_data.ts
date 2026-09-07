@@ -6,32 +6,90 @@ import { getDb } from "../config";
 const ADMIN_PERMISSIONS = JSON.stringify([
   "*:*",
   "admin:*",
-  "data_source:read", "data_source:write", "data_source:edit",
-  "data_source:delete", "data_source:view", "data_source:execute", "data_source:*",
-  "query:read", "query:write", "query:edit",
-  "query:delete", "query:view", "query:execute", "query:*",
-  "report:read", "report:write", "report:edit",
-  "report:delete", "report:view", "report:export", "report:*",
-  "chart:read", "chart:write", "chart:edit",
-  "chart:delete", "chart:view", "chart:*",
-  "dashboard:read", "dashboard:write", "dashboard:edit",
-  "dashboard:delete", "dashboard:view", "dashboard:*",
-  "job:read", "job:write", "job:edit",
-  "job:delete", "job:view", "job:execute", "job:*",
-  "user:read", "user:write", "user:edit",
-  "user:delete", "user:view", "user:*",
-  "role:read", "role:write", "role:edit",
-  "role:delete", "role:view", "role:*",
-  "queue:*", "filter:*",
-  "metadata:read", "metadata:write", "metadata:edit",
-  "metadata:delete", "metadata:view", "metadata:*",
-  "log:read", "log:view", "log:*",
-  "notification:read", "notification:write", "notification:view", "notification:*",
-  "setting:read", "setting:write", "setting:edit", "setting:view", "setting:*",
-  "email_template:read", "email_template:write", "email_template:edit",
-  "email_template:delete", "email_template:view", "email_template:*",
-  "dataset:read", "dataset:write", "dataset:edit",
-  "dataset:delete", "dataset:view", "dataset:*",
+  "data_source:read",
+  "data_source:write",
+  "data_source:edit",
+  "data_source:delete",
+  "data_source:view",
+  "data_source:execute",
+  "data_source:*",
+  "query:read",
+  "query:write",
+  "query:edit",
+  "query:delete",
+  "query:view",
+  "query:execute",
+  "query:*",
+  "report:read",
+  "report:write",
+  "report:edit",
+  "report:delete",
+  "report:view",
+  "report:export",
+  "report:*",
+  "chart:read",
+  "chart:write",
+  "chart:edit",
+  "chart:delete",
+  "chart:view",
+  "chart:*",
+  "dashboard:read",
+  "dashboard:write",
+  "dashboard:edit",
+  "dashboard:delete",
+  "dashboard:view",
+  "dashboard:*",
+  "job:read",
+  "job:write",
+  "job:edit",
+  "job:delete",
+  "job:view",
+  "job:execute",
+  "job:*",
+  "user:read",
+  "user:write",
+  "user:edit",
+  "user:delete",
+  "user:view",
+  "user:*",
+  "role:read",
+  "role:write",
+  "role:edit",
+  "role:delete",
+  "role:view",
+  "role:*",
+  "queue:*",
+  "filter:*",
+  "metadata:read",
+  "metadata:write",
+  "metadata:edit",
+  "metadata:delete",
+  "metadata:view",
+  "metadata:*",
+  "log:read",
+  "log:view",
+  "log:*",
+  "notification:read",
+  "notification:write",
+  "notification:view",
+  "notification:*",
+  "setting:read",
+  "setting:write",
+  "setting:edit",
+  "setting:view",
+  "setting:*",
+  "email_template:read",
+  "email_template:write",
+  "email_template:edit",
+  "email_template:delete",
+  "email_template:view",
+  "email_template:*",
+  "dataset:read",
+  "dataset:write",
+  "dataset:edit",
+  "dataset:delete",
+  "dataset:view",
+  "dataset:*",
 ]);
 
 async function upsertRole(
@@ -305,18 +363,32 @@ export async function seed(): Promise<void> {
   // ── Roles ────────────────────────────────────────────────────────────────
   const adminRoleId = await upsertRole(db, "Admin", "Full system access", ADMIN_PERMISSIONS, now);
   const analystRoleId = await upsertRole(
-    db, "Analyst", "Can create and execute reports, charts, and queries",
+    db,
+    "Analyst",
+    "Can create and execute reports, charts, and queries",
     JSON.stringify([
-      "data_source:view", "query:*", "report:*", "chart:*",
-      "dashboard:view", "dashboard:edit", "job:execute", "job:view",
+      "data_source:view",
+      "query:*",
+      "report:*",
+      "chart:*",
+      "dashboard:view",
+      "dashboard:edit",
+      "job:execute",
+      "job:view",
     ]),
     now
   );
   await upsertRole(
-    db, "Viewer", "View-only access to reports and dashboards",
+    db,
+    "Viewer",
+    "View-only access to reports and dashboards",
     JSON.stringify([
-      "data_source:view", "query:view", "report:view",
-      "report:export", "chart:view", "dashboard:view",
+      "data_source:view",
+      "query:view",
+      "report:view",
+      "report:export",
+      "chart:view",
+      "dashboard:view",
     ]),
     now
   );
@@ -325,7 +397,13 @@ export async function seed(): Promise<void> {
   const adminUserId = await upsertUser(db, "admin@admin.com", "System Administrator", "admin", now);
   await assignRoleIfMissing(db, adminUserId, adminRoleId, now);
 
-  const analystUserId = await upsertUser(db, "analyst@example.com", "Demo Analyst", "analyst123", now);
+  const analystUserId = await upsertUser(
+    db,
+    "analyst@example.com",
+    "Demo Analyst",
+    "analyst123",
+    now
+  );
   await assignRoleIfMissing(db, analystUserId, analystRoleId, now);
 
   // ── Demo data source ─────────────────────────────────────────────────────
@@ -338,7 +416,8 @@ export async function seed(): Promise<void> {
     "Shows the top 10 actors who have appeared in the most films",
     dataSourceId,
     "SELECT\n  a.first_name,\n  a.last_name,\n  COUNT(fa.film_id) as film_count\nFROM actor a\nJOIN film_actor fa ON a.actor_id = fa.actor_id\nGROUP BY a.actor_id, a.first_name, a.last_name\nORDER BY film_count DESC\nLIMIT 10;",
-    adminUserId, now
+    adminUserId,
+    now
   );
   await upsertQuery(
     db,
@@ -346,7 +425,8 @@ export async function seed(): Promise<void> {
     "Total revenue grouped by month and year",
     dataSourceId,
     "SELECT\n  strftime('%Y-%m', p.payment_date) as month,\n  SUM(p.amount) as total_revenue,\n  COUNT(p.payment_id) as payment_count\nFROM payment p\nGROUP BY month\nORDER BY month DESC\nLIMIT 24;",
-    adminUserId, now
+    adminUserId,
+    now
   );
   await upsertQuery(
     db,
@@ -354,39 +434,81 @@ export async function seed(): Promise<void> {
     "Number of films in each category",
     dataSourceId,
     "SELECT\n  c.name as category,\n  COUNT(fc.film_id) as film_count\nFROM category c\nJOIN film_category fc ON c.category_id = fc.category_id\nGROUP BY c.category_id, c.name\nORDER BY film_count DESC;",
-    adminUserId, now
+    adminUserId,
+    now
   );
 
   // ── Default charts ───────────────────────────────────────────────────────
   const chartId0 = await upsertChart(
-    db, "Top Products Bar Chart", "Bar chart showing top products by sales", "bar",
-    { title: { text: "Top 10 Products by Sales" }, legend: { show: true, position: "bottom" }, tooltip: { enabled: true } },
-    { xAxis: { field: "product_name", label: "Product" }, yAxis: [{ field: "revenue", label: "Revenue" }] },
-    adminUserId, now
+    db,
+    "Top Products Bar Chart",
+    "Bar chart showing top products by sales",
+    "bar",
+    {
+      title: { text: "Top 10 Products by Sales" },
+      legend: { show: true, position: "bottom" },
+      tooltip: { enabled: true },
+    },
+    {
+      xAxis: { field: "product_name", label: "Product" },
+      yAxis: [{ field: "revenue", label: "Revenue" }],
+    },
+    adminUserId,
+    now
   );
   const chartId1 = await upsertChart(
-    db, "Regional Comparison", "Comparison of sales across regions", "bar",
+    db,
+    "Regional Comparison",
+    "Comparison of sales across regions",
+    "bar",
     { title: { text: "Sales by Region" }, legend: { show: true } },
     { xAxis: { field: "region", label: "Region" }, yAxis: [{ field: "sales", label: "Sales" }] },
-    adminUserId, now
+    adminUserId,
+    now
   );
   const chartId2 = await upsertChart(
-    db, "Regional Sales Distribution", "Distribution of sales across regions", "pie",
+    db,
+    "Regional Sales Distribution",
+    "Distribution of sales across regions",
+    "pie",
     { title: { text: "Sales Distribution" } },
     { xAxis: { field: "region", label: "Region" }, yAxis: [{ field: "sales", label: "Sales" }] },
-    adminUserId, now
+    adminUserId,
+    now
   );
   const chartId3 = await upsertChart(
-    db, "Sales Trend", "Sales trend over time", "line",
+    db,
+    "Sales Trend",
+    "Sales trend over time",
+    "line",
     { title: { text: "Sales Trend Over Time" }, animation: true },
     { xAxis: { field: "month", label: "Month" }, yAxis: [{ field: "sales", label: "Sales" }] },
-    adminUserId, now
+    adminUserId,
+    now
   );
 
   // ── Default dashboards ───────────────────────────────────────────────────
-  const dashId0 = await upsertDashboard(db, "Executive Dashboard", "High-level business metrics", adminUserId, now);
-  const dashId1 = await upsertDashboard(db, "Sales Dashboard", "Sales metrics and KPIs", adminUserId, now);
-  const dashId2 = await upsertDashboard(db, "Product Performance", "Product-level analytics", adminUserId, now);
+  const dashId0 = await upsertDashboard(
+    db,
+    "Executive Dashboard",
+    "High-level business metrics",
+    adminUserId,
+    now
+  );
+  const dashId1 = await upsertDashboard(
+    db,
+    "Sales Dashboard",
+    "Sales metrics and KPIs",
+    adminUserId,
+    now
+  );
+  const dashId2 = await upsertDashboard(
+    db,
+    "Product Performance",
+    "Product-level analytics",
+    adminUserId,
+    now
+  );
 
   console.log("Seed completed (non-destructive — user data preserved)");
   console.log("=================================");

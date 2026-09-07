@@ -1,7 +1,12 @@
 import type { AlertChannel, ThresholdOperator } from "@/types/monitoring";
 
 export type ADKIntentType = "monitoring_rule" | "report_generate" | "alert_create" | "ambiguous";
-export type ADKIntentStatus = "pending" | "classifying" | "clarification_needed" | "success" | "failed";
+export type ADKIntentStatus =
+  | "pending"
+  | "classifying"
+  | "clarification_needed"
+  | "success"
+  | "failed";
 
 export interface ADKIntent {
   id: string;

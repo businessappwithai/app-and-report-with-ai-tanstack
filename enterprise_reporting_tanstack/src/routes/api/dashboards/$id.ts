@@ -39,7 +39,10 @@ export const Route = createFileRoute("/api/dashboards/$id")({
         } catch (error) {
           console.error("Error fetching dashboard:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch dashboard" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to fetch dashboard" },
+            },
             { status: 500 }
           );
         }
@@ -108,7 +111,10 @@ export const Route = createFileRoute("/api/dashboards/$id")({
         } catch (error) {
           console.error("Error updating dashboard:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to update dashboard" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to update dashboard" },
+            },
             { status: 500 }
           );
         }
@@ -142,7 +148,10 @@ export const Route = createFileRoute("/api/dashboards/$id")({
         } catch (error) {
           console.error("Error deleting dashboard:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to delete dashboard" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to delete dashboard" },
+            },
             { status: 500 }
           );
         }

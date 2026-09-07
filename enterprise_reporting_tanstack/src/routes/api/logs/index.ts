@@ -87,7 +87,7 @@ export const Route = createFileRoute("/api/logs/")({
 
           // Determine admin status from session roles (roles are stored as strings)
           const sessionRoles: string[] = (session.user as any).roles ?? [];
-          const isAdmin = sessionRoles.some((r) => r.toLowerCase().includes('admin'));
+          const isAdmin = sessionRoles.some((r) => r.toLowerCase().includes("admin"));
 
           // Non-admins can only see their own logs
           const filterByUserId = userId && isAdmin ? userId : session.user.id;
@@ -105,7 +105,11 @@ export const Route = createFileRoute("/api/logs/")({
             query = query.where("component", "=", component);
           }
 
-          const appLogs = await query.orderBy("timestamp", "desc").limit(limit).offset(offset).execute();
+          const appLogs = await query
+            .orderBy("timestamp", "desc")
+            .limit(limit)
+            .offset(offset)
+            .execute();
 
           // ── 2. audit log entries (resource create/update/delete) ─────────────
           let auditQuery = db
@@ -117,10 +121,7 @@ export const Route = createFileRoute("/api/logs/")({
             auditQuery = auditQuery.where("resource_type", "=", component as any);
           }
 
-          const auditLogs = await auditQuery
-            .orderBy("created_at", "desc")
-            .limit(limit)
-            .execute();
+          const auditLogs = await auditQuery.orderBy("created_at", "desc").limit(limit).execute();
 
           // Map audit_log rows to the Log shape expected by LogsViewer
           const auditAsLogs = auditLogs.map((a) => ({
@@ -136,7 +137,10 @@ export const Route = createFileRoute("/api/logs/")({
           }));
 
           // Merge, sort by time desc, slice to page
-          const merged = [...appLogs.map((l) => ({ ...l, user_email: null as string | null })), ...auditAsLogs]
+          const merged = [
+            ...appLogs.map((l) => ({ ...l, user_email: null as string | null })),
+            ...auditAsLogs,
+          ]
             .sort((a, b) => {
               const ta = new Date(a.timestamp).getTime();
               const tb = new Date(b.timestamp).getTime();

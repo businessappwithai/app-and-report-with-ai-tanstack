@@ -1,5 +1,5 @@
-import { Kysely } from "kysely";
-import { Database } from "./kysely-db";
+import type { Kysely } from "kysely";
+import type { Database } from "./kysely-db";
 
 export interface HelpArticle {
   id: string;
@@ -54,7 +54,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Check out the <strong>Keyboard Shortcuts</strong> article to learn keyboard shortcuts that will speed up your workflow.
 </div>
-    `
+    `,
   },
 
   {
@@ -99,7 +99,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
   <li><strong>Charts</strong> — Create a new visualization</li>
   <li><strong>Dashboards</strong> — Build a new custom dashboard</li>
 </ul>
-    `
+    `,
   },
 
   {
@@ -157,7 +157,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
   <li><strong>Ctrl+Space</strong> — Show autocomplete</li>
   <li><strong>Ctrl+/</strong> — Toggle comment</li>
 </ul>
-    `
+    `,
   },
 
   {
@@ -216,7 +216,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Use the <strong>Report Generator</strong> feature to automatically generate reports using AI.
 </div>
-    `
+    `,
   },
 
   {
@@ -278,7 +278,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
 <div class="callout-orange">
 <strong>⚠️ Note:</strong> Large datasets (100K+ rows) may take longer to render. Consider adding WHERE clauses to limit results.
 </div>
-    `
+    `,
   },
 
   {
@@ -344,7 +344,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Use filters on dashboard widgets to allow users to drill down into specific data ranges.
 </div>
-    `
+    `,
   },
 
   {
@@ -407,7 +407,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-orange">
 <strong>⚠️ Performance:</strong> Complex filters on large datasets may impact performance. Test with your data before deploying.
 </div>
-    `
+    `,
   },
 
   {
@@ -474,7 +474,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
   <li><strong>Email Not Received?</strong> — Verify email configuration in Settings</li>
   <li><strong>Data Missing?</strong> — Check data source connectivity and query results</li>
 </ul>
-    `
+    `,
   },
 
   {
@@ -537,7 +537,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Combine multiple conditions to create more sophisticated rules (e.g., alert only if value exceeds threshold AND today is a weekday).
 </div>
-    `
+    `,
   },
 
   {
@@ -600,7 +600,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Use NL Query to quickly prototype reports before writing complex SQL queries.
 </div>
-    `
+    `,
   },
 
   {
@@ -669,7 +669,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
   <li><strong>Comparisons</strong> — Compares periods or segments</li>
   <li><strong>Predictions</strong> — Forecasts future values</li>
 </ul>
-    `
+    `,
   },
 
   {
@@ -748,7 +748,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Test your SQL queries in the source database first before creating reports to ensure optimal performance.
 </div>
-    `
+    `,
   },
 
   {
@@ -808,7 +808,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Set up email notifications for job completion so you know when results are ready.
 </div>
-    `
+    `,
   },
 
   {
@@ -878,7 +878,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Set up log alerts for errors so you're notified of system issues immediately.
 </div>
-    `
+    `,
   },
 
   {
@@ -959,7 +959,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Use roles to implement least-privilege access — give users only the permissions they need.
 </div>
-    `
+    `,
   },
 
   {
@@ -1038,7 +1038,7 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Regularly backup your settings in case you need to restore or migrate to a new server.
 </div>
-    `
+    `,
   },
 
   {
@@ -1114,8 +1114,8 @@ SELECT * FROM sales WHERE date >= [[start_date]] AND date <= [[end_date]] AND re
 <div class="callout-green">
 <strong>✨ Pro Tip:</strong> Memorizing the most-used shortcuts (Ctrl+Enter, Ctrl+S, Ctrl+Shift+F) will significantly speed up your workflow.
 </div>
-    `
-  }
+    `,
+  },
 ];
 
 export async function seedHelpArticles(db: Kysely<Database>) {
@@ -1145,7 +1145,7 @@ export async function seedHelpArticles(db: Kysely<Database>) {
           keywords: article.keywords,
           sort_order: article.sort_order,
           is_published: article.is_published,
-        }),
+        })
       )
       .execute();
   }

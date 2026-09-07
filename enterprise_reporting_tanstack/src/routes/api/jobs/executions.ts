@@ -39,7 +39,10 @@ export const Route = createFileRoute("/api/jobs/executions")({
         } catch (error) {
           console.error("Error fetching job executions:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch job executions" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to fetch job executions" },
+            },
             { status: 500 }
           );
         }

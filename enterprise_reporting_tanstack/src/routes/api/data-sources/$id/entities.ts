@@ -32,7 +32,10 @@ export const Route = createFileRoute("/api/data-sources/$id/entities")({
             .executeTakeFirst();
 
           if (!dataSource) {
-            return json({ success: false, error: { message: "Data source not found" } }, { status: 404 });
+            return json(
+              { success: false, error: { message: "Data source not found" } },
+              { status: 404 }
+            );
           }
 
           const url = new URL(request.url);

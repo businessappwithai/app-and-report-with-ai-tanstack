@@ -37,10 +37,7 @@ export const Route = createFileRoute("/api/data-sources/test")({
           const session = await getSession(request);
           if (!session?.user) {
             console.warn(`[API_TEST:${testRequestId}] Unauthorized - no valid session`);
-            return json(
-              { error: { message: "Unauthorized" } },
-              { status: 401 }
-            );
+            return json({ error: { message: "Unauthorized" } }, { status: 401 });
           }
 
           console.log(`[API_TEST:${testRequestId}] User: ${session.user.email || session.user.id}`);
@@ -52,29 +49,30 @@ export const Route = createFileRoute("/api/data-sources/test")({
           // Log config without sensitive data
           const configSummary = {
             clientType: body.clientType,
-            host: body.connectionConfig.host || 'N/A',
-            port: body.connectionConfig.port || 'default',
-            database: body.connectionConfig.database || 'N/A',
-            user: body.connectionConfig.user || 'N/A',
+            host: body.connectionConfig.host || "N/A",
+            port: body.connectionConfig.port || "default",
+            database: body.connectionConfig.database || "N/A",
+            user: body.connectionConfig.user || "N/A",
             hasPassword: !!body.connectionConfig.password,
             hasConnectionString: !!body.connectionConfig.connectionString,
             hasFilename: !!body.connectionConfig.filename,
           };
-          console.log(`[API_TEST:${testRequestId}] Config Summary: ${JSON.stringify(configSummary)}`);
+          console.log(
+            `[API_TEST:${testRequestId}] Config Summary: ${JSON.stringify(configSummary)}`
+          );
 
           console.log(`[API_TEST:${testRequestId}] Starting connection test service...`);
-          const result = await ConnectionTestService.test(
-            body.clientType,
-            body.connectionConfig
-          );
+          const result = await ConnectionTestService.test(body.clientType, body.connectionConfig);
 
           const duration = Date.now() - startTime;
           console.log(`[API_TEST:${testRequestId}] Test completed in ${duration}ms`);
-          console.log(`[API_TEST:${testRequestId}] Result: ${JSON.stringify({
-            success: result.connected,
-            message: result.message,
-            latency: result.latency
-          })}`);
+          console.log(
+            `[API_TEST:${testRequestId}] Result: ${JSON.stringify({
+              success: result.connected,
+              message: result.message,
+              latency: result.latency,
+            })}`
+          );
 
           return json({
             data: result,

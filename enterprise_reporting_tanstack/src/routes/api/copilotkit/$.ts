@@ -32,13 +32,12 @@ let _handler: { handleRequest: (req: Request) => Response | Promise<Response> } 
 
 function getHandler() {
   if (!_handler) {
-    const aiBaseURL = process.env.AI_NL2SQL_BASE_URL
-      || (process.env.MASTRA_URL ? `${process.env.MASTRA_URL}/v1` : "http://localhost:4111/v1");
+    const aiBaseURL =
+      process.env.AI_NL2SQL_BASE_URL ||
+      (process.env.MASTRA_URL ? `${process.env.MASTRA_URL}/v1` : "http://localhost:4111/v1");
     const mastraUrl = aiBaseURL.endsWith("/v1") ? aiBaseURL.slice(0, -3) : aiBaseURL;
-    const apiKey =
-      process.env.AI_NL2SQL_API_KEY ?? process.env.LLAMA_REASONING_API_KEY ?? "none";
-    const model =
-      process.env.AI_NL2SQL_MODEL ?? process.env.LLAMA_REASONING_MODEL ?? "qwen3.6";
+    const apiKey = process.env.AI_NL2SQL_API_KEY ?? process.env.LLAMA_REASONING_API_KEY ?? "none";
+    const model = process.env.AI_NL2SQL_MODEL ?? process.env.LLAMA_REASONING_MODEL ?? "qwen3.6";
 
     const openai = new OpenAI({
       baseURL: aiBaseURL,
@@ -69,7 +68,7 @@ async function convertToWav(inputBlob: Blob): Promise<Blob> {
   try {
     const proc = Bun.spawn(
       ["ffmpeg", "-y", "-i", inputPath, "-ar", "16000", "-ac", "1", "-f", "wav", outputPath],
-      { stdout: "ignore", stderr: "ignore" },
+      { stdout: "ignore", stderr: "ignore" }
     );
     const code = await proc.exited;
     if (code !== 0) throw new Error(`ffmpeg exited with code ${code}`);
@@ -88,10 +87,10 @@ async function handleTranscribe(request: Request): Promise<Response> {
     const formData = await request.formData();
     const audioFile = formData.get("file") || formData.get("audio");
     if (!audioFile || !(audioFile instanceof Blob)) {
-      return new Response(
-        JSON.stringify({ text: "" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ text: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const originalName = audioFile instanceof File ? audioFile.name : "recording";
@@ -101,10 +100,10 @@ async function handleTranscribe(request: Request): Promise<Response> {
       wavBlob = isWav ? audioFile : await convertToWav(audioFile);
     } catch (convErr) {
       console.error("[CopilotKit Transcribe] Audio conversion failed:", convErr);
-      return new Response(
-        JSON.stringify({ text: "" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ text: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const proxyForm = new FormData();
@@ -119,25 +118,25 @@ async function handleTranscribe(request: Request): Promise<Response> {
 
     if (!res.ok) {
       console.error("[CopilotKit Transcribe] Mastra STT error:", await res.text().catch(() => ""));
-      return new Response(
-        JSON.stringify({ text: "" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ text: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const result = await res.json();
     const text = (result.text || "").trim();
 
-    return new Response(
-      JSON.stringify({ text: text || "" }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ text: text || "" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[CopilotKit Transcribe] Error:", error);
-    return new Response(
-      JSON.stringify({ text: "" }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ text: "" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -154,10 +153,10 @@ async function handleTts(request: Request): Promise<Response> {
 
     if (!res.ok) {
       const errText = await res.text();
-      return new Response(
-        JSON.stringify({ error: `TTS failed: ${errText}` }),
-        { status: res.status, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: `TTS failed: ${errText}` }), {
+        status: res.status,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const audioData = await res.arrayBuffer();
@@ -167,10 +166,10 @@ async function handleTts(request: Request): Promise<Response> {
     });
   } catch (error) {
     console.error("[CopilotKit TTS] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "TTS service unavailable" }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "TTS service unavailable" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

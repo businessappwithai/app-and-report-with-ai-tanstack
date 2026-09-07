@@ -54,7 +54,14 @@ export const batchExecuteSql = createServerFn({
       // Execute all queries in parallel
       const results = await Promise.allSettled(
         validatedQueries.map(async (query) => {
-          const { widgetId, sql, dataSourceId, limit, offset = 0, timeout = DEFAULT_TIMEOUT } = query;
+          const {
+            widgetId,
+            sql,
+            dataSourceId,
+            limit,
+            offset = 0,
+            timeout = DEFAULT_TIMEOUT,
+          } = query;
 
           if (!isReadOnlyQuery(sql)) {
             throw new Error("Only SELECT queries are allowed");
@@ -136,7 +143,8 @@ export const batchExecuteSql = createServerFn({
           batchResults[result.value.widgetId] = result.value.result;
         } else {
           const widgetId = validatedQueries[results.indexOf(result)]?.widgetId || "unknown";
-          const errorMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          const errorMsg =
+            result.reason instanceof Error ? result.reason.message : String(result.reason);
           errors[widgetId] = errorMsg;
         }
       }
@@ -182,138 +190,138 @@ export const executeSql = createServerFn({
         throw new Error("Only SELECT queries are allowed in the SQL editor");
       }
 
-  // ANTLR validation: keyword allowlist enforcement (D11)
-  const antlrValidation = validateSQLWithAllowlist(sql);
-  if (!antlrValidation.valid) {
-    const errorMessages = antlrValidation.errors.map((e) => e.message).join("; ");
-    throw new Error(`SQL validation failed: ${errorMessages}`);
-  }
+      // ANTLR validation: keyword allowlist enforcement (D11)
+      const antlrValidation = validateSQLWithAllowlist(sql);
+      if (!antlrValidation.valid) {
+        const errorMessages = antlrValidation.errors.map((e) => e.message).join("; ");
+        throw new Error(`SQL validation failed: ${errorMessages}`);
+      }
 
-  // Log validation warnings for security audit
-  if (antlrValidation.warnings.length > 0) {
-    const securityWarnings = antlrValidation.warnings.filter((w) => w.type === "security");
-    if (securityWarnings.length > 0) {
+      // Log validation warnings for security audit
+      if (antlrValidation.warnings.length > 0) {
+        const securityWarnings = antlrValidation.warnings.filter((w) => w.type === "security");
+        if (securityWarnings.length > 0) {
+          await logAudit({
+            userId: session.user.id,
+            action: "sql_validation_warning",
+            resourceType: "query",
+            resourceId: dataSourceId,
+            details: {
+              warnings: securityWarnings.map((w) => w.message),
+              sql: sql.substring(0, 200),
+            },
+          });
+        }
+      }
+
+      const db = getDb();
+      const dataSource = await db
+        .selectFrom("data_sources")
+        .selectAll()
+        .where("id", "=", dataSourceId)
+        .where("is_active", "=", true)
+        .executeTakeFirst();
+
+      if (!dataSource) {
+        throw new Error("Data source not found");
+      }
+
+      const connection = await getConnection(dataSource);
+      const PAGE_SIZE = sqlEditorConfig.serverPageSize;
+      const MAX_CLIENT_ROWS = sqlEditorConfig.maxClientRows;
+
+      let totalRowCount = 0;
+      const countSQL = `SELECT COUNT(*) as total FROM (${sql.replace(/;$/, "")}) as count_query`;
+
+      try {
+        const countResult =
+          dataSource.client_type === "sqlite3"
+            ? await connection.raw(countSQL)
+            : await connection.raw(countSQL).timeout(5000);
+
+        if (Array.isArray(countResult) && countResult[0]) {
+          totalRowCount = Number(countResult[0].total) || 0;
+        }
+      } catch (e) {
+        console.error("Could not count total rows:", e);
+      }
+
+      const tooLargeForInteractive = totalRowCount > MAX_CLIENT_ROWS;
+      if (tooLargeForInteractive) {
+        return {
+          columns: [],
+          rows: [],
+          rowCount: totalRowCount,
+          executionTime: 0,
+          truncated: false,
+          pagination: { limit: PAGE_SIZE, offset, hasMore: false, serverSide: true },
+          warning: {
+            code: "DATASET_TOO_LARGE",
+            message: `Query returns ${totalRowCount.toLocaleString()} rows, which exceeds the interactive limit of ${MAX_CLIENT_ROWS.toLocaleString()} rows.`,
+            suggestion: "Run this query as a background job instead.",
+            totalRows: totalRowCount,
+            interactiveLimit: MAX_CLIENT_ROWS,
+          },
+        };
+      }
+
+      let limitedSQL = sql.trim();
+      const effectiveLimit = validatePageSize(limit || sqlEditorConfig.serverPageSize);
+
+      if (!/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bTOP\s+\d+/i.test(limitedSQL)) {
+        if (limitedSQL.endsWith(";")) limitedSQL = limitedSQL.slice(0, -1);
+        limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit} OFFSET ${offset}`;
+      } else if (
+        /\bLIMIT\s+\d+/i.test(limitedSQL) &&
+        !/\bOFFSET\s+\d+/i.test(limitedSQL) &&
+        offset > 0
+      ) {
+        if (limitedSQL.endsWith(";")) limitedSQL = limitedSQL.slice(0, -1);
+        limitedSQL = `${limitedSQL} OFFSET ${offset}`;
+      }
+
+      const limitMatch = limitedSQL.match(/\bLIMIT\s+(\d+)/i);
+      if (limitMatch) {
+        const userLimit = parseInt(limitMatch[1], 10);
+        const validatedLimit = validatePageSize(userLimit);
+        if (userLimit !== validatedLimit) {
+          limitedSQL = limitedSQL.replace(/\bLIMIT\s+\d+/i, `LIMIT ${validatedLimit}`);
+        }
+      }
+
+      const startTime = Date.now();
+      const result =
+        dataSource.client_type === "sqlite3"
+          ? await connection.raw(limitedSQL)
+          : await connection.raw(limitedSQL).timeout(timeout);
+
+      const executionTime = Date.now() - startTime;
+
+      let rows: Record<string, unknown>[] = [];
+      let columns: { name: string; type: string }[] = [];
+
+      if (Array.isArray(result)) {
+        rows = result;
+      } else if (result.rows) {
+        rows = result.rows;
+      } else if (result[0]) {
+        rows = Array.isArray(result[0]) ? result[0] : [result[0]];
+      }
+
+      if (rows.length > 0) {
+        columns = Object.keys(rows[0]).map((name) => ({
+          name,
+          type: typeof rows[0][name],
+        }));
+      }
+
       await logAudit({
         userId: session.user.id,
-        action: "sql_validation_warning",
+        action: "execute",
         resourceType: "query",
         resourceId: dataSourceId,
-        details: {
-          warnings: securityWarnings.map((w) => w.message),
-          sql: sql.substring(0, 200),
-        },
+        details: { sql: sql.substring(0, 500), rowCount: rows.length, executionTime },
       });
-    }
-  }
-
-  const db = getDb();
-  const dataSource = await db
-    .selectFrom("data_sources")
-    .selectAll()
-    .where("id", "=", dataSourceId)
-    .where("is_active", "=", true)
-    .executeTakeFirst();
-
-  if (!dataSource) {
-    throw new Error("Data source not found");
-  }
-
-  const connection = await getConnection(dataSource);
-  const PAGE_SIZE = sqlEditorConfig.serverPageSize;
-  const MAX_CLIENT_ROWS = sqlEditorConfig.maxClientRows;
-
-  let totalRowCount = 0;
-  const countSQL = `SELECT COUNT(*) as total FROM (${sql.replace(/;$/, "")}) as count_query`;
-
-  try {
-    const countResult =
-      dataSource.client_type === "sqlite3"
-        ? await connection.raw(countSQL)
-        : await connection.raw(countSQL).timeout(5000);
-
-    if (Array.isArray(countResult) && countResult[0]) {
-      totalRowCount = Number(countResult[0].total) || 0;
-    }
-  } catch (e) {
-    console.error("Could not count total rows:", e);
-  }
-
-  const tooLargeForInteractive = totalRowCount > MAX_CLIENT_ROWS;
-  if (tooLargeForInteractive) {
-    return {
-      columns: [],
-      rows: [],
-      rowCount: totalRowCount,
-      executionTime: 0,
-      truncated: false,
-      pagination: { limit: PAGE_SIZE, offset, hasMore: false, serverSide: true },
-      warning: {
-        code: "DATASET_TOO_LARGE",
-        message: `Query returns ${totalRowCount.toLocaleString()} rows, which exceeds the interactive limit of ${MAX_CLIENT_ROWS.toLocaleString()} rows.`,
-        suggestion: "Run this query as a background job instead.",
-        totalRows: totalRowCount,
-        interactiveLimit: MAX_CLIENT_ROWS,
-      },
-    };
-  }
-
-  let limitedSQL = sql.trim();
-  const effectiveLimit = validatePageSize(limit || sqlEditorConfig.serverPageSize);
-
-  if (!/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bTOP\s+\d+/i.test(limitedSQL)) {
-    if (limitedSQL.endsWith(";")) limitedSQL = limitedSQL.slice(0, -1);
-    limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit} OFFSET ${offset}`;
-  } else if (
-    /\bLIMIT\s+\d+/i.test(limitedSQL) &&
-    !/\bOFFSET\s+\d+/i.test(limitedSQL) &&
-    offset > 0
-  ) {
-    if (limitedSQL.endsWith(";")) limitedSQL = limitedSQL.slice(0, -1);
-    limitedSQL = `${limitedSQL} OFFSET ${offset}`;
-  }
-
-  const limitMatch = limitedSQL.match(/\bLIMIT\s+(\d+)/i);
-  if (limitMatch) {
-    const userLimit = parseInt(limitMatch[1], 10);
-    const validatedLimit = validatePageSize(userLimit);
-    if (userLimit !== validatedLimit) {
-      limitedSQL = limitedSQL.replace(/\bLIMIT\s+\d+/i, `LIMIT ${validatedLimit}`);
-    }
-  }
-
-  const startTime = Date.now();
-  const result =
-    dataSource.client_type === "sqlite3"
-      ? await connection.raw(limitedSQL)
-      : await connection.raw(limitedSQL).timeout(timeout);
-
-  const executionTime = Date.now() - startTime;
-
-  let rows: Record<string, unknown>[] = [];
-  let columns: { name: string; type: string }[] = [];
-
-  if (Array.isArray(result)) {
-    rows = result;
-  } else if (result.rows) {
-    rows = result.rows;
-  } else if (result[0]) {
-    rows = Array.isArray(result[0]) ? result[0] : [result[0]];
-  }
-
-  if (rows.length > 0) {
-    columns = Object.keys(rows[0]).map((name) => ({
-      name,
-      type: typeof rows[0][name],
-    }));
-  }
-
-  await logAudit({
-    userId: session.user.id,
-    action: "execute",
-    resourceType: "query",
-    resourceId: dataSourceId,
-    details: { sql: sql.substring(0, 500), rowCount: rows.length, executionTime },
-  });
 
       return {
         columns,
@@ -397,13 +405,15 @@ export const introspectSchema = createServerFn({
   const { introspectSchema: introspect } = await import("@/lib/sql/schema-introspection");
   const { schema, logs } = await introspect(connection, dataSource.client_type);
 
-  let syncResult: {
-    entitiesCreated: number;
-    entitiesUpdated: number;
-    fieldsCreated: number;
-    fieldsUpdated: number;
-    errors: string[];
-  } | undefined;
+  let syncResult:
+    | {
+        entitiesCreated: number;
+        entitiesUpdated: number;
+        fieldsCreated: number;
+        fieldsUpdated: number;
+        errors: string[];
+      }
+    | undefined;
   try {
     const { SyncService } = await import("@/lib/metadata/sync-service");
     syncResult = await SyncService.syncDataSource(dataSourceId, session.user.id);

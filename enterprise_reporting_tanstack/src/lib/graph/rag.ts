@@ -65,10 +65,7 @@ function bool(v: unknown): boolean {
 // Keyword-based table discovery
 // --------------------------------------------------------------------------
 
-async function findRelevantTables(
-  dsId: string,
-  tokens: string[],
-): Promise<string[]> {
+async function findRelevantTables(dsId: string, tokens: string[]): Promise<string[]> {
   if (tokens.length === 0) return [];
 
   // Build one CONTAINS clause per token, OR-joined
@@ -81,7 +78,7 @@ async function findRelevantTables(
      WHERE ${conditions}
      RETURN t`,
     { ds_id: dsId },
-    ["t"],
+    ["t"]
   );
 
   return rows.map((r) => str(prop(r, "t", "fqn")));
@@ -101,7 +98,7 @@ async function expandFkNeighbours(tableFqns: string[]): Promise<string[]> {
      WHERE t.fqn IN [${inList}]
      RETURN DISTINCT t2`,
     {},
-    ["t2"],
+    ["t2"]
   );
 
   const extra = rows.map((r) => str(prop(r, "t2", "fqn"))).filter(Boolean);
@@ -122,7 +119,7 @@ async function loadTableContexts(tableFqns: string[]): Promise<TableContext[]> {
      WHERE t.fqn IN [${inList}]
      RETURN t, c`,
     {},
-    ["t", "c"],
+    ["t", "c"]
   );
 
   const byTable = new Map<string, { ctx: TableContext; seen: Set<string> }>();
@@ -159,7 +156,7 @@ async function loadTableContexts(tableFqns: string[]): Promise<TableContext[]> {
       `MATCH (t:Table {fqn: $fqn})-[:HAS_COLUMN]->(:Column)-[:FK_REFERENCES]->(:Column)<-[:HAS_COLUMN]-(t2:Table)
        RETURN DISTINCT t2`,
       { fqn },
-      ["t2"],
+      ["t2"]
     );
     ctx.relatedTables = fkRows.map((r) => str(prop(r, "t2", "name"))).filter(Boolean);
   }
@@ -171,19 +168,21 @@ async function loadTableContexts(tableFqns: string[]): Promise<TableContext[]> {
 // LLMKnowledge search
 // --------------------------------------------------------------------------
 
-async function findLLMKnowledge(tokens: string[], maxDocs = 3): Promise<{ title: string; body: string }[]> {
+async function findLLMKnowledge(
+  tokens: string[],
+  maxDocs = 3
+): Promise<{ title: string; body: string }[]> {
   if (tokens.length === 0) return [];
 
   const conditions = tokens
-    .map((t) => `toLower(n.title) CONTAINS toLower('${t.replace(/'/g, "\\'")}') OR toLower(n.body) CONTAINS toLower('${t.replace(/'/g, "\\'")}')`)
+    .map(
+      (t) =>
+        `toLower(n.title) CONTAINS toLower('${t.replace(/'/g, "\\'")}') OR toLower(n.body) CONTAINS toLower('${t.replace(/'/g, "\\'")}')`
+    )
     .join(" OR ");
 
   try {
-    const rows = await cypher(
-      `MATCH (n:LLMKnowledge) WHERE ${conditions} RETURN n`,
-      {},
-      ["n"],
-    );
+    const rows = await cypher(`MATCH (n:LLMKnowledge) WHERE ${conditions} RETURN n`, {}, ["n"]);
 
     return rows
       .slice(0, maxDocs)
@@ -211,7 +210,7 @@ async function findLLMKnowledge(tokens: string[], maxDocs = 3): Promise<{ title:
 export async function getGraphContext(
   dsId: string,
   question: string,
-  maxTables = 8,
+  maxTables = 8
 ): Promise<GraphContext> {
   // Tokenise the question (split on non-alphanumeric, keep 3+ char tokens)
   const tokens = question

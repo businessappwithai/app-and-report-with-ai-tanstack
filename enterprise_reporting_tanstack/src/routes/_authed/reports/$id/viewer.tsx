@@ -38,7 +38,9 @@ function ReportViewerPage() {
   const { data: reportData, isLoading: isLoadingData } = useQuery({
     queryKey: ["report-data", reportId, pageIndex, pageSize],
     queryFn: async () => {
-      const res = await fetch(`/api/reports/${reportId}/data?page=${pageIndex}&pageSize=${pageSize}`);
+      const res = await fetch(
+        `/api/reports/${reportId}/data?page=${pageIndex}&pageSize=${pageSize}`
+      );
       const data = await res.json();
       return data.data;
     },
@@ -155,12 +157,7 @@ function ReportViewerPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Reports", href: "/reports" },
-          { label: report.name },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Reports", href: "/reports" }, { label: report.name }]} />
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

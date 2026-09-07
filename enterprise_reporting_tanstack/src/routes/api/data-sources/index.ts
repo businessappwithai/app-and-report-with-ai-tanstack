@@ -19,10 +19,7 @@ export const Route = createFileRoute("/api/data-sources/")({
         try {
           const session = await getSession(request);
           if (!session?.user) {
-            return json(
-              { error: { message: "Unauthorized" } },
-              { status: 401 }
-            );
+            return json({ error: { message: "Unauthorized" } }, { status: 401 });
           }
 
           const url = new URL(request.url);
@@ -62,10 +59,7 @@ export const Route = createFileRoute("/api/data-sources/")({
         try {
           const session = await getSession(request);
           if (!session?.user) {
-            return json(
-              { error: { message: "Unauthorized" } },
-              { status: 401 }
-            );
+            return json({ error: { message: "Unauthorized" } }, { status: 401 });
           }
 
           const body = await request.json();

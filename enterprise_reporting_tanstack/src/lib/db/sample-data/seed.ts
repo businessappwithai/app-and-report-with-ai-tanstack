@@ -55,7 +55,14 @@ for (const region of regionData) {
 
 // 2. Departments (15 records)
 console.log("Inserting departments...");
-const departments: { id: number; name: string; code: string; description: string; budget: number; manager_id: null }[] = [];
+const departments: {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+  budget: number;
+  manager_id: null;
+}[] = [];
 const departmentData = [
   { name: "Sales", code: "SAL", description: "Sales and Business Development", budget: 5000000 },
   { name: "Marketing", code: "MKT", description: "Marketing and Communications", budget: 3000000 },

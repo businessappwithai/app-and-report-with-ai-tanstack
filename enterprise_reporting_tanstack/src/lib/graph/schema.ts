@@ -26,7 +26,7 @@ export interface DSNode {
 }
 
 export interface TableNode {
-  fqn: string;          // "<ds_id>.<table_name>"
+  fqn: string; // "<ds_id>.<table_name>"
   ds_id: string;
   name: string;
   schema_name: string;
@@ -35,7 +35,7 @@ export interface TableNode {
 }
 
 export interface ColumnNode {
-  fqn: string;          // "<ds_id>.<table>.<column>"
+  fqn: string; // "<ds_id>.<table>.<column>"
   ds_id: string;
   table_name: string;
   name: string;

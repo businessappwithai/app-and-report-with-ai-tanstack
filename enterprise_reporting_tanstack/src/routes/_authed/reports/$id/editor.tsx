@@ -387,7 +387,9 @@ function ReportEditorPage() {
               </span>
             )}
           </div>
-          <p className="text-tremor-default text-tremor-content">Configure report columns and settings</p>
+          <p className="text-tremor-default text-tremor-content">
+            Configure report columns and settings
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -650,7 +652,9 @@ function ReportEditorPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="export-csv">CSV Export</Label>
-                    <p className="text-tremor-label text-tremor-content">Comma-separated values format</p>
+                    <p className="text-tremor-label text-tremor-content">
+                      Comma-separated values format
+                    </p>
                   </div>
                   <Switch
                     id="export-csv"
@@ -691,7 +695,9 @@ function ReportEditorPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="export-pdf">PDF Export</Label>
-                    <p className="text-tremor-label text-tremor-content">Portable Document Format</p>
+                    <p className="text-tremor-label text-tremor-content">
+                      Portable Document Format
+                    </p>
                   </div>
                   <Switch
                     id="export-pdf"

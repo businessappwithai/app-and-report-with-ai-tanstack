@@ -1,6 +1,6 @@
-import pgPromise from 'pg-promise';
-import { Kysely, PostgresDialect, sql } from 'kysely';
-import type { DataSource } from '@/types/database';
+import pgPromise from "pg-promise";
+import { Kysely, PostgresDialect, sql } from "kysely";
+import type { DataSource } from "@/types/database";
 
 // biome-ignore lint/suspicious/noExplicitAny: dynamic database schema
 type AnyKysely = Kysely<any>;
@@ -21,7 +21,7 @@ interface PgConnectionConfig {
 const pgp = pgPromise({
   // Enable detailed error logging
   error(err, e) {
-    console.error('[pgPromise Error]', {
+    console.error("[pgPromise Error]", {
       message: err.message,
       code: (err as any).code,
       query: e?.query,
@@ -31,7 +31,7 @@ const pgp = pgPromise({
   // Initialization of each connection
   init(client) {
     // Set connection timeout for queries
-    return client.query('SET idle_in_transaction_session_timeout = 60000');
+    return client.query("SET idle_in_transaction_session_timeout = 60000");
   },
 });
 
@@ -39,9 +39,7 @@ const pgp = pgPromise({
  * Create a PostgreSQL connection using pg-promise with proper SSL handling
  * This is battle-tested and handles Neon's strict SSL/SASL requirements
  */
-export async function createPgPromiseConnection(
-  config: PgConnectionConfig
-): Promise<AnyKysely> {
+export async function createPgPromiseConnection(config: PgConnectionConfig): Promise<AnyKysely> {
   try {
     // Build connection config with SSL settings
     const connectionConfig: any = {
@@ -57,7 +55,7 @@ export async function createPgPromiseConnection(
       // SSL configuration for external databases like Neon
       ssl: {
         rejectUnauthorized: false, // Allow self-signed certs
-        minVersion: 'TLSv1.2', // Require modern TLS
+        minVersion: "TLSv1.2", // Require modern TLS
       },
     };
 
@@ -74,12 +72,12 @@ export async function createPgPromiseConnection(
     }
 
     // Create database instance with pg directly (not pg-promise)
-    const pool = new (require('pg')).Pool(connectionConfig);
+    const pool = new (require("pg").Pool)(connectionConfig);
 
     // Test connection before returning
-    const result = await pool.query('SELECT 1');
+    const result = await pool.query("SELECT 1");
     if (!result) {
-      throw new Error('Connection test failed');
+      throw new Error("Connection test failed");
     }
 
     // Wrap pg pool in Kysely for consistency with existing code
@@ -87,7 +85,7 @@ export async function createPgPromiseConnection(
       dialect: new PostgresDialect({ pool }),
     });
   } catch (error) {
-    console.error('[pgPromiseManager] Failed to create connection:', error);
+    console.error("[pgPromiseManager] Failed to create connection:", error);
     throw error;
   }
 }
@@ -96,9 +94,7 @@ export async function createPgPromiseConnection(
  * Test a PostgreSQL connection with proper SSL handling
  * Returns detailed error information for debugging
  */
-export async function testPgPromiseConnection(
-  config: PgConnectionConfig
-): Promise<{
+export async function testPgPromiseConnection(config: PgConnectionConfig): Promise<{
   success: boolean;
   message: string;
   latency?: number;
@@ -112,7 +108,7 @@ export async function testPgPromiseConnection(
       statement_timeout: 30000,
       ssl: {
         rejectUnauthorized: false,
-        minVersion: 'TLSv1.2',
+        minVersion: "TLSv1.2",
       },
     };
 
@@ -130,13 +126,13 @@ export async function testPgPromiseConnection(
     const db = pgp(connectionConfig);
 
     // Test the connection
-    const result = await db.one('SELECT NOW() as now, version() as version');
+    const result = await db.one("SELECT NOW() as now, version() as version");
 
     const latency = Date.now() - startTime;
 
     return {
       success: true,
-      message: `Connection successful (${latency}ms). PostgreSQL ${result.version.split(',')[0]}`,
+      message: `Connection successful (${latency}ms). PostgreSQL ${result.version.split(",")[0]}`,
       latency,
     };
   } catch (error) {
@@ -145,11 +141,11 @@ export async function testPgPromiseConnection(
 
     // Provide helpful error messages
     let friendlyMessage = message;
-    if (message.includes('ETIMEDOUT') || message.includes('timeout')) {
+    if (message.includes("ETIMEDOUT") || message.includes("timeout")) {
       friendlyMessage = `Connection timeout after ${latency}ms. The database server may be unreachable or the network is blocking the connection.`;
-    } else if (message.includes('ECONNREFUSED')) {
+    } else if (message.includes("ECONNREFUSED")) {
       friendlyMessage = `Connection refused. Check that the host and port are correct.`;
-    } else if (message.includes('authentication failed')) {
+    } else if (message.includes("authentication failed")) {
       friendlyMessage = `Authentication failed. Check your username and password.`;
     }
 
@@ -162,6 +158,6 @@ export async function testPgPromiseConnection(
 }
 
 // Clean up on exit
-process.on('exit', () => {
+process.on("exit", () => {
   pgp.end();
 });

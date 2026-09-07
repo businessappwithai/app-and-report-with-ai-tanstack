@@ -71,9 +71,7 @@ export function validateWebhookUrl(url: string): boolean {
  * Resolve a list of AlertRecipient entries into email address strings.
  * Handles both direct user IDs and role IDs (all users with that role).
  */
-export async function resolveEmailRecipients(
-  recipients: AlertRecipient[]
-): Promise<string[]> {
+export async function resolveEmailRecipients(recipients: AlertRecipient[]): Promise<string[]> {
   if (recipients.length === 0) return [];
 
   const db = getDb();
@@ -167,8 +165,7 @@ export function renderAlertMessage(
       : `${operatorLabel[rule.threshold_operator] ?? rule.threshold_operator} ${rule.threshold_value}`;
 
   const deltaLine =
-    evaluation.deltaFromPrevious !== undefined &&
-    Number.isFinite(evaluation.deltaFromPrevious)
+    evaluation.deltaFromPrevious !== undefined && Number.isFinite(evaluation.deltaFromPrevious)
       ? `<tr>
             <td style="padding:8px 12px;color:#6b7280;border-bottom:1px solid #e5e7eb">Change from previous</td>
             <td style="padding:8px 12px;font-weight:600;border-bottom:1px solid #e5e7eb">${
@@ -285,8 +282,7 @@ export function renderAlertMessage(
     `Metric column : ${rule.metric_column}`,
     `Actual value  : ${evaluation.actualValue !== null ? evaluation.actualValue : "N/A"}`,
     `Threshold     : ${thresholdDisplay}`,
-    evaluation.deltaFromPrevious !== undefined &&
-    Number.isFinite(evaluation.deltaFromPrevious)
+    evaluation.deltaFromPrevious !== undefined && Number.isFinite(evaluation.deltaFromPrevious)
       ? `Change        : ${evaluation.deltaFromPrevious >= 0 ? "+" : ""}${evaluation.deltaFromPrevious.toFixed(2)}%`
       : null,
     `Execution ID  : ${executionId}`,
@@ -326,9 +322,7 @@ export async function dispatchAlerts(
         break;
       }
       case "webhook": {
-        results.push(
-          await dispatchWebhookChannel(rule, evaluation, rows, executionId)
-        );
+        results.push(await dispatchWebhookChannel(rule, evaluation, rows, executionId));
         break;
       }
       default: {
@@ -460,9 +454,7 @@ async function dispatchInAppChannel(
         });
         successCount++;
       } catch (err) {
-        errors.push(
-          `User ${userId}: ${err instanceof Error ? err.message : String(err)}`
-        );
+        errors.push(`User ${userId}: ${err instanceof Error ? err.message : String(err)}`);
       }
     })
   );

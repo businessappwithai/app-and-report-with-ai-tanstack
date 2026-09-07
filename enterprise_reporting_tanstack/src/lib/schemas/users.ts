@@ -14,7 +14,11 @@ export type CreateUserInput = z.infer<typeof createUserSchema>;
 export const updateUserSchema = z.object({
   id: uuidSchema,
   email: emailSchema.optional(),
-  displayName: z.string().min(1, "Display name is required").max(255, "Display name too long").optional(),
+  displayName: z
+    .string()
+    .min(1, "Display name is required")
+    .max(255, "Display name too long")
+    .optional(),
   isActive: z.boolean().optional(),
   roleIds: z.array(uuidSchema).optional(),
 });
@@ -31,16 +35,15 @@ export const getUserSchema = z.object({
 
 export type GetUserInput = z.infer<typeof getUserSchema>;
 
-export const changePasswordSchema = z.object({
-  id: uuidSchema,
-  currentPassword: passwordSchema,
-  newPassword: passwordSchema.refine((val) => val.length >= 8, "Password too short"),
-}).refine(
-  (data) => data.currentPassword !== data.newPassword,
-  {
+export const changePasswordSchema = z
+  .object({
+    id: uuidSchema,
+    currentPassword: passwordSchema,
+    newPassword: passwordSchema.refine((val) => val.length >= 8, "Password too short"),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
     message: "New password must be different from current password",
     path: ["newPassword"],
-  }
-);
+  });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

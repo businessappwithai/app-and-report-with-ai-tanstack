@@ -198,9 +198,15 @@ export const Route = createFileRoute("/api/sql/execute")({
           // in the first row (and a few sample rows) looks like a number/boolean.
           function inferType(colName: string): string {
             const samples = rows.slice(0, 5);
-            const nonNull = samples.map((r) => r[colName]).filter((v) => v !== null && v !== undefined && v !== "");
+            const nonNull = samples
+              .map((r) => r[colName])
+              .filter((v) => v !== null && v !== undefined && v !== "");
             if (nonNull.length === 0) return "string";
-            const allNumeric = nonNull.every((v) => typeof v === "number" || (typeof v === "string" && !Number.isNaN(Number(v)) && v.trim() !== ""));
+            const allNumeric = nonNull.every(
+              (v) =>
+                typeof v === "number" ||
+                (typeof v === "string" && !Number.isNaN(Number(v)) && v.trim() !== "")
+            );
             if (allNumeric) return "number";
             if (nonNull.every((v) => typeof v === "boolean")) return "boolean";
             return "string";
@@ -260,17 +266,21 @@ export const Route = createFileRoute("/api/sql/execute")({
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
           const totalTime = Date.now() - startTime;
 
-          const body = await request.json() as { sql: string };
-          logger.error("SQL execution failed", error instanceof Error ? error : new Error(errorMessage), {
-            userId: session?.user?.id || "unknown",
-            email: session?.user?.email || "unknown",
-            errorMessage,
-            errorType: error?.constructor?.name || "Unknown",
-            sql: body?.sql,
-            action: AUDIT_ACTIONS.SQL.QUERY_EXECUTION_FAILED,
-            executionTime: totalTime,
-            timestamp: new Date().toISOString(),
-          });
+          const body = (await request.json()) as { sql: string };
+          logger.error(
+            "SQL execution failed",
+            error instanceof Error ? error : new Error(errorMessage),
+            {
+              userId: session?.user?.id || "unknown",
+              email: session?.user?.email || "unknown",
+              errorMessage,
+              errorType: error?.constructor?.name || "Unknown",
+              sql: body?.sql,
+              action: AUDIT_ACTIONS.SQL.QUERY_EXECUTION_FAILED,
+              executionTime: totalTime,
+              timestamp: new Date().toISOString(),
+            }
+          );
 
           return json(
             {

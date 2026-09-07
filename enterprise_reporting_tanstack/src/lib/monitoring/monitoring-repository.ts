@@ -134,8 +134,7 @@ function deserializeRule(row: RawMonitoringRuleRow): MonitoringRule {
     adk_intent_id: row.adk_intent_id ?? undefined,
     last_executed_at: row.last_executed_at ?? undefined,
     last_execution_status: (row.last_execution_status as ThresholdStatus | null) ?? undefined,
-    last_metric_value:
-      row.last_metric_value !== null ? Number(row.last_metric_value) : undefined,
+    last_metric_value: row.last_metric_value !== null ? Number(row.last_metric_value) : undefined,
     consecutive_breaches: row.consecutive_breaches,
     total_executions: row.total_executions,
     total_alerts_sent: row.total_alerts_sent,
@@ -316,11 +315,7 @@ export async function updateMonitoringRule(
     }
   }
 
-  await (db as any)
-    .updateTable("monitoring_rules")
-    .set(serialized)
-    .where("id", "=", id)
-    .execute();
+  await (db as any).updateTable("monitoring_rules").set(serialized).where("id", "=", id).execute();
 
   return getMonitoringRule(id);
 }
@@ -458,9 +453,7 @@ export async function getExecutionHistory(
   return { executions, total };
 }
 
-export async function getLastExecution(
-  ruleId: string
-): Promise<MonitoringExecution | null> {
+export async function getLastExecution(ruleId: string): Promise<MonitoringExecution | null> {
   const db = getDb();
 
   const row = await (db as any)
@@ -582,9 +575,5 @@ export async function updateADKIntent(
 
   if (Object.keys(serialized).length === 0) return;
 
-  await (db as any)
-    .updateTable("adk_intents")
-    .set(serialized)
-    .where("id", "=", id)
-    .execute();
+  await (db as any).updateTable("adk_intents").set(serialized).where("id", "=", id).execute();
 }

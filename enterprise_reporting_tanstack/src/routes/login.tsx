@@ -126,7 +126,9 @@ function LoginPage() {
               <BarChart3 className="h-6 w-6 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="font-semibold text-2xl text-tremor-content-strong">Welcome back</CardTitle>
+          <CardTitle className="font-semibold text-2xl text-tremor-content-strong">
+            Welcome back
+          </CardTitle>
           <CardDescription>Sign in to your Enterprise Reporting account</CardDescription>
         </CardHeader>
 
@@ -168,12 +170,7 @@ function LoginPage() {
         </CardContent>
 
         <CardFooter>
-          <Button
-            type="button"
-            className="w-full"
-            disabled={isSubmitting}
-            onClick={doLogin}
-          >
+          <Button type="button" className="w-full" disabled={isSubmitting} onClick={doLogin}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In
           </Button>

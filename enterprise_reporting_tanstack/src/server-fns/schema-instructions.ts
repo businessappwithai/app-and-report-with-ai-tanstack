@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuth } from "@/lib/auth/middleware";
 import { getDb } from "@/lib/db/config";
+import { isAdmin } from "@/lib/permissions/permissions";
 import { logAudit } from "@/lib/security/audit";
 
 export interface FieldInstruction {
@@ -89,14 +90,10 @@ export const saveFieldInstruction = createServerFn({
   const session = await requireAuth();
   const db = getDb();
 
-  // Verify user is admin
-  const user = await db
-    .selectFrom("users")
-    .selectAll()
-    .where("id", "=", session.user.id as any)
-    .executeTakeFirst();
-
-  if (!(user as any)?.is_admin) {
+  // Verify user is admin. `isAdmin` reads roles/user_roles, which is where
+  // this codebase keeps the answer; the `users` row this used to select has no
+  // `is_admin` column, so the check it replaced refused everyone.
+  if (!(await isAdmin(session.user.id))) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
@@ -112,7 +109,7 @@ export const saveFieldInstruction = createServerFn({
           constraints: input.constraints,
           business_meaning: input.businessMeaning,
           updated_at: new Date(),
-          updated_by: session.user.id as any,
+          updated_by: session.user.id,
         })
         .where("id", "=", input.id)
         .execute();
@@ -146,8 +143,8 @@ export const saveFieldInstruction = createServerFn({
           example_values: input.exampleValues,
           constraints: input.constraints,
           business_meaning: input.businessMeaning,
-          created_by: session.user.id as any,
-          updated_by: session.user.id as any,
+          created_by: session.user.id,
+          updated_by: session.user.id,
         })
         .execute();
 
@@ -179,14 +176,10 @@ export const saveTableInstruction = createServerFn({
   const session = await requireAuth();
   const db = getDb();
 
-  // Verify user is admin
-  const user = await db
-    .selectFrom("users")
-    .selectAll()
-    .where("id", "=", session.user.id as any)
-    .executeTakeFirst();
-
-  if (!(user as any)?.is_admin) {
+  // Verify user is admin. `isAdmin` reads roles/user_roles, which is where
+  // this codebase keeps the answer; the `users` row this used to select has no
+  // `is_admin` column, so the check it replaced refused everyone.
+  if (!(await isAdmin(session.user.id))) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
@@ -201,7 +194,7 @@ export const saveTableInstruction = createServerFn({
           example_queries: input.exampleQueries,
           business_domain: input.businessDomain,
           updated_at: new Date(),
-          updated_by: session.user.id as any,
+          updated_by: session.user.id,
         })
         .where("id", "=", input.id)
         .execute();
@@ -216,8 +209,8 @@ export const saveTableInstruction = createServerFn({
           llm_instructions: input.llmInstructions,
           example_queries: input.exampleQueries,
           business_domain: input.businessDomain,
-          created_by: session.user.id as any,
-          updated_by: session.user.id as any,
+          created_by: session.user.id,
+          updated_by: session.user.id,
         })
         .execute();
     }

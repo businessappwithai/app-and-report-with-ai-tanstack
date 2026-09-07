@@ -238,11 +238,7 @@ export async function isTableAccessible(
       .where("ds_role_id", "in", roleIds)
       .where("entity_name", "=", tableName)
       .where((eb) =>
-        eb(
-          "permission_level",
-          "in",
-          ["read" as const, "write" as const, "admin" as const]
-        )
+        eb("permission_level", "in", ["read" as const, "write" as const, "admin" as const])
       )
       .executeTakeFirst();
 

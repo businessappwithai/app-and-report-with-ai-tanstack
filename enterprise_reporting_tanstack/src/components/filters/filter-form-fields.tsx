@@ -165,7 +165,9 @@ export function FilterFormFields({
                 placeholder="e.g., firstName, lastName"
               />
             )}
-            <p className="text-tremor-label text-tremor-content">Select multiple fields to display</p>
+            <p className="text-tremor-label text-tremor-content">
+              Select multiple fields to display
+            </p>
           </div>
 
           <div className="grid gap-2">
@@ -327,7 +329,9 @@ export function FilterFormFields({
                 placeholder="e.g., created_at, order_date"
               />
             )}
-            <p className="text-tremor-label text-tremor-content">The database date column to filter on</p>
+            <p className="text-tremor-label text-tremor-content">
+              The database date column to filter on
+            </p>
           </div>
           {formData.operator === "between" && (
             <div className="border rounded-md p-3 bg-muted/50">
@@ -430,7 +434,9 @@ export function FilterFormFields({
                 placeholder="e.g., customer_name, email"
               />
             )}
-            <p className="text-tremor-label text-tremor-content">The database text column to search in</p>
+            <p className="text-tremor-label text-tremor-content">
+              The database text column to search in
+            </p>
           </div>
           <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />

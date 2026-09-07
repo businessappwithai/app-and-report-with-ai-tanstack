@@ -9,7 +9,10 @@ import { getDb } from "@/lib/db/config";
 import { getConnection } from "@/lib/db/connection-manager";
 import { getSchemaMetadata } from "@/lib/nlquery/schema-metadata";
 import { translateNLToSQLViaMastra, isMastraAvailable } from "@/lib/nlquery/mastra-connector";
-import { translateNLToSQLViaLlama, isLlamaReasoningAvailable } from "@/lib/nlquery/llama-translator";
+import {
+  translateNLToSQLViaLlama,
+  isLlamaReasoningAvailable,
+} from "@/lib/nlquery/llama-translator";
 import { getGraphContext, formatGraphContext } from "@/lib/graph/rag";
 import { buildMastraContextPrompt } from "@/lib/nlquery/nl-query-context-service";
 import { logAudit } from "@/lib/security/audit";
@@ -21,22 +24,31 @@ import { chartTypeSchema } from "@/lib/schemas/charts";
 
 async function nlToSql(
   nlDescription: string,
-  dataSource: { id: string; client_type: string; [k: string]: unknown },
+  dataSource: { id: string; client_type: string; [k: string]: unknown }
 ): Promise<{ sql: string; confidence: number } | { error: string }> {
   const schema = await getSchemaMetadata(dataSource as Parameters<typeof getSchemaMetadata>[0]);
 
   // Build context prompt (pgvector RAG + graph RAG)
   let contextPrompt = "";
   try {
-    contextPrompt = await buildMastraContextPrompt(dataSource.id, "admin", nlDescription, JSON.stringify(schema));
-  } catch { /* non-fatal */ }
+    contextPrompt = await buildMastraContextPrompt(
+      dataSource.id,
+      "admin",
+      nlDescription,
+      JSON.stringify(schema)
+    );
+  } catch {
+    /* non-fatal */
+  }
   try {
     const graphCtx = await getGraphContext(dataSource.id, nlDescription);
     const graphSection = formatGraphContext(graphCtx);
     if (graphSection) {
       contextPrompt = contextPrompt ? `${contextPrompt}\n\n${graphSection}` : graphSection;
     }
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   if (await isMastraAvailable()) {
     const result = await translateNLToSQLViaMastra(nlDescription, schema, {}, contextPrompt);
@@ -60,7 +72,7 @@ export const nlBuildPreview = createServerFn({ method: "POST" })
     z.object({
       nlDescription: z.string().min(1).max(2000),
       dataSourceId: z.string().uuid(),
-    }),
+    })
   )
   .handler(async ({ data }) => {
     const session = await requireAuth();
@@ -85,7 +97,10 @@ export const nlBuildPreview = createServerFn({ method: "POST" })
     try {
       const conn = await getConnection(ds);
       // biome-ignore lint/suspicious/noExplicitAny: external DB
-      const result = await (conn as any).executeQuery({ sql: `${sql.trimEnd().replace(/;$/, "")} LIMIT 20`, parameters: [] });
+      const result = await (conn as any).executeQuery({
+        sql: `${sql.trimEnd().replace(/;$/, "")} LIMIT 20`,
+        parameters: [],
+      });
       const rows = (result.rows ?? []) as Record<string, unknown>[];
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
@@ -99,7 +114,11 @@ export const nlBuildPreview = createServerFn({ method: "POST" })
 
       return { success: true as const, sql, confidence, columns, rows };
     } catch (err) {
-      return { success: false as const, error: `SQL execution failed: ${err instanceof Error ? err.message : String(err)}`, sql };
+      return {
+        success: false as const,
+        error: `SQL execution failed: ${err instanceof Error ? err.message : String(err)}`,
+        sql,
+      };
     }
   });
 
@@ -115,7 +134,7 @@ export const nlSaveReport = createServerFn({ method: "POST" })
       dataSourceId: z.string().uuid(),
       sql: z.string().min(1),
       exportFormats: z.array(z.enum(["csv", "xlsx", "pdf"])).default(["csv", "xlsx", "pdf"]),
-    }),
+    })
   )
   .handler(async ({ data }) => {
     const session = await requireAuth();
@@ -183,7 +202,7 @@ export const nlSaveChart = createServerFn({ method: "POST" })
       sql: z.string().min(1),
       chartType: chartTypeSchema,
       chartConfig: z.record(z.unknown()).optional(),
-    }),
+    })
   )
   .handler(async ({ data }) => {
     const session = await requireAuth();

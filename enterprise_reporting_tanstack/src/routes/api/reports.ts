@@ -73,7 +73,14 @@ export const Route = createFileRoute("/api/reports")({
 
           if (!result.success) {
             return json(
-              { success: false, error: { code: "INVALID_INPUT", message: "Validation failed", details: result.error.flatten() } },
+              {
+                success: false,
+                error: {
+                  code: "INVALID_INPUT",
+                  message: "Validation failed",
+                  details: result.error.flatten(),
+                },
+              },
               { status: 422 }
             );
           }

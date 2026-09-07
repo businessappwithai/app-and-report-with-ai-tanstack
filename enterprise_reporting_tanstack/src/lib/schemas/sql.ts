@@ -6,7 +6,12 @@ export const executeSqlSchema = z.object({
   dataSourceId: uuidSchema,
   limit: z.number().int().positive().max(1000).optional(),
   offset: z.number().int().nonnegative().default(0),
-  timeout: z.number().int().positive().max(300000, "Timeout cannot exceed 5 minutes").default(30000),
+  timeout: z
+    .number()
+    .int()
+    .positive()
+    .max(300000, "Timeout cannot exceed 5 minutes")
+    .default(30000),
 });
 
 export type ExecuteSqlInput = z.infer<typeof executeSqlSchema>;

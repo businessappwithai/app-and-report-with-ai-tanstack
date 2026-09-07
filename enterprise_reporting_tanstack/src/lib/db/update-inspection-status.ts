@@ -45,9 +45,7 @@ export async function updateInspectionStatus(): Promise<void> {
           .where("is_inspected", "=", false)
           .execute() as any);
 
-        console.log(
-          `[InspectionStatus] Updated data source ${ds.id} as inspected`
-        );
+        console.log(`[InspectionStatus] Updated data source ${ds.id} as inspected`);
       }
     }
 

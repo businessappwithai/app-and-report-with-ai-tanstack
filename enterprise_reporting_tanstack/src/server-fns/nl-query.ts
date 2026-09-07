@@ -12,8 +12,14 @@ import { getDb } from "@/lib/db/config";
 import { getConnection } from "@/lib/db/connection-manager";
 import type { DataSource, User } from "@/types/database";
 import { isSafeSelectQuery } from "@/lib/nlquery/openai-translator";
-import { translateNLToSQLViaLlama, isLlamaReasoningAvailable } from "@/lib/nlquery/llama-translator";
-import { translateNLToSQLViaMastra as translateViaMastra, isMastraAvailable } from "@/lib/nlquery/mastra-connector";
+import {
+  translateNLToSQLViaLlama,
+  isLlamaReasoningAvailable,
+} from "@/lib/nlquery/llama-translator";
+import {
+  translateNLToSQLViaMastra as translateViaMastra,
+  isMastraAvailable,
+} from "@/lib/nlquery/mastra-connector";
 import { getSchemaMetadata } from "@/lib/nlquery/schema-metadata";
 import { validateQueryAccess } from "@/lib/permissions/query-access-validator";
 import { logAudit } from "@/lib/security/audit";
@@ -176,7 +182,9 @@ export const executeNLQuery = createServerFn({
       const graphSection = formatGraphContext(graphCtx);
       if (graphSection) {
         contextPrompt = contextPrompt ? `${contextPrompt}\n\n${graphSection}` : graphSection;
-        console.log(`[NLQuery] Graph context: ${graphCtx.tables.length} table(s), ~${graphCtx.totalTokenEstimate} tokens`);
+        console.log(
+          `[NLQuery] Graph context: ${graphCtx.tables.length} table(s), ~${graphCtx.totalTokenEstimate} tokens`
+        );
       }
     } catch {
       // graph unavailable — continue with pgvector context only
@@ -298,7 +306,11 @@ export const executeNLQuery = createServerFn({
     }
 
     // [Step 4] RBAC pre-flight check (D5)
-    const accessValidation = await validateQueryAccess(session.user as any as User, generatedSQL, dataSourceId);
+    const accessValidation = await validateQueryAccess(
+      session.user as any as User,
+      generatedSQL,
+      dataSourceId
+    );
 
     if (!accessValidation.allowed) {
       await logAudit({
@@ -510,21 +522,36 @@ export const nlGenerateSQL = createServerFn({ method: "POST" })
 
       let contextPrompt = "";
       try {
-        contextPrompt = await buildMastraContextPrompt(dataSourceId, session.user.id, nlDescription, JSON.stringify(schema));
-      } catch { /* non-fatal */ }
+        contextPrompt = await buildMastraContextPrompt(
+          dataSourceId,
+          session.user.id,
+          nlDescription,
+          JSON.stringify(schema)
+        );
+      } catch {
+        /* non-fatal */
+      }
 
       if (await isMastraAvailable()) {
         const result = await translateViaMastra(nlDescription, schema, {}, contextPrompt);
-        if (result?.sql) return { success: true as const, sql: result.sql, confidence: result.confidence ?? 0.8 };
+        if (result?.sql)
+          return { success: true as const, sql: result.sql, confidence: result.confidence ?? 0.8 };
       }
 
       if (await isLlamaReasoningAvailable()) {
         const result = await translateNLToSQLViaLlama(nlDescription, schema);
-        if (result?.sql) return { success: true as const, sql: result.sql, confidence: result.confidence ?? 0.7 };
+        if (result?.sql)
+          return { success: true as const, sql: result.sql, confidence: result.confidence ?? 0.7 };
       }
 
-      return { success: false as const, error: "No NL→SQL backend available. Start Mastra or llama.cpp." };
+      return {
+        success: false as const,
+        error: "No NL→SQL backend available. Start Mastra or llama.cpp.",
+      };
     } catch (err) {
-      return { success: false as const, error: err instanceof Error ? err.message : "Unknown error" };
+      return {
+        success: false as const,
+        error: err instanceof Error ? err.message : "Unknown error",
+      };
     }
   });

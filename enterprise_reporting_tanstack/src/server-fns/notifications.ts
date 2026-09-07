@@ -70,32 +70,30 @@ export const markNotificationAsReadFn = createServerFn({ method: "POST" })
     }
   });
 
-export const markAllNotificationsAsReadFn = createServerFn({ method: "POST" }).handler(
-  async () => {
-    try {
-      const session = await getSession();
-      if (!session?.user) {
-        return { success: false, error: "Unauthorized" };
-      }
-
-      const db = getDb();
-      await (db as any)
-        .updateTable("notifications")
-        .set({ is_read: 1 })
-        .where("user_id", "=", session.user.id)
-        .where("is_read", "=", 0)
-        .execute();
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to update notifications",
-      };
+export const markAllNotificationsAsReadFn = createServerFn({ method: "POST" }).handler(async () => {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return { success: false, error: "Unauthorized" };
     }
+
+    const db = getDb();
+    await (db as any)
+      .updateTable("notifications")
+      .set({ is_read: 1 })
+      .where("user_id", "=", session.user.id)
+      .where("is_read", "=", 0)
+      .execute();
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update notifications",
+    };
   }
-);
+});
 
 export const deleteNotificationFn = createServerFn({ method: "POST" })
   .inputValidator((data: { id: string }) => data)

@@ -12,7 +12,10 @@ function MonitoringPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Monitoring Rules" description="Automated threshold monitoring with intelligent alerts" />
+        <PageHeader
+          title="Monitoring Rules"
+          description="Automated threshold monitoring with intelligent alerts"
+        />
         <Link to="/monitoring/create">
           <Button>+ New Monitor</Button>
         </Link>

@@ -81,12 +81,7 @@ export const emailBatchTask = task({
   }) => {
     const startTime = Date.now();
     try {
-      await sendEmailBatch(
-        payload.batchId,
-        payload.recipients,
-        payload.subject,
-        payload.template
-      );
+      await sendEmailBatch(payload.batchId, payload.recipients, payload.subject, payload.template);
       return {
         success: true,
         duration: Date.now() - startTime,

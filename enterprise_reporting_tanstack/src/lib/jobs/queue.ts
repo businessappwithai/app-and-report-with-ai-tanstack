@@ -257,10 +257,8 @@ export const reportingQueue = {
     const status = await getQueueStatus();
     return status.delayed;
   },
-  getJobs: async (types: any[], start?: number, end?: number) =>
-    getJobs(types[0], start, end),
-  clean: async (grace: number, limit: number, type: string) =>
-    cleanOldJobs(grace, limit),
+  getJobs: async (types: any[], start?: number, end?: number) => getJobs(types[0], start, end),
+  clean: async (grace: number, limit: number, type: string) => cleanOldJobs(grace, limit),
   close: async () => closeQueue(),
   removeRepeatableByKey: async (key: string) => removeScheduledJob(key),
 };

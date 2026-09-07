@@ -33,7 +33,7 @@ async function syncDataSource(ds: {
       name: ds.name,
       client_type: ds.client_type,
       description: ds.description ?? "",
-    },
+    }
   );
 }
 
@@ -43,7 +43,7 @@ async function syncDataSource(ds: {
 
 async function syncSchemaForDataSource(
   ds: Parameters<typeof getConnection>[0],
-  clientType: string,
+  clientType: string
 ): Promise<void> {
   let connection: Awaited<ReturnType<typeof getConnection>>;
   try {
@@ -56,7 +56,10 @@ async function syncSchemaForDataSource(
   try {
     schemaInfo = await introspectSchema(connection, clientType);
   } catch (err) {
-    console.warn(`[graph-sync] Schema introspection failed for ${ds.id}:`, err instanceof Error ? err.message : err);
+    console.warn(
+      `[graph-sync] Schema introspection failed for ${ds.id}:`,
+      err instanceof Error ? err.message : err
+    );
     return;
   }
 
@@ -74,14 +77,14 @@ async function syncSchemaForDataSource(
         ds_id: ds.id,
         name: table.name,
         schema_name: table.schema ?? "public",
-      },
+      }
     );
 
     // Link DataSource → Table
     await cypherWrite(
       `MATCH (ds:DataSource {id: $ds_id}), (t:Table {fqn: $fqn})
        MERGE (ds)-[:HAS_TABLE]->(t)`,
-      { ds_id: ds.id, fqn: tableFqn },
+      { ds_id: ds.id, fqn: tableFqn }
     );
 
     // Upsert Column nodes
@@ -103,14 +106,14 @@ async function syncSchemaForDataSource(
           data_type: col.type,
           nullable: col.nullable,
           is_pk: col.isPrimaryKey ?? false,
-        },
+        }
       );
 
       // Link Table → Column
       await cypherWrite(
         `MATCH (t:Table {fqn: $table_fqn}), (c:Column {fqn: $col_fqn})
          MERGE (t)-[:HAS_COLUMN]->(c)`,
-        { table_fqn: tableFqn, col_fqn: colFqn },
+        { table_fqn: tableFqn, col_fqn: colFqn }
       );
     }
 
@@ -121,7 +124,7 @@ async function syncSchemaForDataSource(
       await cypherWrite(
         `MATCH (a:Column {fqn: $from}), (b:Column {fqn: $to})
          MERGE (a)-[:FK_REFERENCES]->(b)`,
-        { from: fromColFqn, to: toColFqn },
+        { from: fromColFqn, to: toColFqn }
       );
     }
   }
@@ -149,13 +152,13 @@ async function syncReports(): Promise<void> {
     await cypherWrite(
       `MERGE (n:Report {id: $id})
        SET n.name = $name, n.description = $description, n.ds_id = $ds_id`,
-      { id: r.id, name: r.name, description: r.description ?? "", ds_id: r.data_source_id ?? "" },
+      { id: r.id, name: r.name, description: r.description ?? "", ds_id: r.data_source_id ?? "" }
     );
     if (r.data_source_id) {
       await cypherWrite(
         `MATCH (ds:DataSource {id: $ds_id}), (r:Report {id: $id})
          MERGE (r)-[:BUILT_ON]->(ds)`,
-        { ds_id: r.data_source_id, id: r.id },
+        { ds_id: r.data_source_id, id: r.id }
       );
     }
   }
@@ -186,13 +189,13 @@ async function syncCharts(): Promise<void> {
         description: c.description ?? "",
         chart_type: c.chart_type,
         ds_id: c.data_source_id ?? "",
-      },
+      }
     );
     if (c.data_source_id) {
       await cypherWrite(
         `MATCH (ds:DataSource {id: $ds_id}), (ch:Chart {id: $id})
          MERGE (ch)-[:BUILT_ON]->(ds)`,
-        { ds_id: c.data_source_id, id: c.id },
+        { ds_id: c.data_source_id, id: c.id }
       );
     }
   }
@@ -210,7 +213,7 @@ async function syncDashboards(): Promise<void> {
     await cypherWrite(
       `MERGE (n:Dashboard {id: $id})
        SET n.name = $name, n.description = $description`,
-      { id: d.id, name: d.name, description: d.description ?? "" },
+      { id: d.id, name: d.name, description: d.description ?? "" }
     );
   }
 }

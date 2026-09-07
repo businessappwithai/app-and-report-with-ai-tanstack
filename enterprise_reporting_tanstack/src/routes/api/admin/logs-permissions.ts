@@ -85,10 +85,7 @@ export const Route = createFileRoute("/api/admin/logs-permissions")({
 
           const db = getDb();
 
-          await db
-            .deleteFrom("app_settings")
-            .where("key", "=", "logs_visible_to_users")
-            .execute();
+          await db.deleteFrom("app_settings").where("key", "=", "logs_visible_to_users").execute();
 
           await db
             .insertInto("app_settings")

@@ -105,9 +105,7 @@ export async function storeNLQueryContext(input: NLQueryContextInput): Promise<s
         : null,
       schema_context: JSON.stringify(input.schemaContext),
       rbac_context: JSON.stringify(input.rbacContext),
-      field_instructions: input.fieldInstructions
-        ? JSON.stringify(input.fieldInstructions)
-        : null,
+      field_instructions: input.fieldInstructions ? JSON.stringify(input.fieldInstructions) : null,
       execution_time_ms: input.executionTimeMs,
       row_count: input.rowCount,
       was_successful: input.wasSuccessful,

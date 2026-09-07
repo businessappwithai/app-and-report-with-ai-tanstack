@@ -202,7 +202,9 @@ function EntityDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <Database className="h-6 w-6 text-muted-foreground" />
-            <h1 className="font-semibold text-2xl text-tremor-content-strong">{entity.entity_name}</h1>
+            <h1 className="font-semibold text-2xl text-tremor-content-strong">
+              {entity.entity_name}
+            </h1>
           </div>
           <p className="text-tremor-content">
             {entity.entity_type} {entity.entity_schema && `(${entity.entity_schema})`} •{" "}

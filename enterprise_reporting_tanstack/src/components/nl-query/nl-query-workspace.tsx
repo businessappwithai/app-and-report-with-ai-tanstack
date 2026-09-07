@@ -354,7 +354,9 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
     >
       <div className="space-y-6">
         <div>
-          <h1 className="font-semibold text-2xl text-tremor-content-strong">Natural Language Query</h1>
+          <h1 className="font-semibold text-2xl text-tremor-content-strong">
+            Natural Language Query
+          </h1>
           <p className="text-tremor-content">
             Ask questions about your data in natural language. Powered by AI with RBAC-enforced
             access control.

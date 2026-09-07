@@ -3,10 +3,8 @@ import OpenAI from "openai";
 // AI_* vars store the full OpenAI-compatible base URL (including /v1).
 // They take priority over the legacy LLAMA_* vars (which omit /v1, so /v1 is appended).
 const STT_BASE_URL =
-  process.env.AI_STT_BASE_URL ??
-  `${process.env.LLAMA_STT_URL ?? "http://localhost:8081"}/v1`;
-const STT_API_KEY =
-  process.env.AI_STT_API_KEY ?? process.env.LLAMA_STT_API_KEY ?? "none";
+  process.env.AI_STT_BASE_URL ?? `${process.env.LLAMA_STT_URL ?? "http://localhost:8081"}/v1`;
+const STT_API_KEY = process.env.AI_STT_API_KEY ?? process.env.LLAMA_STT_API_KEY ?? "none";
 
 const NL2SQL_BASE_URL =
   process.env.AI_NL2SQL_BASE_URL ??
@@ -15,10 +13,8 @@ const NL2SQL_API_KEY =
   process.env.AI_NL2SQL_API_KEY ?? process.env.LLAMA_REASONING_API_KEY ?? "none";
 
 const TTS_BASE_URL =
-  process.env.AI_TTS_BASE_URL ??
-  `${process.env.LLAMA_TTS_URL ?? "http://localhost:8083"}/v1`;
-const TTS_API_KEY =
-  process.env.AI_TTS_API_KEY ?? process.env.LLAMA_TTS_API_KEY ?? "none";
+  process.env.AI_TTS_BASE_URL ?? `${process.env.LLAMA_TTS_URL ?? "http://localhost:8083"}/v1`;
+const TTS_API_KEY = process.env.AI_TTS_API_KEY ?? process.env.LLAMA_TTS_API_KEY ?? "none";
 
 export function createSttClient() {
   return new OpenAI({ baseURL: STT_BASE_URL, apiKey: STT_API_KEY });

@@ -1,6 +1,6 @@
-import { createCollection } from '@tanstack/db'
-import { z } from 'zod'
-import { createElectricSyncAdapter, getElectricSyncConfig } from './electric-sync'
+import { createCollection } from "@tanstack/db";
+import { z } from "zod";
+import { createElectricSyncAdapter, getElectricSyncConfig } from "./electric-sync";
 
 // Active Filters schema
 const activeFiltersSchema = z.object({
@@ -11,18 +11,16 @@ const activeFiltersSchema = z.object({
   operator: z.string(),
   value: z.unknown(),
   createdAt: z.string(),
-})
+});
 
-export type ActiveFilter = z.infer<typeof activeFiltersSchema>
+export type ActiveFilter = z.infer<typeof activeFiltersSchema>;
 
 export const activeFiltersCollection = createCollection({
-  id: 'active-filters',
+  id: "active-filters",
   schema: activeFiltersSchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('active-filters', 'active_filters')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("active-filters", "active_filters")),
+});
 
 // Chart Draft schema
 const chartDraftSchema = z.object({
@@ -34,18 +32,16 @@ const chartDraftSchema = z.object({
   dataMapping: z.unknown(),
   savedQueryId: z.string().optional(),
   lastEditedAt: z.string(),
-})
+});
 
-export type ChartDraft = z.infer<typeof chartDraftSchema>
+export type ChartDraft = z.infer<typeof chartDraftSchema>;
 
 export const chartDraftCollection = createCollection({
-  id: 'chart-drafts',
+  id: "chart-drafts",
   schema: chartDraftSchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('chart-drafts', 'chart_drafts')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("chart-drafts", "chart_drafts")),
+});
 
 // Dashboard State schema
 const dashboardStateSchema = z.object({
@@ -54,18 +50,16 @@ const dashboardStateSchema = z.object({
   activeWidgetId: z.string().optional(),
   layoutConfig: z.unknown(),
   lastModified: z.string(),
-})
+});
 
-export type DashboardState = z.infer<typeof dashboardStateSchema>
+export type DashboardState = z.infer<typeof dashboardStateSchema>;
 
 export const dashboardStateCollection = createCollection({
-  id: 'dashboard-state',
+  id: "dashboard-state",
   schema: dashboardStateSchema,
   getKey: (item) => item.dashboardId,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('dashboard-state', 'dashboard_state')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("dashboard-state", "dashboard_state")),
+});
 
 // Query History schema
 const queryHistorySchema = z.object({
@@ -75,18 +69,16 @@ const queryHistorySchema = z.object({
   rowCount: z.number(),
   durationMs: z.number(),
   error: z.string().optional(),
-})
+});
 
-export type QueryHistory = z.infer<typeof queryHistorySchema>
+export type QueryHistory = z.infer<typeof queryHistorySchema>;
 
 export const queryHistoryCollection = createCollection({
-  id: 'query-history',
+  id: "query-history",
   schema: queryHistorySchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('query-history', 'query_history')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("query-history", "query_history")),
+});
 
 // Reports List schema
 const reportsSchema = z.object({
@@ -96,18 +88,16 @@ const reportsSchema = z.object({
   dataSourceId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-})
+});
 
-export type Report = z.infer<typeof reportsSchema>
+export type Report = z.infer<typeof reportsSchema>;
 
 export const reportsCollection = createCollection({
-  id: 'reports',
+  id: "reports",
   schema: reportsSchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('reports', 'reports')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("reports", "reports")),
+});
 
 // Charts List schema
 const chartsSchema = z.object({
@@ -117,18 +107,16 @@ const chartsSchema = z.object({
   chartType: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-})
+});
 
-export type Chart = z.infer<typeof chartsSchema>
+export type Chart = z.infer<typeof chartsSchema>;
 
 export const chartsCollection = createCollection({
-  id: 'charts',
+  id: "charts",
   schema: chartsSchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('charts', 'charts')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("charts", "charts")),
+});
 
 // Dashboards List schema
 const dashboardsSchema = z.object({
@@ -138,15 +126,13 @@ const dashboardsSchema = z.object({
   isPublic: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
-})
+});
 
-export type Dashboard = z.infer<typeof dashboardsSchema>
+export type Dashboard = z.infer<typeof dashboardsSchema>;
 
 export const dashboardsCollection = createCollection({
-  id: 'dashboards',
+  id: "dashboards",
   schema: dashboardsSchema,
   getKey: (item) => item.id,
-  ...createElectricSyncAdapter(
-    getElectricSyncConfig('dashboards', 'dashboards')
-  ),
-})
+  ...createElectricSyncAdapter(getElectricSyncConfig("dashboards", "dashboards")),
+});

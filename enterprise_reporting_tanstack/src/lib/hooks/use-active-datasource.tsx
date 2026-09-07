@@ -3,7 +3,15 @@
  * Manages the currently active database connection for the session
  */
 
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useCallback } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 
 interface DataSource {
   id: string;
@@ -68,7 +76,8 @@ export function ActiveDataSourceProvider({ children }: { children: ReactNode }) 
         body: JSON.stringify({ dataSourceId: dataSource.id }),
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}: Failed to set active data source`);
+      if (!response.ok)
+        throw new Error(`HTTP ${response.status}: Failed to set active data source`);
       const data = await response.json();
 
       if (data.success) {

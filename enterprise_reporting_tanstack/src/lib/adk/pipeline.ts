@@ -35,9 +35,7 @@ function isoNow(): string {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
 }
 
-async function storeADKIntent(
-  data: Omit<ADKStoredIntent, "id" | "created_at">
-): Promise<string> {
+async function storeADKIntent(data: Omit<ADKStoredIntent, "id" | "created_at">): Promise<string> {
   const db = getDb();
   const id = crypto.randomUUID();
   const now = isoNow();
@@ -75,11 +73,7 @@ async function updateADKIntent(
   }
 ): Promise<void> {
   const db = getDb();
-  await (db as any)
-    .updateTable("adk_intents")
-    .set(updates)
-    .where("id", "=", id)
-    .execute();
+  await (db as any).updateTable("adk_intents").set(updates).where("id", "=", id).execute();
 }
 
 // ─── Supervisor validation via Mastra HTTP ─────────────────────────────────────
@@ -275,9 +269,10 @@ export async function runADKPipeline(
     // The supervisor calls specialist agents for SQL gen, rule build, and schedule.
     // Limit schema to first 4000 chars to keep LLM prompt manageable.
     const MAX_SCHEMA_CHARS = 4000;
-    const truncatedSchema = schema.schemaText.length > MAX_SCHEMA_CHARS
-      ? schema.schemaText.slice(0, MAX_SCHEMA_CHARS) + "\n... (schema truncated for LLM context)"
-      : schema.schemaText;
+    const truncatedSchema =
+      schema.schemaText.length > MAX_SCHEMA_CHARS
+        ? schema.schemaText.slice(0, MAX_SCHEMA_CHARS) + "\n... (schema truncated for LLM context)"
+        : schema.schemaText;
 
     let supervisorResult: z.infer<typeof SupervisorResultSchema>;
     try {
@@ -293,7 +288,10 @@ export async function runADKPipeline(
       );
     } catch (supervisorErr) {
       // Fallback: use the direct SQL generation tool if supervisor is unreachable
-      console.warn("[ADK] Mastra supervisor unreachable, falling back to direct SQL generation:", supervisorErr);
+      console.warn(
+        "[ADK] Mastra supervisor unreachable, falling back to direct SQL generation:",
+        supervisorErr
+      );
       const sqlResult = await executeSqlGenerate({
         nlQuestion: nlRequest,
         schemaText: truncatedSchema,
@@ -325,7 +323,11 @@ export async function runADKPipeline(
           threshold_operator: intent.thresholdOperator ?? "lt",
           threshold_value: intent.thresholdValue ?? 0,
           escalation_threshold_pct: 20,
-          alert_channels: (intent.alertChannels ?? ["email", "in_app"]) as ("email" | "in_app" | "webhook")[],
+          alert_channels: (intent.alertChannels ?? ["email", "in_app"]) as (
+            | "email"
+            | "in_app"
+            | "webhook"
+          )[],
           notify_on_pass: false,
           notify_on_no_data: true,
         },
@@ -400,27 +402,26 @@ export async function runADKPipeline(
     }
 
     // ── Stage 6: Persist Report + Rule + Job ──────────────────────────────────
-    const { reportDefinitionId, monitoringRuleId, jobDefinitionId } =
-      await executeRulePersist({
-        name: supervisorResult.monitoringRule.name,
-        description: supervisorResult.monitoringRule.description,
-        sql: supervisorResult.reportDefinition.sql,
-        dataSourceId,
-        metricColumn: supervisorResult.reportDefinition.metric_column,
-        thresholdOperator: supervisorResult.monitoringRule.threshold_operator as any,
-        thresholdValue: supervisorResult.monitoringRule.threshold_value,
-        escalationThresholdPct: supervisorResult.monitoringRule.escalation_threshold_pct,
-        cronExpression: supervisorResult.schedule.cron_expression,
-        timezone: supervisorResult.schedule.timezone,
-        alertChannels: supervisorResult.monitoringRule.alert_channels as any,
-        alertRecipients: [{ type: "user", id: userId }],
-        notifyOnPass: supervisorResult.monitoringRule.notify_on_pass,
-        notifyOnNoData: supervisorResult.monitoringRule.notify_on_no_data,
-        createdBy: userId,
-        rbacSnapshot,
-        originalNlRequest: nlRequest,
-        adkIntentId: intentId,
-      });
+    const { reportDefinitionId, monitoringRuleId, jobDefinitionId } = await executeRulePersist({
+      name: supervisorResult.monitoringRule.name,
+      description: supervisorResult.monitoringRule.description,
+      sql: supervisorResult.reportDefinition.sql,
+      dataSourceId,
+      metricColumn: supervisorResult.reportDefinition.metric_column,
+      thresholdOperator: supervisorResult.monitoringRule.threshold_operator as any,
+      thresholdValue: supervisorResult.monitoringRule.threshold_value,
+      escalationThresholdPct: supervisorResult.monitoringRule.escalation_threshold_pct,
+      cronExpression: supervisorResult.schedule.cron_expression,
+      timezone: supervisorResult.schedule.timezone,
+      alertChannels: supervisorResult.monitoringRule.alert_channels as any,
+      alertRecipients: [{ type: "user", id: userId }],
+      notifyOnPass: supervisorResult.monitoringRule.notify_on_pass,
+      notifyOnNoData: supervisorResult.monitoringRule.notify_on_no_data,
+      createdBy: userId,
+      rbacSnapshot,
+      originalNlRequest: nlRequest,
+      adkIntentId: intentId,
+    });
 
     // Update the stored intent with the persisted IDs
     await updateADKIntent(intentId, {

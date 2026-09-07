@@ -56,7 +56,10 @@ function UISettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="UI Settings" description="Configure table display and appearance options" />
+      <PageHeader
+        title="UI Settings"
+        description="Configure table display and appearance options"
+      />
 
       <Card>
         <CardHeader>

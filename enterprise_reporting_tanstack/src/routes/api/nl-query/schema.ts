@@ -32,7 +32,7 @@ async function fetchSchema(request: Request) {
   if (!dataSourceId) {
     return json(
       { success: false, error: { message: "data_source_id is required" } },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -46,10 +46,7 @@ async function fetchSchema(request: Request) {
     .executeTakeFirst();
 
   if (!dataSource) {
-    return json(
-      { success: false, error: { message: "Data source not found" } },
-      { status: 404 },
-    );
+    return json({ success: false, error: { message: "Data source not found" } }, { status: 404 });
   }
 
   const connection = await getConnection(dataSource as unknown as DataSource);
@@ -100,7 +97,7 @@ async function fetchSchema(request: Request) {
     columns,
   }));
   storeSchemaEmbeddings(connection, dataSourceId, tablesForEmbedding, sampleData).catch((e) =>
-    console.warn("[Schema] Failed to store schema embeddings:", e),
+    console.warn("[Schema] Failed to store schema embeddings:", e)
   );
 
   const tablesList: { name: string; columns: string[] }[] = [];
@@ -121,9 +118,8 @@ async function fetchSchema(request: Request) {
     .execute();
 
   // Use bus_ tables if present, otherwise fall back to all non-nl_ tables
-  const displayTableNames = busTableNames.length > 0
-    ? busTableNames
-    : tablesList.map((t) => t.name);
+  const displayTableNames =
+    busTableNames.length > 0 ? busTableNames : tablesList.map((t) => t.name);
 
   const compactSchema = [
     "DATABASE SCHEMA (PostgreSQL):",
@@ -171,7 +167,7 @@ export const Route = createFileRoute("/api/nl-query/schema")({
                 message: error instanceof Error ? error.message : "Failed to fetch schema",
               },
             },
-            { status: 500 },
+            { status: 500 }
           );
         }
       },
@@ -187,7 +183,7 @@ export const Route = createFileRoute("/api/nl-query/schema")({
                 message: error instanceof Error ? error.message : "Failed to fetch schema",
               },
             },
-            { status: 500 },
+            { status: 500 }
           );
         }
       },

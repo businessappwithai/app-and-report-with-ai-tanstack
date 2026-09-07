@@ -237,19 +237,50 @@ function FiltersContent() {
   // ── CopilotKit ─────────────────────────────────────────────────────────
   useCopilotReadable({
     description: "Existing filter definitions",
-    value: (filters ?? []).map((f) => ({ id: f.id, name: f.name, description: f.description, fieldType: f.field_type })),
+    value: (filters ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      description: f.description,
+      fieldType: f.field_type,
+    })),
   });
 
   useCopilotAction({
     name: "fillFilterForm",
-    description: "Pre-fill the filter creation form based on a natural language description. Opens the creation dialog with suggested values.",
+    description:
+      "Pre-fill the filter creation form based on a natural language description. Opens the creation dialog with suggested values.",
     parameters: [
       { name: "name", type: "string", description: "Filter name", required: true },
-      { name: "description", type: "string", description: "What this filter does", required: false },
-      { name: "queryId", type: "string", description: "Saved query ID to use as the filter data source", required: false },
-      { name: "valueField", type: "string", description: "Column to use as the filter value", required: false },
-      { name: "displayField", type: "string", description: "Column to display to the user (can be same as value)", required: false },
-      { name: "fieldType", type: "string", description: "Field type: id, text, date, number", required: false },
+      {
+        name: "description",
+        type: "string",
+        description: "What this filter does",
+        required: false,
+      },
+      {
+        name: "queryId",
+        type: "string",
+        description: "Saved query ID to use as the filter data source",
+        required: false,
+      },
+      {
+        name: "valueField",
+        type: "string",
+        description: "Column to use as the filter value",
+        required: false,
+      },
+      {
+        name: "displayField",
+        type: "string",
+        description: "Column to display to the user (can be same as value)",
+        required: false,
+      },
+      {
+        name: "fieldType",
+        type: "string",
+        description: "Field type: id, text, date, number",
+        required: false,
+      },
     ],
     handler: async ({ name, description, queryId, valueField, displayField, fieldType }) => {
       setIsCreateDialogOpen(true);
@@ -273,34 +304,131 @@ function FiltersContent() {
     );
   }
 
-
-
   return (
     <CopilotSidebar
-      instructions='You are a filter definition assistant. Filters define reusable query parameters.\nHelp users create filters by explaining options and pre-filling the form.\nWhen the user describes a filter they need, call fillFilterForm to open the form with suggested values.'
+      instructions="You are a filter definition assistant. Filters define reusable query parameters.\nHelp users create filters by explaining options and pre-filling the form.\nWhen the user describes a filter they need, call fillFilterForm to open the form with suggested values."
       defaultOpen={false}
       labels={{
         title: "Filter Assistant",
-        initial: "Describe the filter you need and I\'ll help configure it.",
+        initial: "Describe the filter you need and I'll help configure it.",
         placeholder: "e.g. A date range filter for order dates…",
       }}
     >
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Filters" description="Manage reusable filters for reports and charts" />
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Filter
-            </Button>
-          </DialogTrigger>
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <PageHeader
+            title="Filters"
+            description="Manage reusable filters for reports and charts"
+          />
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => resetForm()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Filter
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Filter</DialogTitle>
+                <DialogDescription>
+                  Create a reusable filter for reports and charts.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+                <FilterFormFields
+                  formData={formData}
+                  onFormDataChange={setFormData}
+                  savedQueries={savedQueries}
+                  availableFields={availableFields}
+                  isLoadingFields={isLoadingFields}
+                  onQueryChange={handleQueryChange}
+                  idPrefix="create-"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => createFilter.mutate(formData)}
+                  disabled={createFilter.isPending}
+                >
+                  {createFilter.isPending ? "Creating..." : "Create Filter"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Data Source</TableHead>
+                <TableHead>Display Fields</TableHead>
+                <TableHead>Value Field</TableHead>
+                <TableHead>Query</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filters?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    No filters found. Create your first filter to get started.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filters?.map((filter) => (
+                  <TableRow key={filter.id}>
+                    <TableCell className="font-medium">{filter.name}</TableCell>
+                    <TableCell className="text-tremor-content">
+                      {filter.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {dataSources?.find(
+                        (ds: { id: string; name: string }) => ds.id === filter.data_source_id
+                      )?.name || filter.data_source_id}
+                    </TableCell>
+                    <TableCell>
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+                        {filter.display_field}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+                        {filter.value_field}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded block max-w-[300px] truncate">
+                        {filter.filter_query}
+                      </code>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(filter)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(filter.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Filter</DialogTitle>
-              <DialogDescription>
-                Create a reusable filter for reports and charts.
-              </DialogDescription>
+              <DialogTitle>Edit Filter</DialogTitle>
+              <DialogDescription>Update the filter configuration.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
               <FilterFormFields
@@ -310,125 +438,28 @@ function FiltersContent() {
                 availableFields={availableFields}
                 isLoadingFields={isLoadingFields}
                 onQueryChange={handleQueryChange}
-                idPrefix="create-"
+                idPrefix="edit-"
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={() => createFilter.mutate(formData)}
-                disabled={createFilter.isPending}
+                onClick={() =>
+                  editingFilter && updateFilter.mutate({ id: editingFilter.id, data: formData })
+                }
+                disabled={updateFilter.isPending}
               >
-                {createFilter.isPending ? "Creating..." : "Create Filter"}
+                {updateFilter.isPending ? "Updating..." : "Update Filter"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Data Source</TableHead>
-              <TableHead>Display Fields</TableHead>
-              <TableHead>Value Field</TableHead>
-              <TableHead>Query</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filters?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No filters found. Create your first filter to get started.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filters?.map((filter) => (
-                <TableRow key={filter.id}>
-                  <TableCell className="font-medium">{filter.name}</TableCell>
-                  <TableCell className="text-tremor-content">
-                    {filter.description || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {dataSources?.find(
-                      (ds: { id: string; name: string }) => ds.id === filter.data_source_id
-                    )?.name || filter.data_source_id}
-                  </TableCell>
-                  <TableCell>
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-                      {filter.display_field}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-                      {filter.value_field}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded block max-w-[300px] truncate">
-                      {filter.filter_query}
-                    </code>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(filter)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(filter.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Filter</DialogTitle>
-            <DialogDescription>Update the filter configuration.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
-            <FilterFormFields
-              formData={formData}
-              onFormDataChange={setFormData}
-              savedQueries={savedQueries}
-              availableFields={availableFields}
-              isLoadingFields={isLoadingFields}
-              onQueryChange={handleQueryChange}
-              idPrefix="edit-"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                editingFilter && updateFilter.mutate({ id: editingFilter.id, data: formData })
-              }
-              disabled={updateFilter.isPending}
-            >
-              {updateFilter.isPending ? "Updating..." : "Update Filter"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
     </CopilotSidebar>
   );
 }
-
 
 function FiltersPage() {
   return (
