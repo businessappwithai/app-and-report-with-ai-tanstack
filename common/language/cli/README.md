@@ -72,7 +72,8 @@ generated entirely by this CLI and runnable with no install.
 
 ### `tanstack-nestjs`
 
-Reuses the **shipped** generator (`app-with-ai-tanstack/packages/generator`) —
+Reuses the **shipped** generator (`app-with-ai-tanstack/packages/generator`, in
+the checkout `deps.sh` places) —
 its `GeneratorOrchestrator` and the `tanstack-start-nestjs` Handlebars templates
 — to produce a full **TanStack Start frontend + NestJS backend** project
 (`backend/` + `frontend/`). The EML model is mapped to the core
@@ -81,14 +82,21 @@ template-only mode (no network scaffolding). Requires the workspace deps
 installed and `@appwithai/core` built once:
 
 ```bash
-cd app-with-ai-tanstack && bun install && bun run --filter @appwithai/core build && cd ..
+./deps.sh --install                       # from the repository root: places and installs it
+cd common
 bun language/cli/eml.ts generate -i model.mmd -o ./out --stack tanstack-nestjs
 ```
+
+Without that checkout the generate fails on `Cannot find module …/jdm-converter.ts`
+— and so do the other two targets, because `jdm.ts` imports it unconditionally.
+Without its `node_modules` it gets further and then fails on `Cannot find package
+'zod'`, resolved from this folder instead of that one.
 
 ### `enterprise-reporting`
 
 Emits **TanStack Start + Kysely + PostgreSQL** code shaped to drop into an
-[`enterprise_reporting_tanstack`](../../enterprise_reporting_tanstack/) checkout.
+`enterprise_reporting_tanstack` checkout — the separate repository of that name,
+which `deps.sh` also places beside `common/`.
 Per entity:
 
 ```

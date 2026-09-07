@@ -1,20 +1,32 @@
 # app-and-report-with-ai-tanstack
 
-Two products and one modelling language.
+Two products and one modelling language. This repository is the **orchestrator**:
+it holds the language, and the pieces that compose the two products into one
+running system. It does not hold either product — both are separate
+repositories, checked out on demand at the commits `../deps.json` pins.
 
-| | What it is | Where |
+| | What it is | Repository |
 |---|---|---|
-| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | [`app-with-ai-tanstack/`](../app-with-ai-tanstack/) |
-| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | [`enterprise_reporting_tanstack/`](../enterprise_reporting_tanstack/) |
+| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | `businessappwithai/app-with-ai-tanstack` |
+| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | `businessappwithai/enterprise_reporting_tanstack` |
+
+```bash
+../deps.sh --install     # place both beside common/, at their pinned commits
+../deps.sh --status      # what is checked out, and whether it matches
+```
 
 Both read the same language, and everything that is neither product lives in
 `common/`, one level up from this file:
 
 ```
 ../
+├── deps.json                the two product repositories, and the commit of each
+├── deps.sh                  place them locally
 ├── start.sh                 generate an application and bring both up
 ├── stop.sh
 ├── docker-compose.yml
+├── app-with-ai-tanstack/            ← placed by ./deps.sh, gitignored
+├── enterprise_reporting_tanstack/   ← placed by ./deps.sh, gitignored
 └── common/
     ├── language/    ⭐ EML — definition, spec, grammar, checker, fixer, composer, the `eml` CLI
     ├── build/          model → reporting pack · the /app and /report subpath overlay
@@ -28,19 +40,31 @@ Both read the same language, and everything that is neither product lives in
     └── examples/       sample models
 ```
 
-`language/appwithai-language.json` is the canonical definition. Each subfolder
-keeps its own copy for its own CI — `app-with-ai-tanstack/language/` is
-byte-identical to this one, and `enterprise_reporting_tanstack/language/` is an
-older fork under the name `erdwithai-language.json`. **When any of them disagrees
-with the root copy, the root copy is the language.**
+`language/appwithai-language.json` is the canonical definition. Each product
+repository keeps its own copy for its own CI — `app-with-ai-tanstack/language/`
+under the same name, and `enterprise_reporting_tanstack/language/` as an older
+fork called `erdwithai-language.json`. **All three have drifted from each other,
+and when any of them disagrees with this copy, this copy is the language.**
+
+They were once meant to be byte-identical, and this file said so. They are not:
+at the pinned commits the two `appwithai-language.json` files differ from line 11
+on, and nothing checks them against each other. Only the two copies of the shared
+*example models* are held byte-identical, by `check:models` — see **Checks**
+below.
 
 ## Running both, from one model
 
 ```bash
+./deps.sh --install                           # once — both products, at their pins
 ./start.sh                                    # the reference CRM model
 ./start.sh common/examples/my-app.eml.mmd     # any other model
 ./start.sh my-app.eml.mmd --profile prod      # two database servers
 ```
+
+`start.sh` refuses to run without the checkouts, and says which one is missing:
+without them the generate fails on a module it cannot resolve and compose fails
+on a build context that does not exist, both a long way in and neither error
+naming what is actually absent.
 
 Then:
 
@@ -105,13 +129,15 @@ writes beside its output for the integration steps.
 | The reporting platform, in full | [`website/llmtext/llms-reporting.txt`](website/llmtext/llms-reporting.txt) |
 | The human guide | [`html/index.html`](html/index.html) — nine chapters building a CRM |
 
-Each subfolder keeps its own `CLAUDE.md`, and those are the authority on that
-project's commands, conventions and CI.
+Each product repository keeps its own `CLAUDE.md`, and that is the authority on
+that project's commands, conventions and CI — read it in the checkout `./deps.sh`
+placed, not from memory. `../CLAUDE.md` is the authority on this repository and
+on how the two are run together.
 
 ## Checks
 
-The root-level folders have their own manifest and their own checks, separate
-from either subfolder's:
+This folder has its own manifest and its own checks, separate from either
+product's:
 
 ```bash
 bun install
@@ -121,15 +147,21 @@ bun run check            # models, types, lint, every stack, and the reporting S
 | | |
 |---|---|
 | `check:models` | Every model in `language/examples/` and `examples/` checks clean, and `html/models/` is still byte-identical to its counterpart |
-| `type-check:language` | `language/**` under the strict config |
+| `type-check` | `language/**`, `build/**` and `scripts/**` under the strict config (`tsconfig.language.json`) |
 | `lint` | Biome over `language/` and `scripts/` |
 | `check:stacks` | All three `--stack` targets actually generate |
 | `check:pack` | Every query in every model's reporting pack runs against a **real** generated schema. Skips itself with a message when no PostgreSQL is reachable |
 
-`check:stacks` is the one that needs `cd app-with-ai-tanstack && bun install`
-first: `tanstack-nestjs` drives the shipped orchestrator, which needs that
-workspace's dependencies. Pass `--skip-heavy` to run only the two
-self-contained targets:
+**Every one of these needs `../deps.sh` to have run.** Two modules under
+`language/cli` import from `app-with-ai-tanstack` — the shipped JDM converter
+and the flowchart parser — and `jdm.ts` does it unconditionally, on every
+generation path. Without that checkout `type-check` reports TS2307 and *all
+three* stack targets fail at module resolution, not just the heavy one.
+
+`check:stacks` additionally needs that workspace's own dependencies installed
+(`../deps.sh --install`): `tanstack-nestjs` drives the shipped orchestrator,
+which resolves `zod` and the rest from there. Pass `--skip-heavy` to run only
+the two self-contained targets:
 
 ```bash
 bun scripts/check-stacks.ts --skip-heavy
@@ -137,8 +169,13 @@ bun scripts/check-stacks.ts --skip-heavy
 
 ## CI
 
-`.github/workflows/` holds three workflows, each `paths:`-filtered so a change
-to one area does not run the others' jobs: one per subfolder, and
-`root-language-ci.yml` for everything above them — which is what runs
-`bun run check`. GitHub only executes workflows found in the repository root,
-which is why the subfolders' own `.github/workflows/` files no longer run.
+`.github/workflows/` holds two workflows:
+
+| | |
+|---|---|
+| `root-ci.yml` | `paths:`-filtered to `common/**`, `deps.json` and the scripts that run the two together. A `resolve` job reads `deps.json`, then three jobs check out `app-with-ai-tanstack` against it and run models/types/lint, every stack, and the reporting pack against a real PostgreSQL |
+| `build-and-run.yml` | The orchestrator, on `workflow_dispatch` and nightly. Checks out both products at their pins, generates an application, injects configuration, brings the stack up, and proves `/app` and `/report` answer and the seeder exited 0 |
+
+Both read the pins from `deps.json` and nowhere else — no workflow restates a
+ref in a `with:` block, which is how pins drift. Each product's own CI now lives
+in its own repository, where the code is.

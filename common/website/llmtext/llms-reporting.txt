@@ -6,7 +6,10 @@
 > `eml` CLI's `enterprise-reporting` target. Written for language models.
 
 - **Spec version**: 2.0.0 · **Updated**: 2026-09-07
-- **Location in this repository**: `enterprise_reporting_tanstack/`
+- **Repository**: `businessappwithai/enterprise_reporting_tanstack`, its own
+  repository. The orchestrator `businessappwithai/app-and-report-with-ai-tanstack`
+  checks it out at a pinned commit as `enterprise_reporting_tanstack/`, which is
+  what every path below is relative to
 - **Runtime**: Bun ≥ 1.3.0. `node` is not supported for development
 - **Dev server**: `bun --bun vite dev` → http://localhost:4050
 - **Sibling spec**: `llms-full.txt` describes APPWITHAI, the *other* consumer of
