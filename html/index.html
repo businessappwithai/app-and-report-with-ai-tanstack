@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a CRM with APPWITHAI — Overview</title>
+<meta name="description" content="A hands-on guide to building a complete enterprise CRM application from a single Mermaid model using the APPWITHAI generator.">
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span class="brand-name">APPWITHAI</span></a>
+  <p class="brand-sub">Build a CRM, end to end</p>
+
+  <div class="nav-heading">Start here</div>
+  <ul class="nav">
+    <li><a href="index.html" aria-current="page"><span class="nav-num">00</span> Overview</a></li>
+  </ul>
+  <div class="nav-heading">Write the model</div>
+  <ul class="nav">
+    <li><a href="01-data-model.html"><span class="nav-num">01</span> The data model</a></li>
+    <li><a href="02-business-rules.html"><span class="nav-num">02</span> Business rules</a></li>
+    <li><a href="03-workflows.html"><span class="nav-num">03</span> Workflows</a></li>
+  </ul>
+  <div class="nav-heading">Generate and run</div>
+  <ul class="nav">
+    <li><a href="04-generate.html"><span class="nav-num">04</span> Generate the app</a></li>
+    <li><a href="05-application.html"><span class="nav-num">05</span> Tour the app</a></li>
+    <li><a href="06-dictionary.html"><span class="nav-num">06</span> Application Dictionary</a></li>
+  </ul>
+  <div class="nav-heading">Prove it</div>
+  <ul class="nav">
+    <li><a href="07-it-runs.html"><span class="nav-num">07</span> Watch it run</a></li>
+    <li><a href="08-reference.html"><span class="nav-num">08</span> Reference</a></li>
+    <li><a href="run-in-browser.html"><span class="nav-num">09</span> Run it here</a></li>
+  </ul>
+
+  <div class="sidebar-foot">
+    Every screenshot is from the CRM built in this guide, running locally.<br><br>
+    Model: <code>language/examples/crm.eml.mmd</code>
+  </div>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<span class="eyebrow">Overview</span>
+<h1>Build a CRM from one file</h1>
+<p class="lede">
+  You write a single Mermaid document describing a business: its data, the decisions it makes, and the
+  processes it runs. One command turns that into a working full-stack application — Postgres schema,
+  NestJS API, TanStack Start front end, an admin dictionary, an audit trail and a workflow engine — with
+  your rules and workflows already wired in and running.
+</p>
+
+<figure>
+  <img src="img/08-crm-dashboard.png" alt="The generated CRM dashboard, showing seven groups of entities: Accounts and Contacts, Activities, Customer Service, Demand Generation, People and Teams, Quotes and Contracts, Sales Pipeline, plus the Application Dictionary.">
+  <figcaption>
+    <b>The finished application.</b> Seventeen entities in seven groups, each group's name and description
+    taken straight from the model. Nothing on this screen was hand-written — including the wording.
+  </figcaption>
+</figure>
+
+<div class="stats">
+  <div class="stat"><div class="n">1</div><div class="l">model file</div></div>
+  <div class="stat"><div class="n">17</div><div class="l">entities</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">business rules</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">state machines</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">multi-step sagas</div></div>
+  <div class="stat"><div class="n">403</div><div class="l">generated files</div></div>
+</div>
+
+<h2>The one idea worth understanding first</h2>
+<p>
+  Most code generators stop at the schema: you describe tables, you get CRUD screens, and every rule your
+  business actually runs on is left for you to write by hand. This one takes the same document further,
+  because the same document says more.
+</p>
+<p>
+  An <strong>EML</strong> file (APPWITHAI Modeling Language) is <em>valid Mermaid</em>. It renders as
+  diagrams in any Mermaid viewer, on GitHub, in your editor's preview. The generator reads three kinds of
+  diagram out of it and treats each as a different layer of the application:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>You draw</th><th>The generator emits</th><th>In the running app</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>erDiagram</code></td>
+      <td>Migrations, DTOs, services, REST routes, list and form screens</td>
+      <td>Every entity, searchable, editable, audited</td>
+    </tr>
+    <tr>
+      <td><code>flowchart</code> marked <code>kind: rules</code></td>
+      <td>GoRules decision graphs seeded into <code>sys_rule_definitions</code></td>
+      <td>Decisions evaluated inside the transaction that saves a record</td>
+    </tr>
+    <tr>
+      <td><code>stateDiagram-v2</code></td>
+      <td>BPMN definitions seeded into <code>sys_workflow_definitions</code></td>
+      <td>A status lifecycle the application applies and guards</td>
+    </tr>
+    <tr>
+      <td><code>flowchart</code> marked <code>kind: saga</code></td>
+      <td>One BPMN service task per <code>%%step</code></td>
+      <td>Multi-entity processes that create, update and delete across tables</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  Semantics that Mermaid has no syntax for ride on <code>%%</code> comment directives — <code>%%enum</code>,
+  <code>%%rule</code>, <code>%%hook</code>, <code>%%step</code>. Mermaid ignores comments, so the document
+  still renders; the generator reads them, so the document still means something.
+</p>
+
+<div class="note tip">
+  <div class="note-title">Why this matters</div>
+  <p>
+    The diagram cannot drift from the application, because the diagram <em>is</em> the application. When
+    someone asks "what happens when a lead is qualified?", the answer is a section of a file that a
+    non-engineer can read and a renderer can draw — not a search through service code.
+  </p>
+</div>
+
+<h2>What you will build</h2>
+<p>
+  An enterprise CRM covering the whole commercial lifecycle: marketing captures a lead, sales converts it
+  into an account with a contact and an opportunity, the deal is quoted and contracted, and support handles
+  cases against the account afterwards.
+</p>
+
+<div class="fig-row">
+  <figure>
+    <img src="img/42-crm-opportunities.png" alt="The Opportunities list in the generated CRM.">
+    <figcaption><b>Sales pipeline.</b> Opportunities with stage, amount and forecast category.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/44-crm-support-cases.png" alt="The Support Cases list in the generated CRM.">
+    <figcaption><b>Service.</b> Support cases with priority, SLA targets and origin.</figcaption>
+  </figure>
+</div>
+
+<p>Behind those screens the model also carries the behaviour:</p>
+<ul>
+  <li><strong>Eight business rules</strong> — lead scoring and routing, a qualification gate, forecasting, a closed-won gate, discount policy, case triage, renewal risk.</li>
+  <li><strong>Five state machines</strong> — the lifecycle of a lead, an opportunity, a quote, a support case and a contract, each with role guards on its transitions.</li>
+  <li><strong>Seven hook workflows</strong> — the lifecycle handlers that normalize an email, mint an account number, block a delete, redact a phone number.</li>
+  <li><strong>Five sagas</strong> — lead conversion, quote approval escalation, critical case escalation, closed-won handoff and the renewal playbook.</li>
+</ul>
+
+<h2>What arrives with it, unasked</h2>
+<p>
+  The screens below are not part of the CRM's specification. Nobody described a workflow editor, an audit
+  trail or a help system in the model — they come with every application the generator produces, wired to
+  the entities you did describe. This is the difference between generating CRUD and generating a system.
+</p>
+
+<figure>
+  <img src="img/30-crm-workflow-editor-leadconversion.png" alt="The LeadConversion workflow open in the editor, showing its trigger card, three rule gates, numbered steps, and a details sidebar listing the entity, trigger operation, run mode, step count, linked rules and recent runs.">
+  <figcaption>
+    <b>A workflow editor, populated.</b> The lead-conversion saga as the running application renders it:
+    the trigger, the three rules that gate it, its six steps in order, and the runs it has performed —
+    all compiled from <code>%%step</code> directives in the model. <a href="03-workflows.html">Chapter 03</a>.
+  </figcaption>
+</figure>
+
+<div class="fig-row">
+  <figure>
+    <img src="img/50-crm-audit-log.png" alt="The audit log showing auth login, entity create and entity update events with timestamp, user, action, entity, the columns that changed, the source and a verify action.">
+    <figcaption>
+      <b>An audit trail you cannot forget to switch on.</b> One entry per insert, update and delete, written
+      by the same transaction as the change, holding the before and after value of every column that moved.
+      Append-only, and each entry independently verifiable. <a href="06-dictionary.html">Chapter 06</a>.
+    </figcaption>
+  </figure>
+  <figure>
+    <img src="img/19-crm-help-entity.png" alt="The Lead help dialog with a window overview, a tabs section and a fields section listing each field and its help text.">
+    <figcaption>
+      <b>Help on every screen, written from the model.</b> It names the required fields, says which columns
+      are lookups, names the entities that point back, and explains the draft-to-final save cycle — then
+      lists every field with its own rule. <a href="05-application.html">Chapter 05</a>.
+    </figcaption>
+  </figure>
+</div>
+
+<div class="fig-row">
+  <figure>
+    <img src="img/12-crm-business-rules.png" alt="The Business Rules screen listing 25 active rules across 17 entities, each with its entity and the operation it fires on.">
+    <figcaption>
+      <b>Twenty-five decision tables, editable.</b> The eight rules from the model plus a validation rule per
+      entity — each one a table an operations person can change without a deploy.
+      <a href="02-business-rules.html">Chapter 02</a>.
+    </figcaption>
+  </figure>
+  <figure>
+    <img src="img/51-crm-roles.png" alt="The Role Management screen listing Administrator as a master role and Analyst, Manager and User as standard roles, each active with a description.">
+    <figcaption>
+      <b>Roles, seeded and enforced.</b> A transition your state machine guards with <code>[Manager]</code>
+      is a permission check against this table at runtime. <a href="06-dictionary.html">Chapter 06</a>.
+    </figcaption>
+  </figure>
+</div>
+
+<div class="note win">
+  <div class="note-title">The list nobody wrote a line of code for</div>
+  <p>
+    A REST API with Swagger, an admin dictionary of windows, tabs and fields, a rules engine with a decision
+    table editor, a workflow engine with a visual designer, role-based access control, an append-only audit
+    log, generated per-screen help, and an end-to-end test suite. Every one of them present in the
+    application above, and none of them mentioned in the model that produced it.
+  </p>
+</div>
+
+<h2>How the guide is arranged</h2>
+<p>
+  Each chapter builds one layer and then shows it running. You can read straight through, or jump to the
+  layer you care about — every chapter names the exact file and lines it is talking about.
+</p>
+
+<div class="cards">
+  <a class="card" href="01-data-model.html">
+    <div class="card-num">Chapter 01</div>
+    <h3>The data model</h3>
+    <p>Entities, types, keys, relationships, enums, indexes and the dashboard grouping — the <code>erDiagram</code> section.</p>
+  </a>
+  <a class="card" href="02-business-rules.html">
+    <div class="card-num">Chapter 02</div>
+    <h3>Business rules</h3>
+    <p>Decision flows that score, route and gate — and the actions that let a rule reject a write or start a process.</p>
+  </a>
+  <a class="card" href="03-workflows.html">
+    <div class="card-num">Chapter 03</div>
+    <h3>Workflows</h3>
+    <p>Status lifecycles, lifecycle hooks and multi-step sagas that write across entities.</p>
+  </a>
+  <a class="card" href="04-generate.html">
+    <div class="card-num">Chapter 04</div>
+    <h3>Generate the app</h3>
+    <p>The CLI, the browser path through the designer, and exactly what lands on disk.</p>
+  </a>
+  <a class="card" href="05-application.html">
+    <div class="card-num">Chapter 05</div>
+    <h3>Tour the app</h3>
+    <p>Dashboard, lists, forms, lookups, dropdowns and the draft/final save cycle.</p>
+  </a>
+  <a class="card" href="06-dictionary.html">
+    <div class="card-num">Chapter 06</div>
+    <h3>Application Dictionary</h3>
+    <p>Windows, tabs and fields; the rule editor, the workflow editor, the audit log and per-screen help.</p>
+  </a>
+  <a class="card" href="07-it-runs.html">
+    <div class="card-num">Chapter 07</div>
+    <h3>Watch it run</h3>
+    <p>Qualify a lead and follow the rule, the action, the saga and the three rows it creates.</p>
+  </a>
+  <a class="card" href="08-reference.html">
+    <div class="card-num">Chapter 08</div>
+    <h3>Reference</h3>
+    <p>Every directive, type, modifier, cardinality, hook and step type on one page.</p>
+  </a>
+</div>
+
+<h2>Before you start</h2>
+<p>You need three things running locally. Nothing else.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Requirement</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><code>bun</code> ≥ 1.3.14</td><td>The repository is Bun-only. Never <code>npm</code> or <code>pnpm</code>.</td></tr>
+    <tr><td>PostgreSQL 16+</td><td>The generated backend targets Postgres. One database for the generator, one per generated app.</td></tr>
+    <tr><td>The repository</td><td><code>bun install</code> at the root once.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The whole thing in five commands</h3>
+<div class="code">
+  <div class="code-head"><span class="tag">shell</span><span>from the repository root</span></div>
+<pre><code><span class="c-com"># 1. check the model — the generator runs this for you, but it is fast and it is honest</span>
+bun language/checker.ts language/examples/crm.eml.mmd
+
+<span class="c-com"># 2. generate the application</span>
+bun packages/generator/src/cli/generate.ts generate \
+  --input language/examples/crm.eml.mmd \
+  --output generated-projects/crm \
+  --name crm --records-per-entity 25 --force --no-setup
+
+<span class="c-com"># 3. point it at a database</span>
+cd generated-projects/crm
+cp backend/.env.example backend/.env   <span class="c-com"># then set DATABASE_URL</span>
+
+<span class="c-com"># 4. create the schema and seed it</span>
+bun install &amp;&amp; bun run db:setup
+
+<span class="c-com"># 5. run it</span>
+bun run dev                            <span class="c-com"># API :4001, web :4000</span></code></pre>
+</div>
+
+<div class="note">
+  <div class="note-title">What you get for that</div>
+  <p>
+    Seventeen tables with their indexes and constraints, a REST API with Swagger, 192 front-end files,
+    39 seeded workflow definitions, 25 rule definitions, a seeded admin user, an audit log, and a
+    generated end-to-end test suite. Roughly ninety seconds, most of it <code>bun install</code>.
+  </p>
+</div>
+
+<p>
+  If you would rather see the model first and the commands later, start with
+  <a href="01-data-model.html">chapter 01</a>. If you want to watch the whole chain fire before you read a
+  line of EML, jump to <a href="07-it-runs.html">chapter 07</a>.
+</p>
+
+<nav class="pager">
+  <a href="08-reference.html"><span class="dir">Jump to</span><div class="ttl">Reference sheet</div></a>
+  <a class="next" href="01-data-model.html"><span class="dir">Next</span><div class="ttl">01 · The data model →</div></a>
+</nav>
+
+</div>
+</main>
+</div>
+<script src="assets/guide.js"></script>
+</body>
+</html>

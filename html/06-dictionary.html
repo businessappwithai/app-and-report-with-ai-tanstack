@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · Application Dictionary — Build a CRM with APPWITHAI</title>
+<meta name="description" content="Windows, tabs and fields; the rule editor, the workflow editor, roles, the audit log and per-screen help.">
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span class="brand-name">APPWITHAI</span></a>
+  <p class="brand-sub">Build a CRM, end to end</p>
+  <div class="nav-heading">Start here</div>
+  <ul class="nav"><li><a href="index.html"><span class="nav-num">00</span> Overview</a></li></ul>
+  <div class="nav-heading">Write the model</div>
+  <ul class="nav">
+    <li><a href="01-data-model.html"><span class="nav-num">01</span> The data model</a></li>
+    <li><a href="02-business-rules.html"><span class="nav-num">02</span> Business rules</a></li>
+    <li><a href="03-workflows.html"><span class="nav-num">03</span> Workflows</a></li>
+  </ul>
+  <div class="nav-heading">Generate and run</div>
+  <ul class="nav">
+    <li><a href="04-generate.html"><span class="nav-num">04</span> Generate the app</a></li>
+    <li><a href="05-application.html"><span class="nav-num">05</span> Tour the app</a></li>
+    <li><a href="06-dictionary.html" aria-current="page"><span class="nav-num">06</span> Application Dictionary</a></li>
+  </ul>
+  <div class="nav-heading">Prove it</div>
+  <ul class="nav">
+    <li><a href="07-it-runs.html"><span class="nav-num">07</span> Watch it run</a></li>
+    <li><a href="08-reference.html"><span class="nav-num">08</span> Reference</a></li>
+    <li><a href="run-in-browser.html"><span class="nav-num">09</span> Run it here</a></li>
+  </ul>
+  <div class="sidebar-foot">Every screenshot is from the CRM built in this guide, running locally.<br><br>Model: <code>language/examples/crm.eml.mmd</code></div>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<span class="eyebrow">Chapter 06</span>
+<h1>The Application Dictionary</h1>
+<p class="lede">
+  Every screen in the generated application is drawn from database rows, not from hand-written pages. Those
+  rows are the Application Dictionary — the idea borrowed from Compiere ERP, and the reason an
+  administrator can change how the app looks and behaves without a deploy.
+</p>
+
+<h2>The three layers</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Layer</th><th>Holds</th><th>Comes from</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Table and Column</strong></td><td>Every table and its columns: type, length, mandatory, unique, what a foreign key points at.</td><td>Your <code>erDiagram</code></td></tr>
+    <tr><td><strong>Window, Tab and Field</strong></td><td>How each entity is presented: one window per entity, a tab per record view, a field per displayed column, with order and grouping.</td><td>Derived from the columns</td></tr>
+    <tr><td><strong>Role</strong></td><td>Which windows a role may reach, and whether it is read-only.</td><td>Seeded, then yours</td></tr>
+  </tbody>
+</table>
+</div>
+
+<figure>
+  <img src="img/52-crm-tables-columns.png" alt="The Table and Column screen listing the generated tables.">
+  <figcaption>
+    <b>Table and Column.</b> The database as the application understands it. A column marked mandatory here
+    is required in every form; a column with a reference is a lookup rather than a free-text box.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/23-crm-help-table-column.png" alt="The Tables screen showing all seventeen generated tables — bus_account, bus_activity, bus_campaign, bus_campaign_member, bus_contact, bus_contract, bus_lead, bus_opportunity, bus_opportunity_line_item, bus_product, bus_quote, bus_quote_line_item, bus_sla_policy, bus_support_case, bus_team, bus_territory and bus_user — with a Table help dialog open over it explaining what the layer is for.">
+  <figcaption>
+    <b>All seventeen, and the help that explains them.</b> One <code>bus_</code> table per entity in the
+    model, each with a label and a description the dashboard reuses. The dialog is careful about the
+    boundary: editing a definition here changes how the application treats a column, not the database
+    schema — a new column still needs a migration.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/15-crm-windows-tabs-fields.png" alt="The Windows list showing 23 windows: 17 entity windows plus the six admin ones.">
+  <figcaption>
+    <b>Twenty-three windows.</b> Seventeen entities plus the six Application Dictionary screens. The
+    description column carries the route for the admin ones.
+  </figcaption>
+</figure>
+
+<h3>Down a level: window → tab → field</h3>
+<div class="fig-row">
+  <figure>
+    <img src="img/16-crm-window-detail-tabs.png" alt="The Opportunity window detail with its generated help text and a Tab child panel.">
+    <figcaption><b>A window.</b> Its metadata, its generated help, and the tabs beneath it.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/18-crm-tab-fields.png" alt="The Opportunity tab's field list showing each field with its column name, sequence, displayed, read-only and active flags.">
+    <figcaption><b>Its fields.</b> Every displayed column with its sequence — reorder here and the form reorders.</figcaption>
+  </figure>
+</div>
+
+<figure>
+  <img src="img/17-crm-window-tab-fields.png" alt="The Opportunity window record in the dictionary, showing eight fields and, under Help, a generated paragraph describing the entity: that Account Id, Name, Currency Code, Stage and Owner Id must be filled in before saving, that Opportunity points at Account, Contact and Campaign, that Opportunity Line Item, Quote and Activity refer back to it, and that every save starts as a Draft which becomes Final only if all rules and workflows succeed.">
+  <figcaption>
+    <b>The paragraph nobody wrote.</b> This is the Opportunity window's stored help, generated from the
+    model: the required fields by name, the three references out, the three entities that point back in,
+    and the exact transactional promise — all rules and workflows succeed and the record goes Final, any
+    one fails and nothing is kept and the reason is written onto the record. Seventeen of these exist, one
+    per entity, and an administrator can rewrite any of them.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/34-crm-tab-reference-resolved.png" alt="The tab grid inside the Opportunity window, with the Table column reading 'Opportunity'.">
+  <figcaption>
+    <b>The dictionary uses its own machinery.</b> The Tab grid's <em>Table</em> column is itself a
+    reference, resolved to a name the same way any business grid resolves a foreign key.
+  </figcaption>
+</figure>
+
+<h2>Business Rules</h2>
+<p>
+  The rules your model declared, plus a validation rule per entity, all live and editable. An operations
+  person can change a threshold without a deploy; the model stays the source of what gets seeded next time.
+</p>
+
+<figure>
+  <img src="img/12-crm-business-rules.png" alt="The Business Rules screen with 25 rules across 17 entities.">
+  <figcaption>
+    <b>Twenty-five rules.</b> Filter by entity, by operation or by status. Each row shows the rule name,
+    its entity, the operation it fires on, its version and when it was last updated.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/29-crm-rule-editor-leadqualification.png" alt="The rule editor for leadQualification showing its decision table, a test panel and a coverage check.">
+  <figcaption>
+    <b>The rule editor.</b> Inputs on the left of the table, outputs on the right, rows read top to bottom
+    until one fits. <em>Test with values</em> runs the table against a record you type; <em>Coverage
+    check</em> warns when there is no catch-all row.
+  </figcaption>
+</figure>
+
+<h2>Workflow Designer</h2>
+<p>
+  Every definition the model seeded, plus anything built in the app. Definitions marked
+  <em>from the model</em> are read-only here and rewritten on the next generation; ones built in the
+  designer carry <code>source: designer</code> and are never touched.
+</p>
+
+<figure>
+  <img src="img/30-crm-workflow-editor-leadconversion.png" alt="The workflow editor for LeadConversion showing the trigger, three rule gates, and six numbered steps.">
+  <figcaption>
+    <b>LeadConversion, opened.</b> The trigger reads "When a Lead record is CREATED · Runs when triggered by
+    a rule". Below it the rule gates that apply, then the six steps in order, with the node labels written
+    in the model. The sidebar carries the entity, run mode, step count and recent runs.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/31-crm-workflow-editor-steps.png" alt="The step list of the LeadConversion workflow: create record, create record, create record, update record, update record.">
+  <figcaption>
+    <b>The steps.</b> Each is typed — Create Record, Update Record — and titled with the label from the
+    flowchart node it was bound to, which is why writing readable node labels pays off later.
+  </figcaption>
+</figure>
+
+<h2>Audit log</h2>
+<p>
+  One entry per insert, update and delete, written by the same transaction as the change, so the log cannot
+  drift from the data. It is append-only: nothing here can be edited or deleted from the application.
+</p>
+
+<figure>
+  <img src="img/50-crm-audit-log.png" alt="The audit log showing auth logins and entity create and update events with user, entity, changed columns, source and a verify action.">
+  <figcaption>
+    <b>Who changed what.</b> Timestamp, user, action, entity, the columns that moved, and the source. The
+    <em>Verify</em> action checks the entry's integrity — useful when the log is the evidence.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/24-crm-help-audit-log.png" alt="The audit log with its help dialog open, explaining that there is one entry per insert, update and delete holding the entity, the row, the user, the time and the before and after values of every column that moved; that entries are written by the same transaction as the change so the log cannot drift; and that the log is append-only.">
+  <figcaption>
+    <b>The guarantee, stated on the screen.</b> Before and after values for every column that moved,
+    written by the transaction that moved them, append-only. An audit trail you have to remember to switch
+    on is not an audit trail; this one is a property of how every write works.
+  </figcaption>
+</figure>
+
+<h2>Roles</h2>
+<p>
+  Access control is generated too. Four roles are seeded, and the guards the state machines declare on
+  their transitions — <code>[Manager]</code>, <code>[Administrator]</code> — resolve against this list
+  rather than against strings scattered through service code.
+</p>
+
+<figure>
+  <img src="img/51-crm-roles.png" alt="The Role Management screen listing four roles: Administrator, marked Master and Active, described as system administrator with full access to all modules; Analyst, Standard and Active, reviews and analyses application data; Manager, Standard and Active, manages operations and team assignments; and User, Standard and Active, standard user with basic access.">
+  <figcaption>
+    <b>Four roles, seeded with the application.</b> One master and three standard. A transition guarded by
+    <code>[Manager]</code> in the model is a permission check against this row at runtime — which is why
+    chapter 03's state machines could name roles without anyone wiring them up.
+  </figcaption>
+</figure>
+
+<h2>Help, on the dictionary screens too</h2>
+<p>
+  The six dictionary screens carry their own help, describing what the screen is for and how the pieces
+  relate. It lives in the dictionary like any other help text, so you can rewrite it for your own team.
+</p>
+
+<div class="fig-row">
+  <figure>
+    <img src="img/20-crm-help-business-rules.png" alt="The Business Rules help dialog explaining what a rule is, how it is evaluated, and that rules run inside the saving transaction.">
+    <figcaption><b>Business Rules help.</b> Explains evaluation as a decision table, the three action types, and the transaction guarantee.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/21-crm-help-workflow-designer.png" alt="The Workflow Designer help dialog explaining steps, the Runs when column and model ownership.">
+    <figcaption><b>Workflow Designer help.</b> Explains the difference between "every write" and "when a rule triggers it", and what <em>from the model</em> means.</figcaption>
+  </figure>
+</div>
+
+<figure>
+  <img src="img/22-crm-help-window-tab-field.png" alt="The Window, Tab and Field help dialog explaining that every screen is drawn from these rows and that the help itself lives here.">
+  <figcaption>
+    <b>The dictionary explaining itself.</b> "The help you are reading now lives here too" — improving it
+    here improves it everywhere it is read.
+  </figcaption>
+</figure>
+
+<h2>What to change where</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>You want to…</th><th>Change it in</th></tr></thead>
+  <tbody>
+    <tr><td>Add a column, an entity or a relationship</td><td>The model, then regenerate</td></tr>
+    <tr><td>Reorder or hide a field on a form</td><td>Window, Tab and Field</td></tr>
+    <tr><td>Reword a label or its help</td><td>Window, Tab and Field</td></tr>
+    <tr><td>Change a threshold in a rule</td><td>Business Rules — but put it back in the model before the next generation</td></tr>
+    <tr><td>Add a step to a model workflow</td><td>The model. The designer shows it read-only for exactly this reason.</td></tr>
+    <tr><td>Build a workflow this application needs and the model should not own</td><td>The designer. It survives regeneration.</td></tr>
+    <tr><td>Grant a role access to a window</td><td>Role</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note warn">
+  <div class="note-title">The one trap</div>
+  <p>
+    Editing a model-owned rule or workflow in the app works, and the next generation overwrites it. If a
+    change matters, it belongs in the <code>.mmd</code>. The app is where you tune; the model is where you
+    decide.
+  </p>
+</div>
+
+<nav class="pager">
+  <a href="05-application.html"><span class="dir">Previous</span><div class="ttl">← 05 · Tour the app</div></a>
+  <a class="next" href="07-it-runs.html"><span class="dir">Next</span><div class="ttl">07 · Watch it run →</div></a>
+</nav>
+
+</div>
+</main>
+</div>
+<script src="assets/guide.js"></script>
+</body>
+</html>

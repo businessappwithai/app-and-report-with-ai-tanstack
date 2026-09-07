@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run the real stack — APPWITHAI</title>
+<meta name="description" content="Compile a Mermaid model into the full NestJS and TanStack Start application and run it inside this tab — the same four hundred files the command-line generator writes, installed and started by a WebContainer.">
+<link rel="stylesheet" href="assets/guide.css">
+<link rel="stylesheet" href="assets/run-in-browser.css">
+<link rel="stylesheet" href="assets/run-real-stack.css">
+</head>
+<body class="page-wide">
+<div class="shell">
+
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span class="brand-name">APPWITHAI</span></a>
+  <p class="brand-sub">Build a CRM, end to end</p>
+
+  <div class="nav-heading">Start here</div>
+  <ul class="nav">
+    <li><a href="index.html"><span class="nav-num">00</span> Overview</a></li>
+  </ul>
+  <div class="nav-heading">Write the model</div>
+  <ul class="nav">
+    <li><a href="01-data-model.html"><span class="nav-num">01</span> The data model</a></li>
+    <li><a href="02-business-rules.html"><span class="nav-num">02</span> Business rules</a></li>
+    <li><a href="03-workflows.html"><span class="nav-num">03</span> Workflows</a></li>
+  </ul>
+  <div class="nav-heading">Generate and run</div>
+  <ul class="nav">
+    <li><a href="04-generate.html"><span class="nav-num">04</span> Generate the app</a></li>
+    <li><a href="05-application.html"><span class="nav-num">05</span> Tour the app</a></li>
+    <li><a href="06-dictionary.html"><span class="nav-num">06</span> Application Dictionary</a></li>
+  </ul>
+  <div class="nav-heading">Prove it</div>
+  <ul class="nav">
+    <li><a href="07-it-runs.html"><span class="nav-num">07</span> Watch it run</a></li>
+    <li><a href="08-reference.html"><span class="nav-num">08</span> Reference</a></li>
+    <li><a href="run-in-browser.html"><span class="nav-num">09</span> Run it here</a></li>
+    <li><a href="run-real-stack.html" aria-current="page"><span class="nav-num">10</span> Run the real stack</a></li>
+  </ul>
+
+  <div class="sidebar-foot">
+    This page assembles the full NestJS and TanStack Start application in your
+    browser and runs it in a WebContainer — real Node, real npm install.
+  </div>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<span class="eyebrow">Run the real stack</span>
+<h1>The whole application, in this tab</h1>
+<p class="lede">
+  Page 09 compiles a model into a runtime that needs no install and no build step — which is what makes
+  it start in ten seconds, and also what makes its interface a port of the real one rather than the real
+  one. This page makes the other trade. It assembles the <b>actual</b> generated application, four hundred
+  files of NestJS and TanStack Start, and hands them to a WebContainer: real Node.js compiled to
+  WebAssembly, a real <code>npm install</code>, the real Vite build.
+</p>
+
+<p>
+  Everything before the install is the same code the command line runs. <code>generateApplication</code>
+  and the WASM overlay are imported unmodified; what changes is the filesystem beneath them, which is a
+  <code>Map</code> in this tab instead of a disk. That is the whole trick, and it is why what boots below
+  is the application <code>appwithai-wasm generate</code> would have written rather than something
+  assembled to look like it.
+</p>
+
+<p class="note warn">
+  <b>This needs the network, and a browser that allows cross-origin isolation.</b> A WebContainer
+  downloads its Node.js runtime from StackBlitz and then installs some two thousand packages from npm,
+  so the first run is minutes rather than seconds and none of it works offline. Page 09 has neither
+  requirement — if you want to see an application running quickly, start there.
+</p>
+
+<section class="build" id="build" hidden aria-live="polite">
+  <div class="build__head">
+    <span class="build__label" id="build-label">Ready</span>
+    <span class="build__pct" id="build-pct">0%</span>
+  </div>
+  <div class="build__track" role="progressbar" id="build-bar"
+       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="build-label">
+    <div class="build__fill" id="build-fill"></div>
+  </div>
+  <ol class="build__phases" id="build-phases"></ol>
+  <div class="build__detail" id="build-detail"></div>
+</section>
+
+<div class="flow">
+
+  <section class="flow-step" id="step-model" data-state="active">
+    <header class="flow-step__head">
+      <span class="flow-step__num">1</span>
+      <div>
+        <h2 class="flow-step__title">Choose a model</h2>
+        <p class="flow-step__hint">The same models page 09 offers, checked the same way.</p>
+      </div>
+    </header>
+    <div class="flow-step__body">
+      <div class="choices">
+        <button type="button" class="choice" id="choice-crm" aria-pressed="true">
+          <span class="choice__name">Use the CRM example</span>
+          <span class="choice__desc">Seventeen entities, eight rules, ten processes, fifteen access restrictions.</span>
+          <span class="choice__meta">language/examples/crm.eml.mmd</span>
+        </button>
+        <button type="button" class="choice" id="choice-drug" aria-pressed="false">
+          <span class="choice__name">Use the drug-discovery example</span>
+          <span class="choice__desc">A regulated-lab model — compounds, experiments, deviations, CAPAs.</span>
+          <span class="choice__meta">examples/drug-discovery.eml.mmd</span>
+        </button>
+        <button type="button" class="choice" id="choice-investment" aria-pressed="false">
+          <span class="choice__name">Use the wealth-management example</span>
+          <span class="choice__desc">
+            Ninety-one entities — households and advisors, the compliance file, financial plans, a
+            security master, portfolios and holdings, orders and settlement, recommendations,
+            rebalancing and commissions. Eleven state machines and three sagas: the one to open if
+            you want to see whether this holds up at enterprise size.
+          </span>
+          <span class="choice__meta">examples/investment-planning-wealth-management-system.eml.mmd</span>
+        </button>
+        <button type="button" class="choice" id="choice-upload" aria-pressed="false">
+          <span class="choice__name">Upload your own</span>
+          <span class="choice__desc">Any EML or Mermaid ER document. Read in this tab, uploaded nowhere.</span>
+          <span class="choice__meta">.mmd · .eml.mmd · .md</span>
+        </button>
+      </div>
+
+      <label class="dropzone" id="dropzone" hidden>
+        <input type="file" id="file" accept=".mmd,.md,.txt,text/plain">
+        <b>Choose a file</b> or drop one here
+      </label>
+
+      <div class="model-summary" id="model-summary" hidden></div>
+      <div class="diagnostics" id="diagnostics" hidden></div>
+    </div>
+  </section>
+
+  <section class="flow-step" id="step-generate" data-state="idle">
+    <header class="flow-step__head">
+      <span class="flow-step__num">2</span>
+      <div>
+        <h2 class="flow-step__title">Assemble the application</h2>
+        <p class="flow-step__hint">The real pipeline, over a filesystem that is a <code>Map</code>.</p>
+      </div>
+    </header>
+    <div class="flow-step__body">
+      <div class="options">
+        <div class="opt">
+          <label for="app-name">Application name</label>
+          <input id="app-name" type="text" value="Acme CRM" autocomplete="off">
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn--primary" id="generate">Assemble</button>
+      </div>
+      <div class="result" id="result"></div>
+    </div>
+  </section>
+
+  <section class="flow-step" id="step-run" data-state="idle">
+    <header class="flow-step__head">
+      <span class="flow-step__num">3</span>
+      <div>
+        <h2 class="flow-step__title">Install and run it</h2>
+        <p class="flow-step__hint">A WebContainer boots Node, installs, migrates and starts the backend.</p>
+      </div>
+    </header>
+    <div class="flow-step__body">
+      <div class="actions">
+        <button type="button" class="btn btn--go" id="run">Boot the WebContainer</button>
+      </div>
+      <div class="credentials" id="credentials" hidden></div>
+      <div class="log" id="log" hidden></div>
+
+      <div class="stage" id="stage">
+        <div class="stage__bar">
+          <span class="stage__dot"></span>
+          <span class="stage__url" id="stage-url"></span>
+        </div>
+        <iframe id="frame" title="The generated application" src="about:blank"></iframe>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<h2 id="how">How this differs from page 09</h2>
+<p>
+  Both pages compile the same model with the same compiler. What they do afterwards is the whole
+  difference, and it is a real trade rather than one being a lesser version of the other.
+</p>
+<div class="compare">
+  <div class="compare__col">
+    <h3>Page 09 — the browser runtime</h3>
+    <ul>
+      <li>Starts in about ten seconds</li>
+      <li>No install, no build, works offline</li>
+      <li>PGlite in the tab, application server on a Worker</li>
+      <li>Its interface is a <b>port</b> of the generated one</li>
+      <li>Nothing to open and edit per entity</li>
+    </ul>
+  </div>
+  <div class="compare__col">
+    <h3>This page — the real stack</h3>
+    <ul>
+      <li>Minutes, most of it <code>npm install</code></li>
+      <li>Needs the network and cross-origin isolation</li>
+      <li>Real Node, real NestJS, real Vite build</li>
+      <li>The <b>actual</b> generated React front end</li>
+      <li>Four hundred files you can read and change</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="limits">What is honest about this</h2>
+<p>
+  The generation half is exercised on every commit: CI assembles the stack in a browser bundle and
+  compares it, file by file, against what the command-line generator writes to disk. They match but for
+  the nine font files, which are binary and are not carried in the JSON the templates arrive as — the
+  application inside the WebContainer falls back to system typefaces because of it.
+</p>
+<p>
+  The boot half is not exercised anywhere, and it is worth saying plainly why. WebContainers fetch their
+  runtime from StackBlitz's own hosts, which are unreachable from the environment this was written in, so
+  this page's install-and-start path has been written carefully and never once watched working. If it
+  fails for you, the message below the button is the real one from the API rather than a guess, and
+  everything up to that point — the model, the check, the four hundred files — has already happened in
+  your tab and can be downloaded from page 09.
+</p>
+
+</div>
+</main>
+</div>
+
+<script type="module" src="assets/run-real-stack.js"></script>
+</body>
+</html>
