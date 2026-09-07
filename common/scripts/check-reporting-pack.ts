@@ -22,7 +22,10 @@
  *   PGHOST=/var/run/postgresql PGPORT=5432 PGUSER=postgres bun scripts/check-reporting-pack.ts
  *
  * Skips itself with a clear message when no PostgreSQL is reachable, so a
- * checkout without one still runs the rest of `bun run check`.
+ * checkout without one still runs the rest of `bun run check`. Pass
+ * `--require-server` to make that a failure instead: CI does, because a check
+ * that quietly passes when its database never came up is indistinguishable
+ * from one that ran, and the whole point of this file is to not be that.
  */
 
 import { spawnSync } from "node:child_process";
@@ -89,9 +92,22 @@ function models(): string[] {
 }
 
 function main(): number {
+  const requireServer = process.argv.includes("--require-server");
+
   if (!serverReachable()) {
+    if (requireServer) {
+      console.error(
+        `  FAIL  no PostgreSQL at ${PG.host}:${PG.port}, and --require-server was passed.`
+      );
+      console.error(
+        "        Nothing was checked. If the service is meant to be up, that is the failure."
+      );
+      return 1;
+    }
     console.log(`  skip  no PostgreSQL at ${PG.host}:${PG.port} — reporting-pack SQL not executed`);
-    console.log("        set PGHOST/PGPORT/PGUSER to run it");
+    console.log(
+      "        set PGHOST/PGPORT/PGUSER to run it, or pass --require-server to fail instead"
+    );
     return 0;
   }
 
@@ -185,6 +201,13 @@ function main(): number {
 
   if (failed) {
     console.error(`\n${failed} model(s) failed.`);
+    return 1;
+  }
+  // Reaching the end having executed nothing is not a pass. It means every
+  // model was skipped, or the model directories were empty, and the summary
+  // line below would read "0 derived queries ran" in a green job.
+  if (executed === 0) {
+    console.error("\n  FAIL  no queries were executed — nothing was checked.");
     return 1;
   }
   console.log(`\n${executed} derived queries ran against real generated schemas.`);

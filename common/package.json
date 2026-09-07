@@ -19,7 +19,8 @@
     "lint:language:fix": "cd language && biome check --write .",
     "lint:scripts": "biome check --config-path language --diagnostic-level=error scripts build",
     "lint:scripts:fix": "biome check --config-path language --write scripts build",
-    "pack": "bun build/reporting-pack.ts"
+    "pack": "bun build/reporting-pack.ts",
+    "check:pack:ci": "bun scripts/check-reporting-pack.ts --require-server"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
