@@ -5,17 +5,20 @@ application's **Entity Relationship Diagram (ERD)**, its **business rules**, and
 its **business workflows** — all in one artifact that the APPWITHAI generator
 reads to produce full-stack applications.
 
-> **This folder sits at the root of the combined repository**, above both
-> products, because both read the same language:
+> **This folder lives in the orchestrator repository**, `app-and-report-with-ai-tanstack`,
+> rather than in either product, because both read the same language. Each
+> product is its own repository, checked out beside `common/` by `../../deps.sh`
+> at the commit `../../deps.json` pins:
 >
 > | Consumer | What it does with a model |
 > |---|---|
-> | [`app-with-ai-tanstack/`](../app-with-ai-tanstack/) | Generates a whole application — NestJS + Fastify + Kysely backend, TanStack Start front end, seeds, dictionary, manual. Also runs the modelling tool and the browser (WASM) stack |
-> | [`enterprise_reporting_tanstack/`](../enterprise_reporting_tanstack/) | Takes the same model as *entities to report on*. `--stack enterprise-reporting` emits TanStack Start server functions, list/detail routes and a Kysely migration shaped to drop into that repository, whose reporting, charting, NL-query and RBAC machinery already exists |
+> | `businessappwithai/app-with-ai-tanstack` | Generates a whole application — NestJS + Fastify + Kysely backend, TanStack Start front end, seeds, dictionary, manual. Also runs the modelling tool and the browser (WASM) stack |
+> | `businessappwithai/enterprise_reporting_tanstack` | Takes the same model as *entities to report on*. `--stack enterprise-reporting` emits TanStack Start server functions, list/detail routes and a Kysely migration shaped to drop into that repository, whose reporting, charting, NL-query and RBAC machinery already exists |
 >
 > One language, one checker, one set of examples. Where a path below reads
-> `packages/…`, it is inside `app-with-ai-tanstack/`, which is where the shipped
-> generator lives.
+> `packages/…`, it is inside the `app-with-ai-tanstack/` checkout, which is where
+> the shipped generator lives — so those paths resolve only once `../../deps.sh`
+> has run.
 
 Every EML document is **valid, renderable Mermaid**. EML is a *semantic superset*:
 it assigns generator meaning to standard Mermaid diagrams (`erDiagram`,
@@ -102,7 +105,7 @@ language/
 These four are checked in twice — `language/examples/*.eml.mmd` and
 `html/models/*.eml.mmd` must stay byte-identical, and CI asserts it. Edit both.
 
-The repository root's [`examples/`](../examples/) folder is the other one, and it
+`common/`'s own [`examples/`](../examples/) folder is the other one, and it
 carries no such constraint:
 
 | Model | For |

@@ -1249,7 +1249,7 @@
   },
   "generatorContract": {
     "description": "How each section feeds the generator pipeline.",
-    "repositoryLayout": "Every `packages/...` path in this file is relative to `app-with-ai-tanstack/`, which is where the shipped generator lives. This language folder sits above it, at the root of the combined repository, because a second product reads the same models: `enterprise_reporting_tanstack/`, the reporting and analytics platform. One language, one checker, one set of examples; see generatorContract.targets for what each target actually compiles.",
+    "repositoryLayout": "Every `packages/...` path in this file is relative to a checkout of `businessappwithai/app-with-ai-tanstack`, which is where the shipped generator lives. That is a separate repository, as is `businessappwithai/enterprise_reporting_tanstack`, the reporting and analytics platform that reads the same models. This language folder lives in a third, `businessappwithai/app-and-report-with-ai-tanstack`, which orchestrates the two: its `deps.json` pins the commit of each and `./deps.sh` checks them out beside `common/`, at exactly the paths those `packages/...` paths resolve against. One language, one checker, one set of examples; see generatorContract.targets for what each target actually compiles.",
     "targets": {
       "description": "The `eml` CLI's --stack values. They differ in what they write, never in what they understand: all three consume the same parsed model, so a directive that changes meaning changes it for all of them. A target that does not compile a construct still validates it, because the model is one document and the other target does compile it.",
       "list": [

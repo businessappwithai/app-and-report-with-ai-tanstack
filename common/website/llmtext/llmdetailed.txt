@@ -22,12 +22,13 @@
 - **Authority**: `language/appwithai-language.json`. When this file and that
   file disagree, that file wins. When that file and a shipped compiler
   disagree, the compiler wins and the definition is the bug.
-- **Repository**: `businessappwithai/app-with-ai-tanstack`, vendored as the
-  `app-with-ai-tanstack/` subfolder of the combined repository
-  `businessappwithai/app-and-report-with-ai-tanstack`. Every `packages/…` path
-  in this file is inside that subfolder; `language/`, `html/`, `website/` and
-  `examples/` sit at the combined root, above it, because a second product reads
-  the same models — see §1a.
+- **Repository**: `businessappwithai/app-with-ai-tanstack`, its own repository.
+  `language/`, `html/`, `website/` and `examples/` live in a different one —
+  `businessappwithai/app-and-report-with-ai-tanstack`, under `common/` — because
+  a second product reads the same models; see §1a. That repository orchestrates
+  the two: its `deps.json` pins a commit of each, and `./deps.sh` checks them out
+  beside `common/`. Every `packages/…` path in this file is inside the
+  `app-with-ai-tanstack/` checkout it places, and resolves only once it has run.
 - **Sibling spec**: `llms-reporting.txt`, beside this file, covers
   `enterprise_reporting_tanstack` — the reporting and analytics platform that is
   the third `--stack` target. This file is the language and the generator; that
@@ -111,10 +112,11 @@ When a request says "the app", resolve which one from context. "Generate",
 "designer", "wizard", "project" → the modelling tool. "bus_ table",
 "dictionary", "seeded rule" → the generated application.
 
-### 1a. The combined repository
+### 1a. The orchestrator repository
 
-The tree above is a subfolder now. `businessappwithai/app-and-report-with-ai-tanstack`
-holds two products and one language:
+The tree above is its own repository. `businessappwithai/app-and-report-with-ai-tanstack`
+holds the one language both products read, and orchestrates the two — it checks
+them out at pinned commits rather than containing them:
 
 ```
 app-and-report-with-ai-tanstack/
@@ -127,19 +129,25 @@ app-and-report-with-ai-tanstack/
 │   └── viewers/                   #   the model viewers
 ├── examples/                      # Sample models
 ├── app-with-ai-tanstack/          # The generator and the modelling tool (§1)
+│                                  #   — a separate repository, placed by ./deps.sh
 └── enterprise_reporting_tanstack/ # The reporting and analytics platform
+                                   #   — likewise
 ```
 
-The language folder was promoted to the root because both products read it, and
-a language with two copies has two meanings within a week. The subfolders keep
-their own copies for their own CI — `app-with-ai-tanstack/language/` is
-byte-identical to the root one, and `enterprise_reporting_tanstack/language/` is
-an older fork under the name `erdwithai-language.json`. **When any of them
-disagrees with the root copy, the root copy is the language.**
+The language folder lives outside both products because both read it, and a
+language with two copies has two meanings within a week. Each product keeps its
+own copy for its own CI — `app-with-ai-tanstack/language/` under the same name,
+and `enterprise_reporting_tanstack/language/` as an older fork called
+`erdwithai-language.json`. **All three have drifted from each other, and when
+any of them disagrees with the `common/` copy, the `common/` copy is the
+language.** (An earlier version of this file claimed the first two were
+byte-identical. They are not, and nothing checks them against each other; only
+the duplicated *example models* are held byte-identical, by CI.)
 
 Two consequences worth stating before anyone follows a path:
 
-- The root `language/cli` reaches into the subfolder for the two shipped modules
+- `common/language/cli` reaches into the `app-with-ai-tanstack` checkout for the
+  two shipped modules
   it must not fork — the JDM converter and the generator orchestrator. That is
   deliberate: a vendored second copy of either is exactly how the CLI and the
   modelling tool would come to disagree about what a rule flow compiles to.
