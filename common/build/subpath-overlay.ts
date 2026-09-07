@@ -30,7 +30,7 @@
  * says so, because the image build and the local generate both run it.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 interface Patch {
@@ -58,16 +58,25 @@ const PATCHES: Patch[] = [
   },
 
   // --- TanStack Start's own config, as the generated application uses it -----
-  {
-    file: "app.config.ts",
-    optional: true,
-    done: (s) => s.includes(MARKER),
-    apply: (s, base) => {
-      const anchor = "  vite: {";
-      if (!s.includes(anchor)) throw new Error("app.config.ts: no `vite: {` block to anchor on");
-      return s.replace(anchor, `${anchor}\n    ${MARKER} base: ${JSON.stringify(`${base}/`)},`);
-    },
-  },
+  //
+  // Deliberately NOT patched with a `base`, and the reason is worth keeping.
+  //
+  // That version of TanStack Start is Vinxi-based: it writes the client bundle
+  // to `public/_build/` and the rest to `public/assets/`, and serves `public/`
+  // at the server root through Nitro. Setting Vite's `base` rewrote *some*
+  // emitted URLs and moved no files and did not touch the `_build` router at
+  // all, so a build came out half-prefixed:
+  //
+  //   /app/assets/globals-*.css   200, and `text/html` — the SPA fallback,
+  //                               because nothing is on disk at that path
+  //   /_build/assets/client-*.js  emitted un-prefixed, 404 behind the proxy
+  //
+  // A stylesheet request answered with a page is worse than a 404: the browser
+  // reports nothing and the application renders unstyled and inert. So this
+  // application keeps its root-absolute asset URLs and the proxy in front routes
+  // those namespaces to it — see common/docker/nginx/default.conf. The router
+  // basepath below is the half that does work, and is what makes every *link*
+  // the application writes carry the prefix.
 
   // --- The router ------------------------------------------------------------
   {
@@ -133,6 +142,61 @@ const PATCHES: Patch[] = [
   },
 ];
 
+/**
+ * Rewrite the application's own `fetch("/api/…")` calls to sit under the prefix.
+ *
+ * This is the step that only running the two applications together revealed,
+ * and the one without which path-based co-hosting cannot work at all.
+ *
+ * Vite's `base` rewrites asset URLs. The router's `basepath` rewrites links and
+ * route matching. Neither touches a request URL written as a string literal in
+ * source — and both applications here call their API that way, root-absolute:
+ * 174 call sites in the reporting application, 7 in the generated one. Served
+ * side by side they both ask for `/api/...` on the same origin, and no proxy
+ * can send one path to two upstreams.
+ *
+ * So the application that *can* be moved is moved. Only client call sites are
+ * touched; `createFileRoute("/api/…")` route definitions are left exactly as
+ * they are, because the router already prefixes those with its basepath when it
+ * matches a request. Rewriting them too would double the prefix.
+ *
+ * The other application keeps the root, and the proxy routes `/api/` there —
+ * see common/docker/nginx/default.conf.
+ */
+function rewriteApiCalls(dir: string, base: string): number {
+  const root = path.join(dir, "src");
+  if (!existsSync(root)) return 0;
+
+  // `fetch(` then optional space, then a quote or backtick, then /api.
+  // Anchored on `fetch(` so a route definition, a comment or a doc string
+  // mentioning the same path is left alone.
+  const pattern = /(fetch\(\s*)(["'`])\/api\b/g;
+  let changed = 0;
+
+  const walk = (d: string): void => {
+    for (const entry of readdirSync(d)) {
+      const full = path.join(d, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry === "node_modules" || entry.startsWith(".")) continue;
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(entry)) continue;
+      const src = readFileSync(full, "utf8");
+      if (!pattern.test(src)) continue;
+      pattern.lastIndex = 0;
+      const next = src.replace(pattern, `$1$2${base}/api`);
+      if (next !== src) {
+        writeFileSync(full, next);
+        changed++;
+      }
+    }
+  };
+
+  walk(root);
+  return changed;
+}
+
 function main(): number {
   const argv = process.argv.slice(2);
   const flag = (n: string): string | undefined => {
@@ -177,6 +241,18 @@ function main(): number {
     } catch (err) {
       console.error(`  FAIL  ${patch.file}: ${err instanceof Error ? err.message : err}`);
       return 1;
+    }
+  }
+
+  // Only the application that carries a real Vite `base` gets its API calls
+  // moved. The generated application keeps the root `/api` — its framework
+  // cannot be prefixed (see the note on app.config.ts above), so it is the one
+  // the proxy leaves at the root.
+  if (existsSync(path.join(dir, "vite.config.ts"))) {
+    const rewritten = rewriteApiCalls(dir, base);
+    if (rewritten > 0) {
+      console.log(`  base ${base}  ${rewritten} file(s) with fetch("/api…") call sites`);
+      applied += rewritten;
     }
   }
 

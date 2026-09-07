@@ -69,6 +69,19 @@ export interface TanStackGenerateOptions {
   port?: number;
   databaseType?: "postgresql" | "mysql" | "sqlite";
   includeRbac?: boolean;
+  /**
+   * The model document, written to `model/model.eml.mmd` beside the app.
+   *
+   * Not decoration. The generated `backend/Dockerfile` ends with
+   * `COPY --from=builder /app/model ./model`, so an output without it cannot be
+   * built at all — `docker compose up` fails on "/app/model: not found" before
+   * anything starts. The shipped pipeline writes it; this target drives the
+   * orchestrator directly and so has to write it itself.
+   *
+   * It is also the only copy of the model that travels with the application,
+   * which is what makes a generated directory regenerable from itself.
+   */
+  modelSource?: string;
 }
 
 /** Map the EML model to the core Entity[] / Relationship[] the generator uses. */
@@ -130,6 +143,14 @@ export async function generateTanStack(
   const mod = (await import(orchestratorModule)) as unknown as {
     GeneratorOrchestrator: OrchestratorCtor;
   };
+
+  if (opts.modelSource?.trim()) {
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const modelDir = path.join(opts.outDir, "model");
+    mkdirSync(modelDir, { recursive: true });
+    writeFileSync(path.join(modelDir, "model.eml.mmd"), opts.modelSource, "utf8");
+  }
 
   const orchestrator = new mod.GeneratorOrchestrator({
     stackOption: "tanstackjs-nestjs",

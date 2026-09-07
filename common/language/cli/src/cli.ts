@@ -357,7 +357,7 @@ async function cmdGenerate(f: Flags): Promise<number> {
     runHint = `  see ${outDir}/README.md — copy the files into an enterprise_reporting_tanstack
   checkout, then paste ${outDir}/KYSELY_TYPES.md into src/lib/db/kysely-db.ts`;
   } else if (stack === "tanstack-nestjs") {
-    const res = await generateTanStack(model, { outDir, appName });
+    const res = await generateTanStack(model, { outDir, appName, modelSource: source });
     console.log(
       c.green(`  wrote ${res.generatedFiles.length} app file(s) (TanStack Start + NestJS)`)
     );

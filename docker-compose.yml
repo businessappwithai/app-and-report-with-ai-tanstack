@@ -42,7 +42,19 @@ services:
   # ── demo: one server, three databases ────────────────────────────────────
   postgres:
     profiles: ["demo"]
-    image: apache/age:PG16
+    # pgvector rather than Apache AGE, and the choice is forced.
+    #
+    # One server has to satisfy both applications here, and no published image
+    # carries both extensions: `apache/age` has no pgvector, `pgvector/pgvector`
+    # has no AGE. pgvector is the one that is not optional — the generated
+    # application's model-context assistant indexes embeddings — while AGE
+    # serves the reporting platform's knowledge-graph NL feature, which is lazy:
+    # its config database, reports, charts and dashboards all boot without it.
+    #
+    # So the demo profile trades that one feature for a single stock image, and
+    # the prod profile, which runs a server per application, keeps AGE for the
+    # reporting side.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-app}
@@ -83,7 +95,10 @@ services:
 
   postgres-report:
     profiles: ["prod"]
-    image: apache/age:PG16
+    # `apache/age:PG16` does not exist on Docker Hub — the tags are
+    # `release_PG<major>_<version>`. Pinned to a real one, which is what
+    # `docker compose up` discovered the first time it was actually run.
+    image: apache/age:release_PG16_1.6.0
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${REPORT_DB_USER:-enterprise}
