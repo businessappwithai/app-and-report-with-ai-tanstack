@@ -1,0 +1,1369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://appwithai.dev/language/appwithai-language.json",
+  "language": {
+    "id": "appwithai-eml",
+    "name": "APPWITHAI Modeling Language",
+    "abbreviation": "EML",
+    "version": "1.2.0",
+    "basedOn": "mermaid",
+    "mermaidCompatibility": "All EML documents are valid, renderable Mermaid. EML is a semantic superset that assigns generator meaning to standard Mermaid constructs (erDiagram, flowchart, stateDiagram-v2) and to `%%`-prefixed directive comments.",
+    "description": "A single, standalone, Mermaid-based language for describing an application's Entity Relationship Diagram (ERD), its business rules, and its business workflows in one place. EML is the source language read by the APPWITHAI generator to produce full-stack applications (TanStack Start + NestJS, or OpenUI5 + OData V4), and by the enterprise-reporting target to produce entities for the enterprise_reporting_tanstack analytics platform. See generatorContract.targets: the targets differ in what they write, never in what they understand.",
+    "fileExtensions": [".eml.mmd", ".erd.mmd", ".flow.mmd", ".rules.mmd", ".mmd"],
+    "encoding": "utf-8",
+    "caseSensitivity": {
+      "entityNames": "significant (PascalCase recommended)",
+      "attributeNames": "significant (snake_case recommended)",
+      "keywords": "significant (erDiagram, flowchart, etc.)",
+      "types": "insensitive (normalized to lower-case before mapping)",
+      "modifiers": "insensitive (normalized to UPPER-case before mapping)",
+      "hookTypes": "significant (camelCase, e.g. beforeCreate)"
+    },
+    "purpose": [
+      "Describe database structure (entities, attributes, keys, relationships) as an ERD.",
+      "Describe declarative business rules (decision logic, pricing, validation, eligibility) as decision flows that compile to GoRules JDM.",
+      "Describe imperative business workflows (lifecycle hooks and process orchestration) as flow/state diagrams with hook directives.",
+      "Provide one coherent, human- and machine-readable artifact that the generator consumes to emit code."
+    ]
+  },
+  "document": {
+    "description": "An EML document is a text file containing one or more sections. Each section opens with a Mermaid diagram keyword. A single file may contain multiple diagrams separated by blank lines; the generator classifies each by its opening keyword and by directive comments.",
+    "comments": {
+      "syntax": "%%",
+      "description": "Lines beginning with %% are Mermaid comments. Plain comments are ignored by renderers and by the generator. Comments beginning with a reserved directive keyword (%%hook, %%rule, %%meta, %%entity, %%enum, %%index, %%workflow, %%trigger, %%guard) carry semantic meaning to the generator while remaining renderer-safe.",
+      "plainCommentExample": "%% This is documentation, ignored by the generator",
+      "directiveCommentExample": "%%hook beforeCreate hashPassword on User"
+    },
+    "sectionClassifier": {
+      "description": "How the generator decides what a diagram block means.",
+      "rules": [
+        {
+          "openingKeyword": "erDiagram",
+          "section": "erd"
+        },
+        {
+          "openingKeyword": "flowchart",
+          "section": "resolved by %%meta section directive; defaults to 'workflow' unless rule-shaped or marked kind: rules"
+        },
+        {
+          "openingKeyword": "graph",
+          "section": "alias of flowchart"
+        },
+        {
+          "openingKeyword": "stateDiagram-v2",
+          "section": "workflow (state-machine form)"
+        },
+        {
+          "openingKeyword": "stateDiagram",
+          "section": "workflow (state-machine form, legacy)"
+        }
+      ],
+      "disambiguation": "A flowchart is treated as a business-rules decision flow when it is preceded by `%%meta kind: rules` OR when it contains only decision/expression/function/io node shapes and no %%hook directives. Otherwise it is treated as a workflow."
+    }
+  },
+  "sections": {
+    "erd": {
+      "title": "Entity Relationship Diagram",
+      "opensWith": "erDiagram",
+      "consumedBy": "packages/generator/src/parsers/mermaid.parser.ts (MermaidParser.parse)",
+      "produces": "Entity[] and Relationship[] used by the code generator (migrations, DTOs, services, controllers, forms, tables).",
+      "constructs": {
+        "entityBlock": {
+          "grammar": "EntityName {\\n  <attribute>*\\n}",
+          "entityNameRule": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "recommendedCase": "PascalCase (Customer, OrderItem). snake_case (order_item) and prefixed names (bus_account, sys_user) are also accepted.",
+          "tableNameDerivation": "PascalCase/camelCase -> snake_case; ALL_CAPS/snake stays lower-case. Optional bus_/sys_ prefixes are preserved.",
+          "example": "Customer {\n    string id PK\n    string email UK\n    string first_name\n    date created_at\n}"
+        },
+        "attribute": {
+          "grammar": "<type>[(<length>)] <name> [<modifier> ...] [\"<description>\"]",
+          "attributeNameRule": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "recommendedCase": "snake_case (first_name, company_id).",
+          "length": "Optional decimal length in parentheses attached to the type, e.g. string(120). Captured as maxLength.",
+          "notes": [
+            "The first token is the type, the second is the name, remaining tokens are modifiers.",
+            "A quoted trailing string is treated as the attribute description/comment.",
+            "If an entity declares no id/_id attribute, the generator auto-adds `string id PK`.",
+            "timestamps (created_at, updated_at) are added by the generator by default (entity.timestamps = true)."
+          ],
+          "examples": [
+            "string id PK",
+            "string email UK",
+            "string(120) display_name",
+            "decimal amount OPTIONAL",
+            "string company_id FK OPTIONAL \"owning company\"",
+            "boolean is_active"
+          ]
+        },
+        "relationship": {
+          "grammar": "<LeftEntity> <cardinality> <RightEntity> : \"<label>\"",
+          "labelOptional": true,
+          "labelNormalization": "Trimmed, whitespace -> underscore, lower-cased to form the relationship name.",
+          "foreignKeyDerivation": "snake_case(targetEntity) with any bus_ prefix removed, suffixed with _id (e.g. Company -> company_id).",
+          "examples": [
+            "Company ||--o{ Contact : \"employs\"",
+            "Deal }o--|| DealStage : \"in_stage\"",
+            "Quote ||--o{ QuoteItem : \"contains\"",
+            "User ||--|| Team : \"managed_by\""
+          ]
+        }
+      }
+    },
+    "rules": {
+      "title": "Business Rules (Decision Flows)",
+      "opensWith": "flowchart TD  (with `%%meta kind: rules`)",
+      "consumedBy": "packages/web/src/lib/mermaid-flowchart-parser.ts -> packages/web/src/lib/jdm-converter.ts (convertToJdm)",
+      "produces": "A GoRules JDM decision graph (nodes + edges) used to evaluate declarative business logic (pricing, discounts, eligibility, validation, routing).",
+      "modelingPrinciple": "A business rule is a directed decision flow. Node *shape* determines its JDM role; edge *labels* carry the branch condition or transition name.",
+      "constructs": {
+        "node": {
+          "grammar": "<NodeId><shapeDelimiters label>",
+          "nodeIdRule": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "shapeSemantics": "See ruleNodes map. stadium=input/output, diamond=decision/switch, circle=function, rect=expression/action.",
+          "inputVsOutput": "A stadium node with no outgoing edges (only incoming) is an outputNode; otherwise it is an inputNode. This lets a single shape mark both Start and End."
+        },
+        "edge": {
+          "grammar": "<SourceId> -->|<label>| <TargetId>   (label optional)",
+          "labelMeaning": "For edges leaving a decision (diamond) node, the label is the branch condition (e.g. Yes / No / amount > 1000). For other edges it is an optional transition name.",
+          "examples": [
+            "B -->|Yes| C[Apply Premium Discount 15%]",
+            "B -->|No| D{Customer is VIP?}",
+            "C --> G(Calculate Final Price)"
+          ]
+        }
+      },
+      "example": "flowchart TD\n    A([Start: Order Received]) --> B{Order Amount > $1000?}\n    B -->|Yes| C[Apply Premium Discount 15%]\n    B -->|No| D{Customer is VIP?}\n    D -->|Yes| E[Apply VIP Discount 10%]\n    D -->|No| F[Apply Standard Pricing]\n    C --> G(Calculate Final Price)\n    E --> G\n    F --> G\n    G --> H([End: Price Calculated])"
+    },
+    "workflows": {
+      "title": "Business Workflows (Lifecycle Hooks & Process Orchestration)",
+      "opensWith": "flowchart TD  or  stateDiagram-v2",
+      "consumedBy": "packages/web/src/lib/workflow/hook-parser.ts (parseHooksFromFlowchart) and packages/web/src/lib/mermaid-flowchart-parser.ts",
+      "produces": "HookDefinition[] wired into the generated BaseService lifecycle, plus a visual process flow. Hooks map to entity CRUD lifecycle events at generation time.",
+      "modelingPrinciple": "A workflow is the visible process (a flow/state diagram) annotated with %%hook directives that bind named handlers to entity lifecycle events, and optional %%guard/%%trigger directives for authorization and event sources.",
+      "constructs": {
+        "hookDirective": {
+          "grammar": "%%hook <hookType> <handlerName> on <EntityName>[<params>]",
+          "params": "Optional [field: name, field: name] list scoping the hook to specific fields.",
+          "hookTypeRule": "one of the 13 hook types (see hooks map)",
+          "handlerNameRule": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "entityRule": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "examples": [
+            "%%hook beforeCreate hashPassword on User",
+            "%%hook afterCreate sendWelcomeEmail on User",
+            "%%hook beforeCreate generateSlug on Post[field: slug]",
+            "%%hook customValidate ensureCreditLimit on Order"
+          ]
+        },
+        "processNode": {
+          "description": "Standard flowchart/state nodes represent process steps; the same shape semantics as rules apply for visualization.",
+          "example": "flowchart TD\n    A[Client Request] --> B[Validate Request]\n    B --> C[beforeCreate: hashPassword]\n    C --> D[Process User]\n    D --> E[afterCreate: sendWelcomeEmail]\n    E --> F[Response]"
+        },
+        "stateForm": {
+          "description": "stateDiagram-v2 expresses a long-running/entity status workflow. States map to a status enum; transitions map to allowed status changes and can be guarded.",
+          "example": "stateDiagram-v2\n    [*] --> Draft\n    Draft --> Submitted : submit\n    Submitted --> Approved : approve\n    Submitted --> Rejected : reject\n    Approved --> [*]"
+        }
+      }
+    }
+  },
+  "types": {
+    "description": "Attribute type vocabulary. Aliases are normalized to a canonical type. Canonical types drive TypeScript, Zod, SQL/Kysely, OData EDM, and UI control mapping in the generator.",
+    "canonical": ["string", "text", "integer", "decimal", "boolean", "date", "datetime", "json"],
+    "map": {
+      "string": "string",
+      "varchar": "string",
+      "char": "string",
+      "uuid": "string",
+      "guid": "string",
+      "id": "string",
+      "email": "string",
+      "url": "string",
+      "phone": "string",
+      "password": "string",
+      "color": "string",
+      "text": "text",
+      "longtext": "text",
+      "int": "integer",
+      "integer": "integer",
+      "bigint": "integer",
+      "smallint": "integer",
+      "number": "decimal",
+      "decimal": "decimal",
+      "float": "decimal",
+      "double": "decimal",
+      "money": "decimal",
+      "amount": "decimal",
+      "bool": "boolean",
+      "boolean": "boolean",
+      "date": "date",
+      "datetime": "datetime",
+      "timestamp": "datetime",
+      "time": "datetime",
+      "json": "json",
+      "jsonb": "json",
+      "object": "json",
+      "array": "json"
+    },
+    "semanticHints": {
+      "description": "Aliases that normalize to a base type but carry UI/validation intent the generator may honor via naming or the extended %%meta field directive.",
+      "email": "string rendered as email input, validated as email",
+      "url": "string rendered as url input",
+      "password": "string rendered as password input, min length enforced",
+      "phone": "string rendered as tel input",
+      "color": "string rendered as color picker",
+      "uuid": "string treated as a UUID primary/foreign key"
+    },
+    "default": "string"
+  },
+  "modifiers": {
+    "description": "Trailing tokens on an ERD attribute. Normalized to UPPER-case. Unknown modifiers are ignored.",
+    "map": {
+      "PK": {
+        "meaning": "Primary key",
+        "effects": [
+          "unique = true",
+          "required handled by generator (auto-generated)",
+          "sets entity.primaryKey"
+        ]
+      },
+      "FK": {
+        "meaning": "Foreign key",
+        "effects": ["marks the column as a reference; relationship inference / navigation"]
+      },
+      "UK": {
+        "meaning": "Unique key",
+        "effects": ["unique = true"]
+      },
+      "UNIQUE": {
+        "meaning": "Alias of UK",
+        "effects": ["unique = true"]
+      },
+      "OPTIONAL": {
+        "meaning": "Nullable / not required",
+        "effects": ["required = false"]
+      },
+      "NULL": {
+        "meaning": "Alias of OPTIONAL",
+        "effects": ["required = false"]
+      }
+    },
+    "defaults": {
+      "required": "true unless OPTIONAL/NULL or PK",
+      "unique": "false unless UK/UNIQUE/PK"
+    }
+  },
+  "foreignKeys": {
+    "description": "How an FK column name resolves to the table it points at. The generator derives the target from the column name alone \u2014 there is no explicit target syntax on the attribute \u2014 so the name has to carry the reference.",
+    "suffix": "_id",
+    "resolution": [
+      "1. A person-role name (see personRoleColumns) resolves to the model's person entity (User if it exists, then Staff, then Employee).",
+      "2. Otherwise <entity>_id resolves to bus_<entity>.",
+      "3. A column that resolves to nothing is stored as a plain string: no lookup, no display name, the raw id renders in grids and forms."
+    ],
+    "personRoleColumns": {
+      "description": "Columns naming a person by the role they played rather than by entity. All resolve to the model's person entity (User > Staff > Employee, whichever exists first).",
+      "suffixes": ["_by", "_by_id"],
+      "names": [
+        "assigned_to",
+        "author_id",
+        "lab_manager_id",
+        "manager_id",
+        "owner_id",
+        "pi_id",
+        "remediation_owner",
+        "remediation_owner_id",
+        "user_id"
+      ],
+      "examples": [
+        "reported_by_id -> bus_user (or bus_staff when the model has no User entity)",
+        "registered_by_id -> bus_user (or bus_staff / bus_employee)",
+        "pi_id -> bus_user (a principal investigator is a person, not a bus_pi table)"
+      ]
+    },
+    "checkerCodes": {
+      "EML114": "FK column does not end in _id. Auto-fixable: the fixer appends the suffix, so `reported_by FK` becomes `reported_by_id FK` and starts resolving to the person entity.",
+      "EML119": "A column named like a reference (_id/_by, resolving to a declared entity) that carries no FK modifier. Both conditions are required for TABLE_DIRECT, and a column that fails either is recorded as a plain String."
+    }
+  },
+  "applicationDictionary": {
+    "description": "The generated application is metadata-driven: it does not hard-code forms. Every table, column, tab, field and lookup is a row in the Application Dictionary (sys_table, sys_column, sys_field, sys_tab, sys_window, sys_category, sys_reference, sys_ref_list), and the running interface reads those rows, which is why a field can be added to a live application without a deployment. Nothing in EML writes dictionary rows: they are derived, one way, from the ERD. There is no %%dictionary directive, and a model that wants a lookup or a dropdown gets one by declaring the column so that the derivation produces it.",
+    "derivedBy": "packages/core/src/types/bus-entity.types.ts (attributeReferenceId, isForeignKeyColumnName, attributeToBusAttribute)",
+    "consumedBy": [
+      "packages/generator/src/generators/wasm/model-bundle.ts (referenceIdFor)",
+      "packages/generator/src/generators/dictionary (sys_table, sys_column, sys_field seeds)",
+      "packages/web (the runtime that renders a control per sys_reference_id)"
+    ],
+    "referenceTypes": {
+      "description": "sys_reference_id decides the control the user gets. Ids below 1000 are the standard references below; a %%enum creates its own List reference at 1000 or above, with one sys_ref_list row per value.",
+      "standard": {
+        "10": "String - plain text box",
+        "11": "Integer",
+        "12": "Amount - decimal, right aligned",
+        "13": "ID - the record key, read-only",
+        "14": "Text - memo box",
+        "15": "Date",
+        "16": "DateTime",
+        "17": "List - dropdown fed by sys_ref_list",
+        "18": "Table - lookup with an explicit validation rule",
+        "19": "Table Direct - lookup on the table the column name resolves to",
+        "20": "Yes-No - switch",
+        "21": "Location",
+        "22": "Locator",
+        "23": "Account",
+        "24": "URL",
+        "25": "Image",
+        "26": "File",
+        "27": "Color",
+        "28": "JSON",
+        "29": "Password - masked",
+        "30": "Email",
+        "31": "Phone"
+      }
+    },
+    "derivation": [
+      "1. The entity's primary key, or a column named `id`, gets ID (13).",
+      "2. A column that is BOTH marked FK and named _id/_by (see foreignKeys.resolution) gets TABLE_DIRECT (19) - the lookup on the parent table.",
+      "3. A column bound by `%%field <Entity>.<column> enum: <Enum>` gets that enum's List reference (>= 1000).",
+      "4. Otherwise the semantic aliases decide: email/phone/url/password/color map to their own references (30, 31, 24, 29, 27).",
+      "5. Otherwise the canonical type decides: text -> Text, boolean -> Yes-No, decimal/money -> Amount, date -> Date, datetime -> DateTime, json -> JSON, integer -> Integer, everything else -> String."
+    ],
+    "silentDowngrades": {
+      "description": "Two authoring mistakes leave a column at String (10) with a document that is otherwise correct. Both were invisible before EML119 and EML146: the model parses, the relationship line can be present, and the generated application comes back with raw ids in text boxes.",
+      "unmarkedReference": "`string vendor_id` and `string vendor_id FK` parse into the same column, and only the second becomes TABLE_DIRECT. Reported as EML119.",
+      "unboundLifecycleColumn": "A %%enum does nothing to a column on its own. Without the %%field binding, a status/state/stage column is free text, and the form accepts values the state machine cannot act on. Reported as EML146."
+    },
+    "displayValue": {
+      "description": "What a record is called wherever something other than the record shows it: a Table Direct dropdown, and a grid cell holding a foreign key. Stored as sys_column.is_identifier, and the display value is the identifier columns concatenated in seq_no order - the same rule in both stacks.",
+      "derivation": [
+        "1. A column named name, full_name, display_name, title, label or subject - whichever appears first in that order.",
+        "2. Otherwise first_name and last_name together, if the entity declares both. This is why the value is a concatenation and not one column.",
+        "3. Otherwise code, reference or number - not a name, but what people quote at each other, and better than a uuid.",
+        "4. Otherwise, if the entity declares two or more FK columns ending _id/_by, it is a join entity: its first two references are the identifiers, each resolved through the parent's own label. CampaignMember reads as `Spring Promo - Omar Kowalski`.",
+        "5. Otherwise the first declared string/text column that is neither the key nor a reference.",
+        "6. Otherwise the key, so a lookup still lists something."
+      ],
+      "joinEntities": {
+        "description": "An entity whose identity is the pair of records it joins - CampaignMember, OrderLine, QuoteLineItem - has no name to give it, and step 5 would pick whatever text column came first: member_status, so every campaign member read `invited`. Two or more references and no name of its own is the shape.",
+        "depth": "One level only. A parent that is itself a join entity labels itself by its key rather than recursing, because a label assembled from four grandparents is not a name anybody reads.",
+        "pairOnly": "The first two references in declared order, never more. An entity with three parents labels itself from the first two, which is the only say the modeller has in it - so declare the two that name the record first.",
+        "separator": "Two names of one record join with a space (`Omar Kowalski`); two records join with an em dash (`Spring Promo - Omar Kowalski`). Sharing one separator turns a person into `Omar - Kowalski`.",
+        "sqlNote": "A generated key is UUID and a reference to it is VARCHAR(255), because the model declares `string campaign_id FK`. Postgres coerces a text parameter to uuid but refuses to compare the two columns, so the resolving subquery casts both sides."
+      },
+      "primaryKeyIsNotAnIdentifier": "The key is deliberately excluded. It used to be marked, which meant a display value built from the identifier columns began with a uuid, and every consumer had grown its own filter to drop it.",
+      "modellingAdvice": "Give an entity a name, title or code column if it will be referenced. Without one the fallbacks apply, and a reference to it reads as whatever text column happened to be declared first. A join entity is the exception and needs nothing: it names itself from its parents."
+    },
+    "managedColumns": {
+      "description": "Columns every generated table carries in both stacks, whether or not the model mentions them. They are the generator's: the key, the optimistic-lock counter, the audit pair and the soft-delete pair.",
+      "names": [
+        "id",
+        "version",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+        "deleted_by"
+      ],
+      "declaringOne": "Redundant, and it used to be fatal: the column reached CREATE TABLE twice and PostgreSQL refused the statement with `column \"created_at\" specified more than once`, so the generated application could not open its database. The generator now drops the model's definition and keeps its own; EML103 reports the line.",
+      "checkerCodes": {
+        "EML103": "A column the generator manages, declared in the model - the declaration is ignored."
+      }
+    },
+    "alsoDerived": [
+      "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
+      "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
+      "%%category becomes the dashboard grouping; a model declaring none gets a single General category holding every entity.",
+      "%%field <Entity>.<column> help: and %%entity <Name> help: become sys_column.description and sys_table.description - the help a reader sees under the field and beside the table. %%entity description: is the same key under its other name.",
+      "%%entity <Child> parent: <Parent> makes the child a line item: no window and no dashboard card, a tab inside the parent's window instead. See masterDetail.",
+      "The remaining %%entity keys (label, icon, prefix, softDelete, audited) are validated but not yet compiled."
+    ],
+    "masterDetail": {
+      "description": "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
+      "directive": "%%entity <Child> parent: <Parent>",
+      "effects": [
+        "The child gets no sys_window and no dashboard card: it is not somewhere the user navigates to.",
+        "The child's sys_tab is created under the parent's window at tab_level 1, sequenced after the master tab.",
+        "sys_tab.link_column_id is set to the child's own foreign key back to the parent, and that column is marked sys_column.is_parent.",
+        "Opening a parent record lists its children beneath the form, filtered to that record."
+      ],
+      "linkColumn": "The child's existing foreign key to the parent - <parent_snake>_id when present, else the first FK column whose name begins with the parent's snake_case name. Never declared twice: the relationship is already in the ERD.",
+      "identifyingAChild": [
+        "Would a list of these records, away from their owner, be useful to anyone? If not, it is a child.",
+        "Does the row's identity depend on the owner - line 1 of invoice 7, rather than line 1? If so, it is a child.",
+        "Would deleting the owner make the row meaningless? If so, it is a child.",
+        "A reference is the opposite: Invoice.patient_id points at a Patient who exists, and matters, independently."
+      ]
+    },
+    "checkerCodes": {
+      "EML103": "A column the generator already adds (id, version, the audit pair, the soft-delete pair), declared in the model.",
+      "EML119": "A reference-shaped column with no FK modifier - the lookup is lost.",
+      "EML146": "A status/state/stage column with no %%field enum binding - the dropdown is lost.",
+      "EML147": "%%entity ... parent: names an entity that is not declared, or the entity names itself.",
+      "EML148": "%%entity ... parent: is declared but the child has no foreign key back to the parent, so the detail tab has nothing to link on.",
+      "EML500": "A `kind: state` workflow bound to an entity with no status/state/stage column at all - the machine has nothing to track."
+    },
+    "reportDesigns": {
+      "description": "Generated applications include a document report subsystem backed by the AnkaReport library. One default AnkaReport layout is seeded per entity into sys_report_designs at generation time. Administrators can customise any layout at Admin \u2192 Report Designs. Users get a Print button on a record's detail view (visible only when a design exists for that table), and can export the rendered report to PDF.",
+      "table": "sys_report_designs",
+      "columns": {
+        "id": "UUID primary key",
+        "table_name": "Entity table name; UNIQUE \u2014 one design per table",
+        "name": "Human-readable design name (e.g. \"Contact Default Report\")",
+        "layout": "JSONB AnkaReport ILayout object \u2014 headerSection, contentSection, footerSection"
+      },
+      "defaultLayout": {
+        "description": "Generated by packages/generator/templates/common/seeds/report-designs.ts.hbs. Fields in the layout are every non-audit, non-PK column: not id, created_at, updated_at, deleted_at, version.",
+        "structure": {
+          "headerSection": "height 56; entity displayName + \" Report\" in 20pt bold #0f4c75",
+          "contentSection": "binding: \"records\"; one label+value row per field, 24pt high with 4px gap",
+          "footerSection": "height 28; \"Generated by APPWITHAI\" in 9pt #9ca3af centered"
+        }
+      },
+      "adminRoutes": [
+        "GET /admin/reports \u2014 lists all entity tables with Designed/New badge",
+        "GET /admin/reports/:tableName \u2014 opens AnkaReport designer pre-loaded with the existing layout"
+      ],
+      "backendEndpoints": [
+        "GET /sys/report-designs \u2014 list all designs",
+        "GET /sys/report-designs/:tableName \u2014 get design by table",
+        "POST /sys/report-designs \u2014 create (admin only)",
+        "PUT /sys/report-designs/:tableName \u2014 upsert (admin only)",
+        "DELETE /sys/report-designs/:tableName \u2014 delete (admin only)"
+      ],
+      "printButton": "Appears in the record toolbar (ADToolbar hasPrintReport prop) only when a design exists for the current entity. Clicking opens ReportPrintModal which renders the report via AnkaReport.render() and offers PDF export.",
+      "authoringNote": "No EML directive controls report designs. The default layout is always seeded automatically from the entity's columns. Customisation is done through the running Admin UI, not through the model."
+    }
+  },
+  "cardinalities": {
+    "description": "Mermaid ER relationship operators and their semantic meaning. Left/right glyphs encode min/max multiplicity; EML maps the pair to a cardinality kind and infers the foreign-key side.",
+    "glyphReference": {
+      "||": "exactly one",
+      "|o": "zero or one",
+      "o|": "zero or one",
+      "}o": "zero or many",
+      "o{": "zero or many",
+      "}|": "one or many",
+      "|{": "one or many"
+    },
+    "map": [
+      {
+        "operator": "||--||",
+        "kind": "oneToOne",
+        "example": "User ||--|| Profile : has"
+      },
+      {
+        "operator": "||--o{",
+        "kind": "oneToMany",
+        "example": "Company ||--o{ Contact : employs"
+      },
+      {
+        "operator": "||--|{",
+        "kind": "oneToMany",
+        "example": "Order ||--|{ OrderItem : contains"
+      },
+      {
+        "operator": "}o--||",
+        "kind": "manyToOne",
+        "example": "Deal }o--|| DealStage : in_stage"
+      },
+      {
+        "operator": "}|--||",
+        "kind": "manyToOne",
+        "example": "OrderItem }|--|| Order : belongs_to"
+      },
+      {
+        "operator": "}o--o{",
+        "kind": "manyToMany",
+        "example": "Student }o--o{ Course : enrolls"
+      },
+      {
+        "operator": "}|--|{",
+        "kind": "manyToMany",
+        "example": "Author }|--|{ Book : writes"
+      },
+      {
+        "operator": "|o--o|",
+        "kind": "oneToOne",
+        "example": "Employee |o--o| ParkingSpot : assigned"
+      }
+    ]
+  },
+  "hooks": {
+    "description": "Lifecycle event points a workflow hook may bind to. Each %%hook directive generates a handler function in the generated backend (src/modules/hooks/handlers/<Entity>.ts), registered against the event and run by the bus service around the matching CRUD operation.",
+    "types": [
+      {
+        "type": "beforeCreate",
+        "phase": "before",
+        "op": "create",
+        "purpose": "Validate/transform an entity before insert (e.g. hash password, generate slug)."
+      },
+      {
+        "type": "afterCreate",
+        "phase": "after",
+        "op": "create",
+        "purpose": "Side effects after insert (e.g. send welcome email, emit event)."
+      },
+      {
+        "type": "beforeUpdate",
+        "phase": "before",
+        "op": "update",
+        "purpose": "Validate/transform before update."
+      },
+      {
+        "type": "afterUpdate",
+        "phase": "after",
+        "op": "update",
+        "purpose": "Side effects after update (e.g. audit, cache invalidation)."
+      },
+      {
+        "type": "beforeDelete",
+        "phase": "before",
+        "op": "delete",
+        "purpose": "Guard/validate before delete (e.g. block if referenced)."
+      },
+      {
+        "type": "afterDelete",
+        "phase": "after",
+        "op": "delete",
+        "purpose": "Cleanup after delete (e.g. remove files)."
+      },
+      {
+        "type": "beforeQuery",
+        "phase": "before",
+        "op": "query",
+        "purpose": "Mutate the query before it runs (e.g. tenant scoping)."
+      },
+      {
+        "type": "afterQuery",
+        "phase": "after",
+        "op": "query",
+        "purpose": "Post-process query results."
+      },
+      {
+        "type": "customValidate",
+        "phase": "validate",
+        "op": "any",
+        "purpose": "Cross-field/business validation independent of a single CRUD verb."
+      },
+      {
+        "type": "beforeRead",
+        "phase": "before",
+        "op": "read",
+        "purpose": "Guard/transform a single-record read."
+      },
+      {
+        "type": "afterRead",
+        "phase": "after",
+        "op": "read",
+        "purpose": "Post-process a single record (e.g. redact fields)."
+      },
+      {
+        "type": "beforeList",
+        "phase": "before",
+        "op": "list",
+        "purpose": "Adjust list parameters (filter/sort/paginate)."
+      },
+      {
+        "type": "afterList",
+        "phase": "after",
+        "op": "list",
+        "purpose": "Post-process a list result set."
+      }
+    ],
+    "directive": {
+      "pattern": "%%hook <type> <handlerName> on <Entity>[<params>]",
+      "regex": "%%hook\\s+(\\w+)\\s+(\\w+)\\s+on\\s+(\\w+)(\\[(?:field:\\s*\\w+(?:\\s*,\\s*field:\\s*\\w+)*)?\\])?",
+      "paramForms": ["[field: slug]", "[field: slug, field: title]"]
+    }
+  },
+  "ruleNodes": {
+    "description": "Mapping of Mermaid node shapes to GoRules JDM node roles for business-rule decision flows.",
+    "map": [
+      {
+        "shape": "stadium",
+        "delimiters": "([ label ])",
+        "jdmType": "inputNode | outputNode",
+        "resolution": "outputNode when the node has only incoming edges; otherwise inputNode.",
+        "role": "Start / input context, or End / decision output.",
+        "example": "A([Start: Order Received])"
+      },
+      {
+        "shape": "diamond",
+        "delimiters": "{ label }",
+        "jdmType": "switchNode",
+        "role": "Decision / branch. Outgoing edge labels are branch conditions.",
+        "example": "B{Order Amount > $1000?}"
+      },
+      {
+        "shape": "circle",
+        "delimiters": "(( label ))",
+        "jdmType": "functionNode",
+        "role": "Custom function / computation step (JS expression or reusable function).",
+        "example": "G((Calculate Final Price))"
+      },
+      {
+        "shape": "rect",
+        "delimiters": "[ label ]",
+        "jdmType": "expressionNode",
+        "role": "Expression / assignment / action (set output fields, apply a value).",
+        "example": "C[Apply Premium Discount 15%]"
+      },
+      {
+        "shape": "rounded",
+        "delimiters": "( label )",
+        "jdmType": "functionNode",
+        "role": "Rounded rectangle, treated like a function/computation step (used for calculate steps).",
+        "example": "G(Calculate Final Price)"
+      }
+    ],
+    "actions": {
+      "description": "Side-effecting actions a rule may emit, evaluated by the rules engine after the decision runs. A %%action directive inside a rules section declares one: the `when` expression becomes the decision-table row's condition, and the remaining keys become its outputs. Without this a model-declared rule could only decide, never act \u2014 the action vocabulary existed solely in the app's decision-table editor.",
+      "directive": "%%action <name> <actionType> when: <expr> <key>: <value> ...",
+      "whenForm": "A zen expression over the record being written, e.g. `severity == \"critical\"`. `true` fires on every write. It is the last key parsed before the action's own keys, so quote values containing a `key:` sequence.",
+      "types": [
+        {
+          "name": "trigger-workflow",
+          "purpose": "Run a workflow definition by name. This is what gates a `kind: saga` workflow declared with `trigger: rule` on a condition.",
+          "required": ["workflow"],
+          "optional": ["message"],
+          "example": "%%action escalate trigger-workflow when: severity == \"critical\" workflow: CriticalDeviationEscalation"
+        },
+        {
+          "name": "validation-error",
+          "purpose": "Reject the write. The message is returned to the caller.",
+          "required": ["message"],
+          "optional": [],
+          "example": "%%action requireCause validation-error when: status == \"closed\" and root_cause == null message: A closed deviation needs a root cause"
+        },
+        {
+          "name": "transform",
+          "purpose": "Overwrite a field on the record being written.",
+          "required": ["field", "value"],
+          "optional": ["message"],
+          "example": "%%action stampSeverity transform when: true field: severity value: major"
+        }
+      ]
+    }
+  },
+  "workflowConstructs": {
+    "description": "Node/edge vocabulary for process workflows and state workflows.",
+    "flowShapes": {
+      "stadium": "Start/End terminal ( ([label]) )",
+      "rect": "Process step ( [label] )",
+      "diamond": "Gateway/decision ( {label} )",
+      "circle": "Event/signal ( ((label)) )",
+      "rounded": "Sub-process/task ( (label) )"
+    },
+    "stateForm": {
+      "start": "[*] --> FirstState",
+      "end": "LastState --> [*]",
+      "transition": "StateA --> StateB : eventName",
+      "mappingHint": "States are treated as a status enum for the bound entity; transitions define the allowed status changes.",
+      "enforcement": "The edges are enforced, not merely documented. Every transition a diagram draws is compiled into sys_workflow_transitions, and the generated EntityAccessGuard refuses a write that moves a record to a state with no matching edge from the state it is in \u2014 answering 403 and leaving the record where it was. This holds for every caller, the master role included: an edge the diagram never drew is not a permission an administrator lacks, it is a move that does not exist, and allowing it would put the record in a state every rule and workflow downstream was written without. Who may cross an edge that does exist is the separate question %%rbac answers, from sys_transition_access, and that one the master role does bypass. Keep the two apart: enforcing topology only where a role rule happens to cover it leaves every unguarded edge open.",
+      "readingTheEdges": "GET /api/workflows/transitions returns the stored edges, optionally narrowed by ?table= and ?from=. A screen offering a status change asks this rather than offering every state and letting the save be refused. A table with no state diagram has no rows and nothing is enforced for it."
+    },
+    "workflowKinds": {
+      "hook": {
+        "form": "%%workflow <name> entity: <Entity> kind: hook",
+        "description": "A flowchart whose steps represent operations on a single entity. %%hook directives bind named handlers to the entity's CRUD lifecycle events. Fully parsed by the shipped hook-parser.",
+        "diagram": "flowchart",
+        "shipped": true
+      },
+      "state": {
+        "form": "%%workflow <name> entity: <Entity> kind: state",
+        "description": "A stateDiagram-v2 whose states map to a status enum for the bound entity. Transitions define the allowed status changes and are enforced as the entity's topology \u2014 see stateForm.enforcement. %%rbac directives naming a transition event add the role check on top of that; %%trigger directives declare external event sources. Fully parsed by the shipped hook-parser.",
+        "diagram": "stateDiagram-v2",
+        "shipped": true
+      },
+      "saga": {
+        "form": "%%workflow <name> entity: <Entity> kind: saga [trigger: automatic|rule] [operation: CREATE|UPDATE|DELETE|ALL]",
+        "description": "A flowchart whose nodes are executable steps. Each node is bound to a step by a %%step directive naming the node id and its step type; the flowchart edges give the running order. Compiles to BPMN service tasks seeded into sys_workflow_definitions and run by the generated workflow executor. This is how a multi-entity, multi-step process \u2014 create a row here, update one there, delete a third, passing values between the steps \u2014 is expressed in the model rather than drawn by hand in the app.",
+        "diagram": "flowchart",
+        "shipped": true,
+        "trigger": {
+          "automatic": "Runs on every write to the bound entity that matches the workflow's operation. The default.",
+          "rule": "Runs only when a business rule emits a trigger-workflow action naming it, so the rule's condition decides. Use this whenever the workflow should not fire on every write."
+        },
+        "ordering": "Steps run in flowchart edge order, walking forward from every node with no incoming edge. A node with a %%step but no edges still runs, after the wired ones, in document order \u2014 the canvas implies a step runs even when the connection was left implicit.",
+        "example": "%%workflow CriticalDeviationEscalation entity: DeviationReport kind: saga trigger: rule operation: CREATE",
+        "operation": "Which write runs the workflow. Defaults to CREATE. Only consulted for trigger: automatic \u2014 a rule-triggered workflow is resolved by name, so the rule decides."
+      }
+    },
+    "stepNodes": {
+      "description": "Executable step types for a `kind: saga` workflow. A %%step directive binds a flowchart node to one of these and supplies its properties; each becomes one bpmn:serviceTask with appwithai:property extension elements. This table is the single source of truth for the checker, the generator, the EML authoring canvas and the generated Workflow Designer.",
+      "directive": "%%step <nodeId> <stepType> <key>: <value> ...",
+      "propertyForm": "Space-separated `key: value` pairs. A value runs to the next `<key>:` token or the end of the line, so it may contain spaces. `fields` is JSON and must be the last key on the line.",
+      "variables": "Steps share a context: the triggering record's columns, plus every variable a previous step published. CreateEntity publishes the new row's id under `as`; Formula publishes under `target`. A later step reads one by naming it in `source` or `targetSource`. This is what lets a workflow reach a row it created earlier.",
+      "loopMembership": "`in: <loopId>` joins a step to a %%loop declared in the same section. It is read off every step type alike, before the type is consulted at all, so it belongs to no single contract below and is deliberately absent from their `optional` lists. A reader validating step properties must treat it as known for every type — see automations.loops and the %%loop directive.",
+      "types": [
+        {
+          "name": "UpdateEntity",
+          "purpose": "Write one column on the triggering record, or on rows of a related entity.",
+          "required": ["field"],
+          "oneOf": [["source", "value"]],
+          "optional": ["entity", "targetField", "targetSource"],
+          "rowTargeting": "Defaults to the record that triggered the workflow. To reach another entity, set `entity` plus either `targetSource` (a context key holding the row id) or `targetField` (a foreign key column matched against the triggering row). Targeting another entity by `id` with no `targetSource` is refused rather than guessed.",
+          "example": "%%step D UpdateEntity entity: Capa targetSource: newCapaId field: effectiveness_metric source: resolutionDays"
+        },
+        {
+          "name": "CreateEntity",
+          "purpose": "Insert a row, optionally publishing its id for later steps.",
+          "required": ["entity", "fields"],
+          "optional": ["as"],
+          "notes": [
+            "`fields` is a JSON object of column -> context key or literal. A string that names a context key is substituted; anything else is written as-is.",
+            "`as` names the variable the new row's id is published under. It defaults to the table name without its bus_ prefix plus `Id`. Without it a workflow can insert a row and then never reach it again."
+          ],
+          "example": "%%step C CreateEntity entity: Capa as: newCapaId fields: {\"title\":\"capaTitle\",\"status\":\"open\"}"
+        },
+        {
+          "name": "DeleteEntity",
+          "purpose": "Delete the triggering record or rows of a related entity.",
+          "required": [],
+          "optional": ["entity", "targetField", "targetSource", "hard"],
+          "notes": [
+            "Soft by default: stamps deleted_at, so the audit trail still points at a row that exists. `hard: true` removes it.",
+            "Row targeting matches UpdateEntity exactly, including the refusal to touch another entity by `id` with no targetSource."
+          ],
+          "example": "%%step F DeleteEntity entity: Capa targetSource: supersededCapaId"
+        },
+        {
+          "name": "Decision",
+          "purpose": "Evaluate a GoRules decision table and publish the matching row's output columns as variables the following steps read.",
+          "required": [],
+          "oneOf": [["decisionTable", "rule"]],
+          "optional": ["publish"],
+          "notes": [
+            "`decisionTable` is the table itself as JSON \u2014 { hitPolicy, inputs, outputs, rules } \u2014 for logic only this process cares about. The generator wraps it in the input -> table -> output graph the engine evaluates, so a step never carries that plumbing.",
+            "`rule` names a rule declared elsewhere in the model, for when the same table already governs the entity and the process should not fork a second copy of it.",
+            "Outputs become variables under their `field` name. `publish` narrows that to a comma-separated allow-list when a table emits more than the process needs.",
+            "A table that matches no row publishes nothing. That is how 'leave it alone' is expressed, not an error \u2014 later steps that read a variable it would have set skip themselves.",
+            "Every row must set every output column: the engine silently discards a row that leaves one unset, and one such row stops the whole table matching."
+          ],
+          "example": "%%step B Decision rule: ClassifySeverity publish: priority, slaDays"
+        },
+        {
+          "name": "Formula",
+          "purpose": "Publish a value into the workflow context for later steps.",
+          "required": ["target", "operation"],
+          "operations": {
+            "multiply": "target = Number(source) * Number(operand)",
+            "divide": "target = Number(source) / Number(operand)",
+            "add": "target = Number(source) + Number(operand)",
+            "subtract": "target = Number(source) - Number(operand)",
+            "set": "target = value, stored unchanged. The only way to pass text \u2014 a status, a title \u2014 to a later step.",
+            "copy": "target = context[source], carried across unchanged."
+          },
+          "perOperation": {
+            "multiply": {
+              "required": ["source", "operand"]
+            },
+            "divide": {
+              "required": ["source", "operand"]
+            },
+            "add": {
+              "required": ["source", "operand"]
+            },
+            "subtract": {
+              "required": ["source", "operand"]
+            },
+            "set": {
+              "required": ["value"]
+            },
+            "copy": {
+              "required": ["source"]
+            }
+          },
+          "example": "%%step B Formula target: resolutionDays source: baseDays operation: multiply operand: 7"
+        },
+        {
+          "name": "REST",
+          "purpose": "Call an external HTTP endpoint.",
+          "required": ["url"],
+          "optional": ["method", "bodyTemplate"],
+          "notes": ["`bodyTemplate` interpolates {{key}} from the workflow context."],
+          "example": "%%step E REST url: https://hooks.example.com/notify method: POST"
+        },
+        {
+          "name": "Agent",
+          "purpose": "Invoke an AI agent. Placeholder pending Mastra integration \u2014 the executor logs and skips.",
+          "required": ["agentId"],
+          "shipped": false,
+          "example": "%%step G Agent agentId: deviation-triage-v1"
+        }
+      ]
+    }
+  },
+  "automations": {
+    "description": "The automation dialect: the form a workflow takes when it is authored in the automation builder, which is the shipped way to build workflows and business rules in both the generator and generated applications. An automation is one sentence \u2014 a trigger, a flat list of conditions that must all pass, and an ordered list of steps. There is deliberately no graph: the executor runs steps in order and stops at the first failure, so a list is the honest representation. It is a constrained profile of `workflowConstructs.stepNodes`, not a second language: it serialises to the same mermaid flowchart with the same %%step directives, so an automation opens in a Mermaid renderer and runs through the existing executor.",
+    "relationshipToSaga": "The saga form (`%%workflow <Name> entity: <E> kind: saga`, positional `%%step <node> <StepType> <k>: <v>`) is the older, more general surface. The automation form differs in three ways: the workflow is named with `%%workflow name:` and takes its entity from `%%hook`; the step type is a `type:` key rather than a positional token; and conditions are expressed as `%%guard` lines instead of being drawn as decision nodes. Both compile to the same executable steps.",
+    "interoperability": "Both dialects are read by both sides. The builder's parser reads the saga form (mapping `fields`->`values`, a Formula's `target`/`source`/`operand` onto `as`/`left`/`right`, and `decisionTable` onto an inline table), and the generator reads the automation form (translating back, and unwrapping `{{name}}` references into the bare `source:`/`targetSource:` a saga uses). So a model authored by hand opens in the builder, and an automation built in a running application compiles through the generator. Downstream of that translation only saga vocabulary exists \u2014 STEP_CONTRACTS, the checker and the BPMN emitter need no knowledge that a second dialect exists.",
+    "shipped": true,
+    "writer": "packages/web/src/lib/automation/model.ts serializeAutomation()",
+    "reader": "packages/web/src/lib/automation/model.ts parseAutomation()",
+    "envelope": {
+      "description": "Every serialised automation opens with these lines, in this order.",
+      "lines": [
+        "flowchart TD",
+        "%%meta kind: workflow",
+        "%%workflow name: <name>",
+        "%%hook <hookName> on <Entity>"
+      ],
+      "note": "The entity is carried by %%hook, not by %%workflow. A reader that cannot find %%hook has no entity binding and falls back to the caller-supplied default."
+    },
+    "triggers": {
+      "description": "The events an automation can start from. These are the entity lifecycle hooks the generated services already fire, so a trigger is not a new concept \u2014 it is the hook, named the way someone describing their business would name it. `%%hook` carries the hook name; the builder shows the event name.",
+      "directive": "%%hook <hookName> on <Entity>",
+      "note": "This is the two-token form of %%hook \u2014 event and entity, with no handler name. The three-token handler form (`%%hook beforeCreate hashPassword on User`) is the hook-binding directive documented under `hooks` and is a different construct.",
+      "events": [
+        {
+          "event": "created",
+          "hook": "afterCreate",
+          "phase": "after",
+          "blocking": false,
+          "purpose": "Runs after the record is written. The record already exists."
+        },
+        {
+          "event": "beforeCreated",
+          "hook": "beforeCreate",
+          "phase": "before",
+          "blocking": true,
+          "purpose": "Runs before the record is written, so it can still block the write."
+        },
+        {
+          "event": "updated",
+          "hook": "afterUpdate",
+          "phase": "after",
+          "blocking": false,
+          "purpose": "Runs after the change is saved."
+        },
+        {
+          "event": "beforeUpdated",
+          "hook": "beforeUpdate",
+          "phase": "before",
+          "blocking": true,
+          "purpose": "Runs before the change is saved, so it can still block it."
+        },
+        {
+          "event": "deleted",
+          "hook": "afterDelete",
+          "phase": "after",
+          "blocking": false,
+          "purpose": "Runs after the record is removed."
+        },
+        {
+          "event": "beforeDeleted",
+          "hook": "beforeDelete",
+          "phase": "before",
+          "blocking": true,
+          "purpose": "Runs before the record is removed, so it can still block it."
+        }
+      ]
+    },
+    "conditions": {
+      "description": "A flat list of checks that must ALL pass for the steps to run. There is no OR and no nesting: an author who needs alternatives writes a second automation, which stays readable where a boolean tree does not. Zero conditions means the automation always runs.",
+      "directive": "%%guard <field> <operator> <jsonValue>",
+      "valueEncoding": "JSON.stringify \u2014 so a string value is quoted (`\"open\"`) and a number is bare (`3`). Operators of arity 0 still emit a value token, which readers ignore.",
+      "resolvedConflict": {
+        "was": "%%guard once meant both an automation condition and an RBAC role restriction \u2014 one keyword, two unrelated meanings.",
+        "resolution": "The RBAC sense was renamed to %%rbac. That side was renamed rather than the automation side because it had no shipped parser and no stored data: it existed only in this definition and the spec, so the rename costs nothing, while renaming the condition form would have meant rewriting every stored automation.",
+        "compatibility": "A model written before the rename may still carry `%%guard role:... on <Entity>.<op>`. The automation reader detects that shape and skips it instead of parsing it as a check on a field called \"role:admin\" with an operator of \"on\" \u2014 a condition that can never pass, which would silently disable the automation."
+      },
+      "operators": [
+        {
+          "id": "eq",
+          "label": "is",
+          "arity": 1
+        },
+        {
+          "id": "neq",
+          "label": "is not",
+          "arity": 1
+        },
+        {
+          "id": "gt",
+          "label": "is greater than",
+          "arity": 1
+        },
+        {
+          "id": "gte",
+          "label": "is greater than or equal to",
+          "arity": 1
+        },
+        {
+          "id": "lt",
+          "label": "is less than",
+          "arity": 1
+        },
+        {
+          "id": "lte",
+          "label": "is less than or equal to",
+          "arity": 1
+        },
+        {
+          "id": "contains",
+          "label": "contains",
+          "arity": 1
+        },
+        {
+          "id": "startsWith",
+          "label": "starts with",
+          "arity": 1
+        },
+        {
+          "id": "isEmpty",
+          "label": "is empty",
+          "arity": 0
+        },
+        {
+          "id": "isNotEmpty",
+          "label": "is not empty",
+          "arity": 0
+        },
+        {
+          "id": "changed",
+          "label": "changed",
+          "arity": 0
+        }
+      ]
+    },
+    "steps": {
+      "description": "An ordered list. Each step gets a generated node id (`s1`, `s2`, \u2026) and one `type:` line, followed by one line per property. A step may name its result with `as:`, which publishes a reference later steps can read.",
+      "directives": [
+        "%%step <nodeId> type: <StepType> [as: <resultName>]",
+        "%%step <nodeId> <propertyKey>: <value>",
+        "%%step <nodeId> table: <decisionTableJson>"
+      ],
+      "types": [
+        {
+          "type": "Decision",
+          "purpose": "Evaluate a rule table and publish its outputs.",
+          "properties": ["ruleTable", "inputs"],
+          "example": "%%step s1 type: Decision as: tier\n%%step s1 ruleTable: Assay tier"
+        },
+        {
+          "type": "CreateEntity",
+          "purpose": "Create a record on another entity.",
+          "properties": ["entity", "values"],
+          "example": "%%step s2 type: CreateEntity as: newId\n%%step s2 entity: ChemicalInventory"
+        },
+        {
+          "type": "UpdateEntity",
+          "purpose": "Write a field, by default on the triggering record.",
+          "properties": ["entity", "field", "value"],
+          "example": "%%step s3 type: UpdateEntity\n%%step s3 field: status\n%%step s3 value: {{tier}}"
+        },
+        {
+          "type": "DeleteEntity",
+          "purpose": "Remove a record.",
+          "properties": ["entity", "target"],
+          "example": "%%step s4 type: DeleteEntity\n%%step s4 entity: Vendor"
+        },
+        {
+          "type": "Formula",
+          "purpose": "Compute a value from two operands and publish it.",
+          "properties": ["operation", "left", "right"],
+          "example": "%%step s5 type: Formula as: total\n%%step s5 operation: add\n%%step s5 left: {{order.subtotal}}\n%%step s5 right: 9"
+        },
+        {
+          "type": "REST",
+          "purpose": "Call an external service.",
+          "properties": ["method", "url", "body"],
+          "example": "%%step s6 type: REST\n%%step s6 method: POST\n%%step s6 url: https://lims.example.com/hook"
+        }
+      ]
+    },
+    "references": {
+      "description": "What a step can read: fields of the triggering record, and the published results of every step above it. A reference is written in double braces and resolved positionally \u2014 a step can only see what precedes it, which is what makes the ladder safe to reorder.",
+      "form": "{{<name>}}",
+      "sources": [
+        "{{<entity>.<field>}} \u2014 a field of the triggering record, entity name lowercased",
+        "{{<resultName>}} \u2014 the result of an earlier step, named by its `as:`"
+      ]
+    },
+    "loops": {
+      "description": "Repeat while a rule holds. `%%loop <loopId> while: <field> <operator> <value>` declares one, and a step joins it with `%%step <nodeId> in: <loopId>`. The member steps run in order and repeat for as long as the check passes; the loop ends the first time it fails. The check is re-evaluated before every pass against the record as it stands then \u2014 a step inside the loop changes the record, and that change is what ends the loop.",
+      "directives": [
+        "%%loop <loopId> while: <field> <operator> <value> max: <n>",
+        "%%step <nodeId> in: <loopId>"
+      ],
+      "operators": "The same eleven as automations.conditions \u2014 one vocabulary for every check in the language.",
+      "safety": {
+        "required": true,
+        "form": "max: <n>",
+        "note": "Every loop must declare its own ceiling; there is no default and no engine-wide constant. A while-loop is genuinely unbounded, and an automation runs inside the write that triggered it, so a check that never fails holds a database transaction open until something times out. After `max` passes the loop is abandoned and the run is marked FAILED with the loop and the limit named. This is a backstop, not a second way to spell the count: reaching it means the automation is wrong, so it is reported rather than finishing quietly as though the loop had ended on its own.",
+        "whyPerLoop": "How many passes is obviously too many is a property of the work, not of the engine. A retry that should give up after 5 and a reconciliation that legitimately runs 800 cannot share one number without the ceiling being meaningless for one of them.",
+        "minimum": 1,
+        "maximum": "none \u2014 the author owns the number",
+        "missing": "A loop with no `max` is refused by the builder and warned about by the compiler. An executor meeting one anyway runs a single pass and gives up, because the safe direction for a loop nobody bounded is not to run it."
+      },
+      "staticCheck": "A loop whose check reads a field that no member step writes is refused when the model is compiled: it would read the same every pass, so it either never runs or runs until the safety limit cuts it off. The check is deliberately shallow \u2014 only UpdateEntity writes are matched by field name, and every other step type is treated as able to change anything, so it reports only the case it is certain about.",
+      "nesting": "Not supported. A loop may not contain another loop; a step names at most one `in:`. Flattening nested repeats is what makes the ladder readable and the cost predictable.",
+      "references": "Steps inside a loop see the same values as steps outside it, plus `{{<loopId>.iteration}}` \u2014 the 1-based pass number. A value published by a step inside the loop is overwritten on each pass, so after the loop it holds what the last pass produced.",
+      "drawnAs": "A Mermaid `subgraph <loopId>[Repeat while <check>]` wrapping the member nodes, so the repetition is visible in any renderer rather than living only in the directives."
+    },
+    "nodes": {
+      "description": "The drawn flowchart carries no semantics \u2014 it exists so the document renders as a diagram. Every node is regenerated from the directives on write, and readers take meaning only from the %% lines.",
+      "start": "start([<Entity> <trigger label>])",
+      "guard": "guard{<conditions joined by ' and '}}",
+      "step": "s<n>[<step summary>]",
+      "loop": "subgraph <loopId>[Repeat <n> times] \u2026 end",
+      "done": "done([Done])"
+    }
+  },
+  "directives": {
+    "description": "Reserved %% directive comments. All are renderer-safe (ignored by Mermaid) and interpreted by the generator. %%hook, %%step, %%action, %%workflow and %%guard are parsed by the shipped compilers; the remainder are the EML extension surface, documented here as the authoritative language contract.",
+    "reserved": [
+      {
+        "keyword": "%%meta",
+        "form": "%%meta <key>: <value>",
+        "status": "compiled",
+        "consumedBy": [
+          "language/composer.ts (section classification and round-trip)",
+          "packages/generator/src/eml (section extraction via composer)"
+        ],
+        "purpose": "Document/section metadata: name, kind (erd|rules|workflow), version, entity binding, description (application summary seeded into sys_system.APP_DESCRIPTION and the generated manual), stack.",
+        "examples": [
+          "%%meta name: CRM Core",
+          "%%meta kind: rules",
+          "%%meta entity: Order",
+          "%%meta version: 1.0.0",
+          "%%meta description: This application manages customer relationships, sales pipelines, and support tickets for mid-market B2B companies."
+        ]
+      },
+      {
+        "keyword": "%%hook",
+        "form": "%%hook <type> <handler> on <Entity>[<params>]   |   %%hook <type> on <Entity>",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/hooks/index.ts (handler form -> lifecycle handler modules)",
+          "packages/web/src/lib/automation/model.ts (two-token form -> automation trigger)"
+        ],
+        "purpose": "Bind an entity lifecycle event. The three-token form names a handler to run (SHIPPED, parsed by hook-parser.ts). The two-token form omits the handler and is the automation trigger: it says which event starts the automation and on which entity, with the steps carried by %%step (SHIPPED, parsed by automation/model.ts).",
+        "examples": [
+          "%%hook beforeCreate hashPassword on User",
+          "%%hook afterCreate on DeviationReport"
+        ]
+      },
+      {
+        "keyword": "%%step",
+        "form": "%%step <nodeId> <stepType> <key>: <value> ...   |   %%step <nodeId> type: <stepType> [as: <name>]",
+        "status": "compiled",
+        "consumedBy": ["packages/generator/src/workflows/steps.ts"],
+        "purpose": "Bind a flowchart node in a `kind: saga` workflow to an executable step. `nodeId` is the node's id in the flowchart; `stepType` is one of workflowConstructs.stepNodes.types. Compiles to a bpmn:serviceTask (SHIPPED, parsed by packages/generator/src/workflows/index.ts).",
+        "examples": [
+          "%%step B Formula target: baseDays operation: set value: 3",
+          "%%step C CreateEntity entity: Capa as: newCapaId fields: {\"title\":\"capaTitle\",\"status\":\"open\"}",
+          "%%step D UpdateEntity field: status value: escalated",
+          "%%step F DeleteEntity entity: Capa targetSource: supersededCapaId"
+        ]
+      },
+      {
+        "keyword": "%%action",
+        "form": "%%action <name> <actionType> when: <expr> <key>: <value> ...",
+        "status": "compiled",
+        "consumedBy": ["packages/generator/src/rules/index.ts"],
+        "purpose": "Declare a side-effecting rule action inside a `%%rule` section. A section carrying %%action directives compiles to a GoRules decision table \u2014 one row per directive \u2014 instead of a node graph, which is the shape the rules engine reads actions from (SHIPPED, parsed by packages/generator/src/rules/index.ts).",
+        "examples": [
+          "%%action escalate trigger-workflow when: severity == \"critical\" workflow: CriticalDeviationEscalation",
+          "%%action requireCause validation-error when: root_cause == null message: A root cause is required"
+        ]
+      },
+      {
+        "keyword": "%%entity",
+        "form": "%%entity <Name> <key>: <value>",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/parsers/mermaid.parser.ts (the help: / description: key only; the rest are validated)",
+          "language/checker.ts (EML160, EML161, EML162)"
+        ],
+        "purpose": "Attach entity-level metadata not expressible in the ERD block: the sentence that explains the entity to whoever opens its screen, plus table prefix (bus/sys), soft delete, label, icon, audited.",
+        "examples": [
+          "%%entity Account help: A company you sell to. One account holds many contacts and every deal you run with them.",
+          "%%entity Order audited: true",
+          "%%entity Account prefix: bus",
+          "%%entity Session softDelete: false"
+        ]
+      },
+      {
+        "keyword": "%%field",
+        "form": "%%field <Entity>.<attr> <key>: <value>",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/parsers/mermaid.parser.ts (the `enum:` and `help:` keys; the other keys are reserved)"
+        ],
+        "purpose": "Extended field metadata: enum reference and help text, both compiled; ui control, default value, min/max and format are reserved.",
+        "examples": [
+          "%%field Order.status enum: OrderStatus",
+          "%%field Contact.account_id help: The company this person works for. Leave empty for a personal contact.",
+          "%%field Product.price min: 0",
+          "%%field User.email unique: true"
+        ]
+      },
+      {
+        "keyword": "%%enum",
+        "form": "%%enum <Name>: <value1>, <value2>, ...",
+        "status": "compiled",
+        "consumedBy": ["packages/generator/src/parsers/mermaid.parser.ts"],
+        "purpose": "Declare a named enumeration reusable by fields and by state workflows.",
+        "examples": ["%%enum OrderStatus: draft, submitted, approved, shipped, cancelled"]
+      },
+      {
+        "keyword": "%%category",
+        "form": "%%category name: <Name>; code: <id>; description: <text>; icon: <LucideIcon>; color: <#hex>; seq: <n>; default: true; entities: <A>, <B>",
+        "status": "compiled",
+        "consumedBy": ["packages/generator/src/parsers/category.parser.ts"],
+        "purpose": "Group business entities into a named Application Dictionary category. The dashboard renders one block per category, ordered by name; the admin dictionary maintains them. Only `name` is required; the rest are `;`-separated and may appear in any order. `code` is a stable short identifier, slugified from `name` when omitted \u2014 it is the dictionary row's key, so setting it explicitly keeps that key stable across a rename. A directive may span several lines by ending each continued line with `\\`. A model that declares none gets a single \"General\" default holding every entity.",
+        "examples": [
+          "%%category name: Compound Registry; description: Structures and aliases; icon: FlaskConical; color: #6366f1; entities: Compound, CompoundAlias",
+          "%%category name: People and Teams; default: true; entities: User, Team"
+        ]
+      },
+      {
+        "keyword": "%%index",
+        "form": "%%index <Entity>(<attr>[, <attr>...]) [unique]",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/parsers/mermaid.parser.ts -> entity.indexes -> templates/common/migrations/bus-tables.migration.ts.hbs"
+        ],
+        "purpose": "Declare a database index over one or more attributes.",
+        "examples": ["%%index Contact(email) unique", "%%index Order(company_id, status)"]
+      },
+      {
+        "keyword": "%%rule",
+        "form": "%%rule <name> on <Entity> event: <lifecycle> priority: <n>",
+        "status": "validated",
+        "consumedBy": ["language/checker.ts (rule/workflow cross-reference)"],
+        "purpose": "Bind a business-rule decision flow (a rules section) to an entity and lifecycle event.",
+        "examples": ["%%rule pricing on Order event: beforeCreate priority: 10"]
+      },
+      {
+        "keyword": "%%guard",
+        "form": "%%guard <field> <operator> <jsonValue>",
+        "status": "compiled",
+        "consumedBy": ["packages/web/src/lib/automation/model.ts"],
+        "purpose": "Automation condition \u2014 a check that must pass for an automation's steps to run (SHIPPED, parsed by automation/model.ts, and the form all stored automations use). This keyword once also meant an RBAC role restriction; that sense is now %%rbac. A reader encountering the old RBAC shape here skips it rather than reading it as a condition on a field called \"role:admin\".",
+        "examples": ["%%guard status eq \"open\"", "%%guard order.total gt 1000"]
+      },
+      {
+        "keyword": "%%loop",
+        "form": "%%loop <loopId> while: <field> <operator> <value> max: <n>",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/workflows/steps.ts",
+          "packages/web/src/lib/automation/model.ts"
+        ],
+        "purpose": "Declare a repeat-while-a-rule-holds loop inside an automation (SHIPPED, parsed by automation/model.ts and the generator's saga compiler). Steps join it with `%%step <nodeId> in: <loopId>` and repeat in order for as long as the check passes, ending the first time it fails. The check is re-read before every pass, so a step inside the loop is what ends it. Bounded by the `max:` the author must declare; loops do not nest. See automations.loops.",
+        "examples": ["%%loop L1 while: status eq \"pending\" max: 20", "%%step s2 in: L1"]
+      },
+      {
+        "keyword": "%%rbac",
+        "form": "%%rbac <roleExpr> on <Entity>.<op>   where <op> is a CRUD operation (create|read|update|delete|*) or a transition event in <Entity>'s state machine",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/rbac/index.ts (compiles both forms)",
+          "packages/generator/src/rbac/roles.ts (derives the roles, one seeded account each, and per-entity visibility)",
+          "seeded into sys_operation_access / sys_transition_access",
+          "enforced by the generated EntityAccessGuard on /bus CRUD"
+        ],
+        "purpose": "Restrict a CRUD operation or a state transition to named roles. It restricts rather than grants: a target no directive mentions is open to any authenticated caller, so a model declaring no %%rbac generates what it always did. A target with one or more directives requires the union of the roles they name. A master role bypasses. That bypass is over access \u2014 who may do a thing \u2014 and not over the shape of the model: a state machine's topology is enforced for the master role too, because an edge the diagram never drew is a move that does not exist rather than a permission anyone is missing (see workflowConstructs.stateForm.enforcement). Role names are matched case-insensitively, because seeded roles are title-cased (Manager) and directives are written lower-case (role:manager) - an exact match would make such a rule unsatisfiable, locking out exactly the people it was written to admit. Spelled %%guard until that keyword was needed unambiguously for automation conditions.",
+        "examples": [
+          "%%rbac role:admin on Order.delete",
+          "%%rbac role:sales|manager on Deal.update",
+          "%%rbac role:admin on Customer.*",
+          "%%rbac role:sales_manager on Quote.approve",
+          "%%rbac role:sales_rep|sales_manager|support_agent on Account.read"
+        ],
+        "notes": {
+          "operations": "create | read | update | delete, plus * for all four. Aliases are accepted (insert/add, view/select/list, edit/write/modify, remove/destroy).",
+          "transitions": "A name that is not a CRUD operation is resolved against the entity's stateDiagram-v2 transitions. There is no named-transition endpoint in a generated application - moving a record along an edge is a status update - so the rule is stored as the (from_state, to_state) pair it covers and the guard recognises the move by the states the write crosses. Both ends are kept because one event can sit on several edges and two events can reach the same state. This directive decides *who* may cross an edge; whether the edge exists at all is decided by the state diagram itself and enforced separately, so an edge no %%rbac names is open to any authenticated caller but an edge the diagram omits is refused to everyone.",
+          "notSysAccess": "A restriction on any operation other than read deliberately does not write sys_access. That is a grant table feeding sys_refresh_dictionary_scope(), where the first row added narrows a window to one role; a restriction on deleting must not become a restriction on looking. read is the one exception, and it is the exception on purpose - see functionalRoles.",
+          "functionalRoles": "read is the operation that decides which functional role an entity belongs to, and the only one that changes what a role sees. An entity a role may not read is absent from that role's navigation entirely - no menu entry, no dashboard card, no lookup - because a menu full of entries that answer 403 is a worse application than a shorter one. A model is expected to name every entity on at least one `%%rbac ... .read` directive, so that every entity belongs to somebody. Declaring none leaves every entity visible to every signed-in caller, which is what every model did before this rule existed.",
+          "seededAccounts": "Every role a directive names is created, and one account is seeded holding it, beside the administrator who bypasses everything and a role-less User. An application whose only account is the administrator cannot demonstrate its own access control, because the administrator is exempt from all of it. Both stacks derive the same list from rbac/roles.ts, and both sign-in screens print it with the number of entities each role can see."
+        }
+      },
+      {
+        "keyword": "%%trigger",
+        "form": "%%trigger <source> -> <handler> on <Entity>",
+        "status": "validated",
+        "consumedBy": ["language/checker.ts (EML230-EML233)"],
+        "purpose": "Declare an event/schedule source that starts a workflow (webhook, cron, message).",
+        "examples": [
+          "%%trigger cron:0 0 * * * -> expireQuotes on Quote",
+          "%%trigger webhook:payment -> markPaid on Order"
+        ]
+      },
+      {
+        "keyword": "%%workflow",
+        "form": "%%workflow <name> entity: <Entity> kind: <hook|state|saga>   |   %%workflow name: <name>",
+        "status": "compiled",
+        "consumedBy": [
+          "packages/generator/src/workflows/index.ts (saga + state forms)",
+          "packages/web/src/lib/automation/model.ts (automation form)"
+        ],
+        "purpose": "Name and classify a workflow section. The positional form binds the entity itself. The `name:` form is what the automation builder writes (SHIPPED): it carries only the name and takes its entity binding from the accompanying %%hook line.",
+        "examples": [
+          "%%workflow OrderFulfillment entity: Order kind: state",
+          "%%workflow name: Escalate critical deviations"
+        ]
+      }
+    ],
+    "statusVocabulary": {
+      "compiled": "A shipped compiler reads this directive and it changes the generated application. `consumedBy` names the file that reads it.",
+      "validated": "No compiler reads it, but `language/checker.ts` enforces its syntax and cross-references, so a malformed one fails validation rather than being silently ignored.",
+      "reserved": "Documented and renderer-safe, with no reader. Writing one is legal and inert; the keyword is held so a later meaning cannot collide with a plain comment."
+    }
+  },
+  "grammar": {
+    "notation": "EBNF-like; see language/grammar/appwithai.ebnf for the full grammar.",
+    "topLevel": "document ::= ( comment | directive | erdSection | ruleSection | workflowSection | blankLine )*",
+    "erdSection": "erdSection ::= 'erDiagram' NEWLINE ( entityBlock | relationship | comment )*",
+    "entityBlock": "entityBlock ::= IDENT '{' NEWLINE attribute* '}' NEWLINE",
+    "attribute": "attribute ::= TYPE ['(' NUMBER ')'] IDENT modifier* [ STRING ] NEWLINE",
+    "relationship": "relationship ::= IDENT cardinality IDENT [ ':' STRING ] NEWLINE",
+    "ruleSection": "ruleSection ::= ('flowchart'|'graph') direction NEWLINE ( node | edge | actionDirective | comment )*",
+    "workflowSection": "workflowSection ::= (('flowchart'|'graph') direction | 'stateDiagram-v2') NEWLINE ( node | edge | transition | hookDirective | stepDirective | comment )*",
+    "stepDirective": "stepDirective ::= '%%step' WS IDENT WS stepType ( WS IDENT ':' WS value )* NEWLINE",
+    "actionDirective": "actionDirective ::= '%%action' WS IDENT WS actionType WS 'when:' WS expr ( WS IDENT ':' WS value )* NEWLINE"
+  },
+  "generatorContract": {
+    "description": "How each section feeds the generator pipeline.",
+    "repositoryLayout": "Every `packages/...` path in this file is relative to `app-with-ai-tanstack/`, which is where the shipped generator lives. This language folder sits above it, at the root of the combined repository, because a second product reads the same models: `enterprise_reporting_tanstack/`, the reporting and analytics platform. One language, one checker, one set of examples; see generatorContract.targets for what each target actually compiles.",
+    "targets": {
+      "description": "The `eml` CLI's --stack values. They differ in what they write, never in what they understand: all three consume the same parsed model, so a directive that changes meaning changes it for all of them. A target that does not compile a construct still validates it, because the model is one document and the other target does compile it.",
+      "list": [
+        {
+          "id": "node-rest",
+          "default": true,
+          "emits": "A dependency-free node:http application over a JSON-file datastore. Runnable with no install.",
+          "generator": "language/cli/src/generate/app.ts",
+          "standalone": true,
+          "compiles": ["core", "rules (as GoRules JDM under rules/)"],
+          "doesNotCompile": ["workflows", "access", "help"]
+        },
+        {
+          "id": "tanstack-nestjs",
+          "emits": "The whole application: a NestJS + Fastify + Kysely backend and a TanStack Start front end, with migrations, seeds, the Application Dictionary and manual.html. Around 356 files.",
+          "generator": "language/cli/src/generate/tanstack.ts, which drives app-with-ai-tanstack/packages/generator/src/generators/orchestrator.ts",
+          "standalone": true,
+          "compiles": ["core", "rules", "workflows", "access", "help"],
+          "doesNotCompile": []
+        },
+        {
+          "id": "enterprise-reporting",
+          "emits": "TanStack Start server functions, list and detail routes, a Kysely PostgreSQL migration and a Database-interface snippet, shaped to drop into an enterprise_reporting_tanstack checkout.",
+          "generator": "language/cli/src/generate/enterprise-reporting.ts",
+          "standalone": false,
+          "standaloneNote": "It generates less on purpose. That repository already holds auth, two-layer RBAC, the encrypted data-source connection manager, the NL-query pipeline, the Trigger.dev job runner and the UI shell; a generated copy of any of them would be a fork of a moving part. The target emits only what a new entity needs, and its README names the integration steps.",
+          "compiles": ["core", "rules (as GoRules JDM under rules/, not wired up)", "help (as field labels)"],
+          "doesNotCompile": ["workflows", "access"],
+          "accessNote": "Every generated handler calls requireAuth(), which establishes who is calling. It does not call requirePermission(), because %%rbac is not compiled here - deciding what a role may do is an explicit integration step, and a generated guess at it would be an access-control decision nobody made.",
+          "conventions": {
+            "inputValidator": "createServerFn(...).inputValidator(), never .validator(). The TanStack Start v1 Vite plugin preserves unknown method names verbatim in the client bundle, so .validator() type-checks, builds, and crashes at runtime.",
+            "dataWrapper": "A client call passes { data: input } whenever the server function declares an input validator.",
+            "pagination": "Every list applies LIMIT/OFFSET at the database. Server-side pagination is mandatory in that codebase.",
+            "dialect": "PostgreSQL DDL with double-quoted identifiers: TIMESTAMPTZ, BOOLEAN, JSONB, NUMERIC(10,2), gen_random_uuid(). The config database is Postgres only, whatever the older files under that repository's docs/ still say about MariaDB or SQLite. Postgres has no ON UPDATE CURRENT_TIMESTAMP, so updated_at is set by the update handler rather than by the column.",
+            "foreignKeys": "An attribute marked FK is emitted as UUID, matching the primary keys this target generates. Left as VARCHAR it accepts the value and then refuses the foreign-key constraint.",
+            "routePaths": "_authed is a pathless layout route: createFileRoute is keyed by the file path (/_authed/orders/$id) while a Link addresses the URL (/orders/$id). Putting _authed in the link is the mistake to not make."
+          },
+          "imports": {
+            "db": "getDb from @/lib/db/config",
+            "auth": "requireAuth from @/lib/auth/middleware",
+            "permissions": "requirePermission from @/lib/permissions/permissions (yours to add)"
+          }
+        }
+      ]
+    },
+    "pipeline": [
+      "1. ERD section -> MermaidParser -> Entity[] + Relationship[] -> migrations, DTOs, services, controllers, forms, tables. The same pass reads %%index into entity.indexes and %%enum / %%field enum: into bound enums.",
+      "2. %%category directives -> category.parser -> resolveCategories -> Application Dictionary groups on the generated dashboard. A model declaring none gets a single 'General' category holding every entity.",
+      "3. Rules section -> flowchart-parser -> jdm-converter -> GoRules JDM graph -> seeded into sys_rule_definitions and evaluated by the rules engine.",
+      "4. Rules section carrying %%action directives -> compileRules -> a GoRules decision table whose rows carry action/message/ruleId/workflowName outputs, instead of a node graph. This is how a model-declared rule reaches a model-declared saga: the rule's `when` expression decides, and its trigger-workflow action names the workflow.",
+      "5. Workflow section, hook form -> compileHooks -> per-entity handler modules under src/modules/hooks/handlers plus a registry the bus service calls around every CRUD operation.",
+      "6. Workflow section, state form -> compileWorkflows -> BPMN seeded into sys_workflow_definitions; the trigger-workflow rules resolve it by name and the run puts a new record into the state machine's starting state. The same pass writes every edge the diagram draws into sys_workflow_transitions, which EntityAccessGuard reads to refuse a status write the model never allowed for, and which GET /api/workflows/transitions exposes so a screen can offer only the moves that exist.",
+      "7. Workflow section, saga form -> compileSagaWorkflows -> one bpmn:serviceTask per %%step, ordered by the flowchart edges, seeded into sys_workflow_definitions with source 'model'. A definition declared in the model is owned by the model: the generated Workflow Designer shows it read-only, and regeneration rewrites it. Definitions authored in the app carry source 'designer' and are never touched by regeneration.",
+      "8. The whole document -> language/rag.ts -> retrieval chunks (one per entity, rule, workflow and spec section) -> the pgvector model_context index the assistant searches.",
+      "9. %%rbac directives -> compileRbac -> per-operation rules in sys_operation_access and per-transition rules in sys_transition_access, enforced by EntityAccessGuard on the generated /bus CRUD routes. Restrictive, not granting: a target no directive names stays open.",
+      "10. ERD section -> nestjs-backend.generator -> one default AnkaReport layout per entity seeded into sys_report_designs. The layout renders every non-audit, non-PK field as a two-column (label | value) report. Administrators can customise layouts at Admin \u2192 Report Designs. Records get a Print button on their detail view if a design exists for their table.",
+      "11. %%enum and %%workflow kind: state -> the generated test suite's harness/model.ts, which carries the declared values and edges into the suites as data. This is the one consumer that reads the model rather than the dictionary compiled from it, and the distinction is the point: a suite that asserts a running application against the dictionary the same generator wrote proves only that the application is self-consistent, and passes just as happily when a value or an edge was dropped on the way. Asserting against the model's own word is what makes a dropped %%enum value or a missing state-machine edge fail a test rather than ship. Read by suite 02c (references) and suite 06b (state machines)."
+    ],
+    "referenceFiles": {
+      "pipeline": "packages/generator/src/pipeline/generate-application.ts",
+      "erdParser": "packages/generator/src/parsers/mermaid.parser.ts",
+      "categoryParser": "packages/generator/src/parsers/category.parser.ts",
+      "flowchartParser": "packages/generator/src/rules/flowchart-parser.ts",
+      "jdmConverter": "packages/generator/src/rules/jdm-converter.ts",
+      "ruleCompiler": "packages/generator/src/rules/index.ts",
+      "hookCompiler": "packages/generator/src/hooks/index.ts",
+      "workflowCompiler": "packages/generator/src/workflows/index.ts",
+      "stepCompiler": "packages/generator/src/workflows/steps.ts",
+      "composer": "language/composer.ts",
+      "chunker": "language/rag.ts",
+      "checker": "language/checker.ts",
+      "orchestrator": "packages/generator/src/generators/orchestrator.ts",
+      "rbacCompiler": "packages/generator/src/rbac/index.ts",
+      "testHarnessModel": "packages/generator/templates/tanstack-start-nestjs/tests/harness/model.ts.hbs"
+    },
+    "authoringSurface": {
+      "description": "The web app keeps its own parsers for the editors, which run in the browser and cannot import the generator. They read the same syntax, but they do not decide what is generated - when the two disagree, the generator's copy is the language and the web copy is the bug.",
+      "flowchartParser": "packages/web/src/lib/mermaid-flowchart-parser.ts",
+      "jdmConverter": "packages/web/src/lib/jdm-converter.ts",
+      "hookParser": "packages/web/src/lib/workflow/hook-parser.ts",
+      "automationModel": "packages/web/src/lib/automation/model.ts",
+      "ruleFlow": "packages/web/src/lib/eml/rule-flow.ts",
+      "workflowFlow": "packages/web/src/lib/eml/workflow-flow.ts"
+    }
+  },
+  "conformance": {
+    "levels": {
+      "core": "erDiagram entities, attributes with PK/FK/UK/OPTIONAL/NULL/UNIQUE, and all 8 relationship cardinalities. Plus the directives the same parse pass reads: %%index (real DDL indexes), %%enum and %%field enum: (bound enums), and %%category (dashboard grouping). Fully compiled.",
+      "rules": "flowchart decision flows converted to JDM by shape semantics, and %%action directives compiled to a GoRules decision table. Fully compiled.",
+      "workflows": "%%hook directives in both forms (all 13 hook types), stateDiagram-v2 state machines, and %%workflow kind: saga with its %%step and %%loop directives. All three forms are compiled and seeded; the automation dialect is the same saga machinery authored through the builder.",
+      "help": "%%field <Entity>.<column> help: and %%entity <Name> help: (or description:). Both are compiled: the parser hangs the text on the attribute and the entity, the dictionary generator writes it to sys_column.description and sys_table.description, and the generated application shows it under the field and beside the table. It has a second consumer: packages/generator/src/manual/index.ts renders manual.html from the same parsed model, where this text is the entire 'what it is for' column \u2014 a field with no help prints a dash there. Write help on every column, not only the ambiguous ones. Fully compiled.",
+      "validated": "%%rule and %%trigger, and the %%entity keys other than help:/description:. No compiler reads these yet, but language/checker.ts enforces their syntax and cross-references, so a malformed one fails validation instead of being silently dropped.",
+      "reserved": "The %%field keys other than enum: and help:. Renderer-safe and documented, with no reader. Writing one is legal and inert.",
+      "access": "%%rbac, in both its CRUD and state-transition forms. Compiled to sys_operation_access / sys_transition_access and enforced by the generated EntityAccessGuard."
+    },
+    "validationRules": [
+      "Every entity name must match ^[a-zA-Z][a-zA-Z0-9_]*$ and be unique within the document.",
+      "Every relationship endpoint should reference a declared entity.",
+      "A hook directive's entity should reference a declared entity; its type must be one of the 13 hook types.",
+      "A rules flow must have at least one input (stadium/start) and one output (stadium/end).",
+      "Enum references in %%field must resolve to a declared %%enum.",
+      "A %%step's nodeId must name a node that exists in the flowchart it annotates.",
+      "A %%step's stepType must be one of workflowConstructs.stepNodes.types.",
+      "A %%loop's loopId must be referenced by at least one %%step in: directive, and loops do not nest.",
+      "At most one %%category in a document may declare default: true.",
+      "A trigger-workflow action must name a workflow the document declares, or a workflow that already exists in the target application.",
+      "A %%rbac operation must be a CRUD operation (create/read/update/delete/*) or a transition event declared in the entity's state machine."
+    ],
+    "note": "Levels describe what the shipped generator does, not an aspiration. A directive's own `status` field in `directives.reserved` is authoritative for that directive; these levels group them. When a compiler is added for a reserved directive, its status and this list move together."
+  },
+  "diagnostics": {
+    "description": "The checker (language/checker.ts) validates a document against this definition and writes a machine-readable <file>.mmd.error beside it. The fixer (language/fixer.ts) reads that file, applies the auto-fixable corrections to the source, and re-runs the checker.",
+    "severities": {
+      "error": "The document is wrong and the generator would produce something incorrect or nothing at all. Exit code 1.",
+      "warning": "Legal, but almost certainly not what the author meant - a dropped modifier, a state with no enum. Exit code 1 only under --strict.",
+      "info": "An observation worth reading once; never fails a run."
+    },
+    "codeRanges": {
+      "EML001-EML099": "Document level: metadata, emptiness, section structure.",
+      "EML100-EML119": "Entities and attributes.",
+      "EML120-EML129": "Relationships.",
+      "EML130-EML199": "Directives attached to the ERD: %%enum, %%field, %%entity, %%index.",
+      "EML200-EML299": "Hooks, guards, triggers, workflows and rules as declared by directives.",
+      "EML300-EML399": "Business-rule flowcharts.",
+      "EML400-EML449": "Workflow sections: hook, state and saga.",
+      "EML500-EML599": "Cross-section consistency."
+    },
+    "autoFixable": {
+      "EML001": "Missing %%meta name - inserts one derived from the first entity.",
+      "EML103": "Column is added by the generator anyway - deletes the declared line.",
+      "EML112": "Duplicate attribute - deletes the later line, keeping the stronger constraints.",
+      "EML114": "Foreign key not ending in _id - appends the suffix.",
+      "EML117": "Entity has no primary key - prepends `string id PK`.",
+      "EML421": "State workflow has no initial transition - inserts `[*] --> <firstState>`.",
+      "EML422": "State workflow has no terminal state - appends `<lastState> --> [*]`."
+    },
+    "note": "language/checker.ts AUTO_FIXABLE_CODES and the fixer's dispatch table must list the same codes; a code in one and not the other is either a fix that never runs or a promise the fixer cannot keep."
+  }
+}

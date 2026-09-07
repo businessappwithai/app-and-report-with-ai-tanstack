@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Generate the app — Build a CRM with APPWITHAI</title>
+<meta name="description" content="Run the generator from the CLI or through the browser designer, and understand exactly what lands on disk.">
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span class="brand-name">APPWITHAI</span></a>
+  <p class="brand-sub">Build a CRM, end to end</p>
+  <div class="nav-heading">Start here</div>
+  <ul class="nav"><li><a href="index.html"><span class="nav-num">00</span> Overview</a></li></ul>
+  <div class="nav-heading">Write the model</div>
+  <ul class="nav">
+    <li><a href="01-data-model.html"><span class="nav-num">01</span> The data model</a></li>
+    <li><a href="02-business-rules.html"><span class="nav-num">02</span> Business rules</a></li>
+    <li><a href="03-workflows.html"><span class="nav-num">03</span> Workflows</a></li>
+  </ul>
+  <div class="nav-heading">Generate and run</div>
+  <ul class="nav">
+    <li><a href="04-generate.html" aria-current="page"><span class="nav-num">04</span> Generate the app</a></li>
+    <li><a href="05-application.html"><span class="nav-num">05</span> Tour the app</a></li>
+    <li><a href="06-dictionary.html"><span class="nav-num">06</span> Application Dictionary</a></li>
+  </ul>
+  <div class="nav-heading">Prove it</div>
+  <ul class="nav">
+    <li><a href="07-it-runs.html"><span class="nav-num">07</span> Watch it run</a></li>
+    <li><a href="08-reference.html"><span class="nav-num">08</span> Reference</a></li>
+    <li><a href="run-in-browser.html"><span class="nav-num">09</span> Run it here</a></li>
+  </ul>
+  <div class="sidebar-foot">Every screenshot is from the CRM built in this guide, running locally.<br><br>Model: <code>language/examples/crm.eml.mmd</code></div>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<span class="eyebrow">Chapter 04</span>
+<h1>Generate the application</h1>
+<p class="lede">
+  Two ways in: the CLI, which is what you will use once you trust the model, and the browser designer,
+  which is better the first time because it renders the ERD, validates as you type and keeps versions.
+  Both call the same pipeline, so both produce the same application.
+</p>
+
+<h2>Path A — the command line</h2>
+
+<ol class="steps">
+  <li>
+    <h3>Check the model</h3>
+    <p>Optional, because the generator runs the checker itself, but it is instant and it tells you the truth before anything is written.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">shell</span></div>
+<pre><code>bun language/checker.ts language/examples/crm.eml.mmd
+<span class="c-com"># crm.eml.mmd  0 errors · 0 warnings</span></code></pre>
+    </div>
+  </li>
+
+  <li>
+    <h3>Generate</h3>
+    <p>One command. <code>--no-setup</code> keeps it from installing and migrating straight away, which you want the first time so you can look at what it produced.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">shell</span></div>
+<pre><code>bun packages/generator/src/cli/generate.ts generate \
+  --input language/examples/crm.eml.mmd \
+  --output generated-projects/crm \
+  --name crm \
+  --port 4001 --frontend-port 4000 \
+  --records-per-entity 25 \
+  --force --no-setup</code></pre>
+    </div>
+    <p>It prints what it found as it goes: entities and their attribute counts, then the rules, hooks, sagas, state machines and categories it compiled. Read that list — it is the fastest way to notice a directive that did not parse.</p>
+  </li>
+
+  <li>
+    <h3>Point it at a database</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">shell</span></div>
+<pre><code>cd generated-projects/crm
+cp backend/.env.example backend/.env
+<span class="c-com"># edit backend/.env:</span>
+<span class="c-com"># DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/crm</span></code></pre>
+    </div>
+    <p>The generated <code>.env.example</code> guesses a local socket connection for your machine. It is a guess; the URL is the one line worth checking by hand.</p>
+  </li>
+
+  <li>
+    <h3>Install, migrate, seed</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">shell</span></div>
+<pre><code>bun install
+bun run db:setup   <span class="c-com"># migrations, then every seed in order</span></code></pre>
+    </div>
+    <p>
+      The seeds run in a deliberate order: users and roles, then reference types and your model's enums,
+      then the dictionary (tables, columns, windows, tabs, fields), then categories, then sample business
+      data, then rule definitions, then workflow definitions. The last two are the model's rules and
+      workflows arriving in the database.
+    </p>
+  </li>
+
+  <li>
+    <h3>Run it</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">shell</span></div>
+<pre><code>bun run dev   <span class="c-com"># backend :4001, frontend :4000</span></code></pre>
+    </div>
+    <p>Sign in with the admin user the backend creates on first start — <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code> in <code>backend/.env</code>, <code>admin@admin.com</code> / <code>admin</code> by default.</p>
+  </li>
+</ol>
+
+<div class="note tip">
+  <div class="note-title">Useful flags</div>
+  <p>
+    <code>--dry-run</code> lists the files it would write without writing them.
+    <code>--records-per-entity</code> sizes the seeded sample data (1000 by default — use 25 while you are
+    iterating). <code>--skip-frontend</code> / <code>--skip-backend</code> generate one half.
+    <code>--run-tests-fast</code> runs the generated suite afterwards, skipping the bulk-seed volume tests.
+  </p>
+</div>
+
+<h2>Path B — the browser</h2>
+<p>
+  The generator ships as an application in its own right. Run <code>bun run dev</code> at the repository
+  root and open <code>localhost:3000</code>. It walks a project through six steps: define, discover,
+  logic, generate, enhance, deploy.
+</p>
+
+<div class="fig-row">
+  <figure>
+    <img src="img/01-generator-login.png" alt="The APPWITHAI sign-in screen.">
+    <figcaption><b>Sign in.</b> The first account you register needs promoting to admin: <code>bun run seed:admin -- --email you@example.com</code>.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/02-generator-dashboard.png" alt="The generator's project dashboard with an empty state reading 'No projects yet', a project search box, status and type filters, and buttons for Mermaid Library, Rules Admin, Create New Project and Import a model.">
+    <figcaption><b>Where you land.</b> Projects, a Mermaid library, a rules administration area, and two ways in: describe a domain from scratch, or import a model you already have.</figcaption>
+  </figure>
+</div>
+
+<figure>
+  <img src="img/03-generator-import-model.png" alt="The Import a model dialog, asking for a .mmd file and a project name.">
+  <figcaption><b>Import a model.</b> Start from a <code>.mmd</code> file you already have rather than describing a domain from scratch.</figcaption>
+</figure>
+
+<figure>
+  <img src="img/04-generator-crm-design.png" alt="The design step: Mermaid ERD source on the left, live rendered ERD on the right, with entity count and toolbar.">
+  <figcaption>
+    <b>The design step.</b> Source on the left, live ERD on the right, entity count in the header. The
+    toolbar carries Entities, Versions, Flow View, DB Ops, Validate, Save Draft, Import and Export.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/05-generator-validate.png" alt="Step 2 of 6, Discover Your Data Model: a six-stage progress stepper reading Init, Design, Logic, Gen, Enhance, Deploy; a Your Journey strip reading Define, Discover, Generate, Add Features, Deploy; the 1,117-line Mermaid ERD source on the left; a live preview of all 17 entity boxes and their relationships on the right; and an AI Assistant bar at the foot with auto-retry enabled.">
+  <figcaption>
+    <b>The whole journey on one screen.</b> Six steps across the top, the model's 1,117 lines on the left,
+    every one of its seventeen entities drawn on the right, and an AI assistant at the foot that takes a
+    plain-English instruction and edits the model — with auto-retry, so a failed validation is handed back
+    to the model to fix up to three times rather than to you.
+  </figcaption>
+</figure>
+
+<p>
+  <strong>Validate</strong> renders the diagram through the same normalizer the preview uses and reports
+  the result: the entity count when it parses, and Mermaid's own error with a line number and caret when
+  it does not.
+</p>
+
+<figure>
+  <img src="img/06-generator-validate-error.png" alt="The design step showing a red validation banner reading 'The diagram could not be parsed' with a parse error on line 2 and a caret pointing at the offending character.">
+  <figcaption>
+    <b>A deliberate mistake.</b> The banner gives you the line, the expectation and the character that
+    broke it — the same message Mermaid would give a renderer.
+  </figcaption>
+</figure>
+
+<div class="note">
+  <div class="note-title">Which path should you use?</div>
+  <p>
+    Use the browser while the shape of the model is still moving: the live ERD catches a wrong cardinality
+    faster than reading operators, and Versions gives you a way back. Use the CLI once the model lives in
+    version control, because it is scriptable, it is what CI runs, and it produces the same output.
+  </p>
+</div>
+
+<h2>What lands on disk</h2>
+
+<div class="code">
+  <div class="code-head"><span class="tag">tree</span><span>generated-projects/crm — 403 files</span></div>
+<pre><code>crm/
+├── backend/                 <span class="c-com"># NestJS + Fastify + Kysely</span>
+│   ├── migrations/          <span class="c-com"># bus_ tables, sys_ dictionary, indexes</span>
+│   ├── seeds/               <span class="c-com"># users, references + your enums, dictionary,</span>
+│   │                        <span class="c-com">#   categories, sample data, rules, workflows</span>
+│   └── src/modules/
+│       ├── bus/             <span class="c-com"># generic CRUD over every business entity</span>
+│       ├── sys/             <span class="c-com"># the Application Dictionary API</span>
+│       ├── rules/           <span class="c-com"># GoRules evaluation</span>
+│       ├── workflow/        <span class="c-com"># the step executor</span>
+│       ├── hooks/handlers/  <span class="c-com"># ⭐ your hook bodies live here, never overwritten</span>
+│       ├── audit/           <span class="c-com"># append-only change log</span>
+│       └── auth/            <span class="c-com"># sessions, roles, permissions</span>
+├── frontend/                <span class="c-com"># TanStack Start + React 19 (192 files)</span>
+│   └── src/
+│       ├── routes/          <span class="c-com"># one screen per entity, plus /admin/*</span>
+│       ├── components/      <span class="c-com"># dynamic table, dynamic form, admin shells</span>
+│       └── hooks/           <span class="c-com"># entity, field and lookup queries</span>
+├── tests/                   <span class="c-com"># generated bun:test end-to-end suite (61 files)</span>
+├── model/                   <span class="c-com"># the .mmd this was generated from, shipped along</span>
+├── docker/ · Dockerfile · docker-compose.yml
+└── .github/workflows/       <span class="c-com"># CI for both halves</span></code></pre>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n">17</div><div class="l">bus_ tables</div></div>
+  <div class="stat"><div class="n">25</div><div class="l">rule definitions</div></div>
+  <div class="stat"><div class="n">39</div><div class="l">workflow definitions</div></div>
+  <div class="stat"><div class="n">23</div><div class="l">dictionary windows</div></div>
+  <div class="stat"><div class="n">26</div><div class="l">enum references</div></div>
+  <div class="stat"><div class="n">143</div><div class="l">enum values</div></div>
+</div>
+
+<h2>Regenerating safely</h2>
+<p>
+  You will regenerate constantly — the model changes, the application follows. The rules about what
+  survives are simple and worth knowing before you start editing generated code.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>What</th><th>On regeneration</th></tr></thead>
+  <tbody>
+    <tr><td><code>hooks/handlers/&lt;Entity&gt;.ts</code></td><td><strong>Kept.</strong> Written once; new hooks are appended. Your logic is safe.</td></tr>
+    <tr><td><code>hooks/handlers/index.ts</code></td><td>Rewritten — it is pure wiring.</td></tr>
+    <tr><td>Workflows and rules marked <em>from the model</em></td><td>Rewritten. The model owns them.</td></tr>
+    <tr><td>Workflows built in the app's own designer</td><td><strong>Kept.</strong> They carry <code>source: designer</code> and regeneration never touches them.</td></tr>
+    <tr><td>Dictionary help you edited</td><td><strong>Kept.</strong> Seeds backfill help only where it is null.</td></tr>
+    <tr><td>Everything else under <code>src/</code></td><td>Rewritten. Treat it as build output.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note warn">
+  <div class="note-title">Restart after regenerating</div>
+  <p>
+    Regenerating replaces the front-end source underneath a running dev server, which usually kills it.
+    Stop the app, regenerate, run <code>bun run db:setup</code> if the model's schema, enums, rules or
+    workflows changed, then start it again.
+  </p>
+</div>
+
+<nav class="pager">
+  <a href="03-workflows.html"><span class="dir">Previous</span><div class="ttl">← 03 · Workflows</div></a>
+  <a class="next" href="05-application.html"><span class="dir">Next</span><div class="ttl">05 · Tour the app →</div></a>
+</nav>
+
+</div>
+</main>
+</div>
+<script src="assets/guide.js"></script>
+</body>
+</html>
