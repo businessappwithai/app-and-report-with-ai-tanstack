@@ -213,7 +213,13 @@ the copy here is the language.**
 
 Every EML document is valid, renderable Mermaid. EML is a *semantic superset*:
 it assigns generator meaning to `erDiagram`, `flowchart` and `stateDiagram-v2`,
-and to renderer-safe `%%` directive comments. Directive parsers anchor at `^%%`.
+and to renderer-safe `%%` directive comments.
+
+**Directives may be indented.** `language/cli/src/parser.ts` trims each line
+before testing `startsWith("%%")`, and the reference models indent their
+directives four spaces to sit inside the diagram block they annotate. Grepping
+for `^%%` therefore undercounts badly — `crm.eml.mmd` answers 0 to `^%%report`
+and 33 to `%%report`. Search without the anchor.
 
 ### The three `--stack` targets
 
