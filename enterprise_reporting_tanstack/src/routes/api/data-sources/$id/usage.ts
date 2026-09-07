@@ -32,10 +32,7 @@ export const Route = createFileRoute("/api/data-sources/$id/usage")({
             .executeTakeFirst();
 
           if (!dataSource) {
-            return json(
-              { error: { message: "Data source not found" } },
-              { status: 404 }
-            );
+            return json({ error: { message: "Data source not found" } }, { status: 404 });
           }
 
           // For now, return 0 usage to allow deletion

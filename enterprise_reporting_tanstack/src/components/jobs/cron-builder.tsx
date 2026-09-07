@@ -159,30 +159,30 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <div className="space-y-1 text-xs">
-                    <p>
-                      <strong>Minute:</strong> 0-59 or *
-                    </p>
-                    <p>
-                      <strong>Hour:</strong> 0-23 or *
-                    </p>
-                    <p>
-                      <strong>Day:</strong> 1-31 or *
-                    </p>
-                    <p>
-                      <strong>Month:</strong> 1-12 or *
-                    </p>
-                    <p>
-                      <strong>Weekday:</strong> 0-6 (0=Sunday) or *
-                    </p>
-                    <p className="mt-2">
-                      <strong>Examples:</strong>
-                    </p>
-                    <p>*/5 = every 5</p>
-                    <p>1-5 = 1 to 5</p>
-                    <p>1,3,5 = 1, 3, and 5</p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+                  <p>
+                    <strong>Minute:</strong> 0-59 or *
+                  </p>
+                  <p>
+                    <strong>Hour:</strong> 0-23 or *
+                  </p>
+                  <p>
+                    <strong>Day:</strong> 1-31 or *
+                  </p>
+                  <p>
+                    <strong>Month:</strong> 1-12 or *
+                  </p>
+                  <p>
+                    <strong>Weekday:</strong> 0-6 (0=Sunday) or *
+                  </p>
+                  <p className="mt-2">
+                    <strong>Examples:</strong>
+                  </p>
+                  <p>*/5 = every 5</p>
+                  <p>1-5 = 1 to 5</p>
+                  <p>1,3,5 = 1, 3, and 5</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="space-y-2">

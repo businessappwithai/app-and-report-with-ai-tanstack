@@ -10,10 +10,7 @@ export const Route = createFileRoute("/_authed/nl-query/")({
 
 function NlQueryPage() {
   return (
-    <CopilotKit
-      runtimeUrl="/api/copilotkit"
-      textToSpeechUrl="/api/copilotkit/tts"
-    >
+    <CopilotKit runtimeUrl="/api/copilotkit" textToSpeechUrl="/api/copilotkit/tts">
       <CopilotSidebar
         instructions={`SQL agent for PostgreSQL. Use ONLY tables/columns from the schema context — never invent names.
 

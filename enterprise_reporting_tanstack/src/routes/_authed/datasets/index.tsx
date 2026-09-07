@@ -93,7 +93,10 @@ function DatasetsPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Datasets" description="Manage datasets loaded in DuckDB-Wasm for client-side analytics." />
+        <PageHeader
+          title="Datasets"
+          description="Manage datasets loaded in DuckDB-Wasm for client-side analytics."
+        />
         <div className="flex items-center gap-2">
           <span className="text-tremor-default text-tremor-content">DuckDB: {duckdbStatus}</span>
           <Button variant="outline" onClick={() => window.location.reload()}>

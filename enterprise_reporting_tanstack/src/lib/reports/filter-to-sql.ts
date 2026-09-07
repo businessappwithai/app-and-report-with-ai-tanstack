@@ -219,7 +219,9 @@ export function applyCondition(row: Record<string, unknown>, condition: FilterCo
     case "less_than":
       return Number(value) < Number(condition.value);
     case "between":
-      return Number(value) >= Number(condition.value) && Number(value) <= Number(condition.value2 ?? "");
+      return (
+        Number(value) >= Number(condition.value) && Number(value) <= Number(condition.value2 ?? "")
+      );
     case "is_null":
       return value === null || value === undefined;
     case "is_not_null":

@@ -264,9 +264,7 @@ export async function executeReportSQL(
     // Use sql template tag for raw execution
     const { sql: kyselySql } = await import("kysely");
 
-    const result = await kyselySql
-      .raw(limitedSql)
-      .execute(conn);
+    const result = await kyselySql.raw(limitedSql).execute(conn);
 
     const rows = (result.rows as Record<string, unknown>[]) ?? [];
     const executionMs = Date.now() - startTime;
@@ -379,9 +377,7 @@ export function evaluateThreshold(
 
   // Compute deviation percentage from threshold
   const deviationPct =
-    threshold !== 0
-      ? Math.abs(((actualValue - threshold) / Math.abs(threshold)) * 100)
-      : null;
+    threshold !== 0 ? Math.abs(((actualValue - threshold) / Math.abs(threshold)) * 100) : null;
 
   const escalationPct = rule.escalation_threshold_pct ?? 20;
   const isEscalation = deviationPct != null && deviationPct > escalationPct;
@@ -499,7 +495,12 @@ export async function dispatchAlerts(
     if (channel === "email") {
       const emails = resolvedUsers.map((u) => u.email).filter(Boolean);
       if (emails.length === 0) {
-        results.push({ channel: "email", success: false, recipientCount: 0, error: "No email recipients resolved" });
+        results.push({
+          channel: "email",
+          success: false,
+          recipientCount: 0,
+          error: "No email recipients resolved",
+        });
         continue;
       }
 
@@ -539,19 +540,16 @@ export async function dispatchAlerts(
 </html>`,
       };
 
-      const emailResult = await sendEmail(
-        emails,
-        emailTemplate,
-        {
-          ruleName: rule.name,
-          status: evaluation.status,
-          actualValue: String(evaluation.actualValue ?? "N/A"),
-          thresholdValue: String(evaluation.thresholdValue),
-          deviationPct: evaluation.deltaFromPrevious != null ? evaluation.deltaFromPrevious.toFixed(1) : "",
-          message: evaluation.message,
-          triggeredAt: alertPayload.triggeredAt,
-        }
-      );
+      const emailResult = await sendEmail(emails, emailTemplate, {
+        ruleName: rule.name,
+        status: evaluation.status,
+        actualValue: String(evaluation.actualValue ?? "N/A"),
+        thresholdValue: String(evaluation.thresholdValue),
+        deviationPct:
+          evaluation.deltaFromPrevious != null ? evaluation.deltaFromPrevious.toFixed(1) : "",
+        message: evaluation.message,
+        triggeredAt: alertPayload.triggeredAt,
+      });
 
       results.push({
         channel: "email",
@@ -560,11 +558,15 @@ export async function dispatchAlerts(
         error: emailResult.error,
         messageId: emailResult.messageId,
       });
-
     } else if (channel === "in_app") {
       const userIds = resolvedUsers.map((u) => u.userId);
       if (userIds.length === 0) {
-        results.push({ channel: "in_app", success: false, recipientCount: 0, error: "No in-app recipients resolved" });
+        results.push({
+          channel: "in_app",
+          success: false,
+          recipientCount: 0,
+          error: "No in-app recipients resolved",
+        });
         continue;
       }
 
@@ -592,15 +594,24 @@ export async function dispatchAlerts(
         recipientCount: successCount,
         error: lastError,
       });
-
     } else if (channel === "webhook") {
       if (!rule.webhook_url) {
-        results.push({ channel: "webhook", success: false, recipientCount: 0, error: "No webhook URL configured" });
+        results.push({
+          channel: "webhook",
+          success: false,
+          recipientCount: 0,
+          error: "No webhook URL configured",
+        });
         continue;
       }
 
       if (isPrivateOrLoopback(rule.webhook_url)) {
-        results.push({ channel: "webhook", success: false, recipientCount: 0, error: "Webhook URL resolves to a private/loopback address (SSRF blocked)" });
+        results.push({
+          channel: "webhook",
+          success: false,
+          recipientCount: 0,
+          error: "Webhook URL resolves to a private/loopback address (SSRF blocked)",
+        });
         continue;
       }
 
@@ -610,7 +621,10 @@ export async function dispatchAlerts(
 
         const response = await fetch(rule.webhook_url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "User-Agent": "enterprise-reporting-monitor/1.0" },
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "enterprise-reporting-monitor/1.0",
+          },
           body: JSON.stringify(alertPayload),
           signal: controller.signal,
         }).finally(() => clearTimeout(timeout));

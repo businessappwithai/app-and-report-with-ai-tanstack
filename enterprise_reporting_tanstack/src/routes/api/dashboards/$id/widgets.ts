@@ -48,7 +48,10 @@ export const Route = createFileRoute("/api/dashboards/$id/widgets")({
         } catch (error) {
           console.error("Error fetching dashboard widgets:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch dashboard widgets" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to fetch dashboard widgets" },
+            },
             { status: 500 }
           );
         }
@@ -87,7 +90,10 @@ export const Route = createFileRoute("/api/dashboards/$id/widgets")({
 
           if (!widgetType) {
             return json(
-              { success: false, error: { code: "VALIDATION_ERROR", message: "widgetType is required" } },
+              {
+                success: false,
+                error: { code: "VALIDATION_ERROR", message: "widgetType is required" },
+              },
               { status: 400 }
             );
           }

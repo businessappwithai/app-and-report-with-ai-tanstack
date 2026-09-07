@@ -104,9 +104,7 @@ export const Route = createFileRoute("/api/reports/$id")({
               filename_template: filenameTemplate
                 ? JSON.stringify(filenameTemplate)
                 : existing.filename_template,
-              color_theme: colorTheme
-                ? JSON.stringify(colorTheme)
-                : existing.color_theme,
+              color_theme: colorTheme ? JSON.stringify(colorTheme) : existing.color_theme,
               updated_at: new Date().toISOString(),
             })
             .where("id", "=", id)

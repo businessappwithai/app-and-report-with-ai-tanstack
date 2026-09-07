@@ -63,7 +63,7 @@ export const Route = createFileRoute("/api/nl-query/history")({
               eb.or([
                 eb("nl_query_context.nl_question", "like", pattern),
                 eb("nl_query_context.generated_sql", "like", pattern),
-              ]),
+              ])
             );
           }
 
@@ -88,7 +88,11 @@ export const Route = createFileRoute("/api/nl-query/history")({
             ? totalQuery.where("data_source_id", "=", dataSourceId)
             : totalQuery
           )
-            .where(scope === "role" ? "role_name" : "user_id", "=", scope === "role" ? primaryRole : session.user.id)
+            .where(
+              scope === "role" ? "role_name" : "user_id",
+              "=",
+              scope === "role" ? primaryRole : session.user.id
+            )
             .execute();
 
           return json({
@@ -99,7 +103,12 @@ export const Route = createFileRoute("/api/nl-query/history")({
         } catch (error) {
           console.error("History fetch error:", error);
           return json(
-            { success: false, error: { message: error instanceof Error ? error.message : "Failed to fetch history" } },
+            {
+              success: false,
+              error: {
+                message: error instanceof Error ? error.message : "Failed to fetch history",
+              },
+            },
             { status: 500 }
           );
         }
@@ -113,10 +122,20 @@ export const Route = createFileRoute("/api/nl-query/history")({
           }
 
           const body = await request.json().catch(() => ({}));
-          const { nl_question, generated_sql, data_source_id, row_count, execution_time_ms, was_successful } = body;
+          const {
+            nl_question,
+            generated_sql,
+            data_source_id,
+            row_count,
+            execution_time_ms,
+            was_successful,
+          } = body;
 
           if (!nl_question || !generated_sql) {
-            return json({ success: false, error: { message: "nl_question and generated_sql are required" } }, { status: 400 });
+            return json(
+              { success: false, error: { message: "nl_question and generated_sql are required" } },
+              { status: 400 }
+            );
           }
 
           const db = getDb();
@@ -146,7 +165,10 @@ export const Route = createFileRoute("/api/nl-query/history")({
         } catch (error) {
           console.error("History save error:", error);
           return json(
-            { success: false, error: { message: error instanceof Error ? error.message : "Failed to save history" } },
+            {
+              success: false,
+              error: { message: error instanceof Error ? error.message : "Failed to save history" },
+            },
             { status: 500 }
           );
         }

@@ -67,7 +67,10 @@ export const Route = createFileRoute("/api/charts/$id/data")({
 
           if (!dataSource) {
             return json(
-              { success: false, error: { code: "NOT_FOUND", message: "Data source not found or inactive" } },
+              {
+                success: false,
+                error: { code: "NOT_FOUND", message: "Data source not found or inactive" },
+              },
               { status: 404 }
             );
           }
@@ -79,9 +82,7 @@ export const Route = createFileRoute("/api/charts/$id/data")({
           const pageSize = parseInt(url.searchParams.get("pageSize") || "1000");
 
           const rawSql = savedQuery.sql_content.trim().replace(/;$/, "");
-          const limitedSql = /\bLIMIT\s+\d+/i.test(rawSql)
-            ? rawSql
-            : `${rawSql} LIMIT ${pageSize}`;
+          const limitedSql = /\bLIMIT\s+\d+/i.test(rawSql) ? rawSql : `${rawSql} LIMIT ${pageSize}`;
 
           const { rows } = await kyselySql.raw(limitedSql).execute(connection);
           const typedRows = rows as Record<string, unknown>[];

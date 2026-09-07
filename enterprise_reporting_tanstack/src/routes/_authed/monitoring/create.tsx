@@ -26,22 +26,16 @@ function CreateMonitoringPage() {
           Create Monitoring Rule
         </h1>
         <p className="text-tremor-content">
-          Use natural language to define what you want to monitor and when to
-          alert.
+          Use natural language to define what you want to monitor and when to alert.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">
-            New Monitoring Rule
-          </CardTitle>
+          <CardTitle className="text-base font-medium">New Monitoring Rule</CardTitle>
         </CardHeader>
         <CardContent>
-          <NLMonitoringCreator
-            onSuccess={handleSuccess}
-            onCancel={handleCancel}
-          />
+          <NLMonitoringCreator onSuccess={handleSuccess} onCancel={handleCancel} />
         </CardContent>
       </Card>
     </div>

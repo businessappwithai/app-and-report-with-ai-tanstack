@@ -97,7 +97,10 @@ function EmailTemplatesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Email Templates" description="Create and manage email templates with query-based placeholders" />
+        <PageHeader
+          title="Email Templates"
+          description="Create and manage email templates with query-based placeholders"
+        />
         <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
           New Template

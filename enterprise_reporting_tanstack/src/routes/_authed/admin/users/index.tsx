@@ -73,7 +73,8 @@ function UsersManagementPage() {
   });
 
   // Map user roles to expected format
-  const userRoles = selectedUser?.roles?.map((r: any) => ({ role_id: r.id, role_name: r.name })) || [];
+  const userRoles =
+    selectedUser?.roles?.map((r: any) => ({ role_id: r.id, role_name: r.name })) || [];
   const refetchUserRoles = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };

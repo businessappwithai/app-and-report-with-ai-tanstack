@@ -3,16 +3,16 @@
  * Provides real-time synchronization between local collections and server via ElectricSQL
  */
 
-import type { ChangeMessageOrDeleteKeyMessage } from '@tanstack/db'
+import type { ChangeMessageOrDeleteKeyMessage } from "@tanstack/db";
 
 /**
  * Configuration for ElectricSQL sync
  */
 export interface ElectricSyncConfig {
-  collectionName: string
-  tableName: string
-  primaryKey: string
-  conflictResolution?: 'last-write-wins' | 'custom'
+  collectionName: string;
+  tableName: string;
+  primaryKey: string;
+  conflictResolution?: "last-write-wins" | "custom";
 }
 
 /**
@@ -20,25 +20,25 @@ export interface ElectricSyncConfig {
  * Provides real-time synchronization with server state
  */
 export function createElectricSyncAdapter(config: ElectricSyncConfig) {
-  const { collectionName, tableName, primaryKey } = config
+  const { collectionName, tableName, primaryKey } = config;
 
   // Return a sync configuration that TanStack DB will use
   // TanStack DB expects the sync adapter to be a callable function
   const syncAdapter = async (params: {
-    collection: any
-    begin: (options?: { immediate?: boolean }) => void
-    write: (message: ChangeMessageOrDeleteKeyMessage<any, any>) => void
-    commit: () => void
-    markReady: () => void
-    truncate: () => void
-    metadata?: any
-    [key: string]: any
+    collection: any;
+    begin: (options?: { immediate?: boolean }) => void;
+    write: (message: ChangeMessageOrDeleteKeyMessage<any, any>) => void;
+    commit: () => void;
+    markReady: () => void;
+    truncate: () => void;
+    metadata?: any;
+    [key: string]: any;
   }) => {
-    const { begin, write, commit, markReady } = params
+    const { begin, write, commit, markReady } = params;
 
     try {
       // Initialize sync
-      begin()
+      begin();
 
       // In a production implementation:
       // 1. Load initial data from ElectricSQL
@@ -46,24 +46,24 @@ export function createElectricSyncAdapter(config: ElectricSyncConfig) {
       // 3. Set up bidirectional sync
 
       // For now, just mark as ready with local state
-      markReady()
-      commit()
+      markReady();
+      commit();
 
       // Return cleanup function
       return () => {
         // Cleanup: unsubscribe, flush changes, close connections
-      }
+      };
     } catch (error) {
-      console.error(`Failed to initialize ElectricSQL sync for ${collectionName}:`, error)
+      console.error(`Failed to initialize ElectricSQL sync for ${collectionName}:`, error);
       // Mark ready even on error to unblock the UI
-      markReady()
-      return () => {}
+      markReady();
+      return () => {};
     }
-  }
+  };
 
   // TanStack DB expects config.sync to be an object with a `sync` method.
   // Spread as: ...createElectricSyncAdapter() -> { sync: { sync: syncAdapter } }
-  return { sync: { sync: syncAdapter } }
+  return { sync: { sync: syncAdapter } };
 }
 
 /**
@@ -73,23 +73,23 @@ export function convertElectricChangeToTanStackDB(
   change: any,
   primaryKey: string
 ): ChangeMessageOrDeleteKeyMessage<any, any> {
-  const { type, record } = change
+  const { type, record } = change;
 
   switch (type) {
-    case 'insert':
-    case 'update':
+    case "insert":
+    case "update":
       return {
-        type: 'INSERT',
+        type: "INSERT",
         key: record[primaryKey],
         value: record,
-      }
-    case 'delete':
+      };
+    case "delete":
       return {
-        type: 'DELETE',
+        type: "DELETE",
         key: record[primaryKey],
-      }
+      };
     default:
-      throw new Error(`Unknown change type: ${type}`)
+      throw new Error(`Unknown change type: ${type}`);
   }
 }
 
@@ -98,9 +98,9 @@ export function convertElectricChangeToTanStackDB(
  * Call this during app initialization
  */
 export async function configureElectricSQL(options: {
-  dbUrl?: string
-  authToken?: string
-  replicationUrl?: string
+  dbUrl?: string;
+  authToken?: string;
+  replicationUrl?: string;
 }): Promise<void> {
   // ElectricSQL configuration would happen here:
   // 1. Initialize local SQLite for client-side collections
@@ -109,7 +109,7 @@ export async function configureElectricSQL(options: {
   // 4. Start background sync process
 
   // For now, this is a placeholder
-  console.log('ElectricSQL configured with options:', options)
+  console.log("ElectricSQL configured with options:", options);
 }
 
 /**
@@ -119,12 +119,12 @@ export async function configureElectricSQL(options: {
 export function getElectricSyncConfig(
   collectionId: string,
   tableName: string,
-  primaryKey: string = 'id'
+  primaryKey: string = "id"
 ): ElectricSyncConfig {
   return {
     collectionName: collectionId,
     tableName,
     primaryKey,
-    conflictResolution: 'last-write-wins',
-  }
+    conflictResolution: "last-write-wins",
+  };
 }

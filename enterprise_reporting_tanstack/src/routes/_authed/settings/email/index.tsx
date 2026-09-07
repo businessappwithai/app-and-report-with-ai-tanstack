@@ -68,7 +68,10 @@ function EmailSettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Email Settings" description="Configure email notifications for job completion" />
+        <PageHeader
+          title="Email Settings"
+          description="Configure email notifications for job completion"
+        />
         <Button
           variant="outline"
           onClick={() => verifyMutation.mutate()}
@@ -141,7 +144,9 @@ function EmailSettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label>Use SSL/TLS</Label>
-                        <p className="text-tremor-label text-tremor-content">Enable secure connection</p>
+                        <p className="text-tremor-label text-tremor-content">
+                          Enable secure connection
+                        </p>
                       </div>
                       <Switch checked={config?.secure} disabled />
                     </div>
@@ -212,7 +217,9 @@ function EmailSettingsPage() {
                   { value: "∞", label: "Automatic Reuse" },
                 ].map(({ value, label }) => (
                   <div key={label} className="bg-muted p-4 rounded-lg">
-                    <p className="font-semibold text-tremor-metric text-tremor-content-strong">{value}</p>
+                    <p className="font-semibold text-tremor-metric text-tremor-content-strong">
+                      {value}
+                    </p>
                     <p className="text-tremor-label text-tremor-content">{label}</p>
                   </div>
                 ))}

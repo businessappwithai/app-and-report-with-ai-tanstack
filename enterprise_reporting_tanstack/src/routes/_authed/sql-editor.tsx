@@ -382,7 +382,8 @@ function SQLEditorContent() {
 
   useCopilotAction({
     name: "applySQL",
-    description: "Insert generated SQL into the editor. Generate the SQL first based on the user's description and the schema context, then call this to apply it.",
+    description:
+      "Insert generated SQL into the editor. Generate the SQL first based on the user's description and the schema context, then call this to apply it.",
     parameters: [
       { name: "sql", type: "string", description: "Complete SQL query to insert", required: true },
     ],
@@ -395,7 +396,12 @@ function SQLEditorContent() {
     name: "selectDataSource",
     description: "Select a data source by ID so the user can run queries against it.",
     parameters: [
-      { name: "dataSourceId", type: "string", description: "Data source ID from the available list", required: true },
+      {
+        name: "dataSourceId",
+        type: "string",
+        description: "Data source ID from the available list",
+        required: true,
+      },
     ],
     handler: async ({ dataSourceId }) => {
       setSelectedDataSource(dataSourceId);
@@ -414,7 +420,6 @@ function SQLEditorContent() {
     },
   });
   // ────────────────────────────────────────────────────────────────────────
-
 
   const SQL_EDITOR_INSTRUCTIONS = `You are an AI SQL assistant embedded in a SQL editor.
 Your job is to help the user write, understand, and run SQL queries against their database.
@@ -437,419 +442,424 @@ RULES:
       defaultOpen={false}
       labels={{
         title: "SQL Assistant",
-        initial: "Hi! Describe what data you want and I'll write the SQL for you. You can also paste errors for me to fix.",
+        initial:
+          "Hi! Describe what data you want and I'll write the SQL for you. You can also paste errors for me to fix.",
         placeholder: "Describe what you need or paste an error…",
       }}
     >
-    <div className="p-3 sm:p-6">
-      {/* Header — stacks on mobile, row on sm+ */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <PageHeader title="SQL Editor" description="Write and execute SQL queries" />
-        {/* Action buttons — full-width on mobile, auto on sm+ */}
-        <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2">
-          <button
-            type="button"
-            onClick={handleValidate}
-            disabled={isValidating}
-            className="px-3 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isValidating ? "Validating…" : "Validate"}
-          </button>
-          <button
-            type="button"
-            onClick={handleExecute}
-            disabled={executeMutation.isPending}
-            className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {executeMutation.isPending ? "Running…" : "Run Query"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSaveQueryModal(true)}
-            disabled={!selectedDataSource || !sqlContent.trim()}
-            className="px-3 py-2 text-sm bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-
-      {validationResult && (
-        <div
-          className={`mb-4 border rounded p-3 ${
-            validationResult.isValid && validationResult.errors.length === 0
-              ? "border-emerald-300 bg-emerald-50"
-              : "border-red-300 bg-red-50"
-          }`}
-        >
-          {validationResult.isValid && validationResult.errors.length === 0 ? (
-            <div className="text-sm text-emerald-700">
-              <p className="font-medium">SQL is valid</p>
-              {validationResult.warnings.length > 0 && (
-                <div className="mt-2">
-                  <p className="font-medium">Warnings:</p>
-                  <ul className="list-disc list-inside ml-2">
-                    {validationResult.warnings.map((warning) => (
-                      <li key={warning.message + (warning.type ?? "")} className="text-xs">
-                        {warning.message} ({warning.type})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-red-700">
-              <p className="font-medium">SQL has errors:</p>
-              <ul className="list-disc list-inside ml-2">
-                {validationResult.errors.map((error) => (
-                  <li key={error.message + (error.line ?? "")}>
-                    {error.message}
-                    {error.line !== undefined && ` (line ${error.line})`}
-                  </li>
-                ))}
-              </ul>
-              {validationResult.warnings.length > 0 && (
-                <div className="mt-2">
-                  <p className="font-medium">Warnings:</p>
-                  <ul className="list-disc list-inside ml-2">
-                    {validationResult.warnings.map((warning) => (
-                      <li key={warning.message + (warning.type ?? "")} className="text-xs">
-                        {warning.message} ({warning.type})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setValidationResult(null)}
-            className="mt-2 text-xs underline text-gray-600 hover:text-gray-800"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {!dataSourceCollapsed ? (
-        <div className="border rounded p-3 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">Data Source</p>
+      <div className="p-3 sm:p-6">
+        {/* Header — stacks on mobile, row on sm+ */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <PageHeader title="SQL Editor" description="Write and execute SQL queries" />
+          {/* Action buttons — full-width on mobile, auto on sm+ */}
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2">
             <button
               type="button"
-              onClick={() => setDataSourceCollapsed(true)}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              onClick={handleValidate}
+              disabled={isValidating}
+              className="px-3 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ▲ collapse
+              {isValidating ? "Validating…" : "Validate"}
             </button>
-          </div>
-          <div className="flex gap-2 items-center">
-            {isLoadingDataSources && <p className="text-tremor-label text-tremor-content">Loading…</p>}
-            {!isLoadingDataSources && dataSources && dataSources.length > 0 && (
-              <Select value={selectedDataSource} onValueChange={setSelectedDataSource}>
-                <SelectTrigger className="w-full sm:w-72">
-                  <SelectValue placeholder="Select a data source…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dataSources.map((ds) => (
-                    <SelectItem key={ds.id} value={ds.id}>
-                      {ds.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {!isLoadingDataSources && (!dataSources || dataSources.length === 0) && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                No data sources configured.{" "}
-                <a href="/data-sources" className="underline hover:no-underline">
-                  Create one
-                </a>
-              </p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="border rounded p-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setDataSourceCollapsed(false)}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 w-full"
-          >
-            <ChevronDown className="h-4 w-4" />
-            <span className="font-medium">
-              {selectedDataSource
-                ? dataSources?.find((ds) => ds.id === selectedDataSource)?.name ||
-                  "Select Data Source"
-                : "Select Data Source"}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* Editor — taller on tablets to give more working space */}
-      <MonacoSQLEditorWrapper
-        value={sqlContent}
-        onChange={setSqlContent}
-        onExecute={handleExecute}
-        height="min(400px, 40vh)"
-        className="border"
-        schema={null}
-      />
-
-      {!schemaBrowserCollapsed ? (
-        <div className="mt-4 border rounded p-3 sm:p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">
-              Schema Browser
-              <span className="ml-1 text-muted-foreground font-normal">
-                (
-                {isLoadingSchema
-                  ? "loading…"
-                  : selectedDataSource
-                    ? `${schema?.tables.length || 0} tables, ${schema?.views.length || 0} views`
-                    : "select a data source"}
-                )
-              </span>
-            </p>
-            <div className="flex items-center gap-2">
-              {selectedDataSource && (
-                <button
-                  type="button"
-                  onClick={handleRefreshSchema}
-                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setSchemaBrowserCollapsed(true)}
-                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
-              >
-                ▼ collapse
-              </button>
-            </div>
-          </div>
-          <div className="max-h-60 sm:max-h-72 overflow-auto">
-            {selectedDataSource ? (
-              <SchemaBrowser
-                schema={schema || null}
-                isLoading={isLoadingSchema}
-                onTableClick={handleTableClick}
-                onColumnClick={handleColumnClick}
-              />
-            ) : (
-              <p className="text-tremor-default text-tremor-content">Select a data source to view schema</p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4 border rounded p-2">
-          <button
-            type="button"
-            onClick={() => setSchemaBrowserCollapsed(false)}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
-          >
-            <span>▲</span>
-            <span className="font-medium">
-              Schema Browser
-              <span className="ml-1 text-muted-foreground font-normal">
-                (
-                {isLoadingSchema
-                  ? "loading…"
-                  : selectedDataSource
-                    ? `${schema?.tables.length || 0} tables, ${schema?.views.length || 0} views`
-                    : "select a data source"}
-                )
-              </span>
-            </span>
-          </button>
-        </div>
-      )}
-
-      <div className="mt-4 border rounded">
-        {/* Tab bar — compact on mobile */}
-        <div className="flex border-b overflow-x-auto">
-          {(["results", "errors", "logs"] as const).map((tab) => (
             <button
-              key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? tab === "results"
-                    ? "bg-blue-50 text-blue-700 border-b-2 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-                    : tab === "errors"
-                      ? "bg-red-50 text-red-700 border-b-2 border-red-600 dark:bg-red-900/20 dark:text-red-400"
-                      : "bg-gray-50 text-gray-700 border-b-2 border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                  : "text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
+              onClick={handleExecute}
+              disabled={executeMutation.isPending}
+              className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {tab}
+              {executeMutation.isPending ? "Running…" : "Run Query"}
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setSaveQueryModal(true)}
+              disabled={!selectedDataSource || !sqlContent.trim()}
+              className="px-3 py-2 text-sm bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save
+            </button>
+          </div>
         </div>
 
-        <div className="p-3 sm:p-4">
-          {activeTab === "results" && (
-            <div>
-              {queryResult && (
-                <div className="overflow-auto max-h-80 sm:max-h-96">
-                  <QueryResults
-                    result={queryResult}
-                    isLoading={false}
-                    error={null}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
-              )}
-              {!queryResult && !executeMutation.isPending && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  Run a query to see results here.
-                </div>
-              )}
-              {executeMutation.isPending && (
-                <div className="text-center py-8">
-                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                  <p className="text-tremor-default text-tremor-content">Executing query…</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "errors" && (
-            <div className="space-y-3">
-              {executionError && (
-                <div className="border border-red-300 bg-red-50 dark:bg-red-900/20 rounded p-3">
-                  <h3 className="font-semibold text-red-700 dark:text-red-400 mb-1 text-sm">
-                    Query Error
-                  </h3>
-                  <pre className="text-sm text-red-600 dark:text-red-300 whitespace-pre-wrap overflow-auto">
-                    {executionError}
-                  </pre>
-                </div>
-              )}
-              {warning && (
-                <div className="border border-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded p-3">
-                  <h3 className="font-semibold text-amber-700 dark:text-amber-400 mb-1 text-sm">
-                    Warning
-                  </h3>
-                  <p className="text-sm text-amber-600 dark:text-amber-300">{warning.message}</p>
-                  <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
-                    Suggestion: {warning.suggestion}
-                  </p>
-                </div>
-              )}
-              {!executionError && !warning && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No errors recorded.
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "logs" && (
-            <div>
-              {queryLogs.length > 0 ? (
-                <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 max-h-80 sm:max-h-96 overflow-auto">
-                  <pre className="text-xs font-mono">
-                    {queryLogs.map((log) => (
-                      <div key={log} className="whitespace-pre-wrap">
-                        {log}
-                      </div>
-                    ))}
-                  </pre>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No logs yet. Run a query to see execution logs.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {saveQueryModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center"
-          style={{ zIndex: 99999 }}
-        >
-          <div className="bg-background p-6 w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto border">
-            <h2 className="text-xl font-bold mb-4">
-              {editingQueryId ? "Update Query" : "Save Query"}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="queryName" className="block text-sm font-medium mb-1">
-                  Query Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="queryName"
-                  type="text"
-                  value={queryName}
-                  onChange={(e) => setQueryName(e.target.value)}
-                  className="w-full px-3 py-2 border"
-                  placeholder="Enter query name"
-                />
-                {queryName.trim().length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">Query name is required</p>
+        {validationResult && (
+          <div
+            className={`mb-4 border rounded p-3 ${
+              validationResult.isValid && validationResult.errors.length === 0
+                ? "border-emerald-300 bg-emerald-50"
+                : "border-red-300 bg-red-50"
+            }`}
+          >
+            {validationResult.isValid && validationResult.errors.length === 0 ? (
+              <div className="text-sm text-emerald-700">
+                <p className="font-medium">SQL is valid</p>
+                {validationResult.warnings.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium">Warnings:</p>
+                    <ul className="list-disc list-inside ml-2">
+                      {validationResult.warnings.map((warning) => (
+                        <li key={warning.message + (warning.type ?? "")} className="text-xs">
+                          {warning.message} ({warning.type})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-              <div>
-                <label htmlFor="queryDescription" className="block text-sm font-medium mb-1">
-                  Description <span className="text-tremor-content">(optional)</span>
-                </label>
-                <textarea
-                  id="queryDescription"
-                  value={queryDescription}
-                  onChange={(e) => setQueryDescription(e.target.value)}
-                  className="w-full px-3 py-2 border"
-                  placeholder="Enter a description for this query"
-                  rows={3}
-                />
+            ) : (
+              <div className="text-sm text-red-700">
+                <p className="font-medium">SQL has errors:</p>
+                <ul className="list-disc list-inside ml-2">
+                  {validationResult.errors.map((error) => (
+                    <li key={error.message + (error.line ?? "")}>
+                      {error.message}
+                      {error.line !== undefined && ` (line ${error.line})`}
+                    </li>
+                  ))}
+                </ul>
+                {validationResult.warnings.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium">Warnings:</p>
+                    <ul className="list-disc list-inside ml-2">
+                      {validationResult.warnings.map((warning) => (
+                        <li key={warning.message + (warning.type ?? "")} className="text-xs">
+                          {warning.message} ({warning.type})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              <div className="text-xs text-muted-foreground bg-background p-2 border">
-                <p>
-                  Data Source:{" "}
-                  <strong>
-                    {dataSources?.find((ds) => ds.id === selectedDataSource)?.name || "None"}
-                  </strong>
-                </p>
-                <p>
-                  Query Length: <strong>{sqlContent.length}</strong> characters
-                </p>
-              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setValidationResult(null)}
+              className="mt-2 text-xs underline text-gray-600 hover:text-gray-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {!dataSourceCollapsed ? (
+          <div className="border rounded p-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Data Source</p>
+              <button
+                type="button"
+                onClick={() => setDataSourceCollapsed(true)}
+                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              >
+                ▲ collapse
+              </button>
             </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setSaveQueryModal(false);
-                  setQueryName("");
-                  setQueryDescription("");
-                }}
-                className="flex-1 px-4 py-2 border hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveQuery}
-                disabled={saveQueryMutation.isPending || !queryName.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                {saveQueryMutation.isPending ? "Saving..." : editingQueryId ? "Update" : "Save"}
-              </button>
+            <div className="flex gap-2 items-center">
+              {isLoadingDataSources && (
+                <p className="text-tremor-label text-tremor-content">Loading…</p>
+              )}
+              {!isLoadingDataSources && dataSources && dataSources.length > 0 && (
+                <Select value={selectedDataSource} onValueChange={setSelectedDataSource}>
+                  <SelectTrigger className="w-full sm:w-72">
+                    <SelectValue placeholder="Select a data source…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataSources.map((ds) => (
+                      <SelectItem key={ds.id} value={ds.id}>
+                        {ds.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!isLoadingDataSources && (!dataSources || dataSources.length === 0) && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  No data sources configured.{" "}
+                  <a href="/data-sources" className="underline hover:no-underline">
+                    Create one
+                  </a>
+                </p>
+              )}
             </div>
           </div>
+        ) : (
+          <div className="border rounded p-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setDataSourceCollapsed(false)}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 w-full"
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span className="font-medium">
+                {selectedDataSource
+                  ? dataSources?.find((ds) => ds.id === selectedDataSource)?.name ||
+                    "Select Data Source"
+                  : "Select Data Source"}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Editor — taller on tablets to give more working space */}
+        <MonacoSQLEditorWrapper
+          value={sqlContent}
+          onChange={setSqlContent}
+          onExecute={handleExecute}
+          height="min(400px, 40vh)"
+          className="border"
+          schema={null}
+        />
+
+        {!schemaBrowserCollapsed ? (
+          <div className="mt-4 border rounded p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">
+                Schema Browser
+                <span className="ml-1 text-muted-foreground font-normal">
+                  (
+                  {isLoadingSchema
+                    ? "loading…"
+                    : selectedDataSource
+                      ? `${schema?.tables.length || 0} tables, ${schema?.views.length || 0} views`
+                      : "select a data source"}
+                  )
+                </span>
+              </p>
+              <div className="flex items-center gap-2">
+                {selectedDataSource && (
+                  <button
+                    type="button"
+                    onClick={handleRefreshSchema}
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSchemaBrowserCollapsed(true)}
+                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                >
+                  ▼ collapse
+                </button>
+              </div>
+            </div>
+            <div className="max-h-60 sm:max-h-72 overflow-auto">
+              {selectedDataSource ? (
+                <SchemaBrowser
+                  schema={schema || null}
+                  isLoading={isLoadingSchema}
+                  onTableClick={handleTableClick}
+                  onColumnClick={handleColumnClick}
+                />
+              ) : (
+                <p className="text-tremor-default text-tremor-content">
+                  Select a data source to view schema
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 border rounded p-2">
+            <button
+              type="button"
+              onClick={() => setSchemaBrowserCollapsed(false)}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+            >
+              <span>▲</span>
+              <span className="font-medium">
+                Schema Browser
+                <span className="ml-1 text-muted-foreground font-normal">
+                  (
+                  {isLoadingSchema
+                    ? "loading…"
+                    : selectedDataSource
+                      ? `${schema?.tables.length || 0} tables, ${schema?.views.length || 0} views`
+                      : "select a data source"}
+                  )
+                </span>
+              </span>
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 border rounded">
+          {/* Tab bar — compact on mobile */}
+          <div className="flex border-b overflow-x-auto">
+            {(["results", "errors", "logs"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-shrink-0 px-4 py-2 text-sm font-medium capitalize transition-colors ${
+                  activeTab === tab
+                    ? tab === "results"
+                      ? "bg-blue-50 text-blue-700 border-b-2 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                      : tab === "errors"
+                        ? "bg-red-50 text-red-700 border-b-2 border-red-600 dark:bg-red-900/20 dark:text-red-400"
+                        : "bg-gray-50 text-gray-700 border-b-2 border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-3 sm:p-4">
+            {activeTab === "results" && (
+              <div>
+                {queryResult && (
+                  <div className="overflow-auto max-h-80 sm:max-h-96">
+                    <QueryResults
+                      result={queryResult}
+                      isLoading={false}
+                      error={null}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
+                {!queryResult && !executeMutation.isPending && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    Run a query to see results here.
+                  </div>
+                )}
+                {executeMutation.isPending && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                    <p className="text-tremor-default text-tremor-content">Executing query…</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "errors" && (
+              <div className="space-y-3">
+                {executionError && (
+                  <div className="border border-red-300 bg-red-50 dark:bg-red-900/20 rounded p-3">
+                    <h3 className="font-semibold text-red-700 dark:text-red-400 mb-1 text-sm">
+                      Query Error
+                    </h3>
+                    <pre className="text-sm text-red-600 dark:text-red-300 whitespace-pre-wrap overflow-auto">
+                      {executionError}
+                    </pre>
+                  </div>
+                )}
+                {warning && (
+                  <div className="border border-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded p-3">
+                    <h3 className="font-semibold text-amber-700 dark:text-amber-400 mb-1 text-sm">
+                      Warning
+                    </h3>
+                    <p className="text-sm text-amber-600 dark:text-amber-300">{warning.message}</p>
+                    <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
+                      Suggestion: {warning.suggestion}
+                    </p>
+                  </div>
+                )}
+                {!executionError && !warning && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No errors recorded.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "logs" && (
+              <div>
+                {queryLogs.length > 0 ? (
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 max-h-80 sm:max-h-96 overflow-auto">
+                    <pre className="text-xs font-mono">
+                      {queryLogs.map((log) => (
+                        <div key={log} className="whitespace-pre-wrap">
+                          {log}
+                        </div>
+                      ))}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No logs yet. Run a query to see execution logs.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+
+        {saveQueryModal && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center"
+            style={{ zIndex: 99999 }}
+          >
+            <div className="bg-background p-6 w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto border">
+              <h2 className="text-xl font-bold mb-4">
+                {editingQueryId ? "Update Query" : "Save Query"}
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="queryName" className="block text-sm font-medium mb-1">
+                    Query Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="queryName"
+                    type="text"
+                    value={queryName}
+                    onChange={(e) => setQueryName(e.target.value)}
+                    className="w-full px-3 py-2 border"
+                    placeholder="Enter query name"
+                  />
+                  {queryName.trim().length === 0 && (
+                    <p className="text-xs text-red-500 mt-1">Query name is required</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="queryDescription" className="block text-sm font-medium mb-1">
+                    Description <span className="text-tremor-content">(optional)</span>
+                  </label>
+                  <textarea
+                    id="queryDescription"
+                    value={queryDescription}
+                    onChange={(e) => setQueryDescription(e.target.value)}
+                    className="w-full px-3 py-2 border"
+                    placeholder="Enter a description for this query"
+                    rows={3}
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground bg-background p-2 border">
+                  <p>
+                    Data Source:{" "}
+                    <strong>
+                      {dataSources?.find((ds) => ds.id === selectedDataSource)?.name || "None"}
+                    </strong>
+                  </p>
+                  <p>
+                    Query Length: <strong>{sqlContent.length}</strong> characters
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaveQueryModal(false);
+                    setQueryName("");
+                    setQueryDescription("");
+                  }}
+                  className="flex-1 px-4 py-2 border hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuery}
+                  disabled={saveQueryMutation.isPending || !queryName.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  {saveQueryMutation.isPending ? "Saving..." : editingQueryId ? "Update" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </CopilotSidebar>
   );
 }

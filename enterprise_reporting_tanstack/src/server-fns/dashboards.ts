@@ -259,7 +259,12 @@ export const addWidget = createServerFn({ method: "POST" })
         const session = await requireAuth();
         const { dashboardId, widget } = input;
 
-        const hasAccess = await hasResourceAccess(session.user.id, "dashboard", dashboardId, "edit");
+        const hasAccess = await hasResourceAccess(
+          session.user.id,
+          "dashboard",
+          dashboardId,
+          "edit"
+        );
         if (!hasAccess) {
           throw new Error("FORBIDDEN");
         }
@@ -322,7 +327,12 @@ export const updateWidget = createServerFn({ method: "PUT" })
         const session = await requireAuth();
         const { dashboardId, widgetId, widget } = input;
 
-        const hasAccess = await hasResourceAccess(session.user.id, "dashboard", dashboardId, "edit");
+        const hasAccess = await hasResourceAccess(
+          session.user.id,
+          "dashboard",
+          dashboardId,
+          "edit"
+        );
         if (!hasAccess) {
           throw new Error("FORBIDDEN");
         }
@@ -390,7 +400,12 @@ export const removeWidget = createServerFn({ method: "DELETE" })
         const session = await requireAuth();
         const { dashboardId, widgetId } = input;
 
-        const hasAccess = await hasResourceAccess(session.user.id, "dashboard", dashboardId, "edit");
+        const hasAccess = await hasResourceAccess(
+          session.user.id,
+          "dashboard",
+          dashboardId,
+          "edit"
+        );
         if (!hasAccess) {
           throw new Error("FORBIDDEN");
         }

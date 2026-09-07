@@ -96,7 +96,9 @@ async function buildKyselyConnection(
         keepalives_idle: 5, // Send TCP keepalive every 5 seconds to prevent idle disconnection
       };
 
-      console.log(`[BUILD_CONN:${buildId}] Pool config: max=${poolConfig.max}, connectionTimeout=${poolConfig.connectionTimeoutMillis}ms`);
+      console.log(
+        `[BUILD_CONN:${buildId}] Pool config: max=${poolConfig.max}, connectionTimeout=${poolConfig.connectionTimeoutMillis}ms`
+      );
 
       // Use connection string if provided (Neon uses this)
       if (connectionConfig.connectionString) {
@@ -120,7 +122,9 @@ async function buildKyselyConnection(
         const user = decodeURIComponent(parsedUrl.username);
         const password = decodeURIComponent(parsedUrl.password);
 
-        console.log(`[BUILD_CONN:${buildId}] Parsed: host=${hostname}, port=${port}, db=${database}, user=${user}`);
+        console.log(
+          `[BUILD_CONN:${buildId}] Parsed: host=${hostname}, port=${port}, db=${database}, user=${user}`
+        );
 
         // Resolve to IPv4 to avoid Docker/IPv6 routing failures on external hosts (e.g. Neon)
         const ipv4 = await resolveIPv4(hostname);
@@ -138,16 +142,18 @@ async function buildKyselyConnection(
         poolConfig.password = password;
 
         // Skip SSL for local connections; enable for external hosts (e.g. Neon)
-        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+        const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
         if (isLocal) {
           console.log(`[BUILD_CONN:${buildId}] SSL disabled (local host)`);
         } else {
           poolConfig.ssl = {
             rejectUnauthorized: false,
-            minVersion: 'TLSv1.2',
+            minVersion: "TLSv1.2",
             servername: hostname,
           };
-          console.log(`[BUILD_CONN:${buildId}] SSL config: rejectUnauthorized=false, servername=${hostname}`);
+          console.log(
+            `[BUILD_CONN:${buildId}] SSL config: rejectUnauthorized=false, servername=${hostname}`
+          );
         }
       } else {
         // Otherwise build from individual components
@@ -158,13 +164,15 @@ async function buildKyselyConnection(
         poolConfig.user = connectionConfig.user;
         poolConfig.password = connectionConfig.password;
 
-        console.log(`[BUILD_CONN:${buildId}] Connection details: host=${poolConfig.host}:${poolConfig.port}, db=${poolConfig.database}, user=${poolConfig.user}`);
+        console.log(
+          `[BUILD_CONN:${buildId}] Connection details: host=${poolConfig.host}:${poolConfig.port}, db=${poolConfig.database}, user=${poolConfig.user}`
+        );
 
         // Apply SSL for individual component connections only if explicitly requested
         if (connectionConfig.ssl === true) {
           poolConfig.ssl = {
             rejectUnauthorized: false,
-            minVersion: 'TLSv1.2',
+            minVersion: "TLSv1.2",
           };
           console.log(`[BUILD_CONN:${buildId}] SSL enabled`);
         } else {
@@ -178,12 +186,12 @@ async function buildKyselyConnection(
         console.log(`[BUILD_CONN:${buildId}] pg Pool created successfully`);
 
         // Add error event handler to log pool errors without crashing
-        pool.on('error', (err: Error) => {
+        pool.on("error", (err: Error) => {
           console.warn(`[BUILD_CONN:${buildId}] [POOL ERROR] ${err.message}`);
         });
 
         // Log when clients fail
-        pool.on('connect', () => {
+        pool.on("connect", () => {
           console.log(`[BUILD_CONN:${buildId}] Pool: new client connected`);
         });
 
@@ -193,7 +201,9 @@ async function buildKyselyConnection(
 
         return kysely;
       } catch (error) {
-        console.error(`[BUILD_CONN:${buildId}] Failed to create connection: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(
+          `[BUILD_CONN:${buildId}] Failed to create connection: ${error instanceof Error ? error.message : String(error)}`
+        );
         throw error;
       }
     }
@@ -250,7 +260,9 @@ export async function getConnection(dataSource: DataSource): Promise<AnyKysely> 
     } catch (error) {
       // Log the connection error for debugging
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.warn(`[CONNECTION MANAGER] Cached connection failed for ${poolKey}: ${errorMsg}. Recreating...`);
+      console.warn(
+        `[CONNECTION MANAGER] Cached connection failed for ${poolKey}: ${errorMsg}. Recreating...`
+      );
       try {
         await connectionPool[poolKey].destroy();
       } catch (destroyError) {
@@ -319,7 +331,9 @@ export async function testConnection(
     const connStrMask = connectionConfig.connectionString.replace(/:[^@]+@/, `:***@`);
     console.log(`[TEST_CONNECTION:${testId}] Connection String: ${connStrMask}`);
   } else {
-    console.log(`[TEST_CONNECTION:${testId}] Host: ${connectionConfig.host}:${connectionConfig.port || 'default'}`);
+    console.log(
+      `[TEST_CONNECTION:${testId}] Host: ${connectionConfig.host}:${connectionConfig.port || "default"}`
+    );
     console.log(`[TEST_CONNECTION:${testId}] Database: ${connectionConfig.database}`);
     console.log(`[TEST_CONNECTION:${testId}] User: ${connectionConfig.user}`);
   }
@@ -334,7 +348,9 @@ export async function testConnection(
     const connectTime = Date.now() - startTime;
     await sql`SELECT 1`.execute(connection);
     const queryTime = Date.now() - startTime - connectTime;
-    console.log(`[TEST_CONNECTION:${testId}] Basic connectivity OK (connect: ${connectTime}ms, query: ${queryTime}ms)`);
+    console.log(
+      `[TEST_CONNECTION:${testId}] Basic connectivity OK (connect: ${connectTime}ms, query: ${queryTime}ms)`
+    );
 
     // For PostgreSQL, also verify schema access (what inspect needs)
     if (clientType === "pg") {
@@ -354,7 +370,7 @@ export async function testConnection(
         console.error(`[TEST_CONNECTION:${testId}] Schema access FAILED: ${schemaMsg}`);
         throw new Error(
           `Schema access failed: ${schemaMsg}. ` +
-          `The user may not have permissions to query information_schema.`
+            `The user may not have permissions to query information_schema.`
         );
       }
     }
@@ -373,7 +389,7 @@ export async function testConnection(
     return {
       success: true,
       message: `Connection successful (${latency}ms)`,
-      latency
+      latency,
     };
   } catch (error) {
     const errorDuration = Date.now() - startTime;
@@ -393,29 +409,40 @@ export async function testConnection(
 
     // Log detailed error information for admin diagnostics
     console.error(`[TEST_CONNECTION:${testId}] FAILED after ${errorDuration}ms`);
-    console.error(`[TEST_CONNECTION:${testId}] Error Code: ${errorCode || 'N/A'}`);
+    console.error(`[TEST_CONNECTION:${testId}] Error Code: ${errorCode || "N/A"}`);
     console.error(`[TEST_CONNECTION:${testId}] Error Message: ${message}`);
     if (errorStack) {
       console.error(`[TEST_CONNECTION:${testId}] Stack Trace:\n${errorStack}`);
     }
-    console.error(`[TEST_CONNECTION:${testId}] Config Summary: ${JSON.stringify({
-      clientType,
-      host: connectionConfig.host,
-      port: connectionConfig.port,
-      database: connectionConfig.database,
-      hasConnectionString: !!connectionConfig.connectionString,
-      connectionStringHost: connectionConfig.connectionString?.split('@')[1]?.split(':')[0] || 'N/A'
-    })}`);
+    console.error(
+      `[TEST_CONNECTION:${testId}] Config Summary: ${JSON.stringify({
+        clientType,
+        host: connectionConfig.host,
+        port: connectionConfig.port,
+        database: connectionConfig.database,
+        hasConnectionString: !!connectionConfig.connectionString,
+        connectionStringHost:
+          connectionConfig.connectionString?.split("@")[1]?.split(":")[0] || "N/A",
+      })}`
+    );
 
     // Provide helpful error messages
     let friendlyMessage = message || "Unknown error";
     const errorText = (message + " " + errorCode).toUpperCase();
 
-    if (errorCode === "ETIMEDOUT" || errorText.includes("ETIMEDOUT") || errorText.includes("TIMEOUT")) {
+    if (
+      errorCode === "ETIMEDOUT" ||
+      errorText.includes("ETIMEDOUT") ||
+      errorText.includes("TIMEOUT")
+    ) {
       friendlyMessage = `Connection timeout (${errorDuration}ms). The database server may be unreachable, the network may be blocking the connection, or the SSL/TLS handshake is taking too long. Check: (1) DNS resolution, (2) firewall rules, (3) network connectivity to the database host.`;
     } else if (errorCode === "ECONNREFUSED" || errorText.includes("ECONNREFUSED")) {
       friendlyMessage = `Connection refused. The database server rejected the connection. Check: (1) host and port are correct, (2) database server is running and accepting connections.`;
-    } else if (errorCode === "ENOTFOUND" || errorText.includes("ENOTFOUND") || errorText.includes("GETADDRINFO")) {
+    } else if (
+      errorCode === "ENOTFOUND" ||
+      errorText.includes("ENOTFOUND") ||
+      errorText.includes("GETADDRINFO")
+    ) {
       friendlyMessage = `Host not found. DNS resolution failed for the database host. Check: (1) hostname is spelled correctly, (2) DNS resolution is working, (3) network connectivity to DNS servers.`;
     } else if (errorText.includes("AUTHENTICATION") || errorText.includes("PASSWORD")) {
       friendlyMessage = `Authentication failed. The database rejected the credentials. Check: (1) username and password are correct, (2) user has access to the specified database.`;

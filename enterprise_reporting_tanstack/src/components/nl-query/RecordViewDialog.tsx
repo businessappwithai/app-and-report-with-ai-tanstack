@@ -9,12 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Loader2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import type { MetadataEntityWithFields } from "@/types/database";
 
@@ -106,10 +101,8 @@ export function RecordViewDialog({
 
   // Find display name for the record (first is_display_field or first string value)
   const displayField = fields.find((f) => f.is_display_field);
-  const displayValue = displayField
-    ? record[displayField.field_name]
-    : record[fallbackColumns[0]];
-  const title = displayValue != null ? String(displayValue) : entity?.entity_name ?? "Record";
+  const displayValue = displayField ? record[displayField.field_name] : record[fallbackColumns[0]];
+  const title = displayValue != null ? String(displayValue) : (entity?.entity_name ?? "Record");
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -124,7 +117,9 @@ export function RecordViewDialog({
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {entity.entity_name}
                   {entity.entity_type === "view" && (
-                    <Badge variant="outline" className="ml-1.5 text-xs py-0">view</Badge>
+                    <Badge variant="outline" className="ml-1.5 text-xs py-0">
+                      view
+                    </Badge>
                   )}
                 </p>
               )}
@@ -156,7 +151,8 @@ export function RecordViewDialog({
             </div>
           )}
 
-          {!isLoading && fields.length > 0 &&
+          {!isLoading &&
+            fields.length > 0 &&
             Object.entries(sections).map(([sectionName, sectionFields], idx) => (
               <div key={sectionName}>
                 {idx > 0 && <Separator className="mb-4" />}
@@ -178,10 +174,14 @@ export function RecordViewDialog({
                             </span>
                             <div className="flex gap-1 mt-0.5 flex-wrap">
                               {field.is_primary_key && (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1">PK</Badge>
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1">
+                                  PK
+                                </Badge>
                               )}
                               {field.is_foreign_key && (
-                                <Badge variant="outline" className="text-[10px] py-0 px-1">FK</Badge>
+                                <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                  FK
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -193,8 +193,7 @@ export function RecordViewDialog({
                     })}
                 </div>
               </div>
-            ))
-          }
+            ))}
         </div>
 
         <div className="px-4 sm:px-6 py-3 border-t shrink-0 flex items-center justify-between gap-2">

@@ -324,7 +324,10 @@ function RolesManagementPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Role Management" description="Manage roles and their granular permissions" />
+        <PageHeader
+          title="Role Management"
+          description="Manage roles and their granular permissions"
+        />
         <Button onClick={() => setCreateDialogOpen(true)}>
           <ShieldPlus className="h-4 w-4 mr-2" />
           Create Role

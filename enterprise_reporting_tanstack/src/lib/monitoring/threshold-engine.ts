@@ -22,9 +22,7 @@ export function extractMetricValue(
   const normalizedTarget = metricColumn.toLowerCase();
 
   // Find matching key (case-insensitive)
-  const matchingKey = Object.keys(firstRow).find(
-    (key) => key.toLowerCase() === normalizedTarget
-  );
+  const matchingKey = Object.keys(firstRow).find((key) => key.toLowerCase() === normalizedTarget);
 
   if (matchingKey === undefined) return null;
 
@@ -61,9 +59,7 @@ export function applyOperator(
       return actual !== value;
     case "between":
       if (upper === undefined) {
-        throw new Error(
-          "threshold_upper_bound is required for the 'between' operator"
-        );
+        throw new Error("threshold_upper_bound is required for the 'between' operator");
       }
       return actual >= value && actual <= upper;
     default: {

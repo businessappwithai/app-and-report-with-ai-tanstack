@@ -46,7 +46,10 @@ export const Route = createFileRoute("/api/nl-query/voice")({
           }
 
           if (!text) {
-            return json({ success: false, error: "No speech detected — try speaking more clearly" });
+            return json({
+              success: false,
+              error: "No speech detected — try speaking more clearly",
+            });
           }
 
           return json({ success: true, text });

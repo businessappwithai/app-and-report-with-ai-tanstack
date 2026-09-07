@@ -31,7 +31,8 @@ RULES:
 - Always pick a valid dataSourceId from the available data sources in the context.`}
         labels={{
           title: "Report Generator",
-          initial: "What report would you like to generate? Describe the data you need, the format (Excel, PDF, CSV), and who should receive it.",
+          initial:
+            "What report would you like to generate? Describe the data you need, the format (Excel, PDF, CSV), and who should receive it.",
         }}
         className="h-full"
       >

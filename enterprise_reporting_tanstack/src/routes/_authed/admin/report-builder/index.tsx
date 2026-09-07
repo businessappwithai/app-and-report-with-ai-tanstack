@@ -6,7 +6,8 @@ import { NlBuilderPanel } from "@/components/admin/NlBuilderPanel";
 
 export const Route = createFileRoute("/_authed/admin/report-builder/")({
   beforeLoad: ({ context }) => {
-    const roles: string[] = (context as { session?: { user?: { roles?: string[] } } }).session?.user?.roles ?? [];
+    const roles: string[] =
+      (context as { session?: { user?: { roles?: string[] } } }).session?.user?.roles ?? [];
     const isAdmin = roles.some((r) => r.toLowerCase().includes("admin"));
     if (!isAdmin) throw redirect({ to: "/dashboard" });
   },
@@ -40,7 +41,7 @@ RULES:
         labels={{
           title: "NL Report & Chart Builder",
           initial:
-            "Describe the data you want to visualise and I will generate the SQL, show a preview, then save it as a report or chart. Try: \"Show me monthly revenue by product category for this year.\"",
+            'Describe the data you want to visualise and I will generate the SQL, show a preview, then save it as a report or chart. Try: "Show me monthly revenue by product category for this year."',
           placeholder: "Describe the report or chart you need…",
         }}
       >

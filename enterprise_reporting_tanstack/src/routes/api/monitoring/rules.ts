@@ -19,7 +19,11 @@ async function getSession(request: Request) {
 function parseJsonColumn<T>(raw: unknown, fallback: T): T {
   if (raw === null || raw === undefined) return fallback;
   if (typeof raw !== "string") return raw as unknown as T;
-  try { return JSON.parse(raw) as T; } catch { return fallback; }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 function deserializeRule(row: Record<string, unknown>) {
@@ -39,7 +43,8 @@ function deserializeRule(row: Record<string, unknown>) {
     schedule_cron: row.cron_expression,
     last_run_at: row.last_executed_at ?? null,
     threshold_value: Number(row.threshold_value),
-    threshold_upper_bound: row.threshold_upper_bound != null ? Number(row.threshold_upper_bound) : undefined,
+    threshold_upper_bound:
+      row.threshold_upper_bound != null ? Number(row.threshold_upper_bound) : undefined,
     escalation_threshold_pct: Number(row.escalation_threshold_pct ?? 20),
   };
 }
@@ -54,9 +59,12 @@ export const Route = createFileRoute("/api/monitoring/rules")({
 
           const url = new URL(request.url);
           const page = Math.max(0, parseInt(url.searchParams.get("page") ?? "0", 10));
-          const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "20", 10)));
+          const pageSize = Math.min(
+            100,
+            Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "20", 10))
+          );
           const statusFilter = url.searchParams.get("status") ?? "active";
-          const isAdmin = session.user.roles.some((r: string) => r.toLowerCase().includes('admin'));
+          const isAdmin = session.user.roles.some((r: string) => r.toLowerCase().includes("admin"));
           const db = getDb();
 
           let query = (db as any)
@@ -64,18 +72,20 @@ export const Route = createFileRoute("/api/monitoring/rules")({
             .leftJoin("data_sources", "data_sources.id", "monitoring_rules.data_source_id");
           if (!isAdmin) query = query.where("monitoring_rules.created_by", "=", session.user.id);
           if (statusFilter === "active") {
-            query = query.where("monitoring_rules.is_active", "=", true).where("monitoring_rules.is_paused", "=", false);
+            query = query
+              .where("monitoring_rules.is_active", "=", true)
+              .where("monitoring_rules.is_paused", "=", false);
           } else if (statusFilter === "paused") {
             query = query.where("monitoring_rules.is_paused", "=", true);
           }
 
-          const totalRow = await (db as any)
+          const totalRow = (await (db as any)
             .selectFrom("monitoring_rules")
             .select((db as any).fn.count("monitoring_rules.id").as("count"))
-            .executeTakeFirst() as { count: number } | undefined;
+            .executeTakeFirst()) as { count: number } | undefined;
           const total = Number(totalRow?.count ?? 0);
 
-          const rules = await query
+          const rules = (await query
             .select([
               "monitoring_rules.id",
               "monitoring_rules.name",
@@ -111,11 +121,14 @@ export const Route = createFileRoute("/api/monitoring/rules")({
             .orderBy("monitoring_rules.created_at", "desc")
             .limit(pageSize)
             .offset(page * pageSize)
-            .execute() as Record<string, unknown>[];
+            .execute()) as Record<string, unknown>[];
 
           return json({ rules: rules.map(deserializeRule), total, page, pageSize });
         } catch (err) {
-          return json({ error: err instanceof Error ? err.message : "Failed to list monitoring rules" }, { status: 500 });
+          return json(
+            { error: err instanceof Error ? err.message : "Failed to list monitoring rules" },
+            { status: 500 }
+          );
         }
       },
 
@@ -124,7 +137,7 @@ export const Route = createFileRoute("/api/monitoring/rules")({
           const session = await getSession(request);
           if (!session?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
-          const body = await request.json() as {
+          const body = (await request.json()) as {
             name: string;
             description?: string;
             reportDefinitionId?: string;
@@ -146,7 +159,15 @@ export const Route = createFileRoute("/api/monitoring/rules")({
             sql?: string;
           };
 
-          const required = ["name", "dataSourceId", "metricColumn", "thresholdOperator", "thresholdValue", "cronExpression", "alertChannels"] as const;
+          const required = [
+            "name",
+            "dataSourceId",
+            "metricColumn",
+            "thresholdOperator",
+            "thresholdValue",
+            "cronExpression",
+            "alertChannels",
+          ] as const;
           for (const field of required) {
             if (body[field] === undefined || body[field] === null || body[field] === "") {
               return json({ error: `Missing required field: ${field}` }, { status: 400 });
@@ -167,85 +188,103 @@ export const Route = createFileRoute("/api/monitoring/rules")({
           if (!reportDefinitionId && body.sql) {
             const queryId = crypto.randomUUID();
             reportDefinitionId = crypto.randomUUID();
-            await (db as any).insertInto("saved_queries").values({
-              id: queryId,
-              name: `[Monitor] ${body.name}`,
-              description: "Auto-generated monitoring query",
-              data_source_id: body.dataSourceId,
-              sql_content: body.sql,
-              is_validated: true,
-              created_by: userId,
-              created_at: now,
-              updated_at: now,
-            }).execute();
+            await (db as any)
+              .insertInto("saved_queries")
+              .values({
+                id: queryId,
+                name: `[Monitor] ${body.name}`,
+                description: "Auto-generated monitoring query",
+                data_source_id: body.dataSourceId,
+                sql_content: body.sql,
+                is_validated: true,
+                created_by: userId,
+                created_at: now,
+                updated_at: now,
+              })
+              .execute();
 
-            await (db as any).insertInto("report_definitions").values({
-              id: reportDefinitionId,
-              name: `[Monitor] ${body.name}`,
-              description: body.description ?? null,
-              saved_query_id: queryId,
-              column_config: JSON.stringify([]),
-              pagination_config: JSON.stringify({ pageSize: 10000 }),
-              export_formats: JSON.stringify(["csv"]),
-              created_by: userId,
-              created_at: now,
-              updated_at: now,
-            }).execute();
+            await (db as any)
+              .insertInto("report_definitions")
+              .values({
+                id: reportDefinitionId,
+                name: `[Monitor] ${body.name}`,
+                description: body.description ?? null,
+                saved_query_id: queryId,
+                column_config: JSON.stringify([]),
+                pagination_config: JSON.stringify({ pageSize: 10000 }),
+                export_formats: JSON.stringify(["csv"]),
+                created_by: userId,
+                created_at: now,
+                updated_at: now,
+              })
+              .execute();
           }
 
           if (!reportDefinitionId) {
-            return json({ error: "Either reportDefinitionId or sql must be provided" }, { status: 400 });
+            return json(
+              { error: "Either reportDefinitionId or sql must be provided" },
+              { status: 400 }
+            );
           }
 
-          await (db as any).insertInto("monitoring_rules").values({
-            id,
-            name: body.name,
-            description: body.description ?? null,
-            report_definition_id: reportDefinitionId,
-            data_source_id: body.dataSourceId,
-            created_by: userId,
-            metric_column: body.metricColumn,
-            threshold_operator: body.thresholdOperator,
-            threshold_value: body.thresholdValue,
-            threshold_upper_bound: body.thresholdUpperBound ?? null,
-            escalation_threshold_pct: body.escalationThresholdPct ?? 20,
-            cron_expression: body.cronExpression,
-            timezone: body.timezone ?? "UTC",
-            alert_channels: JSON.stringify(body.alertChannels),
-            alert_recipients: JSON.stringify(body.alertRecipients ?? [{ type: "user", id: userId }]),
-            webhook_url: body.webhookUrl ?? null,
-            notify_on_pass: body.notifyOnPass ? 1 : 0,
-            notify_on_no_data: body.notifyOnNoData !== false ? 1 : 0,
-            rbac_snapshot: JSON.stringify(rbacSnapshot),
-            rbac_snapshot_version: 1,
-            is_active: 1,
-            is_paused: 0,
-            original_nl_request: body.originalNlRequest ?? null,
-            adk_intent_id: body.adkIntentId ?? null,
-            consecutive_breaches: 0,
-            total_executions: 0,
-            total_alerts_sent: 0,
-            created_at: now,
-            updated_at: now,
-          }).execute();
+          await (db as any)
+            .insertInto("monitoring_rules")
+            .values({
+              id,
+              name: body.name,
+              description: body.description ?? null,
+              report_definition_id: reportDefinitionId,
+              data_source_id: body.dataSourceId,
+              created_by: userId,
+              metric_column: body.metricColumn,
+              threshold_operator: body.thresholdOperator,
+              threshold_value: body.thresholdValue,
+              threshold_upper_bound: body.thresholdUpperBound ?? null,
+              escalation_threshold_pct: body.escalationThresholdPct ?? 20,
+              cron_expression: body.cronExpression,
+              timezone: body.timezone ?? "UTC",
+              alert_channels: JSON.stringify(body.alertChannels),
+              alert_recipients: JSON.stringify(
+                body.alertRecipients ?? [{ type: "user", id: userId }]
+              ),
+              webhook_url: body.webhookUrl ?? null,
+              notify_on_pass: body.notifyOnPass ? 1 : 0,
+              notify_on_no_data: body.notifyOnNoData !== false ? 1 : 0,
+              rbac_snapshot: JSON.stringify(rbacSnapshot),
+              rbac_snapshot_version: 1,
+              is_active: 1,
+              is_paused: 0,
+              original_nl_request: body.originalNlRequest ?? null,
+              adk_intent_id: body.adkIntentId ?? null,
+              consecutive_breaches: 0,
+              total_executions: 0,
+              total_alerts_sent: 0,
+              created_at: now,
+              updated_at: now,
+            })
+            .execute();
 
-          const rule = await (db as any)
+          const rule = (await (db as any)
             .selectFrom("monitoring_rules")
             .where("id", "=", id)
             .selectAll()
-            .executeTakeFirst() as Record<string, unknown>;
+            .executeTakeFirst()) as Record<string, unknown>;
 
           try {
             const scheduleId = await scheduleMonitoringRule(deserializeRule(rule) as any);
             if (scheduleId) {
-              await (db as any).updateTable("monitoring_rules")
+              await (db as any)
+                .updateTable("monitoring_rules")
                 .set({ trigger_schedule_id: scheduleId })
                 .where("id", "=", id)
                 .execute();
               rule.trigger_schedule_id = scheduleId;
             }
           } catch (scheduleErr) {
-            console.warn("[monitoring/rules POST] Trigger.dev schedule failed (non-fatal):", scheduleErr);
+            console.warn(
+              "[monitoring/rules POST] Trigger.dev schedule failed (non-fatal):",
+              scheduleErr
+            );
           }
 
           await logAudit({
@@ -258,7 +297,10 @@ export const Route = createFileRoute("/api/monitoring/rules")({
 
           return json({ rule: deserializeRule(rule) }, { status: 201 });
         } catch (err) {
-          return json({ error: err instanceof Error ? err.message : "Failed to create monitoring rule" }, { status: 500 });
+          return json(
+            { error: err instanceof Error ? err.message : "Failed to create monitoring rule" },
+            { status: 500 }
+          );
         }
       },
     },

@@ -1,9 +1,4 @@
-import {
-  ChevronDown,
-  ChevronUp,
-  Code2,
-  Table2,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Code2, Table2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +41,9 @@ export function ReportPreviewPanel({ rows, columns, sql, intent }: Props) {
               <span className="text-tremor-content">Metrics</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(intent.metrics ?? []).map((m) => (
-                  <Badge key={m} variant="outline" className="text-xs font-mono">{m}</Badge>
+                  <Badge key={m} variant="outline" className="text-xs font-mono">
+                    {m}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -54,7 +51,9 @@ export function ReportPreviewPanel({ rows, columns, sql, intent }: Props) {
               <span className="text-tremor-content">Dimensions</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(intent.dimensions ?? []).map((d) => (
-                  <Badge key={d} variant="outline" className="text-xs font-mono">{d}</Badge>
+                  <Badge key={d} variant="outline" className="text-xs font-mono">
+                    {d}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -62,7 +61,9 @@ export function ReportPreviewPanel({ rows, columns, sql, intent }: Props) {
               <span className="text-tremor-content">Formats</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(intent.outputFormats ?? []).map((f) => (
-                  <Badge key={f} variant="secondary" className="text-xs uppercase">{f}</Badge>
+                  <Badge key={f} variant="secondary" className="text-xs uppercase">
+                    {f}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -119,7 +120,10 @@ export function ReportPreviewPanel({ rows, columns, sql, intent }: Props) {
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       No data returned
                     </TableCell>
                   </TableRow>
@@ -138,8 +142,8 @@ export function ReportPreviewPanel({ rows, columns, sql, intent }: Props) {
             </Table>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            This is a preview of the first {rows.length} rows. The full report will include all matching data.
-            Confirm in the chat to generate Excel, PDF, and CSV artifacts.
+            This is a preview of the first {rows.length} rows. The full report will include all
+            matching data. Confirm in the chat to generate Excel, PDF, and CSV artifacts.
           </p>
         </CardContent>
       </Card>

@@ -18,10 +18,7 @@ export interface ConnectionTestResult {
 }
 
 export class ConnectionTestService {
-  static async test(
-    clientType: string,
-    config: ConnectionConfig
-  ): Promise<ConnectionTestResult> {
+  static async test(clientType: string, config: ConnectionConfig): Promise<ConnectionTestResult> {
     const serviceId = Math.random().toString(36).substring(7);
     const startTime = Date.now();
 
@@ -39,10 +36,12 @@ export class ConnectionTestService {
 
       // First validate the config
       console.log(`[SERVICE:${serviceId}] Step 1: Validating configuration...`);
-      const validationResult = this.validateConfig(clientType, config);
+      const validationResult = ConnectionTestService.validateConfig(clientType, config);
       if (!validationResult.valid) {
         const duration = Date.now() - startTime;
-        console.warn(`[SERVICE:${serviceId}] Config validation FAILED after ${duration}ms: ${validationResult.message}`);
+        console.warn(
+          `[SERVICE:${serviceId}] Config validation FAILED after ${duration}ms: ${validationResult.message}`
+        );
         return {
           connected: false,
           message: validationResult.message,
@@ -59,7 +58,9 @@ export class ConnectionTestService {
 
       const duration = Date.now() - startTime;
       console.log(`[SERVICE:${serviceId}] Step 2: Connection test completed in ${duration}ms`);
-      console.log(`[SERVICE:${serviceId}] Result: success=${result.success}, latency=${result.latency}ms`);
+      console.log(
+        `[SERVICE:${serviceId}] Result: success=${result.success}, latency=${result.latency}ms`
+      );
       console.log(`[SERVICE:${serviceId}] Message: ${result.message}`);
 
       return {

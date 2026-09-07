@@ -30,9 +30,9 @@ export const SchemaIntrospectOutput = z.object({
           name: z.string(),
           type: z.string(),
           nullable: z.boolean().optional(),
-        }),
+        })
       ),
-    }),
+    })
   ),
   /** Empty array signals admin / unrestricted access */
   allowedTableNames: z.array(z.string()),
@@ -46,7 +46,7 @@ export type SchemaIntrospectOutput = z.infer<typeof SchemaIntrospectOutput>;
 // ─── Executor ─────────────────────────────────────────────────────────────────
 
 export async function executeSchemaIntrospect(
-  input: z.infer<typeof SchemaIntrospectInput>,
+  input: z.infer<typeof SchemaIntrospectInput>
 ): Promise<SchemaIntrospectOutput> {
   const { dataSourceId, userId } = SchemaIntrospectInput.parse(input);
 
@@ -82,16 +82,15 @@ export async function executeSchemaIntrospect(
   // When allowedTableNames is empty (admin / no DS-role restrictions) all
   // tables pass through.
   const filteredTables = rawTables
-    .filter(
-      (t) => allowedTableNames.length === 0 || allowedTableNames.includes(t.name),
-    )
+    .filter((t) => allowedTableNames.length === 0 || allowedTableNames.includes(t.name))
     .map((t) => {
-      let columns: Array<{ name: string; type: string; nullable?: boolean }> =
-        (t.columns ?? []).map((c) => ({
-          name: c.name,
-          type: c.type,
-          nullable: c.nullable,
-        }));
+      let columns: Array<{ name: string; type: string; nullable?: boolean }> = (
+        t.columns ?? []
+      ).map((c) => ({
+        name: c.name,
+        type: c.type,
+        nullable: c.nullable,
+      }));
 
       // Apply column-level restrictions from the entity permission record
       const entityPerm = accessibleEntities.find((e) => e.entity_name === t.name);
@@ -116,10 +115,7 @@ export async function executeSchemaIntrospect(
   // Build a compact, LLM-friendly schema text:
   // orders(id:integer, user_id:integer, total:decimal)
   const schemaText = filteredTables
-    .map(
-      (t) =>
-        `${t.name}(${t.columns.map((c) => `${c.name}:${c.type}`).join(", ")})`,
-    )
+    .map((t) => `${t.name}(${t.columns.map((c) => `${c.name}:${c.type}`).join(", ")})`)
     .join("\n");
 
   return SchemaIntrospectOutput.parse({

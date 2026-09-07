@@ -25,12 +25,23 @@ export const Route = createFileRoute("/api/nl-query/rag-store")({
           }
 
           const body = await request.json();
-          const { data_source_id, natural_language_query, generated_sql, row_count, execution_time_ms } = body;
+          const {
+            data_source_id,
+            natural_language_query,
+            generated_sql,
+            row_count,
+            execution_time_ms,
+          } = body;
 
           if (!data_source_id || !natural_language_query || !generated_sql) {
             return json(
-              { success: false, error: { message: "data_source_id, natural_language_query, and generated_sql are required" } },
-              { status: 400 },
+              {
+                success: false,
+                error: {
+                  message: "data_source_id, natural_language_query, and generated_sql are required",
+                },
+              },
+              { status: 400 }
             );
           }
 
@@ -43,7 +54,10 @@ export const Route = createFileRoute("/api/nl-query/rag-store")({
             .executeTakeFirst();
 
           if (!dataSource) {
-            return json({ success: false, error: { message: "Data source not found" } }, { status: 404 });
+            return json(
+              { success: false, error: { message: "Data source not found" } },
+              { status: 404 }
+            );
           }
 
           const connection = await getConnection(dataSource as unknown as DataSource);
@@ -54,15 +68,18 @@ export const Route = createFileRoute("/api/nl-query/rag-store")({
             generated_sql,
             null,
             row_count ?? null,
-            execution_time_ms ?? null,
+            execution_time_ms ?? null
           );
 
           return json({ success: true });
         } catch (error) {
           console.error("RAG store error:", error);
           return json(
-            { success: false, error: { message: error instanceof Error ? error.message : "Failed to store query" } },
-            { status: 500 },
+            {
+              success: false,
+              error: { message: error instanceof Error ? error.message : "Failed to store query" },
+            },
+            { status: 500 }
           );
         }
       },

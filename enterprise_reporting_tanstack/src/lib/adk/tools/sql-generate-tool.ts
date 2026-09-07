@@ -40,7 +40,7 @@ export type SqlGenerateOutput = z.infer<typeof SqlGenerateOutput>;
 // ─── Executor ─────────────────────────────────────────────────────────────────
 
 export async function executeSqlGenerate(
-  input: z.infer<typeof SqlGenerateInput>,
+  input: z.infer<typeof SqlGenerateInput>
 ): Promise<SqlGenerateOutput> {
   const { nlQuestion, schemaText, dataSourceType } = SqlGenerateInput.parse(input);
 

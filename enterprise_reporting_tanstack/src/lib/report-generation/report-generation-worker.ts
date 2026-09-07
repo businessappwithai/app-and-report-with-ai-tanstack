@@ -25,20 +25,16 @@ import { getConnection } from "@/lib/db/connection-manager";
 import { sendEmail } from "@/lib/email/email-service";
 import { createNotification } from "@/lib/notifications";
 import { logAudit } from "@/lib/security/audit";
-import {
-  resolveRBACContext,
-  detectRBACDrift,
-} from "@/lib/monitoring/rbac-workflow-context";
-import type {
-  NLReportDefinition,
-  OutputFormat,
-  ReportGenerationResult,
-} from "./types";
+import { resolveRBACContext, detectRBACDrift } from "@/lib/monitoring/rbac-workflow-context";
+import type { NLReportDefinition, OutputFormat, ReportGenerationResult } from "./types";
 
 const OUTPUT_DIR = process.env.JOB_OUTPUT_PATH || "./job-outputs";
 const REPORT_ROW_LIMIT = parseInt(process.env.REPORT_ROW_LIMIT || "10000", 10);
 const REPORT_QUERY_TIMEOUT_MS = parseInt(process.env.REPORT_QUERY_TIMEOUT_MS || "30000", 10);
-const MAX_EMAIL_ATTACHMENT_BYTES = parseInt(process.env.REPORT_EMAIL_MAX_ATTACHMENT_BYTES || "10485760", 10);
+const MAX_EMAIL_ATTACHMENT_BYTES = parseInt(
+  process.env.REPORT_EMAIL_MAX_ATTACHMENT_BYTES || "10485760",
+  10
+);
 
 function isoNow(): string {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -167,10 +163,7 @@ function validateSQLColumnsAgainstRBAC(
 
     // Match table.column references
     const escaped = table.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const tableColRegex = new RegExp(
-      `\\b${escaped}\\s*\\.\\s*(\\w+)`,
-      "gi"
-    );
+    const tableColRegex = new RegExp(`\\b${escaped}\\s*\\.\\s*(\\w+)`, "gi");
     let match: RegExpExecArray | null;
     while ((match = tableColRegex.exec(normalizedSql)) !== null) {
       const col = match[1].toUpperCase();
@@ -216,12 +209,19 @@ async function executeReportSQL(
   const result = await Promise.race([
     sql.raw(limitedSQL).execute(connection),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Query timeout after ${REPORT_QUERY_TIMEOUT_MS}ms`)), REPORT_QUERY_TIMEOUT_MS)
+      setTimeout(
+        () => reject(new Error(`Query timeout after ${REPORT_QUERY_TIMEOUT_MS}ms`)),
+        REPORT_QUERY_TIMEOUT_MS
+      )
     ),
   ]);
 
   const executionMs = Date.now() - start;
-  const rawRows = Array.isArray((result as any).rows) ? (result as any).rows : (Array.isArray(result) ? result : []);
+  const rawRows = Array.isArray((result as any).rows)
+    ? (result as any).rows
+    : Array.isArray(result)
+      ? result
+      : [];
   const rows = rawRows.length > REPORT_ROW_LIMIT ? rawRows.slice(0, REPORT_ROW_LIMIT) : rawRows;
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
@@ -272,14 +272,16 @@ async function renderChartPng(
       option.xAxis = undefined;
       option.yAxis = undefined;
       option.grid = undefined;
-      option.series = [{
-        type: "pie",
-        radius: "60%",
-        data: rows.slice(0, 20).map((r) => ({
-          name: String(r[xCol] ?? ""),
-          value: Number(r[yCol]) || 0,
-        })),
-      }];
+      option.series = [
+        {
+          type: "pie",
+          radius: "60%",
+          data: rows.slice(0, 20).map((r) => ({
+            name: String(r[xCol] ?? ""),
+            value: Number(r[yCol]) || 0,
+          })),
+        },
+      ];
     }
 
     chart.setOption(option);
@@ -295,7 +297,10 @@ async function renderChartPng(
 
     return pngBuffer;
   } catch (err) {
-    console.warn("[report-worker] Chart rendering failed, reports will be generated without charts:", err);
+    console.warn(
+      "[report-worker] Chart rendering failed, reports will be generated without charts:",
+      err
+    );
     return null;
   }
 }
@@ -318,7 +323,8 @@ async function buildExcelArtifact(
     chartSheet.addImage(imageId, "A1:L28");
     chartSheet.getCell("A30").value = title;
     chartSheet.getCell("A30").font = { bold: true, size: 14 };
-    chartSheet.getCell("A31").value = `Generated: ${new Date().toLocaleDateString()} — ${rows.length.toLocaleString()} rows`;
+    chartSheet.getCell("A31").value =
+      `Generated: ${new Date().toLocaleDateString()} — ${rows.length.toLocaleString()} rows`;
   }
 
   const dataSheet = wb.addWorksheet("Data");
@@ -357,7 +363,11 @@ function buildPdfArtifact(
   doc.setFontSize(18);
   doc.text(title, 14, 20);
   doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toLocaleDateString()} — ${rows.length.toLocaleString()} rows`, 14, 28);
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString()} — ${rows.length.toLocaleString()} rows`,
+    14,
+    28
+  );
 
   if (chartPng) {
     const chartBase64 = chartPng.toString("base64");
@@ -426,22 +436,25 @@ async function persistArtifacts(
     const id = crypto.randomUUID();
     const now = isoNow();
 
-    await (db as any).insertInto("generated_report_artifacts").values({
-      id,
-      report_definition_id: reportDefinitionId,
-      execution_id: executionId,
-      created_by: createdBy,
-      format: artifact.format,
-      file_path: filePath,
-      file_size_bytes: artifact.buffer.length,
-      row_count: rowCount,
-      chart_type: chartType,
-      execution_ms: executionMs,
-      status: "complete",
-      triggered_by: triggeredBy,
-      sql_executed: generatedSQL,
-      created_at: now,
-    }).execute();
+    await (db as any)
+      .insertInto("generated_report_artifacts")
+      .values({
+        id,
+        report_definition_id: reportDefinitionId,
+        execution_id: executionId,
+        created_by: createdBy,
+        format: artifact.format,
+        file_path: filePath,
+        file_size_bytes: artifact.buffer.length,
+        row_count: rowCount,
+        chart_type: chartType,
+        execution_ms: executionMs,
+        status: "complete",
+        triggered_by: triggeredBy,
+        sql_executed: generatedSQL,
+        created_at: now,
+      })
+      .execute();
 
     results.push({ format: artifact.format, filePath, fileSizeBytes: artifact.buffer.length });
   }
@@ -557,7 +570,13 @@ export async function executeReportGeneration(params: {
         .where("id", "=", params.reportDefinitionId)
         .execute();
 
-      await notifyReportComplete(definition.created_by, definition.title, executionId, "error", rbac.reason);
+      await notifyReportComplete(
+        definition.created_by,
+        definition.title,
+        executionId,
+        "error",
+        rbac.reason
+      );
 
       return {
         status: "PERMISSION_REVOKED",
@@ -569,10 +588,11 @@ export async function executeReportGeneration(params: {
       };
     }
 
-    const { rows, columns, executionMs: sqlMs } = await executeReportSQL(
-      definition.data_source_id,
-      definition.generated_sql
-    );
+    const {
+      rows,
+      columns,
+      executionMs: sqlMs,
+    } = await executeReportSQL(definition.data_source_id, definition.generated_sql);
 
     if (rows.length === 0) {
       await (db as any)
@@ -581,29 +601,57 @@ export async function executeReportGeneration(params: {
         .where("id", "=", params.reportDefinitionId)
         .execute();
 
-      await notifyReportComplete(definition.created_by, definition.title, executionId, "error", "Query returned no data");
-      return { status: "NO_DATA", executionId, artifacts: [], rowCount: 0, executionMs: Date.now() - startTime };
+      await notifyReportComplete(
+        definition.created_by,
+        definition.title,
+        executionId,
+        "error",
+        "Query returned no data"
+      );
+      return {
+        status: "NO_DATA",
+        executionId,
+        artifacts: [],
+        rowCount: 0,
+        executionMs: Date.now() - startTime,
+      };
     }
 
     const chartPng = await renderChartPng(
-      rows, columns, definition.chart_type, definition.metric_columns, definition.dimension_columns
+      rows,
+      columns,
+      definition.chart_type,
+      definition.metric_columns,
+      definition.dimension_columns
     );
 
     const artifactBuffers: { format: OutputFormat; buffer: Buffer }[] = [];
     for (const fmt of definition.output_formats) {
       if (fmt === "excel") {
-        artifactBuffers.push({ format: "excel", buffer: await buildExcelArtifact(rows, columns, definition.title, chartPng) });
+        artifactBuffers.push({
+          format: "excel",
+          buffer: await buildExcelArtifact(rows, columns, definition.title, chartPng),
+        });
       } else if (fmt === "pdf") {
-        artifactBuffers.push({ format: "pdf", buffer: buildPdfArtifact(rows, columns, definition.title, chartPng) });
+        artifactBuffers.push({
+          format: "pdf",
+          buffer: buildPdfArtifact(rows, columns, definition.title, chartPng),
+        });
       } else if (fmt === "csv") {
         artifactBuffers.push({ format: "csv", buffer: buildCsvArtifact(rows, columns) });
       }
     }
 
     const persistedArtifacts = await persistArtifacts(
-      params.reportDefinitionId, executionId, definition.created_by,
-      params.triggeredBy, definition.generated_sql, artifactBuffers,
-      rows.length, definition.chart_type, sqlMs
+      params.reportDefinitionId,
+      executionId,
+      definition.created_by,
+      params.triggeredBy,
+      definition.generated_sql,
+      artifactBuffers,
+      rows.length,
+      definition.chart_type,
+      sqlMs
     );
 
     await (db as any)
@@ -648,7 +696,13 @@ export async function executeReportGeneration(params: {
         .execute()
         .catch(() => {});
 
-      await notifyReportComplete(definition.created_by, definition.title, executionId, "error", errMsg).catch(() => {});
+      await notifyReportComplete(
+        definition.created_by,
+        definition.title,
+        executionId,
+        "error",
+        errMsg
+      ).catch(() => {});
     }
 
     return {

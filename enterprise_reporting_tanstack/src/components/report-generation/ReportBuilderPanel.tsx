@@ -342,7 +342,9 @@ export function ReportBuilderPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-semibold text-2xl text-tremor-content-strong">Dynamic Report Generator</h1>
+          <h1 className="font-semibold text-2xl text-tremor-content-strong">
+            Dynamic Report Generator
+          </h1>
           <p className="text-tremor-content">
             Describe the report you need in plain English using the chat panel
           </p>

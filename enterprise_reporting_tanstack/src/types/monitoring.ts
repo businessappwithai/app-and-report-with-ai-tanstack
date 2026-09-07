@@ -136,7 +136,12 @@ export interface MonitoringEvaluatePayload {
 }
 
 export interface RBACDriftResult {
-  driftType: "PERMISSION_REVOKED" | "PERMISSION_REDUCED" | "PERMISSION_EXPANDED" | "DATA_SOURCE_DELETED" | "NO_DRIFT";
+  driftType:
+    | "PERMISSION_REVOKED"
+    | "PERMISSION_REDUCED"
+    | "PERMISSION_EXPANDED"
+    | "DATA_SOURCE_DELETED"
+    | "NO_DRIFT";
   canProceed: boolean;
   details: string;
 }

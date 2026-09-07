@@ -47,7 +47,10 @@ export const Route = createFileRoute("/api/queries/$id/execute")({
 
           if (!dataSource) {
             return json(
-              { success: false, error: { code: "NOT_FOUND", message: "Data source not found or inactive" } },
+              {
+                success: false,
+                error: { code: "NOT_FOUND", message: "Data source not found or inactive" },
+              },
               { status: 404 }
             );
           }
@@ -63,8 +66,7 @@ export const Route = createFileRoute("/api/queries/$id/execute")({
           const { rows } = await kyselySql.raw(sqlToRun).execute(connection);
           const typedRows = rows as Record<string, unknown>[];
 
-          const columns: string[] =
-            typedRows.length > 0 ? Object.keys(typedRows[0]) : [];
+          const columns: string[] = typedRows.length > 0 ? Object.keys(typedRows[0]) : [];
 
           return json({
             success: true,

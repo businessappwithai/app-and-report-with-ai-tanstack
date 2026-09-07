@@ -40,7 +40,7 @@ export const RulePersistInput = z.object({
       type: z.enum(["user", "role"]),
       id: z.string(),
       email: z.string().optional(),
-    }),
+    })
   ),
   webhookUrl: z.string().url().optional(),
   notifyOnPass: z.boolean().default(false),
@@ -64,7 +64,7 @@ export type RulePersistOutput = z.infer<typeof RulePersistOutput>;
 // ─── Executor ─────────────────────────────────────────────────────────────────
 
 export async function executeRulePersist(
-  input: z.infer<typeof RulePersistInput>,
+  input: z.infer<typeof RulePersistInput>
 ): Promise<RulePersistOutput> {
   const parsed = RulePersistInput.parse(input);
   const db = getDb();

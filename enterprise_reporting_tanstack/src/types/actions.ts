@@ -307,14 +307,13 @@ export const AUDIT_ACTIONS = {
     RULE_PERSISTED: "adk:rule_persisted" as const,
     CLARIFICATION_REQUESTED: "adk:clarification_requested" as const,
   },
-
 } as const;
 
 /**
  * Audit action types - Union of all possible actions
  */
 export type AuditAction = {
-  [K in keyof typeof AUDIT_ACTIONS]: typeof AUDIT_ACTIONS[K][keyof typeof AUDIT_ACTIONS[K]];
+  [K in keyof typeof AUDIT_ACTIONS]: (typeof AUDIT_ACTIONS)[K][keyof (typeof AUDIT_ACTIONS)[K]];
 }[keyof typeof AUDIT_ACTIONS];
 
 /**

@@ -35,22 +35,16 @@ export const Route = createFileRoute("/api/data-sources/$id/inspect")({
             .executeTakeFirst();
 
           if (!dataSource) {
-            return json(
-              { error: { message: "Data source not found" } },
-              { status: 404 }
-            );
+            return json({ error: { message: "Data source not found" } }, { status: 404 });
           }
 
           // Allow owner or admins to inspect
           const userRoles: string[] = session.user.roles || [];
-          const isAdmin = userRoles.some((r) => r.toLowerCase().includes('admin'));
+          const isAdmin = userRoles.some((r) => r.toLowerCase().includes("admin"));
           const isOwner = dataSource.created_by === session.user.id;
 
           if (!isAdmin && !isOwner) {
-            return json(
-              { error: { message: "Forbidden" } },
-              { status: 403 }
-            );
+            return json({ error: { message: "Forbidden" } }, { status: 403 });
           }
 
           // Introspect the schema with extended timeout for external databases
@@ -61,13 +55,18 @@ export const Route = createFileRoute("/api/data-sources/$id/inspect")({
           try {
             const introspectionPromise = introspectSchema(connection, dataSource.client_type);
             const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Schema introspection timeout (exceeded 300 seconds)')), 300000)
+              setTimeout(
+                () => reject(new Error("Schema introspection timeout (exceeded 300 seconds)")),
+                300000
+              )
             );
             const result = await Promise.race([introspectionPromise, timeoutPromise]);
             schema = (result as any).schema;
           } catch (error) {
-            if (error instanceof Error && error.message.includes('timeout')) {
-              throw new Error(`Schema introspection timeout: ${error.message}. This may indicate the database is slow or unreachable.`);
+            if (error instanceof Error && error.message.includes("timeout")) {
+              throw new Error(
+                `Schema introspection timeout: ${error.message}. This may indicate the database is slow or unreachable.`
+              );
             }
             throw error;
           }
@@ -176,7 +175,7 @@ export const Route = createFileRoute("/api/data-sources/$id/inspect")({
               errorMessage = error.message || String(error);
               // Check if Error object has code property (from pg)
               errorCode = (error as any).code || "";
-            } else if (typeof error === 'object' && error !== null) {
+            } else if (typeof error === "object" && error !== null) {
               // Try to access code property directly
               errorCode = (error as any).code || (error as any).errno || "";
               errorMessage = (error as any).message || errorCode || String(error);
@@ -200,13 +199,16 @@ export const Route = createFileRoute("/api/data-sources/$id/inspect")({
           let userMessage = errorMessage;
 
           if (errorCode === "ETIMEDOUT" || errorMessage.includes("ETIMEDOUT")) {
-            userMessage = "Connection timeout: The database server is not responding. This usually means the server is unreachable or the network is blocking the connection.";
+            userMessage =
+              "Connection timeout: The database server is not responding. This usually means the server is unreachable or the network is blocking the connection.";
           } else if (errorCode === "ECONNREFUSED" || errorMessage.includes("ECONNREFUSED")) {
-            userMessage = "Connection refused: The database server rejected the connection. Verify the host, port, and credentials.";
+            userMessage =
+              "Connection refused: The database server rejected the connection. Verify the host, port, and credentials.";
           } else if (errorMessage.includes("timeout")) {
             userMessage = `Schema introspection timeout: The database took too long to respond.`;
           } else if (errorMessage.includes("connect")) {
-            userMessage = "Failed to connect to the database. The server may be unreachable or the network may be restricted.";
+            userMessage =
+              "Failed to connect to the database. The server may be unreachable or the network may be restricted.";
           }
 
           return json(

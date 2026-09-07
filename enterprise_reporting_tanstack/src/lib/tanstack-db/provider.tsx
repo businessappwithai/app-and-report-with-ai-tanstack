@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import type React from 'react'
-import { useEffect } from 'react'
+import type React from "react";
+import { useEffect } from "react";
 import {
   activeFiltersCollection,
   chartDraftCollection,
@@ -10,7 +10,7 @@ import {
   reportsCollection,
   chartsCollection,
   dashboardsCollection,
-} from './collections'
+} from "./collections";
 
 // Initialize all collections on mount to ensure they're ready
 export function TanStackDBWrapper({ children }: { children: React.ReactNode }) {
@@ -27,25 +27,25 @@ export function TanStackDBWrapper({ children }: { children: React.ReactNode }) {
       reportsCollection,
       chartsCollection,
       dashboardsCollection,
-    ]
+    ];
 
     // Safely attempt to preload collections
     // Skip if sync adapter isn't fully configured
     collections.forEach((collection) => {
       try {
         // Only preload if the collection has the method and it's safe to call
-        if (collection.preload && typeof collection.preload === 'function') {
+        if (collection.preload && typeof collection.preload === "function") {
           // Wrap in try-catch to prevent sync errors from blocking UI
           Promise.resolve(collection.preload()).catch((error) => {
-            console.warn(`Preload failed for collection, continuing with local state:`, error)
-          })
+            console.warn(`Preload failed for collection, continuing with local state:`, error);
+          });
         }
       } catch (error) {
         // Silently continue - local state will work fine
-        console.debug('Collection preload skipped:', error)
+        console.debug("Collection preload skipped:", error);
       }
-    })
-  }, [])
+    });
+  }, []);
 
-  return <>{children}</>
+  return <>{children}</>;
 }

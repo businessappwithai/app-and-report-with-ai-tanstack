@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/adk/analyze-intent")({
           const session = await getSession(request);
           if (!session?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
-          const body = await request.json() as {
+          const body = (await request.json()) as {
             nlRequest?: string;
             dataSourceId?: string;
             sessionId?: string;
@@ -46,10 +46,12 @@ export const Route = createFileRoute("/api/adk/analyze-intent")({
             session.user.id,
             body.dataSourceId,
             body.sessionId,
-            { dryRun: true },
+            { dryRun: true }
           );
 
-          return json(result, { status: result.success ? 200 : result.clarificationNeeded ? 200 : 422 });
+          return json(result, {
+            status: result.success ? 200 : result.clarificationNeeded ? 200 : 422,
+          });
         } catch (err) {
           const msg = err instanceof Error ? err.message : "ADK pipeline failed";
           console.error("[/api/adk/analyze-intent]", err);

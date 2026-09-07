@@ -206,7 +206,9 @@ class ErrorManagementService {
 
     return results.map((config) => ({
       ...config,
-      trigger_config: config.trigger_config ? JSON.parse(config.trigger_config as string) : undefined,
+      trigger_config: config.trigger_config
+        ? JSON.parse(config.trigger_config as string)
+        : undefined,
       suggestions_template: config.suggestions_template
         ? JSON.parse(config.suggestions_template as string)
         : undefined,

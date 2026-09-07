@@ -25,11 +25,7 @@ const OPERATORS: Array<{ value: string; label: string }> = [
   { value: "between", label: "between" },
 ];
 
-function buildPreviewText(
-  operator: string,
-  value: number,
-  upperBound?: number
-): string {
+function buildPreviewText(operator: string, value: number, upperBound?: number): string {
   const fmt = (n: number) => n.toLocaleString();
   switch (operator) {
     case "gt":
@@ -51,12 +47,7 @@ function buildPreviewText(
   }
 }
 
-export function ThresholdConfigurator({
-  operator,
-  value,
-  upperBound,
-  onChange,
-}: Props) {
+export function ThresholdConfigurator({ operator, value, upperBound, onChange }: Props) {
   const isBetween = operator === "between";
 
   return (
@@ -64,10 +55,7 @@ export function ThresholdConfigurator({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-1.5">
           <Label htmlFor="threshold-operator">Condition</Label>
-          <Select
-            value={operator}
-            onValueChange={(op) => onChange(op, value, upperBound)}
-          >
+          <Select value={operator} onValueChange={(op) => onChange(op, value, upperBound)}>
             <SelectTrigger id="threshold-operator">
               <SelectValue placeholder="Select operator" />
             </SelectTrigger>
@@ -82,16 +70,12 @@ export function ThresholdConfigurator({
         </div>
 
         <div className="flex-1 space-y-1.5">
-          <Label htmlFor="threshold-value">
-            {isBetween ? "Lower Bound" : "Value"}
-          </Label>
+          <Label htmlFor="threshold-value">{isBetween ? "Lower Bound" : "Value"}</Label>
           <Input
             id="threshold-value"
             type="number"
             value={value}
-            onChange={(e) =>
-              onChange(operator, parseFloat(e.target.value) || 0, upperBound)
-            }
+            onChange={(e) => onChange(operator, parseFloat(e.target.value) || 0, upperBound)}
             placeholder="Enter value"
           />
         </div>
@@ -103,13 +87,7 @@ export function ThresholdConfigurator({
               id="threshold-upper"
               type="number"
               value={upperBound ?? ""}
-              onChange={(e) =>
-                onChange(
-                  operator,
-                  value,
-                  parseFloat(e.target.value) || undefined
-                )
-              }
+              onChange={(e) => onChange(operator, value, parseFloat(e.target.value) || undefined)}
               placeholder="Enter upper value"
             />
           </div>

@@ -17,13 +17,7 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({
-  title,
-  description,
-  icon: Icon,
-  action,
-  className,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, icon: Icon, action, className }: EmptyStateProps) {
   return (
     <div
       className={cn(

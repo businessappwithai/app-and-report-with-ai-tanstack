@@ -47,7 +47,10 @@ export const Route = createFileRoute("/api/settings/email")({
         } catch (error) {
           console.error("Error fetching email settings:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to fetch email settings" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to fetch email settings" },
+            },
             { status: 500 }
           );
         }
@@ -70,10 +73,17 @@ export const Route = createFileRoute("/api/settings/email")({
             if (!configured) {
               return json({
                 success: false,
-                error: { code: "NOT_CONFIGURED", message: "SMTP not configured. Set SMTP_HOST and SMTP_USER environment variables." },
+                error: {
+                  code: "NOT_CONFIGURED",
+                  message:
+                    "SMTP not configured. Set SMTP_HOST and SMTP_USER environment variables.",
+                },
               });
             }
-            return json({ success: true, data: { verified: true, message: "SMTP configuration is valid" } });
+            return json({
+              success: true,
+              data: { verified: true, message: "SMTP configuration is valid" },
+            });
           }
 
           if (body.action === "test") {
@@ -85,7 +95,11 @@ export const Route = createFileRoute("/api/settings/email")({
             }
             return json({
               success: false,
-              error: { code: "NOT_CONFIGURED", message: "SMTP not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable email sending." },
+              error: {
+                code: "NOT_CONFIGURED",
+                message:
+                  "SMTP not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable email sending.",
+              },
             });
           }
 
@@ -96,7 +110,10 @@ export const Route = createFileRoute("/api/settings/email")({
         } catch (error) {
           console.error("Error processing email settings action:", error);
           return json(
-            { success: false, error: { code: "SERVER_ERROR", message: "Failed to process request" } },
+            {
+              success: false,
+              error: { code: "SERVER_ERROR", message: "Failed to process request" },
+            },
             { status: 500 }
           );
         }

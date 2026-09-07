@@ -181,7 +181,8 @@ export const updateChart = createServerFn({ method: "PUT" })
         if (input.name !== undefined) updates.name = input.name;
         if (input.description !== undefined) updates.description = input.description;
         if (input.chartType !== undefined) updates.chart_type = input.chartType;
-        if (input.chartConfig !== undefined) updates.chart_config = JSON.stringify(input.chartConfig);
+        if (input.chartConfig !== undefined)
+          updates.chart_config = JSON.stringify(input.chartConfig);
         if (input.colorScheme !== undefined) updates.color_theme = input.colorScheme;
         if (input.isPublic !== undefined) updates.is_public = input.isPublic;
 

@@ -61,7 +61,8 @@ function normaliseCron(natural?: string, llmCron?: string): string | undefined {
   const text = (natural ?? "").toLowerCase();
 
   if (text.includes("every sunday") || text.includes("sun")) return "0 8 * * 0";
-  if (text.includes("every monday") || text.includes("weekly") || text.includes("mon")) return "0 8 * * 1";
+  if (text.includes("every monday") || text.includes("weekly") || text.includes("mon"))
+    return "0 8 * * 1";
   if (text.includes("every tuesday") || text.includes("tue")) return "0 8 * * 2";
   if (text.includes("every wednesday") || text.includes("wed")) return "0 8 * * 3";
   if (text.includes("every thursday") || text.includes("thu")) return "0 8 * * 4";
@@ -73,7 +74,7 @@ function normaliseCron(natural?: string, llmCron?: string): string | undefined {
   if (text.includes("every day") || text.includes("daily")) return "0 8 * * *";
 
   // Validate LLM-provided cron — accept if it looks like a 5-field expression
-  if (llmCron && /^[\d*\/,\-]+ [\d*\/,\-]+ [\d*\/,\-]+ [\d*\/,\-]+ [\d*\/,\-]+$/.test(llmCron.trim())) {
+  if (llmCron && /^[\d*/,-]+ [\d*/,-]+ [\d*/,-]+ [\d*/,-]+ [\d*/,-]+$/.test(llmCron.trim())) {
     return llmCron.trim();
   }
 
@@ -109,7 +110,7 @@ ONLY include optional fields you have evidence for — omit rather than guess.`;
 export async function classifyIntent(
   nlRequest: string,
   userId: string,
-  dataSourceId?: string,
+  dataSourceId?: string
 ): Promise<{ intent: ADKIntent; classificationMs: number }> {
   const startMs = Date.now();
   const intentId = crypto.randomUUID();
@@ -195,9 +196,10 @@ Respond with a single JSON object containing: intent_type, confidence, metric, d
     thresholdOperator: parsed.threshold_operator as ThresholdOperator | undefined,
     thresholdValue: parsed.threshold_value,
     alertChannels: parsed.alert_channels as AlertChannel[] | undefined,
-    status: parsed.confidence >= 0.5 && parsed.intent_type !== "ambiguous"
-      ? "classifying"
-      : "clarification_needed",
+    status:
+      parsed.confidence >= 0.5 && parsed.intent_type !== "ambiguous"
+        ? "classifying"
+        : "clarification_needed",
     createdAt: now,
     updatedAt: now,
   };

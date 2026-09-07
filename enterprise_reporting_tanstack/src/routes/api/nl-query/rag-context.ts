@@ -35,8 +35,11 @@ function selectTier(contextBudget?: number): BudgetTier {
 function buildModularContext(
   similarQueries: SimilarQuery[],
   relevantSchema: RelevantSchema[],
-  tier: BudgetTier,
-): { contextText: string; modules: { name: string; status: string; detail?: string; chars: number }[] } {
+  tier: BudgetTier
+): {
+  contextText: string;
+  modules: { name: string; status: string; detail?: string; chars: number }[];
+} {
   const budget = BUDGET_TIERS[tier];
   const modules: { name: string; status: string; detail?: string; chars: number }[] = [];
   const parts: string[] = [];
@@ -53,9 +56,19 @@ function buildModularContext(
     if (used + qText.length <= budget.maxChars) {
       parts.push(qText);
       used += qText.length;
-      modules.push({ name: "Past queries", status: "done", detail: `${queries.length} proven SQL`, chars: qText.length });
+      modules.push({
+        name: "Past queries",
+        status: "done",
+        detail: `${queries.length} proven SQL`,
+        chars: qText.length,
+      });
     } else {
-      modules.push({ name: "Past queries", status: "trimmed", detail: "Exceeded budget", chars: 0 });
+      modules.push({
+        name: "Past queries",
+        status: "trimmed",
+        detail: "Exceeded budget",
+        chars: 0,
+      });
     }
   } else {
     modules.push({ name: "Past queries", status: "done", detail: "None found yet", chars: 0 });
@@ -78,7 +91,12 @@ function buildModularContext(
     if (used + tText.length <= budget.maxChars) {
       parts.push(tText);
       used += tText.length;
-      modules.push({ name: "Schema context", status: "done", detail: `${tables.length} tables`, chars: tText.length });
+      modules.push({
+        name: "Schema context",
+        status: "done",
+        detail: `${tables.length} tables`,
+        chars: tText.length,
+      });
     } else {
       // Fit as many tables as possible
       const fitParts: string[] = ["RELEVANT TABLES:"];
@@ -93,16 +111,31 @@ function buildModularContext(
         const fitText = fitParts.join("\n");
         parts.push(fitText);
         used += fitText.length;
-        modules.push({ name: "Schema context", status: "trimmed", detail: `${fitCount}/${tables.length} tables fit`, chars: fitText.length });
+        modules.push({
+          name: "Schema context",
+          status: "trimmed",
+          detail: `${fitCount}/${tables.length} tables fit`,
+          chars: fitText.length,
+        });
       } else {
-        modules.push({ name: "Schema context", status: "trimmed", detail: "No room in budget", chars: 0 });
+        modules.push({
+          name: "Schema context",
+          status: "trimmed",
+          detail: "No room in budget",
+          chars: 0,
+        });
       }
     }
   } else {
     modules.push({ name: "Schema context", status: "done", detail: "No matches", chars: 0 });
   }
 
-  modules.push({ name: "Context budget", status: "done", detail: `${used}/${budget.maxChars} chars (${tier})`, chars: 0 });
+  modules.push({
+    name: "Context budget",
+    status: "done",
+    detail: `${used}/${budget.maxChars} chars (${tier})`,
+    chars: 0,
+  });
 
   return { contextText: parts.join("\n\n"), modules };
 }
@@ -111,10 +144,14 @@ async function keywordMatchTables(
   connection: any,
   dataSourceId: string,
   queryWords: string[],
-  alreadyFound: Set<string>,
+  alreadyFound: Set<string>
 ): Promise<RelevantSchema[]> {
   try {
-    const allSchema = await sql<{ table_name: string; schema_text: string; sample_data: string | null }>`
+    const allSchema = await sql<{
+      table_name: string;
+      schema_text: string;
+      sample_data: string | null;
+    }>`
       SELECT table_name, schema_text, sample_data::text
       FROM nl_schema_embeddings
       WHERE data_source_id = ${dataSourceId}
@@ -160,7 +197,7 @@ export const Route = createFileRoute("/api/nl-query/rag-context")({
           if (!query || !data_source_id) {
             return json(
               { success: false, error: { message: "query and data_source_id are required" } },
-              { status: 400 },
+              { status: 400 }
             );
           }
 
@@ -178,7 +215,7 @@ export const Route = createFileRoute("/api/nl-query/rag-context")({
           if (!dataSource) {
             return json(
               { success: false, error: { message: "Data source not found" } },
-              { status: 404 },
+              { status: 404 }
             );
           }
 
@@ -190,12 +227,24 @@ export const Route = createFileRoute("/api/nl-query/rag-context")({
             findRelevantSchema(connection, data_source_id, query, budget.maxTables),
           ]);
 
-          const queryWords = query.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
+          const queryWords = query
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((w: string) => w.length > 2);
           const alreadyFound = new Set(relevantSchema.map((s) => s.tableName));
-          const keywordMatched = await keywordMatchTables(connection, data_source_id, queryWords, alreadyFound);
+          const keywordMatched = await keywordMatchTables(
+            connection,
+            data_source_id,
+            queryWords,
+            alreadyFound
+          );
 
           const allRelevantSchema = [...relevantSchema, ...keywordMatched];
-          const { contextText, modules } = buildModularContext(similarQueries, allRelevantSchema, tier);
+          const { contextText, modules } = buildModularContext(
+            similarQueries,
+            allRelevantSchema,
+            tier
+          );
 
           return json({
             success: true,
@@ -216,7 +265,7 @@ export const Route = createFileRoute("/api/nl-query/rag-context")({
                 message: error instanceof Error ? error.message : "Failed to fetch RAG context",
               },
             },
-            { status: 500 },
+            { status: 500 }
           );
         }
       },

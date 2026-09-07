@@ -91,9 +91,7 @@ export function useAgentStreaming() {
                   localResult = data.result;
                   setResult(data.result);
                   setSteps((prev) =>
-                    prev.map((s) =>
-                      s.id === "init" ? { ...s, status: "completed" } : s
-                    )
+                    prev.map((s) => (s.id === "init" ? { ...s, status: "completed" } : s))
                   );
                 } else if (data.type === "error") {
                   throw new Error(data.error);
@@ -114,9 +112,7 @@ export function useAgentStreaming() {
             localResult = data.result;
             setResult(data.result);
             setSteps((prev) =>
-              prev.map((s) =>
-                s.id === "init" ? { ...s, status: "completed" } : s
-              )
+              prev.map((s) => (s.id === "init" ? { ...s, status: "completed" } : s))
             );
           } else {
             throw new Error(data.error || "SQL generation failed");

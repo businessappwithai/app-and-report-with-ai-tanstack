@@ -246,7 +246,6 @@ function ChartEditorContent() {
     },
   });
 
-
   // ── CopilotKit ─────────────────────────────────────────────────────────
   useCopilotReadable({
     description: "Available saved queries for the chart",
@@ -259,9 +258,15 @@ function ChartEditorContent() {
 
   useCopilotAction({
     name: "setChartType",
-    description: "Change the chart type (bar, line, pie, area, scatter, heatmap, gauge, funnel, treemap)",
+    description:
+      "Change the chart type (bar, line, pie, area, scatter, heatmap, gauge, funnel, treemap)",
     parameters: [
-      { name: "chartType", type: "string", description: "One of: bar, line, pie, area, scatter, heatmap, gauge, funnel, treemap", required: true },
+      {
+        name: "chartType",
+        type: "string",
+        description: "One of: bar, line, pie, area, scatter, heatmap, gauge, funnel, treemap",
+        required: true,
+      },
     ],
     handler: async ({ chartType: ct }) => {
       setChartType(ct as ChartType);
@@ -285,7 +290,12 @@ function ChartEditorContent() {
     name: "selectQuery",
     description: "Select which saved query provides data for this chart",
     parameters: [
-      { name: "queryId", type: "string", description: "Saved query ID from the available list", required: true },
+      {
+        name: "queryId",
+        type: "string",
+        description: "Saved query ID from the available list",
+        required: true,
+      },
     ],
     handler: async ({ queryId }) => {
       setSelectedQueryId(queryId);
@@ -296,8 +306,18 @@ function ChartEditorContent() {
     name: "setAxisMapping",
     description: "Configure which columns map to the X and Y axes",
     parameters: [
-      { name: "xField", type: "string", description: "Column name for the X axis / category", required: true },
-      { name: "yFields", type: "string[]", description: "Column names for Y axis / values", required: true },
+      {
+        name: "xField",
+        type: "string",
+        description: "Column name for the X axis / category",
+        required: true,
+      },
+      {
+        name: "yFields",
+        type: "string[]",
+        description: "Column names for Y axis / values",
+        required: true,
+      },
     ],
     handler: async ({ xField, yFields }) => {
       setDataMapping((prev) => ({
@@ -312,102 +332,106 @@ function ChartEditorContent() {
 
   return (
     <CopilotSidebar
-      instructions={'You are a chart configuration assistant. Help users configure charts.\nWORKFLOW:\n1. Ask what data they want to visualise.\n2. Suggest an appropriate chart type based on the data (bar for comparisons, line for trends, pie for proportions).\n3. Call selectQuery to pick the saved query with the data.\n4. Call setAxisMapping with column names from the query.\n5. Call setChartType and setChartName.\n6. Tell the user to click Save when done.\nRULES: Never invent column names — only use columns the user mentions or that appear in the query.'}
+      instructions={
+        "You are a chart configuration assistant. Help users configure charts.\nWORKFLOW:\n1. Ask what data they want to visualise.\n2. Suggest an appropriate chart type based on the data (bar for comparisons, line for trends, pie for proportions).\n3. Call selectQuery to pick the saved query with the data.\n4. Call setAxisMapping with column names from the query.\n5. Call setChartType and setChartName.\n6. Tell the user to click Save when done.\nRULES: Never invent column names — only use columns the user mentions or that appear in the query."
+      }
       defaultOpen={false}
       labels={{
         title: "Chart Assistant",
-        initial: "Describe the chart you want to create and I\'ll configure it for you.",
+        initial: "Describe the chart you want to create and I'll configure it for you.",
         placeholder: "e.g. Bar chart of revenue by region…",
       }}
     >
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/charts/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link to="/charts/">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <PageHeader
+                title="Chart Editor"
+                description="{chartId === &quot;new&quot; ? &quot;Create a new chart&quot; : &quot;Edit chart configuration&quot;}"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowPreview(!showPreview)}>
+                <Eye className="mr-2 h-4 w-4" />
+                {showPreview ? "Hide" : "Show"} Preview
               </Button>
-            </Link>
-            <PageHeader title="Chart Editor" description="{chartId === &quot;new&quot; ? &quot;Create a new chart&quot; : &quot;Edit chart configuration&quot;}" />
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                <Save className="mr-2 h-4 w-4" />
+                {saveMutation.isPending ? "Saving..." : "Save Chart"}
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowPreview(!showPreview)}>
-              <Eye className="mr-2 h-4 w-4" />
-              {showPreview ? "Hide" : "Show"} Preview
-            </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {saveMutation.isPending ? "Saving..." : "Save Chart"}
-            </Button>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="space-y-6">
-            <ChartBasicInfo
-              chartName={chartName}
-              chartDescription={chartDescription}
-              onNameChange={setChartName}
-              onDescriptionChange={setChartDescription}
-            />
-            <ChartDataSource
-              queries={queries}
-              selectedQueryId={selectedQueryId}
-              availableFields={availableFields}
-              onQueryChange={setSelectedQueryId}
-            />
-            {chartId !== "new" && (
-              <ChartReusableFilters
-                availableFilters={availableFilters}
-                chartFilters={chartFilters}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-6">
+              <ChartBasicInfo
+                chartName={chartName}
+                chartDescription={chartDescription}
+                onNameChange={setChartName}
+                onDescriptionChange={setChartDescription}
+              />
+              <ChartDataSource
+                queries={queries}
+                selectedQueryId={selectedQueryId}
                 availableFields={availableFields}
-                selectedFilterId={selectedFilterId}
-                targetColumn={targetColumn}
-                onSelectedFilterChange={setSelectedFilterId}
-                onTargetColumnChange={setTargetColumn}
-                onAddFilter={(filterId, col) => {
-                  addFilterMutation.mutate({ filterId, targetColumn: col });
-                  setSelectedFilterId("");
-                  setTargetColumn("");
-                }}
-                onRemoveFilter={(id) => removeFilterMutation.mutate(id)}
-                isAdding={addFilterMutation.isPending}
-                isRemoving={removeFilterMutation.isPending}
+                onQueryChange={setSelectedQueryId}
+              />
+              {chartId !== "new" && (
+                <ChartReusableFilters
+                  availableFilters={availableFilters}
+                  chartFilters={chartFilters}
+                  availableFields={availableFields}
+                  selectedFilterId={selectedFilterId}
+                  targetColumn={targetColumn}
+                  onSelectedFilterChange={setSelectedFilterId}
+                  onTargetColumnChange={setTargetColumn}
+                  onAddFilter={(filterId, col) => {
+                    addFilterMutation.mutate({ filterId, targetColumn: col });
+                    setSelectedFilterId("");
+                    setTargetColumn("");
+                  }}
+                  onRemoveFilter={(id) => removeFilterMutation.mutate(id)}
+                  isAdding={addFilterMutation.isPending}
+                  isRemoving={removeFilterMutation.isPending}
+                />
+              )}
+              <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
+              <ChartAxisConfig
+                dataMapping={dataMapping}
+                availableFields={availableFields}
+                chartConfig={chartConfig}
+                onDataMappingChange={setDataMapping}
+              />
+              <ChartAppearance
+                chartConfig={chartConfig}
+                chartType={chartType}
+                onChartConfigChange={setChartConfig}
+              />
+            </div>
+
+            {showPreview && (
+              <ChartPreviewPanel
+                previewData={previewData}
+                availableFields={availableFields}
+                chartType={chartType}
+                chartConfig={chartConfig}
+                dataMapping={dataMapping}
+                selectedQueryId={selectedQueryId}
+                isLoading={queryResultsLoading}
               />
             )}
-            <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
-            <ChartAxisConfig
-              dataMapping={dataMapping}
-              availableFields={availableFields}
-              chartConfig={chartConfig}
-              onDataMappingChange={setDataMapping}
-            />
-            <ChartAppearance
-              chartConfig={chartConfig}
-              chartType={chartType}
-              onChartConfigChange={setChartConfig}
-            />
           </div>
-
-          {showPreview && (
-            <ChartPreviewPanel
-              previewData={previewData}
-              availableFields={availableFields}
-              chartType={chartType}
-              chartConfig={chartConfig}
-              dataMapping={dataMapping}
-              selectedQueryId={selectedQueryId}
-              isLoading={queryResultsLoading}
-            />
-          )}
         </div>
       </div>
-    </div>
     </CopilotSidebar>
   );
 }
-
 
 function ChartEditorPage() {
   return (

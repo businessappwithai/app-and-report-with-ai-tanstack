@@ -65,7 +65,7 @@ export async function introspectAndCacheSchema(dataSource: DataSource): Promise<
         embedding_data: schemaText,
         last_introspected_at: now,
         updated_at: now,
-      }),
+      })
     )
     .execute();
 
@@ -217,7 +217,10 @@ function extractRelationships(schemaInfo: SchemaInfo): Relationship[] {
  */
 export async function invalidateSchemaCache(dataSourceId: string): Promise<void> {
   const db = getDb();
-  await (db as any).deleteFrom("ds_schema_cache").where("data_source_id", "=", dataSourceId).execute();
+  await (db as any)
+    .deleteFrom("ds_schema_cache")
+    .where("data_source_id", "=", dataSourceId)
+    .execute();
 }
 
 /**

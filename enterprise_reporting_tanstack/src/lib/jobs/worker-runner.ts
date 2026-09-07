@@ -66,9 +66,4 @@ export async function checkWorkerHealth(): Promise<{ healthy: boolean; message: 
   };
 }
 
-export {
-  reportGenerationTask,
-  dataExportTask,
-  emailBatchTask,
-  scheduledRefreshTask,
-};
+export { reportGenerationTask, dataExportTask, emailBatchTask, scheduledRefreshTask };

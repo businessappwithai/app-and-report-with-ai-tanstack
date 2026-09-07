@@ -170,7 +170,14 @@ function DashboardViewerContent({ dashboardId }: { dashboardId: string }) {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              positionConfig: { x: item.x, y: item.y, w: item.w, h: item.h, minW: item.minW ?? 2, minH: item.minH ?? 2 },
+              positionConfig: {
+                x: item.x,
+                y: item.y,
+                w: item.w,
+                h: item.h,
+                minW: item.minW ?? 2,
+                minH: item.minH ?? 2,
+              },
             }),
           }).catch(() => {
             // Non-fatal — dashboard layout_config is the source of truth
@@ -273,7 +280,9 @@ function DashboardViewerContent({ dashboardId }: { dashboardId: string }) {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-semibold text-2xl text-tremor-content-strong">{dashboard.name}</h1>
+              <h1 className="font-semibold text-2xl text-tremor-content-strong">
+                {dashboard.name}
+              </h1>
               {dashboard.is_public ? (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Globe className="h-3 w-3" />
@@ -315,7 +324,11 @@ function DashboardViewerContent({ dashboardId }: { dashboardId: string }) {
             </Button>
           )}
           {!isEditing ? (
-            <Button size="sm" variant={hasChanges ? "outline" : "default"} onClick={() => setIsEditing(true)}>
+            <Button
+              size="sm"
+              variant={hasChanges ? "outline" : "default"}
+              onClick={() => setIsEditing(true)}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Layout
             </Button>

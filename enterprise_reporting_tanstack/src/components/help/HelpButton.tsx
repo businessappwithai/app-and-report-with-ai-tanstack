@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { HelpCircle } from 'lucide-react';
-import { HelpDialog } from './HelpDialog';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { HelpCircle } from "lucide-react";
+import { HelpDialog } from "./HelpDialog";
 
 export function HelpButton() {
   const [open, setOpen] = useState(false);

@@ -15,29 +15,13 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("request_id", "varchar(255)")
     .execute();
 
-  await db.schema
-    .createIndex("idx_logs_timestamp")
-    .on("logs")
-    .column("timestamp")
-    .execute();
+  await db.schema.createIndex("idx_logs_timestamp").on("logs").column("timestamp").execute();
 
-  await db.schema
-    .createIndex("idx_logs_level")
-    .on("logs")
-    .column("level")
-    .execute();
+  await db.schema.createIndex("idx_logs_level").on("logs").column("level").execute();
 
-  await db.schema
-    .createIndex("idx_logs_user_id")
-    .on("logs")
-    .column("user_id")
-    .execute();
+  await db.schema.createIndex("idx_logs_user_id").on("logs").column("user_id").execute();
 
-  await db.schema
-    .createIndex("idx_logs_component")
-    .on("logs")
-    .column("component")
-    .execute();
+  await db.schema.createIndex("idx_logs_component").on("logs").column("component").execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

@@ -37,7 +37,9 @@ export class UnauthorizedError extends ServerFunctionError {
 
 export class NotFoundError extends ServerFunctionError {
   constructor(resourceType: string, resourceId?: string) {
-    const msg = resourceId ? `${resourceType} not found: ${resourceId}` : `${resourceType} not found`;
+    const msg = resourceId
+      ? `${resourceType} not found: ${resourceId}`
+      : `${resourceType} not found`;
     super(msg, "NOT_FOUND", 404);
     this.name = "NotFoundError";
   }
@@ -54,7 +56,8 @@ export async function withErrorHandler<T>(
 
     // Log audit trail for all errors
     if (context.user) {
-      const errorMessage = error instanceof ServerFunctionError ? error.message : error.message.substring(0, 200);
+      const errorMessage =
+        error instanceof ServerFunctionError ? error.message : error.message.substring(0, 200);
 
       await logAudit({
         userId: context.user.id,

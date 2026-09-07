@@ -110,10 +110,19 @@ export async function up(db: any): Promise<void> {
     table.string("id", 36).primary();
 
     // Reference to query
-    table.string("nl_query_context_id", 36).notNullable().references("id").inTable("nl_query_context");
+    table
+      .string("nl_query_context_id", 36)
+      .notNullable()
+      .references("id")
+      .inTable("nl_query_context");
 
     // Feedback
-    table.enum("feedback_type", ["accurate", "needs_refinement", "incorrect", "wrong_interpretation"]);
+    table.enum("feedback_type", [
+      "accurate",
+      "needs_refinement",
+      "incorrect",
+      "wrong_interpretation",
+    ]);
     table.text("user_feedback"); // User's comment on the generated query
     table.text("corrected_sql"); // If user provided a correct version
 
