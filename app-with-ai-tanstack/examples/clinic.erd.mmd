@@ -1,0 +1,69 @@
+%% Clinic Management System - North American Clinical Automation
+%%
+%% Entities derived from the EML specification in clinic.mmd
+%% Covers: Patient, Practitioner, Appointment, Encounter, Claim
+%%
+%% Use: bun run generate:tanstack -- -i examples/clinic.erd.mmd -o generated-projects/clinic -n clinic-app
+
+erDiagram
+
+    Patient {
+        string patient_id PK
+        string first_name
+        string last_name
+        date birth_date
+        string gender
+        string national_id UK
+        string prov_health_number UK
+        string email UK
+        string phone
+        string residence_country
+        datetime created_at
+    }
+
+    Practitioner {
+        string practitioner_id PK
+        string npi_number UK
+        string billing_number UK
+        string license_number
+        string first_name
+        string last_name
+        string specialty
+    }
+
+    Appointment {
+        string appointment_id PK
+        string patient_id FK
+        string practitioner_id FK
+        datetime scheduled_start
+        datetime scheduled_end
+        string current_state
+    }
+
+    Encounter {
+        string encounter_id PK
+        string appointment_id FK
+        string patient_id FK
+        string practitioner_id FK
+        text subjective_notes OPTIONAL
+        text objective_notes OPTIONAL
+        string assessment
+        text plan_notes
+        string cryptographic_sig
+    }
+
+    Claim {
+        string claim_id PK
+        string encounter_id FK
+        string payer_type
+        string icd_code
+        string procedure_code
+        decimal total_charge
+        string claim_state
+    }
+
+    Patient ||--o{ Appointment : "books"
+    Practitioner ||--o{ Appointment : "schedules"
+    Appointment ||--o| Encounter : "generates"
+    Patient ||--o{ Encounter : "has"
+    Encounter ||--o| Claim : "generates"

@@ -1,0 +1,237 @@
+/**
+ * What a list shows, and in what order, decided in the Application Dictionary.
+ *
+ * `sys_window.where_clause` and `sys_window.order_by_clause` let an
+ * administrator set a list's filter and its ordering from a screen. Two things
+ * about that are worth a test rather than a reading of the code:
+ *
+ *  - **The default has to be real.** Every window is seeded `updated_at DESC`,
+ *    so a list opens on the most recent change. A default that exists in the
+ *    seed but is not read on the way to the query is invisible until somebody
+ *    notices their list is in insertion order.
+ *  - **Neither column may be SQL.** They are edited from a text box, so if the
+ *    value were interpolated into a statement this would be the application's
+ *    most direct injection route. Every clause is resolved against the entity's
+ *    own columns and every value is bound as a parameter. The tests below try
+ *    to get SQL through and assert that the list is unharmed.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, harness } from "../harness/index.ts";
+
+interface Page {
+  data?: Array<Record<string, unknown>>;
+  meta?: { total?: number };
+}
+
+interface Window {
+  sys_window_id?: string;
+  name?: string;
+  where_clause?: string | null;
+  order_by_clause?: string | null;
+}
+
+describe("window list defaults", () => {
+  let windows: Window[] = [];
+  /** The window backing the first entity that has rows, and its untouched clauses. */
+  let subject: { route: string; window: Window } | null = null;
+  let originalWhere: string | null = null;
+  let originalOrder: string | null = null;
+
+  beforeAll(async () => {
+    await harness.setup();
+
+    const listed = await harness.client.get<Page>("/sys/windows?limit=200", {
+      allowFailure: true,
+    });
+    windows = listed.ok ? ((listed.data.data ?? []) as Window[]) : [];
+
+    for (const entity of entities) {
+      const page = await harness.client.get<Page>(`/bus/${entity.route}?limit=1`, {
+        allowFailure: true,
+      });
+      if (!page.ok || Number(page.data.meta?.total ?? 0) < 2) continue;
+      // The window is named for the entity's display name, which is what the
+      // dictionary seed writes.
+      const match = windows.find(
+        (w) =>
+          (w.name ?? "").toLowerCase().replace(/[\s_-]+/g, "") ===
+          entity.name.toLowerCase().replace(/[\s_-]+/g, "")
+      );
+      if (!match?.sys_window_id) continue;
+      subject = { route: entity.route, window: match };
+      originalWhere = match.where_clause ?? null;
+      originalOrder = match.order_by_clause ?? null;
+      break;
+    }
+  });
+
+  afterAll(async () => {
+    // Put the window back, whatever the tests did to it: the suites that run
+    // after this one read the same lists.
+    if (subject?.window.sys_window_id) {
+      await harness.client
+        .patch(`/sys/windows/${subject.window.sys_window_id}`, {
+          where_clause: originalWhere,
+          order_by_clause: originalOrder,
+        })
+        .catch(() => undefined);
+    }
+    await harness.teardown();
+  });
+
+  it("gives every window an ordering, and it is most-recently-modified first", () => {
+    expect(windows.length).toBeGreaterThan(0);
+    const withoutOrder = windows.filter((w) => !(w.order_by_clause ?? "").trim());
+    expect(withoutOrder.map((w) => w.name)).toEqual([]);
+    const notUpdatedAtDesc = windows.filter(
+      (w) => (w.order_by_clause ?? "").trim().toLowerCase() !== "updated_at desc"
+    );
+    expect(notUpdatedAtDesc.map((w) => w.name)).toEqual([]);
+  });
+
+  it("filters nothing until someone says so", () => {
+    expect(windows.filter((w) => (w.where_clause ?? "").trim()).map((w) => w.name)).toEqual([]);
+  });
+
+  it("orders a list by the window's clause, and flips when the clause flips", async () => {
+    if (!subject) return; // No entity with two rows to compare — nothing to assert.
+    const id = subject.window.sys_window_id;
+
+    const stamps = async (): Promise<string[]> => {
+      const page = await harness.client.get<Page>(`/bus/${subject!.route}?limit=25`);
+      return (page.data.data ?? []).map((row) => String(row.updated_at ?? ""));
+    };
+
+    await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: "updated_at DESC" });
+    const descending = await stamps();
+    await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: "updated_at ASC" });
+    const ascending = await stamps();
+    await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: "updated_at DESC" });
+
+    expect(descending.length).toBeGreaterThan(1);
+    expect(ascending.length).toBe(descending.length);
+    // Sorted the way each clause asked. Seeded rows can share a timestamp to
+    // the microsecond, so this is a non-strict comparison — what it rules out
+    // is a clause that is read and then ignored.
+    expect([...descending].sort().reverse()).toEqual(descending);
+    expect([...ascending].sort()).toEqual(ascending);
+    // And an edit takes effect without a restart: the two lists differ, which
+    // they cannot if the metadata cache was never invalidated.
+    if (new Set(descending).size > 1) {
+      expect(ascending).not.toEqual(descending);
+    }
+  });
+
+  it("narrows a list by the window's filter, and restores it when cleared", async () => {
+    if (!subject) return;
+    const id = subject.window.sys_window_id;
+
+    const total = async (): Promise<number> => {
+      const page = await harness.client.get<Page>(`/bus/${subject!.route}?limit=1`);
+      return Number(page.data.meta?.total ?? 0);
+    };
+
+    const unfiltered = await total();
+    try {
+      // A filter no id can satisfy: the point is that it is *applied*, not what
+      // it selects, and every entity has an `id`. A real uuid, so the clause is
+      // one the column's type accepts and reaches the query.
+      await harness.client.patch(`/sys/windows/${id}`, {
+        where_clause: "id=equals:00000000-0000-0000-0000-000000000000",
+      });
+      expect(await total()).toBe(0);
+    } finally {
+      await harness.client.patch(`/sys/windows/${id}`, { where_clause: null });
+    }
+    expect(await total()).toBe(unfiltered);
+  });
+
+  // The reason the clauses are parsed rather than interpolated. One `it` per
+  // clause, written as a loop: the generated harness's `it` is a small shim
+  // over node:test and has no `.each`.
+  const HOSTILE_FILTERS = [
+    "1=1; DROP TABLE sys_user; --",
+    "(SELECT 1)=equals:x",
+    "id=equals:x' OR '1'='1",
+    "nonexistent_column=equals:x",
+  ];
+
+  for (const clause of HOSTILE_FILTERS) {
+    it(`survives ${JSON.stringify(clause)} in where_clause with the list intact`, async () => {
+      if (!subject) return;
+      const id = subject.window.sys_window_id;
+      const before = await harness.client.get<Page>(`/bus/${subject.route}?limit=1`);
+      const expected = Number(before.data.meta?.total ?? 0);
+
+      // `finally`, so a failed assertion still clears the clause. Without it
+      // the first failure leaves the window filtered and every test after it
+      // fails for a reason that is not its own.
+      try {
+        await harness.client.patch(`/sys/windows/${id}`, { where_clause: clause });
+        const after = await harness.client.get<Page>(`/bus/${subject.route}?limit=1`, {
+          allowFailure: true,
+        });
+
+        // The clause is dropped, so the list is unfiltered — and it answers at
+        // all, rather than erroring on malformed SQL or on a value the column's
+        // type cannot be compared against.
+        expect(after.status).toBe(200);
+        expect(Number(after.data.meta?.total ?? -1)).toBe(expected);
+      } finally {
+        await harness.client.patch(`/sys/windows/${id}`, { where_clause: null });
+      }
+    });
+  }
+
+  const HOSTILE_ORDERS = [
+    "updated_at; DROP TABLE sys_user",
+    "(SELECT version())",
+    "nonexistent_column DESC",
+  ];
+
+  for (const clause of HOSTILE_ORDERS) {
+    it(`survives ${JSON.stringify(clause)} in order_by_clause with the list intact`, async () => {
+      if (!subject) return;
+      const id = subject.window.sys_window_id;
+
+      try {
+        await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: clause });
+        const after = await harness.client.get<Page>(`/bus/${subject.route}?limit=5`, {
+          allowFailure: true,
+        });
+
+        expect(after.status).toBe(200);
+        expect((after.data.data ?? []).length).toBeGreaterThan(0);
+      } finally {
+        await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: "updated_at DESC" });
+      }
+    });
+  }
+
+  it("still lets the caller sort, so a column heading is not overruled", async () => {
+    if (!subject) return;
+    const id = subject.window.sys_window_id;
+    await harness.client.patch(`/sys/windows/${id}`, { order_by_clause: "updated_at DESC" });
+
+    const page = await harness.client.get<Page>(
+      `/bus/${subject.route}?limit=25&orderBy=id&orderDir=asc`
+    );
+    const ids = (page.data.data ?? []).map((row) => String(row.id ?? ""));
+    expect(ids.length).toBeGreaterThan(1);
+    expect([...ids].sort()).toEqual(ids);
+  });
+
+  it("serves a CSV-sized page, which is what the grid's download asks for", async () => {
+    if (!subject) return;
+    // The export requests exactly this. A server that silently capped the page
+    // lower would hand the reader a shorter file than the one they were told
+    // they were getting.
+    const page = await harness.client.get<Page>(`/bus/${subject.route}?page=1&limit=500`);
+    const total = Number(page.data.meta?.total ?? 0);
+    expect((page.data.data ?? []).length).toBe(Math.min(total, 500));
+  });
+});

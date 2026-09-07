@@ -1,0 +1,205 @@
+/**
+ * Users and roles.
+ *
+ * Covers the seeded role hierarchy, faker-generated user registration at
+ * volume, and the access-control surface that role membership drives.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import {
+  buildUser,
+  config,
+  faker,
+  harness,
+  HttpClient,
+  login,
+  permissions,
+  register,
+  reseed,
+} from "../harness/index.ts";
+
+interface SysRole {
+  sys_role_id: string;
+  name: string;
+  is_master_role?: boolean;
+  [key: string]: unknown;
+}
+
+interface SysUser {
+  sys_user_id: string;
+  email: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+function rows<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
+describe("users and roles", () => {
+  const createdUsers: Array<{ email: string; password: string }> = [];
+
+  beforeAll(async () => {
+    await harness.setup();
+    reseed(config.fakerSeed + 2);
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("seeds the system roles", async () => {
+    const response = await harness.client.get("/sys/roles", { allowFailure: true });
+    if (!response.ok) return; // route naming differs across generator versions
+
+    const roles = rows<SysRole>(response.data);
+    expect(roles.length).toBeGreaterThan(0);
+
+    const names = roles.map((role) => String(role.name).toLowerCase());
+    expect(names).toContain("administrator");
+  });
+
+  it("seeds the administrator user", async () => {
+    const response = await harness.client.get("/sys/users", { allowFailure: true });
+    if (!response.ok) return;
+
+    const users = rows<SysUser>(response.data);
+    const emails = users.map((user) => String(user.email).toLowerCase());
+
+    expect(emails).toContain(config.admin.email.toLowerCase());
+  });
+
+  it("grants the administrator master access", async () => {
+    const perms = await permissions(harness.client);
+
+    expect(perms.role).toBeTruthy();
+    expect(Array.isArray(perms.windows)).toBe(true);
+  });
+
+  it(
+    `registers ${config.usersToCreate} faker-generated users`,
+    async () => {
+      let succeeded = 0;
+
+      for (let i = 0; i < config.usersToCreate; i++) {
+        const candidate = buildUser(i);
+        // The administrator's client, not a fresh one: accounts are created
+        // through the admin-only endpoint, so an anonymous caller is refused.
+        const result = await register(
+          harness.client,
+          candidate.email,
+          candidate.password,
+          candidate.name
+        );
+
+        if (result.ok) {
+          succeeded += 1;
+          createdUsers.push({ email: candidate.email, password: candidate.password });
+        }
+      }
+
+      console.log(`    registered ${succeeded}/${config.usersToCreate} users`);
+      expect(succeeded).toBeGreaterThan(0);
+    },
+    Math.max(60_000, config.usersToCreate * 3000)
+  );
+
+  it("signs in as a registered user", async () => {
+    if (createdUsers.length === 0) return;
+
+    const candidate = faker.helpers.arrayElement(createdUsers);
+    const client = new HttpClient();
+    const user = await login(client, candidate.email, candidate.password);
+
+    expect(String(user.email).toLowerCase()).toBe(candidate.email.toLowerCase());
+  });
+
+  it("gives a fresh user narrower permissions than the administrator", async () => {
+    if (createdUsers.length === 0) return;
+
+    const candidate = createdUsers[0]!;
+    const client = new HttpClient();
+    await login(client, candidate.email, candidate.password);
+
+    const theirs = await permissions(client);
+    const admin = await permissions(harness.client);
+
+    expect(theirs.isMaster).toBe(false);
+    expect(theirs.windows.length).toBeLessThanOrEqual(admin.windows.length);
+  });
+
+  it("rejects duplicate registration", async () => {
+    if (createdUsers.length === 0) return;
+
+    const existing = createdUsers[0]!;
+    const result = await register(
+      harness.client,
+      existing.email,
+      existing.password,
+      "Duplicate"
+    );
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses to create an account for an anonymous caller", async () => {
+    // The reason there is no sign-up page: an account is something an
+    // administrator grants, so the endpoint has to refuse everyone else.
+    const candidate = buildUser(9_000);
+    const anonymous = new HttpClient();
+    const result = await register(
+      anonymous,
+      candidate.email,
+      candidate.password,
+      candidate.name
+    );
+
+    expect(result.ok).toBe(false);
+    expect([401, 403]).toContain(result.status);
+  });
+
+  it("refuses to create an account for a signed-in non-administrator", async () => {
+    if (createdUsers.length === 0) return;
+
+    const candidate = createdUsers[0]!;
+    const client = new HttpClient();
+    await login(client, candidate.email, candidate.password);
+
+    const fresh = buildUser(9_001);
+    const result = await register(client, fresh.email, fresh.password, fresh.name);
+
+    expect(result.ok).toBe(false);
+    expect([401, 403]).toContain(result.status);
+  });
+
+  it("refuses rule creation for a non-admin user", async () => {
+    if (createdUsers.length === 0) return;
+
+    const candidate = createdUsers[0]!;
+    const client = new HttpClient();
+    await login(client, candidate.email, candidate.password);
+
+    const response = await client.post(
+      "/rules",
+      {
+        entityName: "bus_probe",
+        ruleName: "should-not-exist",
+        operation: "ALL",
+        jdmContent: "{}",
+      },
+      { allowFailure: true }
+    );
+
+    // Admin-only route: a non-admin must not get a 2xx.
+    expect(response.ok).toBe(false);
+    expect([400, 401, 403]).toContain(response.status);
+  });
+});

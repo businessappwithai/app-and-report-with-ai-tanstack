@@ -1,0 +1,39 @@
+# Dependencies and build output are produced inside the image, never copied in:
+# a host node_modules carries the host's platform binaries.
+node_modules
+packages/*/node_modules
+packages/*/dist
+packages/web/.output
+language/cli/node_modules
+
+# Applications this generator has already produced. They are output, they can be
+# large, and a stale one baked into the image would be mistaken for a fresh one.
+generated-projects
+packages/web/generated-projects
+
+# History, editor state and local secrets.
+.git
+.github
+.claude
+.vscode
+.idea
+*.log
+.env
+.env.*
+!.env.example
+
+# Test and QA artefacts.
+test-results
+playwright-report
+coverage
+tests/**/screenshots
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Local databases.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite

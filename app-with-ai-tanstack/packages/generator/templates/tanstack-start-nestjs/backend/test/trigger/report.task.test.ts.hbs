@@ -1,0 +1,50 @@
+/**
+ * Unit tests for generateReportTask (Trigger.dev v3)
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { describe, it, expect } from 'bun:test';
+import { generateReportTask, type ReportTaskPayload } from '../../src/trigger/report.task';
+
+describe('generateReportTask', () => {
+  it('is defined and exported', () => {
+    expect(generateReportTask).toBeDefined();
+  });
+
+  it('has an id property', () => {
+    expect((generateReportTask as any).id).toBe('generate-report');
+  });
+
+  it('accepts valid report payloads', () => {
+    const payload: ReportTaskPayload = {
+      reportType: 'summary',
+      params: { year: 2026 },
+      userId: 'user-001',
+    };
+
+    expect(payload.reportType).toBe('summary');
+    expect(payload.userId).toBe('user-001');
+  });
+
+  it('accepts quarterly report payloads', () => {
+    const payload: ReportTaskPayload = {
+      reportType: 'quarterly',
+      params: { quarter: 'Q1' },
+      userId: 'manager-001',
+    };
+
+    expect(payload.reportType).toBe('quarterly');
+  });
+
+  it('accepts annual report payloads', () => {
+    const payload: ReportTaskPayload = {
+      reportType: 'annual',
+      params: {},
+      userId: 'admin-001',
+    };
+
+    expect(payload.reportType).toBe('annual');
+  });
+});

@@ -1,0 +1,272 @@
+/**
+ * Database Migration and Seed Runner
+ * Run with: bun run src/migrate.ts
+ *
+ * Handles:
+ * - Idempotent migrations (skips already-run migrations)
+ * - Drift detection: an already-run migration whose contents changed is
+ *   reported instead of silently skipped
+ * - Separate seed execution (after all migrations)
+ * - Graceful error handling for constraint conflicts
+ *
+ * Generated: {{now}}
+ */
+
+import * as path from 'path';
+import * as fs from 'fs';
+import { createHash } from 'crypto';
+import { Kysely, PostgresDialect, sql } from 'kysely';
+import { Pool } from 'pg';
+import { config } from 'dotenv';
+
+// Load .env from backend root (parent of src/) regardless of cwd
+config({ path: path.join(__dirname, '..', '.env'), override: true });
+config({ path: path.join(__dirname, '..', '.env.local'), override: true });
+
+function buildPool() {
+  const url = process.env.DATABASE_URL;
+  if (url) {
+    return new Pool({ connectionString: url });
+  }
+  return new Pool({
+    host: process.env.DB_HOST ?? '127.0.0.1',
+    port: Number(process.env.DB_PORT ?? 5432),
+    user: process.env.DB_USER ?? '{{snakeCase project.name}}',
+    password: process.env.DB_PASSWORD ?? '',
+    database: process.env.DB_NAME ?? '{{snakeCase project.name}}',
+  });
+}
+
+/**
+ * Set to "true" to downgrade a checksum mismatch from an error to a warning.
+ *
+ * The escape hatch exists for the legitimate case — reformatting a migration,
+ * or fixing a comment — where the author knows the schema is unaffected.
+ */
+const ALLOW_DRIFT = process.env.MIGRATIONS_ALLOW_DRIFT === 'true';
+
+async function ensureMigrationTable(db: Kysely<any>) {
+  try {
+    await sql`CREATE TABLE IF NOT EXISTS _migrations (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL UNIQUE,
+      executed_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )`.execute(db);
+  } catch (e) {
+    // Table might already exist
+  }
+  // Added after the fact, so databases created by an earlier version get it too.
+  try {
+    await sql`ALTER TABLE _migrations ADD COLUMN IF NOT EXISTS checksum VARCHAR(64)`.execute(db);
+  } catch (e) {
+    // Older servers without IF NOT EXISTS support: drift checking is skipped.
+  }
+}
+
+/** Migrations already applied, mapped to the checksum recorded at the time. */
+async function getMigratedFiles(db: Kysely<any>): Promise<Map<string, string | null>> {
+  try {
+    const result = await sql<{ name: string; checksum: string | null }>`
+      SELECT name, checksum FROM _migrations
+    `.execute(db);
+    return new Map(result.rows.map(r => [r.name, r.checksum]));
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * Fingerprint what a migration *does*, not the file it arrived in.
+ *
+ * Every generated migration carries a `Generated: <timestamp>` header, so
+ * hashing the raw bytes reported drift on every single regeneration — which
+ * made the check noise, and noise gets switched off. Stripping that line (and
+ * normalising line endings, which differ by checkout) leaves a hash that only
+ * moves when the SQL does.
+ */
+function checksumOf(filePath: string): string {
+  const normalized = fs
+    .readFileSync(filePath, 'utf8')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .filter((line) => !/^\s*\*?\s*Generated:\s/.test(line))
+    .join('\n');
+  return createHash('sha256').update(normalized).digest('hex');
+}
+
+async function markMigrationDone(db: Kysely<any>, name: string, checksum: string) {
+  try {
+    await sql`
+      INSERT INTO _migrations (name, checksum) VALUES (${name}, ${checksum})
+      ON CONFLICT (name) DO UPDATE SET checksum = EXCLUDED.checksum
+    `.execute(db);
+  } catch (e) {
+    // Already recorded
+  }
+}
+
+/** Record a checksum for a migration that ran before checksums existed. */
+async function backfillChecksum(db: Kysely<any>, name: string, checksum: string) {
+  try {
+    await sql`UPDATE _migrations SET checksum = ${checksum} WHERE name = ${name}`.execute(db);
+  } catch (e) {
+    // Non-fatal: drift checking simply stays off for this row.
+  }
+}
+
+async function runMigrations(db: Kysely<any>) {
+  console.log('🔄 Running migrations...\n');
+
+  await ensureMigrationTable(db);
+  const executed = await getMigratedFiles(db);
+
+  const migrationDir = path.join(__dirname, 'migrations');
+  const ext = __filename.endsWith('.ts') ? '.ts' : '.js';
+  const files = (await fs.promises.readdir(migrationDir))
+    .filter(f => f.endsWith(ext) && !f.endsWith('.map'))
+    .sort();
+
+  let migratedCount = 0;
+  const drifted: string[] = [];
+
+  for (const file of files) {
+    const migrationPath = path.join(migrationDir, file);
+    const checksum = checksumOf(migrationPath);
+
+    if (executed.has(file)) {
+      const recorded = executed.get(file) ?? null;
+      if (recorded === null) {
+        // Ran before checksums existed — adopt the current contents as the
+        // baseline so future edits are caught.
+        await backfillChecksum(db, file, checksum);
+      } else if (recorded !== checksum) {
+        // The runner keys on filename, so this migration will never run again.
+        // Editing it therefore changes what new databases get while leaving
+        // every existing one behind — which surfaces much later as a missing
+        // column, far from the edit that caused it.
+        drifted.push(file);
+      }
+      console.log(`⊘ Skipping already-run: ${file}`);
+      continue;
+    }
+
+    const migrationModule = await import(migrationPath);
+
+    if (migrationModule.up) {
+      try {
+        console.log(`Running migration: ${file}`);
+        await migrationModule.up(db);
+        await markMigrationDone(db, file, checksum);
+        console.log(`✓ Migration "${file}" completed\n`);
+        migratedCount++;
+      } catch (error: any) {
+        // Ignore constraint-already-exists errors (idempotent operations)
+        if (error?.code === '42710' || error?.message?.includes('already exists')) {
+          console.log(`⊘ Migration "${file}" is idempotent (constraint already exists)\n`);
+          await markMigrationDone(db, file, checksum);
+          migratedCount++;
+        } else {
+          console.error(`✗ Migration "${file}" failed:`, error?.message || error);
+          throw error;
+        }
+      }
+    }
+  }
+
+  if (migratedCount > 0) {
+    console.log(`✓ Ran ${migratedCount} new migration(s)`);
+  } else {
+    console.log('✓ All migrations already executed');
+  }
+
+  if (drifted.length > 0) {
+    const detail = drifted.map(f => `  - ${f}`).join('\n');
+    const message =
+      `${drifted.length} already-applied migration(s) have changed since they ran:\n${detail}\n\n` +
+      'Migrations are tracked by filename, so these will never run again — this database\n' +
+      'does not have the change and never will. Add a new migration with the difference\n' +
+      '(ALTER TABLE ... IF NOT EXISTS is usually right) instead of editing one that shipped.\n' +
+      'If the edit was cosmetic, re-run with MIGRATIONS_ALLOW_DRIFT=true to accept it.';
+
+    if (ALLOW_DRIFT) {
+      console.warn(`\n⚠️  ${message}\n`);
+      for (const file of drifted) {
+        await backfillChecksum(db, file, checksumOf(path.join(migrationDir, file)));
+      }
+    } else {
+      throw new Error(message);
+    }
+  }
+}
+
+async function runSeeds(db: Kysely<any>) {
+  console.log('\n🌱 Running seeds...\n');
+
+  // Seeds live at the backend root, next to src/ — the same place src/seed.ts
+  // reads them from. Looking under src/ silently found nothing and reported
+  // success, leaving every generated app with an empty dictionary.
+  const seedDir = path.join(__dirname, '..', 'seeds');
+  if (!fs.existsSync(seedDir)) {
+    console.log('⊘ No seeds directory found');
+    return;
+  }
+
+  const ext = __filename.endsWith('.ts') ? '.ts' : '.js';
+  const files = (await fs.promises.readdir(seedDir))
+    .filter(f => f.endsWith(ext) && !f.endsWith('.map'))
+    .sort();
+
+  // A seed that throws for a reason other than "this row is already here" is a
+  // defect in the generated application, not a transient condition. The run
+  // continues so one broken seed does not hide the state of the others, but
+  // every genuine failure is collected and re-thrown at the end — a database
+  // set up from a failed seed run must not report success and exit 0.
+  const failures: Array<{ file: string; message: string }> = [];
+
+  for (const file of files) {
+    const seedPath = path.join(seedDir, file);
+    const seedModule = await import(seedPath);
+
+    if (seedModule.seed) {
+      try {
+        console.log(`Running seed: ${file}`);
+        await seedModule.seed(db);
+        console.log(`✓ Seed "${file}" completed\n`);
+      } catch (error: any) {
+        // Ignore unique constraint violations (idempotent seed)
+        if (error?.code === '23505' || error?.message?.includes('duplicate key')) {
+          console.log(`⊘ Seed "${file}" is idempotent (data already exists)\n`);
+        } else {
+          const message = error?.message || String(error);
+          console.error(`✗ Seed "${file}" failed:`, message);
+          failures.push({ file, message });
+        }
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    const detail = failures.map(f => `  • ${f.file}: ${f.message}`).join('\n');
+    throw new Error(`${failures.length} seed(s) failed:\n${detail}`);
+  }
+
+  console.log('✓ Seeds completed');
+}
+
+(async () => {
+  const db = new Kysely<any>({ dialect: new PostgresDialect({ pool: buildPool() }) });
+
+  try {
+    await runMigrations(db);
+    await runSeeds(db);
+    console.log('\n✅ Database setup completed successfully');
+  } catch (error) {
+    console.error('\n❌ Database setup failed:', error);
+    process.exit(1);
+  } finally {
+    await db.destroy();
+  }
+})().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

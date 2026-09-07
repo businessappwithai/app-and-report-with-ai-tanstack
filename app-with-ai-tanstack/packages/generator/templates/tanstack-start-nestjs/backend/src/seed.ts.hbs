@@ -1,0 +1,81 @@
+/**
+ * Database Seed Runner
+ * Run with: bun run src/seed.ts
+ *
+ * Generated: {{now}}
+ */
+
+import * as path from 'path';
+import * as fs from 'fs';
+import { Kysely, PostgresDialect, sql } from 'kysely';
+import { Pool } from 'pg';
+import { config } from 'dotenv';
+
+// Load .env from backend root (parent of src/) regardless of cwd
+config({ path: path.join(__dirname, '..', '.env'), override: true });
+config({ path: path.join(__dirname, '..', '.env.local'), override: true });
+
+async function createDialect(): Promise<PostgresDialect> {
+  const url = process.env.DATABASE_URL;
+  if (url) {
+    return new PostgresDialect({ pool: new Pool({ connectionString: url }) });
+  }
+  return new PostgresDialect({
+    pool: new Pool({
+      host: process.env.DB_HOST ?? 'localhost',
+      port: Number(process.env.DB_PORT ?? 5432),
+      user: process.env.DB_USER ?? 'postgres',
+      password: process.env.DB_PASSWORD ?? '',
+      database: process.env.DB_NAME ?? '{{snakeCase project.name}}',
+    }),
+  });
+}
+
+async function runSeeds(db: Kysely<any>) {
+  const seedDir = path.join(__dirname, '..', 'seeds');
+  const files = (await fs.promises.readdir(seedDir))
+    .filter(f => f.endsWith('.ts') && !f.endsWith('.bak'))
+    .sort();
+
+  for (const file of files) {
+    const seedPath = path.join(seedDir, file);
+    const seedModule = await import(seedPath);
+
+    if (seedModule.seed) {
+      try {
+        console.log(`Running seed: ${file}`);
+        await seedModule.seed(db);
+        console.log(`✓ Seed "${file}" completed`);
+      } catch (error) {
+        console.error(`✗ Seed "${file}" failed:`, error);
+        throw error;
+      }
+    }
+  }
+
+  // The dictionary's allowed_roles column is derived from sys_access, and a
+  // trigger keeps it current as grants are written. Seeds also insert windows,
+  // tabs and fields *after* the grants that cover them, so those rows would be
+  // left unscoped — and a row with no role attached syncs to nobody. One
+  // recompute at the end settles the whole dictionary.
+  await sql`SELECT sys_refresh_dictionary_scope()`.execute(db);
+  console.log('✓ Dictionary role scope refreshed');
+}
+
+(async () => {
+  const dialect = await createDialect();
+  const db = new Kysely<any>({ dialect });
+
+  try {
+    await runSeeds(db);
+    console.log('✓ Seed initialization completed');
+  } catch (error) {
+    console.error('Seeding failed:', error);
+    process.exit(1);
+  } finally {
+    await db.destroy();
+  }
+})().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

@@ -1,0 +1,68 @@
+FROM oven/bun:1.4.0-alpine AS builder
+
+WORKDIR /app
+
+# The whole project before installing, rather than the manifests first.
+#
+# Copying manifests alone is the usual trick for cache reuse, and it is what
+# this file used to do — `package.json`, `frontend/package.json`,
+# `backend/package.json`, install. But the root manifest is a *workspace root*
+# and it names `tests` as well, so an install that cannot see that directory
+# fails outright with `Workspace not found "tests"`. `docker compose up --build`
+# therefore failed on every generated project that kept its test suite, which is
+# the default; the root Dockerfile had already learned this and copies the whole
+# context for the same reason. A generated project is rewritten wholesale
+# anyway, so there was little cache to preserve.
+#
+# `bun install` still resolves a lockfile when the project has committed one —
+# the generator writes none, because it has no registry to resolve against.
+COPY . .
+RUN if [ -f bun.lock ]; then bun install --frozen-lockfile; else bun install; fi
+
+WORKDIR /app/frontend
+
+# Empty on purpose. A base URL compiled into a client bundle is an address the
+# image can never be run under any other name; empty means "same origin as the
+# page", and this server forwards /api/* to the API itself (src/routes/api/$.ts),
+# which is what keeps the session cookie same-origin. BACKEND_URL, set at run
+# time, is where that forwarding goes.
+ARG VITE_API_URL=
+ARG VITE_APP_URL
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_APP_URL=${VITE_APP_URL}
+
+RUN bun run build
+
+# Prune to production dependencies *here* rather than re-installing in the
+# runtime stage, and for the same reason as above: the runtime stage carries no
+# `tests` directory, so an install run there would fail on the workspace it
+# cannot see.
+WORKDIR /app
+RUN if [ -f bun.lock ]; then bun install --frozen-lockfile --production; \
+    else bun install --production; fi
+
+# ─── runtime ───────────────────────────────────────────────────────────────
+FROM oven/bun:1.4.0-alpine
+
+WORKDIR /app
+# PORT is what the server actually binds; without it Nitro picks 3000 and the
+# port the compose file publishes has nothing behind it. BACKEND_URL is where
+# /api/* is forwarded — compose points it at the backend service.
+ENV NODE_ENV=production \
+    PORT={{config.frontendPort}} \
+    BACKEND_URL=http://backend:{{config.backendPort}}
+
+# The pruned dependency tree, carried over rather than reinstalled. Both trees,
+# not just the root one: Bun keeps a workspace's own dependencies under that
+# workspace rather than hoisting everything.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/frontend/node_modules ./frontend/node_modules
+COPY --from=builder /app/package.json ./
+
+# Copy frontend application
+COPY --from=builder /app/frontend/.output ./frontend/.output
+COPY --from=builder /app/frontend/package.json ./frontend/
+
+EXPOSE {{config.frontendPort}}
+
+CMD ["bun", "run", "frontend/.output/server/index.mjs"]

@@ -1,0 +1,72 @@
+/**
+ * Audit trail — `audit_log`.
+ *
+ * Every mutating request that passes through AuditInterceptor lands here: who
+ * did it, to which entity, the before/after values, and which fields changed.
+ * `/admin/audit` reads this table through AuditController.
+ *
+ * AuditService also creates this table lazily on boot so an app that has never
+ * been migrated still records events; keeping the schema here as well means it
+ * is versioned, indexed, and present before the first request arrives.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { type Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  // gen_random_uuid() is built in from PostgreSQL 13; pgcrypto supplies it on
+  // older servers. Ignored when the extension cannot be created (no superuser).
+  await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`.execute(db).catch(() => undefined);
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+
+      -- Key of the matching immudb entry, when an immudb server is configured.
+      immudb_key        VARCHAR(200),
+
+      timestamp         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+      -- Actor
+      user_id           VARCHAR(200),
+      user_name         VARCHAR(200),
+      user_email        VARCHAR(200),
+      session_id        VARCHAR(200),
+
+      -- What happened
+      action            VARCHAR(100) NOT NULL,
+      entity_type       VARCHAR(100),
+      entity_id         VARCHAR(200),
+      before_value      JSONB,
+      after_value       JSONB,
+      changed_fields    TEXT[]       NOT NULL DEFAULT '{}',
+
+      -- Request context
+      ip_address        VARCHAR(45),
+      user_agent        TEXT,
+      source            VARCHAR(50)  NOT NULL DEFAULT 'WEB_UI',
+      request_id        VARCHAR(200),
+      correlation_id    VARCHAR(200),
+
+      -- Outcome
+      success           BOOLEAN      NOT NULL DEFAULT TRUE,
+      error_message     TEXT,
+
+      created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `.execute(db);
+
+  // The audit list is always ordered newest-first and filtered on these columns.
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_timestamp   ON audit_log (timestamp DESC)`.execute(db);
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_user_id     ON audit_log (user_id)`.execute(db);
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_action      ON audit_log (action)`.execute(db);
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_entity_type ON audit_log (entity_type)`.execute(db);
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_entity_id   ON audit_log (entity_id)`.execute(db);
+  await sql`CREATE INDEX IF NOT EXISTS idx_audit_success     ON audit_log (success)`.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP TABLE IF EXISTS audit_log`.execute(db);
+}

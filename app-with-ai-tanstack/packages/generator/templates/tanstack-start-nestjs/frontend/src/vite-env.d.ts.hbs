@@ -1,0 +1,29 @@
+/// <reference types="vite/client" />
+
+/**
+ * Vite's asset-import suffixes, declared for TypeScript.
+ *
+ * `import url from './globals.css?url'` is a Vite instruction — it resolves to
+ * the emitted asset's URL rather than to the stylesheet's contents — and the
+ * compiler has no idea what the `?url` suffix means without this. Without the
+ * declaration the root route fails to typecheck on a freshly generated app,
+ * which is not a real problem with the code and reads like one.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+declare module '*?url' {
+  const src: string;
+  export default src;
+}
+
+declare module '*?raw' {
+  const content: string;
+  export default content;
+}
+
+declare module '*?inline' {
+  const content: string;
+  export default content;
+}

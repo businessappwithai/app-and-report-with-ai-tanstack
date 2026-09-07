@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link [ref=e149] [cursor=pointer]:
+        - /url: /
+        - img [ref=e150]
+      - generic [ref=e12]:
+        - navigation [ref=e15]:
+          - link [ref=e243] [cursor=pointer]:
+            - /url: /
+            - button [ref=e244]:
+              - img [ref=e245]
+        - navigation [ref=e70]:
+          - link [ref=e248] [cursor=pointer]:
+            - /url: /settings
+            - button [ref=e249]:
+              - img [ref=e250]
+      - button [ref=e109] [cursor=pointer]:
+        - img [ref=e162]
+    - generic [ref=e112]:
+      - banner [ref=e113]:
+        - button "Sakila Demo DB sqlite3" [ref=e164] [cursor=pointer]:
+          - img [ref=e165]
+          - generic [ref=e169]: Sakila Demo DB
+          - generic [ref=e170]: sqlite3
+        - generic [ref=e119]:
+          - button "Toggle theme" [ref=e120] [cursor=pointer]:
+            - img [ref=e121]
+            - img
+            - generic [ref=e127]: Toggle theme
+          - button "Notifications" [ref=e128] [cursor=pointer]:
+            - img [ref=e129]
+            - generic [ref=e132]: Notifications
+          - button "A" [ref=e133] [cursor=pointer]:
+            - generic [ref=e135]: A
+      - main [ref=e136]:
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - heading "Dashboard" [level=1] [ref=e255]
+            - paragraph [ref=e256]: Welcome to the Enterprise Reporting System - admin@admin.com
+          - generic [ref=e257]:
+            - link "Total Reports 0" [ref=e258] [cursor=pointer]:
+              - /url: /reports
+              - generic [ref=e259]:
+                - generic [ref=e260]:
+                  - heading "Total Reports" [level=3] [ref=e261]
+                  - img [ref=e262]
+                - generic [ref=e266]: "0"
+            - link "Active Charts 4" [ref=e267] [cursor=pointer]:
+              - /url: /charts
+              - generic [ref=e268]:
+                - generic [ref=e269]:
+                  - heading "Active Charts" [level=3] [ref=e270]
+                  - img [ref=e271]
+                - generic [ref=e274]: "4"
+            - link "Dashboards 3" [ref=e275] [cursor=pointer]:
+              - /url: /dashboards
+              - generic [ref=e276]:
+                - generic [ref=e277]:
+                  - heading "Dashboards" [level=3] [ref=e278]
+                  - img [ref=e279]
+                - generic [ref=e285]: "3"
+            - link "Scheduled Jobs 0" [ref=e286] [cursor=pointer]:
+              - /url: /jobs
+              - generic [ref=e287]:
+                - generic [ref=e288]:
+                  - heading "Scheduled Jobs" [level=3] [ref=e289]
+                  - img [ref=e290]
+                - generic [ref=e294]: "0"
+          - generic [ref=e295]:
+            - heading "Quick Actions" [level=2] [ref=e296]
+            - generic [ref=e297]:
+              - link "SQL Editor Write and execute SQL queries" [ref=e298] [cursor=pointer]:
+                - /url: /sql-editor
+                - generic [ref=e299]:
+                  - generic [ref=e301]:
+                    - img [ref=e302]
+                    - heading "SQL Editor" [level=3] [ref=e306]
+                  - paragraph [ref=e308]: Write and execute SQL queries
+              - link "Reports View and manage reports" [ref=e309] [cursor=pointer]:
+                - /url: /reports
+                - generic [ref=e310]:
+                  - generic [ref=e312]:
+                    - img [ref=e313]
+                    - heading "Reports" [level=3] [ref=e316]
+                  - paragraph [ref=e318]: View and manage reports
+              - link "Charts Create data visualizations" [ref=e319] [cursor=pointer]:
+                - /url: /charts
+                - generic [ref=e320]:
+                  - generic [ref=e322]:
+                    - img [ref=e323]
+                    - heading "Charts" [level=3] [ref=e325]
+                  - paragraph [ref=e327]: Create data visualizations
+              - link "Dashboards Build interactive dashboards" [ref=e328] [cursor=pointer]:
+                - /url: /dashboards
+                - generic [ref=e329]:
+                  - generic [ref=e331]:
+                    - img [ref=e332]
+                    - heading "Dashboards" [level=3] [ref=e337]
+                  - paragraph [ref=e339]: Build interactive dashboards
+          - generic [ref=e340]:
+            - generic [ref=e341]:
+              - heading "Recent Jobs" [level=3] [ref=e343]:
+                - img [ref=e344]
+                - text: Recent Jobs
+              - paragraph [ref=e347]: No recent job executions
+            - generic [ref=e348]:
+              - heading "Recent Activity" [level=3] [ref=e350]:
+                - img [ref=e351]
+                - text: Recent Activity
+              - paragraph [ref=e355]: No recent activity
+  - region "Notifications alt+T"

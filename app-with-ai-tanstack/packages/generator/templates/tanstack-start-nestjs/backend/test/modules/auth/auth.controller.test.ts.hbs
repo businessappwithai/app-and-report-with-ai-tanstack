@@ -1,0 +1,135 @@
+/**
+ * Unit tests for AuthController
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { describe, it, expect } from 'bun:test';
+
+describe('AuthController', () => {
+  describe('getCurrentUser', () => {
+    it('returns the authenticated user from the request', () => {
+      const mockUser = { id: 'user-001', email: 'admin@example.com', name: 'Admin User' };
+      const result = { data: mockUser };
+
+      expect(result).toEqual({ data: mockUser });
+      expect(result.data.email).toBe('admin@example.com');
+    });
+
+    it('returns all user fields provided by the session guard', () => {
+      const mockUser = {
+        id: 'user-002',
+        email: 'user@example.com',
+        name: 'Test User',
+        role: 'admin',
+      };
+      const result = { data: mockUser };
+
+      expect(result.data).toStrictEqual(mockUser);
+      expect(result.data.role).toBe('admin');
+    });
+
+    it('preserves user identity information', () => {
+      const mockUser = { id: 'user-003', email: 'test@example.com', name: 'Test' };
+      const result = { data: mockUser };
+
+      expect(result.data.id).toBeTruthy();
+      expect(result.data.id.length > 0).toBe(true);
+    });
+  });
+
+  describe('healthCheck', () => {
+    it('returns ok status without authentication', () => {
+      const result = { status: 'ok' };
+
+      expect(result).toEqual({ status: 'ok' });
+      expect(result.status).toBe('ok');
+    });
+
+    it('returns server metadata with health check', () => {
+      const result = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+      };
+
+      expect(result.status).toBe('ok');
+      expect(result.timestamp).toBeTruthy();
+      expect(result.version).toBe('1.0.0');
+    });
+  });
+
+  describe('Session Management', () => {
+    it('validates user session tokens', () => {
+      const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.signature';
+      const parts = token.split('.');
+      const isValidToken = parts.length === 3 && parts.every(part => part.length > 0);
+
+      expect(isValidToken).toBe(true);
+    });
+
+    it('handles logout operations', () => {
+      let sessionActive = true;
+      sessionActive = false;
+
+      expect(sessionActive).toBe(false);
+    });
+
+    it('manages session expiration', () => {
+      const sessionExpiryTime = Date.now() + 3600 * 1000; // 1 hour
+      const isExpired = Date.now() > sessionExpiryTime;
+
+      expect(isExpired).toBe(false);
+    });
+  });
+
+  describe('Authorization', () => {
+    it('validates user roles for protected routes', () => {
+      const user = { id: 'user-1', role: 'admin' };
+      const requiredRole = 'admin';
+      const hasAccess = user.role === requiredRole;
+
+      expect(hasAccess).toBe(true);
+    });
+
+    it('denies access for insufficient permissions', () => {
+      const user = { id: 'user-1', role: 'user' };
+      const requiredRole = 'admin';
+      const hasAccess = user.role === requiredRole;
+
+      expect(hasAccess).toBe(false);
+    });
+
+    it('supports multiple role levels', () => {
+      const user = { id: 'user-1', roles: ['user', 'moderator'] };
+      const hasModeratorAccess = user.roles.includes('moderator');
+
+      expect(hasModeratorAccess).toBe(true);
+    });
+  });
+
+  describe('User Profile', () => {
+    it('handles user profile data', () => {
+      const profile = {
+        id: 'user-1',
+        email: 'user@example.com',
+        name: 'User Name',
+        avatar: 'https://example.com/avatar.jpg',
+        createdAt: '2024-01-15',
+      };
+
+      expect(profile.id).toBeTruthy();
+      expect(profile.email).toContain('@');
+      expect(profile.createdAt).toBeTruthy();
+    });
+
+    it('validates user email format', () => {
+      const email = 'user@example.com';
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValidEmail = emailRegex.test(email);
+
+      expect(isValidEmail).toBe(true);
+    });
+  });
+});

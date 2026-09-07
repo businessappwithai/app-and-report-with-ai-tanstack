@@ -1,0 +1,41 @@
+/**
+ * Report Task - Trigger.dev v3
+ *
+ * Background task for generating reports (PDF, CSV, etc.).
+ * Triggered via generateReportTask.trigger(payload) from JobQueueService.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { task } from '@trigger.dev/sdk/v3';
+
+export interface ReportTaskPayload {
+  reportType: string;
+  params: Record<string, unknown>;
+  userId: string;
+}
+
+export const generateReportTask = task({
+  id: 'generate-report',
+  maxDuration: 300,
+  retry: {
+    maxAttempts: 2,
+    factor: 2,
+    minTimeoutInMs: 5000,
+    maxTimeoutInMs: 30000,
+  },
+  run: async (payload: ReportTaskPayload) => {
+    // TODO: implement report generation logic
+    // Example: query database, render PDF with PDFKit or similar, upload to S3
+
+    const reportUrl = `/reports/${payload.reportType}_${Date.now()}.pdf`;
+
+    return {
+      success: true,
+      reportUrl,
+      reportType: payload.reportType,
+      generatedBy: payload.userId,
+    };
+  },
+});

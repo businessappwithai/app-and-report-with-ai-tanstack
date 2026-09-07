@@ -1,0 +1,195 @@
+# Enterprise Reporting System — Local test stack
+# Includes: MariaDB · Redis · whisper.cpp STT · Mastra AI · App
+# Usage: docker compose -f docker-compose.local.yml up -d --build
+# App: http://localhost:5050  |  Mastra: http://localhost:4111
+
+services:
+
+  # ── MariaDB — configuration + metadata database ──────────────────────────────
+  mariadb:
+    image: mariadb:11
+    container_name: ers-local-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root_pass}
+      MARIADB_DATABASE:      ${MARIADB_DATABASE:-enterprise_config}
+      MARIADB_USER:          ${MARIADB_USER:-enterprise}
+      MARIADB_PASSWORD:      ${MARIADB_PASSWORD:-enterprise_pass}
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=256M
+      --max-allowed-packet=64M
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ers-network
+
+  # ── Redis — job queue ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ers-local-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ers-network
+
+  # ── STT — whisper.cpp tiny.en ────────────────────────────────────────────────
+  stt:
+    build:
+      context: .
+      dockerfile: Dockerfile.stt
+    image: ers-stt:latest
+    container_name: ers-local-stt
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - ers-network
+
+  # ── Mastra — NL-to-SQL + STT proxy ───────────────────────────────────────────
+  mastra:
+    build:
+      context: .
+      dockerfile: Dockerfile.mastra
+    image: ers-mastra:latest
+    container_name: ers-local-mastra
+    restart: unless-stopped
+    ports:
+      - "4111:4111"
+    environment:
+      MASTRA_PORT: "4111"
+      # NL-to-SQL via OpenRouter (free tier)
+      # Alternatives: google/gemma-4-31b-it:free  qwen/qwen3-coder:free
+      AI_NL2SQL_BASE_URL: "https://openrouter.ai/api/v1"
+      AI_NL2SQL_MODEL:    "openai/gpt-oss-120b:free"
+      AI_NL2SQL_API_KEY:  ${AI_NL2SQL_API_KEY:-sk-or-v1-REDACTED_SET_VIA_ENV}
+      # STT via internal whisper.cpp container (HTTP = internal service)
+      AI_STT_BASE_URL: "http://stt:8081/v1"
+      AI_STT_MODEL:    "whisper-1"
+      AI_STT_API_KEY:  "none"
+    depends_on:
+      stt:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4111/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 25s
+      retries: 5
+    networks:
+      - ers-network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  # ── App — TanStack Start ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enterprise-reporting-system:latest
+    container_name: ers-local-app
+    restart: unless-stopped
+    ports:
+      - "5050:3000"
+    environment:
+      NODE_ENV:             production
+      PORT:                 "3000"
+      NEXT_PUBLIC_APP_URL:  "http://localhost:5050"
+      AUTH_SECRET:          ${AUTH_SECRET:-local-dev-secret-change-in-production}
+      AUTH_URL:             "http://localhost:5050"
+
+      # MariaDB
+      MARIADB_HOST:     mariadb
+      MARIADB_PORT:     "3306"
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-enterprise_config}
+      MARIADB_USER:     ${MARIADB_USER:-enterprise}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-enterprise_pass}
+
+      # Redis
+      REDIS_URL:             "redis://redis:6379"
+      ENCRYPTION_KEY:        ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      JOB_OUTPUT_PATH:       /app/job-outputs
+      MAX_CONCURRENT_JOBS:   "5"
+
+      # Pagination / UI
+      DEFAULT_PAGE_SIZE:          "50"
+      MAX_PAGE_SIZE:              "1000"
+      DATA_TABLE_PAGE_SIZE:       "100"
+      EXPORT_PAGE_SIZE:           "1000"
+      VIRTUAL_SCROLL_THRESHOLD:   "500"
+      ENABLE_VIRTUAL_SCROLLING:   "true"
+      NEXT_PUBLIC_ERROR_REPORTING_EMAIL: "admin@localhost"
+      PGCONNECT_TIMEOUT:          "30000"
+
+      # Mastra AI agent (Docker-internal hostname)
+      MASTRA_URL: "http://mastra:4111"
+
+      # AI provider — NL-to-SQL via OpenRouter; STT via Moonshine container
+      AI_NL2SQL_BASE_URL: "https://openrouter.ai/api/v1"
+      AI_NL2SQL_MODEL:    "openai/gpt-oss-120b:free"
+      AI_NL2SQL_API_KEY:  ${AI_NL2SQL_API_KEY:-sk-or-v1-REDACTED_SET_VIA_ENV}
+      AI_STT_BASE_URL:    "http://stt:8081/v1"
+      AI_STT_MODEL:       "whisper-1"
+      AI_STT_API_KEY:     "none"
+
+    volumes:
+      - ${DATA_PATH:-./.docker-data}/app/job-outputs:/app/job-outputs
+      - ${DATA_PATH:-./.docker-data}/app/uploads:/app/uploads
+      - ${DATA_PATH:-./.docker-data}/app/logs:/app/logs
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mastra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - ers-network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+
+networks:
+  ers-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+
+volumes:
+  mariadb_data:
+    driver: local
+  redis_data:
+    driver: local

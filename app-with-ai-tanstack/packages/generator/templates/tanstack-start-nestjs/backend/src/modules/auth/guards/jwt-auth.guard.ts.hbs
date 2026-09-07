@@ -1,0 +1,53 @@
+/**
+ * JWT Auth Guard - BetterAuth Integration
+ *
+ * Protects routes by validating session tokens from BetterAuth
+ *
+ * Generated: {{now}}
+ */
+
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Inject } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { getAuth } from '../../../lib/better-auth';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { setRequestContext } from '../../../common/logging/logger.service';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Check if route is marked as public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const headers = request.headers;
+
+    try {
+      const auth = getAuth();
+      const session = await auth.api.getSession({
+        headers,
+      });
+
+      if (!session) {
+        throw new UnauthorizedException('Invalid or expired session');
+      }
+
+      // Attach user and session to request
+      request.user = session.user;
+      setRequestContext({ userId: (session.user as any)?.sys_user_id ?? (session.user as any)?.id ?? null });
+      request.session = session;
+
+      return true;
+    } catch (error) {
+      throw new UnauthorizedException('Authentication failed');
+    }
+  }
+}

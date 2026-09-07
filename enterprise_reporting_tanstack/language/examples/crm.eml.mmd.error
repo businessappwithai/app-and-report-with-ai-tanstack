@@ -1,0 +1,12 @@
+{
+  "file": "/home/user/app-with-ai-tanstack/language/examples/crm.eml.mmd",
+  "checkedAt": "2026-08-18T18:19:22.412Z",
+  "languageVersion": "1.2.0",
+  "summary": {
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0,
+    "ok": true
+  },
+  "issues": []
+}

@@ -1,0 +1,109 @@
+/**
+ * Per-operation access rules — what `%%rbac` compiles to.
+ *
+ * `sys_access` already exists and is deliberately not reused. It is a *grant*
+ * table feeding `sys_refresh_dictionary_scope()`, which recomputes
+ * `allowed_roles` on every dictionary table: a table with no `sys_access` rows
+ * is visible to all roles, and the first row added narrows it to that role
+ * alone. Writing `%%rbac role:admin on Order.delete` there would hide the Order
+ * window from everyone but admin — a restriction on deleting quietly becoming a
+ * restriction on looking.
+ *
+ * So operation rules get their own table, and the two stay independent:
+ * `sys_access` answers "which windows may this role open", this answers "may
+ * this role perform this operation on this table".
+ *
+ * A `(table_name, operation)` pair with no row here is **unrestricted**. Rows
+ * close a pair to the roles they name. That is what makes the directive
+ * additive: a model declaring no `%%rbac` leaves every operation exactly as
+ * open as it was before this table existed.
+ *
+ * `role_name` rather than a `sys_role_id` FK, deliberately. The guard is handed
+ * role *names* by the session guard, seeding is then order-independent, and a
+ * rule naming a role nobody holds yet is inert rather than a broken reference.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS sys_operation_access (
+      sys_operation_access_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      table_name VARCHAR(100) NOT NULL,
+      operation VARCHAR(10) NOT NULL,
+      role_name VARCHAR(100) NOT NULL,
+      entity_type VARCHAR(40) NOT NULL DEFAULT 'D',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_by VARCHAR(100) NOT NULL DEFAULT 'system',
+      updated_by VARCHAR(100) NOT NULL DEFAULT 'system',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT sys_operation_access_op CHECK (operation IN ('create', 'read', 'update', 'delete')),
+      CONSTRAINT sys_operation_access_unique UNIQUE (table_name, operation, role_name)
+    )
+  `.execute(db);
+
+  // The guard runs this lookup on every write, so the index carries the exact
+  // shape of that query: "the active rules for this table and operation".
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_operation_access_lookup
+    ON sys_operation_access (table_name, operation)
+    WHERE is_active
+  `.execute(db);
+
+  await up_transitions(db);
+}
+
+/**
+ * Transition rules — the other half of `%%rbac`.
+ *
+ * `%%rbac role:sales_manager on Lead.convert` names a transition in Lead's
+ * state machine, not a CRUD operation. The generated application has no
+ * named-transition endpoint: moving a record along an edge is an ordinary
+ * update that writes the status column. So a rule is stored as the edge it
+ * covers — `from_state` → `to_state` on `status_field` — and the guard
+ * recognises the move by what the update is about to write and what the record
+ * currently holds.
+ *
+ * Both ends are stored, not just the target. An event name can appear on
+ * several edges, and two different events can land on the same state;
+ * restricting `approve` must not incidentally restrict a different event that
+ * happens to reach `approved`.
+ */
+export async function up_transitions(db: Kysely<any>): Promise<void> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS sys_transition_access (
+      sys_transition_access_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      table_name VARCHAR(100) NOT NULL,
+      transition VARCHAR(100) NOT NULL,
+      status_field VARCHAR(100) NOT NULL,
+      from_state VARCHAR(100) NOT NULL,
+      to_state VARCHAR(100) NOT NULL,
+      role_name VARCHAR(100) NOT NULL,
+      entity_type VARCHAR(40) NOT NULL DEFAULT 'D',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_by VARCHAR(100) NOT NULL DEFAULT 'system',
+      updated_by VARCHAR(100) NOT NULL DEFAULT 'system',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT sys_transition_access_unique
+        UNIQUE (table_name, transition, from_state, to_state, role_name)
+    )
+  `.execute(db);
+
+  // The guard asks "is any transition into this state restricted on this
+  // table", once per update that touches a status column.
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_transition_access_lookup
+    ON sys_transition_access (table_name, to_state)
+    WHERE is_active
+  `.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP TABLE IF EXISTS sys_transition_access`.execute(db);
+  await sql`DROP TABLE IF EXISTS sys_operation_access`.execute(db);
+}

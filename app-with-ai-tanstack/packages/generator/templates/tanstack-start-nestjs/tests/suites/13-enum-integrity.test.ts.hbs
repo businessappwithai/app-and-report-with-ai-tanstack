@@ -1,0 +1,205 @@
+/**
+ * Enums — the model's word against the data and the API.
+ *
+ * `02c` already checks that the dropdown offers what the model declares. This
+ * suite checks the two things either side of that: the rows *in* the column,
+ * and whether the API will accept something the model never named.
+ *
+ * Both were wrong at once and neither was visible from a dropdown. Every
+ * enum-bound column was seeded from one hard-coded vocabulary — `Active`,
+ * `Pending`, `In Progress`, `Completed` — whatever the model declared, so a
+ * `%%enum MemberStatus: active, lapsed, suspended` column held four values none
+ * of which the dictionary offers, the control cannot select, and no state
+ * machine has an edge out of. The dropdown was right the whole time; the data
+ * under it was not.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, harness, modelEnums, writableFields } from "../harness/index.ts";
+
+interface FormField {
+  column_name: string;
+  sys_reference_id?: number;
+  options?: Array<{ value: string; label: string }> | null;
+}
+
+interface Row {
+  [column: string]: unknown;
+}
+
+function rows<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
+/** entity route + column → the enum the model bound to it. */
+interface BoundColumn {
+  route: string;
+  entityName: string;
+  column: string;
+  enumName: string;
+  values: string[];
+  referenceId: number;
+}
+
+const hasEnums = modelEnums.length > 0;
+
+describe("enum integrity", () => {
+  /** Columns the *application* says are bound to a model enum. */
+  const bound: BoundColumn[] = [];
+
+  beforeAll(async () => {
+    if (!hasEnums) return;
+    await harness.setup();
+
+    for (const entity of entities) {
+      const response = await harness.client.get<FormField[]>(
+        `/bus/${entity.route}/fields/form?includeHidden=true`,
+        { allowFailure: true }
+      );
+      if (!response.ok) continue;
+
+      for (const field of response.data ?? []) {
+        const declared = modelEnums.find(
+          (item) => item.referenceId === field.sys_reference_id
+        );
+        if (!declared) continue;
+        bound.push({
+          route: entity.route,
+          entityName: entity.name,
+          column: field.column_name,
+          enumName: declared.name,
+          values: declared.values,
+          referenceId: declared.referenceId,
+        });
+      }
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it.skipIf(!hasEnums)("the model declares at least one enum", () => {
+    expect(modelEnums.length).toBeGreaterThan(0);
+  });
+
+  it.skipIf(!hasEnums)("every declared enum reaches a column", () => {
+    // An enum the model declares and no `%%field … enum:` binds is dead
+    // vocabulary — the column it was meant for is a free-text box.
+    const unbound = modelEnums
+      .filter((item) => !bound.some((column) => column.referenceId === item.referenceId))
+      .map((item) => item.name);
+    expect(unbound).toEqual([]);
+  });
+
+  it.skipIf(!hasEnums)("no enum declares a duplicate value", () => {
+    const offenders = modelEnums
+      .filter((item) => new Set(item.values).size !== item.values.length)
+      .map((item) => item.name);
+    expect(offenders).toEqual([]);
+  });
+
+  it.skipIf(!hasEnums)("no enum is empty", () => {
+    const empty = modelEnums.filter((item) => item.values.length === 0).map((item) => item.name);
+    expect(empty).toEqual([]);
+  });
+
+  // ── The rows in the column ────────────────────────────────────────────────
+
+  describe("stored values", () => {
+    for (const declared of modelEnums) {
+      it.skipIf(!hasEnums)(
+        `every row bound to ${declared.name} holds a value the model declares`,
+        async () => {
+          const columns = bound.filter((item) => item.referenceId === declared.referenceId);
+          // Nothing bound to it — the "reaches a column" test above owns that
+          // failure; reporting it twice would name one fault as two.
+          if (columns.length === 0) return;
+
+          const allowed = new Set(declared.values);
+          const offenders: string[] = [];
+
+          for (const column of columns) {
+            const response = await harness.client.get(
+              `/bus/${column.route}?limit=200`,
+              { allowFailure: true }
+            );
+            if (!response.ok) continue;
+
+            for (const row of rows<Row>(response.data)) {
+              const value = row[column.column];
+              if (value === null || value === undefined || value === "") continue;
+              if (!allowed.has(String(value))) {
+                offenders.push(`${column.route}.${column.column} = ${JSON.stringify(value)}`);
+              }
+            }
+          }
+
+          expect([...new Set(offenders)].sort()).toEqual([]);
+        }
+      );
+    }
+  });
+
+  // ── What the API will accept ──────────────────────────────────────────────
+
+  describe("the API refuses an undeclared value", () => {
+    for (const declared of modelEnums) {
+      it.skipIf(!hasEnums)(`${declared.name} rejects a value it never named`, async () => {
+        const column = bound.find((item) => item.referenceId === declared.referenceId);
+        if (!column) return;
+
+        const entity = entities.find((item) => item.route === column.route);
+        if (!entity) return;
+
+        const writable = writableFields(entity).some((field) => field.name === column.column);
+        if (!writable) return;
+
+        const payload = await harness.buildValidRecord(entity, {
+          [column.column]: `not-a-${declared.name.toLowerCase()}-value`,
+        });
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+
+        if (response.ok) {
+          // It was accepted — track it so teardown removes it, then fail with
+          // the value that got through rather than with a bare boolean.
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      });
+    }
+  });
+
+  // ── The dictionary's own consistency ──────────────────────────────────────
+
+  describe("the dictionary agrees with the model", () => {
+    for (const declared of modelEnums) {
+      it.skipIf(!hasEnums)(`${declared.name} keeps the model's declaration order`, async () => {
+        const response = await harness.client.get<Array<{ value: string }>>(
+          `/sys/ref-list?sys_reference_id=${declared.referenceId}`,
+          { allowFailure: true }
+        );
+        if (!response.ok) return;
+
+        // Order is not asserted — `/sys/ref-list` sorts by value — but the set
+        // is, and a missing value is a control that cannot select a state the
+        // model requires.
+        const served = new Set(rows<{ value: string }>(response.data).map((row) => row.value));
+        const missing = declared.values.filter((value) => !served.has(value));
+        expect(missing).toEqual([]);
+      });
+    }
+  });
+});

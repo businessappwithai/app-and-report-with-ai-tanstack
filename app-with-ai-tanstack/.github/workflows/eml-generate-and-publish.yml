@@ -1,0 +1,105 @@
+# EML — Generate & Publish
+#
+# Point this at an online .mmd EML model and a target GitHub repository.
+# It runs the EML CLI to generate a complete application (with Docker files and
+# a CI/CD workflow) and publishes the generated code to the target repository.
+#
+# Required secret:
+#   EML_PUBLISH_TOKEN  A GitHub Personal Access Token with `repo` and `workflow`
+#                      scopes (workflow scope is needed to push the generated
+#                      .github/workflows/app-ci.yml into the target repo).
+name: EML — Generate & Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      mmd_url:
+        description: "URL of the online .mmd EML model to generate from"
+        required: true
+      target_repo:
+        description: "Target repository to publish to (owner/repo or repo)"
+        required: true
+      app_name:
+        description: "Application name"
+        required: false
+        default: "eml-app"
+      stack:
+        description: "Target stack"
+        type: choice
+        options:
+          - node-rest
+          - tanstack-nestjs
+        default: node-rest
+      visibility:
+        description: "Visibility of the created target repository"
+        type: choice
+        options:
+          - private
+          - public
+        default: private
+
+permissions:
+  contents: read
+
+# Pinned, matching ci.yml. `latest` silently becomes the next major the day it
+# ships, which would change this workflow's behaviour without a commit to it.
+env:
+  BUN_VERSION: "1.4.0"
+
+jobs:
+  generate-and-publish:
+    name: Generate from ${{ inputs.mmd_url }} → ${{ inputs.target_repo }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build core package (required for the tanstack-nestjs stack)
+        if: ${{ inputs.stack == 'tanstack-nestjs' }}
+        run: bun run --filter @appwithai/core build
+
+      - name: Download the online EML model
+        run: |
+          echo "Downloading ${{ inputs.mmd_url }}"
+          curl -fSL "${{ inputs.mmd_url }}" -o model.mmd
+          echo "----- model.mmd -----"
+          head -n 40 model.mmd
+
+      - name: Validate the model
+        run: bun language/cli/eml.ts validate -i model.mmd
+
+      - name: Generate and publish the application
+        env:
+          EML_PUBLISH_TOKEN: ${{ secrets.EML_PUBLISH_TOKEN }}
+        run: |
+          if [ -z "${EML_PUBLISH_TOKEN}" ]; then
+            echo "::error::EML_PUBLISH_TOKEN secret is not set (needs repo + workflow scopes)."
+            exit 1
+          fi
+          bun language/cli/eml.ts generate \
+            -i model.mmd \
+            -o generated-app \
+            --name "${{ inputs.app_name }}" \
+            --stack "${{ inputs.stack }}" \
+            --docker \
+            --force \
+            --github "${{ inputs.target_repo }}" \
+            --github-token "${EML_PUBLISH_TOKEN}" \
+            ${{ inputs.visibility == 'public' && '--public' || '--private' }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### EML generation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Model: ${{ inputs.mmd_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Stack: ${{ inputs.stack }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Target repo: ${{ inputs.target_repo }} (${{ inputs.visibility }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The generated app includes a Docker + docker compose CI/CD workflow (.github/workflows/app-ci.yml)." >> "$GITHUB_STEP_SUMMARY"

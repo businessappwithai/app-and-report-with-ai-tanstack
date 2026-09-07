@@ -1,0 +1,218 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+                  - link:
+                    - /url: /sql-editor
+                    - button:
+                      - img
+                      - generic: SQL Editor
+                  - link:
+                    - /url: /queries
+                    - button:
+                      - img
+                      - generic: Saved Queries
+                  - link:
+                    - /url: /reports
+                    - button:
+                      - img
+                      - generic: Reports
+                  - link:
+                    - /url: /charts
+                    - button:
+                      - img
+                      - generic: Charts
+                  - link:
+                    - /url: /dashboards
+                    - button:
+                      - img
+                      - generic: Dashboards
+                  - link:
+                    - /url: /filters
+                    - button:
+                      - img
+                      - generic: Filters
+                  - link:
+                    - /url: /jobs
+                    - button:
+                      - img
+                      - generic: Jobs
+                  - link:
+                    - /url: /nl-query
+                    - button:
+                      - img
+                      - generic: NL Query
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /data-sources
+                    - button:
+                      - img
+                      - generic: Data Sources
+                  - link:
+                    - /url: /bull-board
+                    - button:
+                      - img
+                      - generic: Queue Management
+                  - link:
+                    - /url: /logs
+                    - button:
+                      - img
+                      - generic: System Logs
+                  - link:
+                    - /url: /admin/users
+                    - button:
+                      - img
+                      - generic: Users
+                  - link:
+                    - /url: /admin/roles
+                    - button:
+                      - img
+                      - generic: Roles
+                  - link:
+                    - /url: /admin/permissions
+                    - button:
+                      - img
+                      - generic: Permissions
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - combobox:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img
+          - button:
+            - img
+            - generic: Notifications
+          - button:
+            - generic:
+              - generic: SA
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Data Sources
+              - paragraph: Manage database connections for reports and queries
+            - button:
+              - img
+              - text: New Data Source
+          - generic:
+            - generic:
+              - heading [level=3]:
+                - img
+                - text: All Data Sources
+            - generic:
+              - generic:
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: Name
+                      - columnheader: Type
+                      - columnheader: Description
+                      - columnheader: Status
+                      - columnheader: Created
+                      - columnheader: Actions
+                  - rowgroup:
+                    - row:
+                      - cell: HMS0
+                      - cell:
+                        - generic: pg
+                      - cell: "-"
+                      - cell:
+                        - generic:
+                          - generic: Connected
+                          - text: "0"
+                      - cell: May 28, 2026, 02:52 PM
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                          - link:
+                            - /url: /metadata/entities?data_source_id=c0e8c622-9088-4e4b-b18e-4f7447b93310
+                            - button:
+                              - img
+                          - button:
+                            - img
+                          - button:
+                            - img
+  - region "Notifications alt+T"
+  - dialog "Edit Data Source" [ref=e203]:
+    - generic [ref=e204]:
+      - heading "Edit Data Source" [level=2] [ref=e205]
+      - paragraph [ref=e206]: Update the configuration for HMS.
+    - generic [ref=e207]:
+      - generic [ref=e208]:
+        - generic [ref=e209]:
+          - text: Name
+          - textbox "Name" [active] [ref=e210]:
+            - /placeholder: Production Database
+            - text: HMS
+        - generic [ref=e211]:
+          - text: Database Type
+          - combobox "Database Type" [disabled] [ref=e212]:
+            - generic: PostgreSQL
+            - img [ref=e213]
+      - generic [ref=e215]:
+        - text: Description
+        - textbox "Description" [ref=e216]:
+          - /placeholder: Optional description
+      - generic [ref=e217]:
+        - button "Connection String" [ref=e219] [cursor=pointer]
+        - button "Individual Fields" [ref=e221] [cursor=pointer]
+      - generic [ref=e222]:
+        - generic [ref=e223]:
+          - text: Host
+          - textbox "Host" [ref=e224]:
+            - /placeholder: localhost
+        - generic [ref=e225]:
+          - text: Port
+          - textbox "Port" [ref=e226]:
+            - /placeholder: "5432"
+      - generic [ref=e227]:
+        - text: Database
+        - textbox "Database" [ref=e228]:
+          - /placeholder: mydb
+      - generic [ref=e229]:
+        - generic [ref=e230]:
+          - text: Username
+          - textbox "Username" [ref=e231]:
+            - /placeholder: dbuser
+            - text: testuser
+        - generic [ref=e232]:
+          - text: Password
+          - textbox "Password" [ref=e233]:
+            - /placeholder: Leave empty to keep current
+            - text: testpass
+    - generic [ref=e234]:
+      - button "Test Connection" [disabled]
+      - button "Cancel" [ref=e235] [cursor=pointer]
+      - button "Update" [ref=e236] [cursor=pointer]
+    - button "Close" [ref=e237] [cursor=pointer]:
+      - img [ref=e238]
+      - generic [ref=e241]: Close

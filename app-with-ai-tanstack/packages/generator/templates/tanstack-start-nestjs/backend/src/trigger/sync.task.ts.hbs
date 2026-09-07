@@ -1,0 +1,38 @@
+/**
+ * Sync Task - Trigger.dev v3
+ *
+ * Background task for synchronising entity data with external systems.
+ * Triggered via syncEntityTask.trigger(payload) from JobQueueService.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { task } from '@trigger.dev/sdk/v3';
+
+export interface SyncTaskPayload {
+  entityType: string;
+  entityId: string;
+  action: 'create' | 'update' | 'delete';
+}
+
+export const syncEntityTask = task({
+  id: 'sync-entity',
+  maxDuration: 120,
+  retry: {
+    maxAttempts: 5,
+    factor: 2,
+    minTimeoutInMs: 1000,
+    maxTimeoutInMs: 16000,
+  },
+  run: async (payload: SyncTaskPayload) => {
+    // TODO: implement sync logic with external systems (ERP, EHR, FHIR, etc.)
+
+    return {
+      success: true,
+      entityType: payload.entityType,
+      entityId: payload.entityId,
+      action: payload.action,
+    };
+  },
+});

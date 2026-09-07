@@ -1,0 +1,48 @@
+/**
+ * Reconcile the auth tables with the installed Better Auth version.
+ *
+ * `0000_create_auth_tables` writes `user`, `session`, `account` and
+ * `verification` by hand. That snapshot was taken against one version of Better
+ * Auth and does not move when the dependency does, so every release that adds a
+ * column leaves the generated schema behind — and the failure is silent until
+ * someone tries to sign in, at which point the adapter's query references a
+ * column that is not there and the answer comes back as "Invalid email or
+ * password".
+ *
+ * Better Auth knows its own schema, so this asks it. `getMigrations` diffs the
+ * live database against what the configured instance needs and `runMigrations`
+ * applies the difference: on an up-to-date database it does nothing.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Kysely } from 'kysely';
+
+export async function up(_db: Kysely<any>): Promise<void> {
+  // The same options object the running app uses, so the diff is taken against
+  // the schema this application will actually query.
+  const { buildAuthOptions } = await import('../lib/better-auth');
+  const { getMigrations } = await import('better-auth/db/migration');
+
+  const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(buildAuthOptions());
+
+  const pending = [...toBeCreated, ...toBeAdded];
+  if (pending.length === 0) {
+    console.log('  ✓ Better Auth schema already current');
+    return;
+  }
+
+  for (const { table, fields } of pending) {
+    console.log(`  → ${table}: ${Object.keys(fields).join(', ')}`);
+  }
+
+  await runMigrations();
+  console.log('  ✓ Better Auth schema reconciled');
+}
+
+export async function down(_db: Kysely<any>): Promise<void> {
+  // Columns Better Auth added are dropped with the tables in 0000's down().
+  // Removing them individually here would leave the auth tables in a state
+  // neither migration describes.
+}

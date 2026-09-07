@@ -1,0 +1,24 @@
+/**
+ * The API entry point.
+ *
+ * This file is small but it is not optional. TanStack Start only mounts a
+ * router for `src/routes/api/**` if this file exists — `defineConfig` checks for
+ * it by name and silently skips the whole API router when it is missing. Without
+ * it every /api/* request is handled by the page router instead, which finds no
+ * page at that address and answers 200 with an HTML "Not Found" body.
+ *
+ * That failure is quiet in the worst way. `vinxi dev` proxies /api to the API
+ * before the router ever sees it, so development works; only a built server
+ * shows the problem, and it shows it as a sign-in that reports a bad password
+ * while the same credentials succeed against the API directly.
+ *
+ * The route files it serves must export their route as `APIRoute` —
+ * `createAPIFileRoute(…)` assigned to any other name is not registered.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { createStartAPIHandler, defaultAPIFileRouteHandler } from '@tanstack/start/api'
+
+export default createStartAPIHandler(defaultAPIFileRouteHandler)

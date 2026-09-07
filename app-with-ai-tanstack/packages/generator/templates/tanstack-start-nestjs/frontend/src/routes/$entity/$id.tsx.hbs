@@ -1,0 +1,13 @@
+import { createFileRoute } from '@tanstack/react-router';
+import { BusEntityDetailPage } from '@/components/admin/bus-entity-detail-page';
+
+export const Route = createFileRoute('/{{kebabCase entity.name}}/$id')({
+  component: {{entity.name}}DetailPage,
+});
+
+// Generated thin wrapper — replace the component body below to build a fully
+// custom detail window for this entity without touching the shared infrastructure.
+function {{entity.name}}DetailPage() {
+  const { id } = Route.useParams();
+  return <BusEntityDetailPage entityName="{{snakeCase entity.name}}" recordId={id} />;
+}

@@ -1,0 +1,503 @@
+/**
+ * Logging for {{project.name}}.
+ *
+ * Generated: {{now}}
+ *
+ * Pino, configured entirely from `log-spec.json` beside this file. Nothing here
+ * decides policy: levels, channels, messages and redaction are declared there,
+ * and a call site names an event rather than a severity and a sentence.
+ *
+ *     const log = getLogger('entity');
+ *     log.event('entity.created', { entity: 'Order', recordId: id, userId });
+ *
+ * The level and the wording come from the catalogue, so changing what this
+ * application logs — turning a channel down in production, promoting a warning
+ * to an error — is an edit to `log-spec.json` and a restart. No code changes,
+ * no redeploy of anything but configuration.
+ *
+ * Output is newline-delimited JSON on stdout and nothing else. No files, no
+ * rotation, no network calls. Whatever runs this process — Docker, Kubernetes,
+ * systemd, a log shipper — is what collects it. In development it is
+ * pretty-printed through a worker thread so the cost stays off the event loop.
+ *
+ * Two environment variables an operator will want:
+ *
+ *   LOG_LEVEL=debug            every channel, louder
+ *   LOG_LEVEL_DB=debug         one channel, louder, leaving the rest alone
+ */
+
+import { Injectable, type LoggerService as NestLoggerService, Scope } from '@nestjs/common';
+import { destination, pino, type Logger as PinoLogger } from 'pino';
+import * as nodeFs from 'fs';
+import * as nodePath from 'path';
+import { randomUUID } from 'crypto';
+import { AsyncLocalStorage } from 'async_hooks';
+
+/* -------------------------------------------------------------------------- */
+/*  The specification                                                          */
+/* -------------------------------------------------------------------------- */
+
+export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+export type ConfiguredLevel = LogLevel | 'silent';
+
+interface SpecChannel {
+  name: string;
+  description: string;
+  level: LogLevel;
+}
+
+interface SpecEvent {
+  id: string;
+  channel: string;
+  level: LogLevel;
+  message: string;
+  fields: string[];
+}
+
+interface LogSpec {
+  specVersion: string;
+  levels: Record<LogLevel, number>;
+  environments: Record<string, { level: ConfiguredLevel; pretty: boolean }>;
+  redact: { censor: string; paths: string[] };
+  channels: SpecChannel[];
+  events: SpecEvent[];
+}
+
+/**
+ * Read the spec off disk rather than importing it.
+ *
+ * An `import` of the JSON would be inlined at build time, which would make the
+ * file in a deployment decorative: editing it and restarting would change
+ * nothing. Reading it means an operator can turn a channel down on a running
+ * box without a rebuild, which is most of the point of having a spec.
+ *
+ * `nest-cli.json` copies this file into `dist/src/common/logging/` as a build
+ * asset, so the first candidate resolves under both `bun run src/main.ts` and a
+ * built server. The rest are fallbacks for being started from another working
+ * directory.
+ */
+function loadSpec(): LogSpec {
+  const candidates = [
+    nodePath.join(__dirname, 'log-spec.json'),
+    nodePath.join(process.cwd(), 'src/common/logging/log-spec.json'),
+    nodePath.join(process.cwd(), 'dist/src/common/logging/log-spec.json'),
+    nodePath.join(process.cwd(), 'backend/src/common/logging/log-spec.json'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (nodeFs.existsSync(candidate)) {
+        return JSON.parse(nodeFs.readFileSync(candidate, 'utf-8')) as LogSpec;
+      }
+    } catch {
+      // Try the next candidate. A spec that cannot be parsed is handled by the
+      // fallback below rather than by taking the process down: a logging
+      // misconfiguration must not be the reason an application will not boot.
+    }
+  }
+
+  return FALLBACK_SPEC;
+}
+
+/**
+ * What the logger uses when the spec cannot be found or read.
+ *
+ * Deliberately minimal and deliberately safe: everything at `info`, credentials
+ * redacted. An application that cannot read its log spec should still refuse to
+ * print passwords.
+ */
+const FALLBACK_SPEC: LogSpec = {
+  specVersion: '0.0.0-fallback',
+  levels: { fatal: 60, error: 50, warn: 40, info: 30, debug: 20, trace: 10 },
+  environments: {
+    production: { level: 'info', pretty: false },
+    development: { level: 'debug', pretty: true },
+    test: { level: 'silent', pretty: false },
+  },
+  redact: {
+    censor: '[redacted]',
+    paths: ['password', 'token', 'secret', 'authorization', 'cookie', '*.password', '*.token'],
+  },
+  channels: [],
+  events: [],
+};
+
+const spec = loadSpec();
+
+const EVENTS = new Map(spec.events.map((event) => [event.id, event]));
+const CHANNELS = new Map(spec.channels.map((channel) => [channel.name, channel]));
+
+function profileFor(env: string | undefined): { level: ConfiguredLevel; pretty: boolean } {
+  // An unrecognised NODE_ENV gets production's profile, never development's.
+  // Guessing wrong that way costs verbosity; guessing wrong the other way leaks
+  // debug output and pretty-printing into something that is probably real.
+  return spec.environments[env ?? ''] ?? spec.environments.production ?? { level: 'info', pretty: false };
+}
+
+const LEVELS: ConfiguredLevel[] = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'];
+
+function isLevel(value: unknown): value is ConfiguredLevel {
+  return typeof value === 'string' && LEVELS.includes(value as ConfiguredLevel);
+}
+
+/**
+ * The level a channel logs at.
+ *
+ * `LOG_LEVEL_<CHANNEL>`, then `LOG_LEVEL`, then the quieter of the channel's own
+ * declared level and the environment's. Taking the quieter of the two means a
+ * channel can be less verbose than its environment but never more, so nothing
+ * declared in the spec can leak debug output into production.
+ */
+export function resolveLevel(channelName: string, env: NodeJS.ProcessEnv = process.env): ConfiguredLevel {
+  const perChannel = env[`LOG_LEVEL_${channelName.toUpperCase()}`];
+  if (isLevel(perChannel)) return perChannel;
+  if (isLevel(env.LOG_LEVEL)) return env.LOG_LEVEL;
+
+  const profile = profileFor(env.NODE_ENV);
+  if (profile.level === 'silent') return 'silent';
+
+  const channel = CHANNELS.get(channelName);
+  if (!channel) return profile.level;
+
+  const rank = (level: ConfiguredLevel): number =>
+    level === 'silent' ? Number.POSITIVE_INFINITY : spec.levels[level as LogLevel];
+
+  return rank(channel.level) < rank(profile.level) ? profile.level : channel.level;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  The logger                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type LogFields = Record<string, unknown>;
+
+/* -------------------------------------------------------------------------- */
+/*  Request context                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What is true of the request currently being served.
+ *
+ * Carried in `AsyncLocalStorage` rather than passed down through every call, so
+ * a line written deep in a rule or a hook can say which request caused it
+ * without the rules engine having to accept a request id it has no other use
+ * for. That join — `entity.created` to the `http.request.completed` that
+ * produced it — is most of what makes these logs answer questions rather than
+ * just describe events.
+ */
+export interface RequestContext {
+  requestId?: string;
+  userId?: string | null;
+}
+
+const requestStore = new AsyncLocalStorage<RequestContext>();
+
+/** Begin a request's context. Called once, from the `onRequest` hook. */
+export function beginRequestContext(context: RequestContext): void {
+  // `enterWith` rather than `run`: Fastify's hook returns before the handler
+  // executes, so there is no callback to wrap — the store has to be entered for
+  // the remainder of this async resource.
+  requestStore.enterWith(context);
+}
+
+/**
+ * Add to the current request's context.
+ *
+ * The user is not known at `onRequest` — the authentication guard resolves it
+ * later — so the guard fills it in and every line after that carries it.
+ */
+export function setRequestContext(partial: RequestContext): void {
+  const current = requestStore.getStore();
+  if (current) Object.assign(current, partial);
+}
+
+export function currentRequestContext(): RequestContext {
+  return requestStore.getStore() ?? {};
+}
+
+export interface ChannelLogger {
+  event(id: string, fields?: LogFields): void;
+  fatal(fields: LogFields, message: string): void;
+  error(fields: LogFields, message: string): void;
+  warn(fields: LogFields, message: string): void;
+  info(fields: LogFields, message: string): void;
+  debug(fields: LogFields, message: string): void;
+  child(bindings: LogFields): ChannelLogger;
+  readonly channel: string;
+  readonly level: ConfiguredLevel;
+}
+
+let root: PinoLogger | undefined;
+
+function getRoot(): PinoLogger {
+  if (root) return root;
+
+  const profile = profileFor(process.env.NODE_ENV);
+  const pretty = process.env.LOG_PRETTY === 'true'
+    ? true
+    : process.env.LOG_PRETTY === 'false'
+      ? false
+      : profile.pretty;
+
+  const shared = {
+    // The root sits at `trace` and each channel child clamps itself above it.
+    // A root at the environment's level would silently drop anything a
+    // LOG_LEVEL_<CHANNEL> override asked to see, because a Pino child cannot be
+    // more verbose than its parent.
+    level: 'trace' as const,
+    // `service`, not Pino's conventional `name`: `app.starting` reports the
+    // application's name as a field of its own, and two `name` keys in one JSON
+    // object is a document whose meaning depends on which one the reader keeps.
+    base: { service: process.env.LOG_NAME ?? '{{kebabCase project.name}}' },
+    redact: { paths: spec.redact.paths, censor: spec.redact.censor },
+    timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: {
+      // Level names, not Pino's numbers: every query anyone writes against
+      // these logs is written in terms of the name.
+      level: (label: string) => ({ level: label }),
+    },
+  };
+
+  if (pretty) {
+    root = pino({
+      ...shared,
+      transport: {
+        target: 'pino-pretty',
+        options: { colorize: true, translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname' },
+      },
+    });
+    return root;
+  }
+
+  // `sync: false` buffers and flushes on a timer, which is what keeps logging
+  // cheap enough to leave on: a synchronous write puts a syscall in the path of
+  // every request.
+  const sync = process.env.NODE_ENV === 'test' || process.env.LOG_SYNC === 'true';
+  root = pino(shared, destination({ dest: 1, sync }));
+  return root;
+}
+
+function wrap(logger: PinoLogger, channel: string, level: ConfiguredLevel): ChannelLogger {
+  return {
+    channel,
+    level,
+
+    event(id: string, fields: LogFields = {}): void {
+      const declared = EVENTS.get(id);
+
+      if (!declared) {
+        // An event id the spec does not declare is a bug in the caller, and the
+        // one thing it must not do is vanish. Reported at warn, fields intact.
+        logger.warn(
+          { ...fields, event: id, logSpecViolation: 'unknown-event-id' },
+          `Log event "${id}" is not declared in log-spec.json`,
+        );
+        return;
+      }
+
+      // Request context first, so an explicit field always wins over it.
+      const context = currentRequestContext();
+      const merged: LogFields = { ...context, ...fields };
+
+      // Checked against the merged object: a field the context supplies is
+      // present, and reporting it as missing would be wrong.
+      const missing = declared.fields.filter(
+        (field) => merged[field] === undefined,
+      );
+      const payload: LogFields = { ...merged, event: declared.id };
+      if (missing.length > 0) payload.logSpecMissingFields = missing;
+
+      logger[declared.level](payload, declared.message);
+    },
+
+    fatal: (fields, message) => logger.fatal(fields, message),
+    error: (fields, message) => logger.error(fields, message),
+    warn: (fields, message) => logger.warn(fields, message),
+    info: (fields, message) => logger.info(fields, message),
+    debug: (fields, message) => logger.debug(fields, message),
+
+    child: (bindings) => wrap(logger.child(bindings), channel, level),
+  };
+}
+
+const cache = new Map<string, ChannelLogger>();
+
+/** The logger for a channel. Cached — a child per call site rebuilds bindings. */
+export function getLogger(channel: string): ChannelLogger {
+  const cached = cache.get(channel);
+  if (cached) return cached;
+
+  const level = resolveLevel(channel);
+  const logger = wrap(getRoot().child({ channel }, { level }), channel, level);
+  cache.set(channel, logger);
+  return logger;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Nest's own logging, through the same pipe                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Nest's `LoggerService`, backed by the same Pino root.
+ *
+ * Installed in `main.ts` so the framework's own output — route mapping,
+ * dependency errors, shutdown — arrives as JSON on the same stream as
+ * everything else. Without it a deployment produces two log formats on one file
+ * descriptor and no collector parses both.
+ */
+@Injectable({ scope: Scope.DEFAULT })
+export class AppLoggerService implements NestLoggerService {
+  // Named `logger`, not `log`: NestLoggerService requires a *method* called
+  // `log`, so a field of that name would collide with the interface it is here
+  // to implement.
+  private readonly logger = getLogger('app');
+
+  log(message: unknown, context?: string): void {
+    this.write('info', message, context);
+  }
+
+  error(message: unknown, stack?: string, context?: string): void {
+    this.logger.error({ nestContext: context, stack }, String(message));
+  }
+
+  warn(message: unknown, context?: string): void {
+    this.write('warn', message, context);
+  }
+
+  debug(message: unknown, context?: string): void {
+    this.write('debug', message, context);
+  }
+
+  verbose(message: unknown, context?: string): void {
+    this.write('debug', message, context);
+  }
+
+  private write(level: 'info' | 'warn' | 'debug', message: unknown, context?: string): void {
+    this.logger[level]({ nestContext: context }, String(message));
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Process-level failures                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Report the two failures that otherwise leave no trace: an exception nobody
+ * caught and a rejection nobody handled.
+ *
+ * Both are fatal and both exit. A process that logs the error and carries on is
+ * in a state nobody reasoned about; the supervisor restarting it is the correct
+ * outcome and this line is what says why. SIGTERM is recorded too — it is how
+ * every orchestrator asks a container to stop, and "why did it restart" is
+ * unanswerable without it.
+ */
+export function installProcessLogging(): void {
+  const log = getLogger('app');
+  const startedAt = Date.now();
+
+  process.on('uncaughtException', (err) => {
+    log.event('app.uncaught', { err });
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    log.event('app.uncaught', { err: reason });
+    process.exit(1);
+  });
+
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(signal, () => {
+      log.event('app.shutdown', { signal, uptimeMs: Date.now() - startedAt });
+      process.exit(0);
+    });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  HTTP                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/** Anything slower than this is worth a warning of its own. */
+const LATENCY_BUDGET_MS = Number(process.env.HTTP_SLOW_REQUEST_MS ?? 1000);
+
+/**
+ * One line per request, for every request.
+ *
+ * A Fastify `onResponse` hook rather than a Nest interceptor, and the
+ * difference is not stylistic. Nest runs interceptors *after* guards, so an
+ * interceptor never sees a request the authentication guard rejected — which
+ * silently excluded every 401 and 403 this application produces, the exact
+ * lines an operator most wants. It also never sees the better-auth routes,
+ * which are mounted straight on Fastify to keep their cookie handling intact.
+ *
+ * `onResponse` fires once for all of them: guard rejections, handler results,
+ * raw routes, and 404s for paths that matched nothing.
+ *
+ * The request id is assigned on the way in and echoed on the response, so a
+ * line here and a failure a user is describing can be joined up.
+ *
+ * What is deliberately not logged: request bodies and query strings. On this
+ * schema those carry the business data the application exists to hold.
+ */
+export function installHttpLogging(fastify: {
+  addHook: (event: string, handler: (...args: any[]) => any) => unknown;
+}): void {
+  const log = getLogger('http');
+
+  fastify.addHook('onRequest', async (request: any, reply: any) => {
+    request.__logStartedAt = Date.now();
+    request.__logRequestId = request.headers?.['x-request-id'] ?? randomUUID();
+
+    // Everything logged for the rest of this request carries the id, without
+    // any of it having to be handed one.
+    beginRequestContext({ requestId: request.__logRequestId, userId: null });
+
+    try {
+      reply.header('x-request-id', request.__logRequestId);
+    } catch {
+      // Headers already sent by an earlier hook. The id still reaches the log
+      // line, which is the half that matters.
+    }
+  });
+
+  fastify.addHook('onResponse', async (request: any, reply: any) => {
+    const durationMs = Date.now() - (request.__logStartedAt ?? Date.now());
+    const status = reply.statusCode ?? 0;
+
+    // The route pattern, not the concrete URL: `/api/bus/:entity` aggregates,
+    // `/api/bus/compound/9f3c…` is a distinct "message" per record and cannot
+    // be grouped by anything.
+    const path = request.routeOptions?.url ?? request.routerPath ?? request.url ?? 'unknown';
+    const base = {
+      method: request.method ?? 'unknown',
+      path,
+      requestId: request.__logRequestId ?? null,
+    };
+
+    if (status >= 500) {
+      // The exception filter stashes what it caught, because this hook is the
+      // one place that sees every response and the filter is the one place that
+      // sees the error. A 5xx line without its cause is a line that tells you
+      // to go and look somewhere else.
+      log.event('http.request.failed', {
+        ...base,
+        status,
+        durationMs,
+        err: request.__logError ?? null,
+      });
+    } else if (status >= 400) {
+      log.event('http.request.client_error', {
+        ...base,
+        status,
+        durationMs,
+        reason: `HTTP ${status}`,
+      });
+    } else {
+      log.event('http.request.completed', { ...base, status, durationMs });
+    }
+
+    if (durationMs > LATENCY_BUDGET_MS) {
+      log.event('http.request.slow', { ...base, durationMs, budgetMs: LATENCY_BUDGET_MS });
+    }
+  });
+}

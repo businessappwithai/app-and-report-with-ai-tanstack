@@ -1,0 +1,1474 @@
+/**
+ * The viewers' own styles.
+ *
+ * Every selector is prefixed `awv-` and everything sits inside `.awv-root`, so
+ * this can be dropped onto a page that already has a design system without a
+ * single collision -- the same arrangement `guide-demo.css` uses for chapter 09,
+ * and for the same reason: the host page owns the chrome, the viewer owns the
+ * diagram.
+ *
+ * The palette is the one the design tool draws these three pictures in, stated
+ * once here as custom properties. A rule's Decision is amber in the generator
+ * and amber here; a state a record starts in is emerald in both. Change the
+ * variables, not the rules.
+ */
+
+.awv-root {
+  --awv-bg: #ffffff;
+  --awv-surface: #f8fafc;
+  --awv-border: #e2e8f0;
+  --awv-border-strong: #cbd5e1;
+  --awv-ink: #0f172a;
+  --awv-ink-muted: #64748b;
+  --awv-ink-faint: #94a3b8;
+  --awv-primary: #2563eb;
+  --awv-primary-soft: #eff6ff;
+
+  /* The five rule roles, and the three state kinds. */
+  --awv-start: #10b981;
+  --awv-start-bg: #ecfdf5;
+  --awv-decision: #f59e0b;
+  --awv-decision-bg: #fffbeb;
+  --awv-action: #0ea5e9;
+  --awv-action-bg: #f0f9ff;
+  --awv-compute: #8b5cf6;
+  --awv-compute-bg: #f5f3ff;
+  --awv-end: #64748b;
+  --awv-end-bg: #f1f5f9;
+
+  --awv-error: #dc2626;
+  --awv-warning: #d97706;
+  --awv-info: #2563eb;
+
+  --awv-radius: 10px;
+  --awv-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+
+  color: var(--awv-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.awv-root *,
+.awv-root *::before,
+.awv-root *::after {
+  box-sizing: border-box;
+}
+
+/**
+ * The dark palette.
+ *
+ * The host page decides, not the operating system: this site serves one theme
+ * to everybody (`dark-theme.css` sets `color-scheme: dark` outright), so a
+ * viewer that followed `prefers-color-scheme` would render a white diagram on a
+ * near-black page for every reader whose machine is set to light. `is-dark` is
+ * put on the root by `model-viewer.js`, which reads `data-awv-theme` where the
+ * page states one and falls back to the operating system where it does not.
+ *
+ * Only the tokens change. Every rule below this block is written against them,
+ * which is what keeps one stylesheet serving both.
+ */
+.awv-root.is-dark {
+  --awv-bg: #111118;
+  --awv-surface: #17171f;
+  --awv-border: #2a2a36;
+  --awv-border-strong: #3d3d4d;
+  --awv-ink: #e2e8f0;
+  --awv-ink-muted: #9aa3b2;
+  --awv-ink-faint: #6f7889;
+  --awv-primary: #818cf8;
+  --awv-primary-soft: #1e1b3a;
+
+  --awv-start: #34d399;
+  --awv-start-bg: #0d2b22;
+  --awv-decision: #fbbf24;
+  --awv-decision-bg: #2e2413;
+  --awv-action: #38bdf8;
+  --awv-action-bg: #0e2536;
+  --awv-compute: #a78bfa;
+  --awv-compute-bg: #221a3a;
+  --awv-end: #94a3b8;
+  --awv-end-bg: #1e222b;
+
+  --awv-error: #f87171;
+  --awv-warning: #fbbf24;
+  --awv-info: #818cf8;
+
+  --awv-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* The few places a colour is not a token, because it is a tint of one. */
+.awv-root.is-dark .awv-verdict.is-failed,
+.awv-root.is-dark .awv-diagnostic.is-error,
+.awv-root.is-dark .awv-detail-problem,
+.awv-root.is-dark .awv-badge.is-problem {
+  background: #2c1416;
+}
+
+.awv-root.is-dark .awv-verdict.is-ok,
+.awv-root.is-dark .awv-badge.is-uk,
+.awv-root.is-dark .awv-badge.is-fixable {
+  color: #6ee7b7;
+}
+
+.awv-root.is-dark .awv-verdict.is-warned,
+.awv-root.is-dark .awv-enum-value,
+.awv-root.is-dark .awv-action-type,
+.awv-root.is-dark .awv-hook-type,
+.awv-root.is-dark .awv-dt-group.is-input,
+.awv-root.is-dark .awv-rung.is-when .awv-rung-glyph,
+.awv-root.is-dark .awv-rung.is-when .awv-rung-kicker {
+  color: #fcd34d;
+}
+
+.awv-root.is-dark .awv-badge.is-fk {
+  color: #c4b5fd;
+}
+
+.awv-root.is-dark .awv-badge.is-roles,
+.awv-root.is-dark .awv-badge.is-publishes,
+.awv-root.is-dark .awv-badge.is-field,
+.awv-root.is-dark .awv-badge.is-actions,
+.awv-root.is-dark .awv-dt-group.is-output {
+  color: #7dd3fc;
+}
+
+.awv-root.is-dark .awv-step-label,
+.awv-root.is-dark .awv-badge.is-category {
+  color: var(--awv-ink);
+}
+
+.awv-root.is-dark .awv-badge.is-category {
+  background: hsl(var(--awv-entity-hue, 220) 40% 20%);
+}
+
+.awv-root.is-dark .awv-dt-cell.is-output {
+  background: #14202b;
+}
+
+/* The canvas ground: dots on the surface rather than on white. */
+.awv-root.is-dark .awv-canvas {
+  background-image: radial-gradient(circle, var(--awv-border-strong) 1px, transparent 1px);
+}
+
+
+/* ------------------------------------------------------------------ shell */
+
+.awv-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.awv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--awv-surface);
+  border: 1px solid var(--awv-border);
+  border-radius: var(--awv-radius);
+}
+
+.awv-button {
+  appearance: none;
+  border: 1px solid var(--awv-border-strong);
+  background: var(--awv-bg);
+  color: var(--awv-ink);
+  border-radius: 8px;
+  padding: 7px 13px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.awv-button:hover {
+  border-color: var(--awv-primary);
+  color: var(--awv-primary);
+}
+
+.awv-button.is-primary {
+  background: var(--awv-primary);
+  border-color: var(--awv-primary);
+  color: #fff;
+}
+
+.awv-button.is-primary:hover {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.awv-status {
+  flex: 1 1 240px;
+  min-width: 0;
+  color: var(--awv-ink-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.awv-status.is-error {
+  color: var(--awv-error);
+  font-weight: 600;
+}
+
+.awv-watch-state {
+  font-size: 12px;
+  color: var(--awv-primary);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- verdict */
+
+.awv-verdict {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.awv-verdict.is-ok {
+  background: var(--awv-start-bg);
+  color: #047857;
+}
+
+.awv-verdict.is-warned {
+  background: var(--awv-decision-bg);
+  color: #b45309;
+}
+
+.awv-verdict.is-failed {
+  background: #fef2f2;
+  color: var(--awv-error);
+}
+
+.awv-diagnostics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.awv-diagnostic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: var(--awv-surface);
+  font-size: 12.5px;
+}
+
+.awv-diagnostic.is-error {
+  background: #fef2f2;
+}
+
+.awv-diagnostic.is-warning {
+  background: var(--awv-decision-bg);
+}
+
+.awv-diagnostic-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--awv-ink-muted);
+}
+
+.awv-diagnostic.is-error .awv-diagnostic-code {
+  color: var(--awv-error);
+}
+
+.awv-diagnostic-message {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- stats */
+
+.awv-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.awv-stat {
+  background: var(--awv-surface);
+  border: 1px solid var(--awv-border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  display: grid;
+  gap: 1px;
+}
+
+.awv-stat.is-zero {
+  opacity: 0.55;
+}
+
+.awv-stat-value {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.awv-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--awv-ink-muted);
+}
+
+/* ----------------------------------------------------------------- tabs */
+
+.awv-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--awv-border);
+}
+
+.awv-tab {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--awv-ink-muted);
+  padding: 9px 14px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.awv-tab:hover {
+  color: var(--awv-ink);
+}
+
+.awv-tab.is-active {
+  color: var(--awv-primary);
+  border-bottom-color: var(--awv-primary);
+}
+
+.awv-panel {
+  padding-top: 14px;
+}
+
+/* --------------------------------------------------------------- canvas */
+
+.awv-canvas {
+  position: relative;
+  overflow: hidden;
+  background: var(--awv-bg);
+  /* The dotted ground the design tool's canvases carry, so a diagram reads as
+     a canvas rather than as a picture pasted onto the page. */
+  background-image: radial-gradient(circle, var(--awv-border) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 1px solid var(--awv-border);
+  border-radius: var(--awv-radius);
+  cursor: grab;
+  touch-action: none;
+  min-height: 460px;
+  height: 62vh;
+}
+
+.awv-canvas.is-panning {
+  cursor: grabbing;
+}
+
+.awv-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.awv-edges {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.awv-nodes {
+  position: relative;
+}
+
+.awv-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+
+.awv-node.is-selected > * {
+  outline: 2px solid var(--awv-primary);
+  outline-offset: 2px;
+}
+
+.awv-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--awv-ink-muted);
+}
+
+/* `display: grid` above beats the `hidden` attribute's own `display: none`, so
+   the empty message stayed on screen over a drawn diagram. */
+.awv-empty[hidden] {
+  display: none;
+}
+
+.awv-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.awv-control {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--awv-border-strong);
+  background: var(--awv-bg);
+  border-radius: 7px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--awv-ink);
+}
+
+.awv-control:hover {
+  border-color: var(--awv-primary);
+  color: var(--awv-primary);
+}
+
+/* ---------------------------------------------------------------- edges */
+
+.awv-edge-line {
+  fill: none;
+  stroke: var(--awv-border-strong);
+  stroke-width: 1.6;
+}
+
+.awv-edge-line.is-dashed {
+  stroke-dasharray: 5 4;
+}
+
+.awv-edge.is-branch .awv-edge-line,
+.awv-edge.is-restricted .awv-edge-line {
+  stroke: var(--awv-ink-faint);
+}
+
+.awv-edge.is-linked .awv-edge-line {
+  stroke: var(--awv-primary);
+  stroke-width: 2.2;
+}
+
+.awv-marker path,
+.awv-marker-muted path,
+.awv-marker-strong path {
+  fill: var(--awv-border-strong);
+}
+
+.awv-edge-label {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--awv-ink-muted);
+}
+
+.awv-edge-label-bg {
+  fill: var(--awv-bg);
+  stroke: var(--awv-border);
+  stroke-width: 1;
+}
+
+.awv-foot path {
+  fill: none;
+  stroke: var(--awv-border-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* -------------------------------------------------------------- entities */
+
+.awv-entity {
+  width: 250px;
+  background: var(--awv-bg);
+  border: 1px solid var(--awv-border-strong);
+  border-radius: var(--awv-radius);
+  box-shadow: var(--awv-shadow);
+  overflow: hidden;
+}
+
+.awv-entity.has-category {
+  border-top: 3px solid hsl(var(--awv-entity-hue, 220) 70% 55%);
+}
+
+.awv-entity.is-child {
+  border-style: dashed;
+}
+
+.awv-entity-head {
+  padding: 9px 11px 7px;
+  background: var(--awv-surface);
+  border-bottom: 1px solid var(--awv-border);
+}
+
+.awv-entity-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.awv-entity-table {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--awv-ink-faint);
+}
+
+.awv-entity-chips,
+.awv-entity-indexes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 7px 11px 0;
+}
+
+.awv-entity-indexes {
+  padding-bottom: 9px;
+}
+
+.awv-entity-help {
+  margin: 7px 11px 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--awv-ink-muted);
+}
+
+.awv-fields {
+  padding: 8px 0 4px;
+}
+
+.awv-field {
+  padding: 3px 11px;
+  border-left: 2px solid transparent;
+}
+
+.awv-field.is-key {
+  border-left-color: var(--awv-primary);
+  background: var(--awv-primary-soft);
+}
+
+.awv-field-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.awv-field-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.awv-field-badges {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.awv-field-type {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--awv-ink-faint);
+  white-space: nowrap;
+}
+
+.awv-field-type.is-semantic {
+  color: var(--awv-compute);
+  font-weight: 600;
+}
+
+.awv-field-enum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.awv-field-enum-name {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--awv-decision);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.awv-enum-value {
+  font-size: 10.5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--awv-decision-bg);
+  color: #92400e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.awv-field-enum-count {
+  font-size: 10.5px;
+  color: var(--awv-ink-faint);
+}
+
+.awv-field-help {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--awv-ink-faint);
+}
+
+/* A column with no help is a column the generated application cannot explain,
+   and the manual it writes prints a dash for. Marked quietly rather than
+   flagged: it is a gap to fill, not an error. */
+.awv-field.has-no-help .awv-field-name::after {
+  content: "";
+}
+
+.awv-entity-more {
+  margin: 0;
+  padding: 6px 11px 9px;
+  font-size: 11px;
+  color: var(--awv-primary);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- badges */
+
+.awv-badge {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--awv-end-bg);
+  color: var(--awv-end);
+  white-space: nowrap;
+}
+
+.awv-badge.is-pk {
+  background: var(--awv-primary-soft);
+  color: var(--awv-primary);
+}
+
+.awv-badge.is-fk {
+  background: var(--awv-compute-bg);
+  color: #6d28d9;
+}
+
+.awv-badge.is-uk {
+  background: var(--awv-start-bg);
+  color: #047857;
+}
+
+.awv-badge.is-required {
+  background: transparent;
+  color: var(--awv-ink-faint);
+  text-transform: none;
+  font-weight: 600;
+}
+
+.awv-badge.is-category {
+  background: hsl(var(--awv-entity-hue, 220) 70% 95%);
+  color: hsl(var(--awv-entity-hue, 220) 60% 30%);
+}
+
+.awv-badge.is-roles,
+.awv-badge.is-publishes,
+.awv-badge.is-field,
+.awv-badge.is-actions {
+  background: var(--awv-action-bg);
+  color: #0369a1;
+}
+
+.awv-badge.is-open {
+  background: var(--awv-surface);
+  color: var(--awv-ink-faint);
+}
+
+.awv-badge.is-parent,
+.awv-badge.is-index {
+  background: var(--awv-surface);
+  color: var(--awv-ink-muted);
+  text-transform: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.awv-badge.is-problem {
+  background: #fef2f2;
+  color: var(--awv-error);
+}
+
+.awv-badge.is-fixable {
+  background: var(--awv-start-bg);
+  color: #047857;
+  text-transform: none;
+}
+
+.awv-badge.is-when {
+  background: var(--awv-decision-bg);
+  color: #b45309;
+}
+
+/* --------------------------------------------------------------- states */
+
+.awv-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 118px;
+  justify-content: center;
+  padding: 9px 16px;
+  border: 2px solid var(--awv-action);
+  background: var(--awv-action-bg);
+  border-radius: 999px;
+  box-shadow: var(--awv-shadow);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.awv-state.is-initial {
+  border-color: var(--awv-start);
+  background: var(--awv-start-bg);
+}
+
+.awv-state.is-terminal {
+  border-color: var(--awv-end);
+  background: var(--awv-end-bg);
+}
+
+.awv-state.is-undeclared {
+  border-style: dashed;
+  border-color: var(--awv-error);
+}
+
+.awv-state-glyph {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.awv-state-warn {
+  color: var(--awv-error);
+  font-weight: 800;
+}
+
+/* ---------------------------------------------------------------- steps */
+
+.awv-step {
+  width: 208px;
+  padding: 9px 11px;
+  border: 2px solid var(--awv-action);
+  background: var(--awv-action-bg);
+  border-radius: var(--awv-radius);
+  box-shadow: var(--awv-shadow);
+}
+
+.awv-step.is-start {
+  border-color: var(--awv-start);
+  background: var(--awv-start-bg);
+  border-radius: 999px;
+}
+
+.awv-step.is-end {
+  border-color: var(--awv-end);
+  background: var(--awv-end-bg);
+  border-radius: 999px;
+}
+
+.awv-step.is-decision {
+  border-color: var(--awv-decision);
+  background: var(--awv-decision-bg);
+  border-radius: 18px;
+}
+
+.awv-step.is-compute {
+  border-color: var(--awv-compute);
+  background: var(--awv-compute-bg);
+  border-radius: 22px;
+}
+
+.awv-step-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.awv-step-glyph {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.awv-step-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awv-ink-muted);
+}
+
+.awv-step-label {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------- ladder */
+
+.awv-ladder {
+  display: grid;
+  gap: 9px;
+  max-width: 620px;
+}
+
+.awv-rung {
+  display: flex;
+  gap: 11px;
+  padding: 12px 14px;
+  background: var(--awv-bg);
+  border: 1px solid var(--awv-border);
+  border-radius: 13px;
+  box-shadow: var(--awv-shadow);
+}
+
+.awv-rung.is-when {
+  border-color: #fcd34d;
+}
+
+.awv-rung.has-problem {
+  border-color: var(--awv-error);
+}
+
+.awv-rung-glyph {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 9px;
+  border: 1px solid var(--awv-border-strong);
+  background: var(--awv-surface);
+  font-size: 14px;
+}
+
+.awv-rung.is-when .awv-rung-glyph {
+  border-color: #fcd34d;
+  background: var(--awv-decision-bg);
+  color: #b45309;
+}
+
+.awv-rung.is-action .awv-rung-glyph {
+  border-color: #93c5fd;
+  background: var(--awv-primary-soft);
+  color: var(--awv-primary);
+}
+
+.awv-rung-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.awv-rung-kicker {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awv-ink-muted);
+}
+
+.awv-rung.is-when .awv-rung-kicker {
+  color: #b45309;
+}
+
+.awv-rung.is-action .awv-rung-kicker {
+  color: var(--awv-primary);
+}
+
+.awv-rung-title {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.awv-rung-note,
+.awv-rung-publishes {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--awv-ink-muted);
+}
+
+.awv-rung-problem {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--awv-error);
+  font-weight: 600;
+}
+
+.awv-rung-props,
+.awv-action-props,
+.awv-rule-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.awv-rung-props dt,
+.awv-action-props dt,
+.awv-rule-summary dt {
+  color: var(--awv-ink-muted);
+  font-weight: 600;
+}
+
+.awv-rung-props dd,
+.awv-action-props dd,
+.awv-rule-summary dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.awv-ladder-empty,
+.awv-actions-empty,
+.awv-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--awv-border-strong);
+  border-radius: 9px;
+  color: var(--awv-ink-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--awv-surface);
+}
+
+/* -------------------------------------------------------------- actions */
+
+.awv-actions {
+  display: grid;
+  gap: 9px;
+}
+
+.awv-action {
+  padding: 11px 13px;
+  border: 1px solid var(--awv-border);
+  border-left: 3px solid var(--awv-decision);
+  border-radius: 9px;
+  background: var(--awv-bg);
+}
+
+.awv-action-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.awv-action-name {
+  font-weight: 700;
+}
+
+.awv-action-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--awv-decision-bg);
+  color: #92400e;
+}
+
+.awv-action-effect {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--awv-ink-muted);
+}
+
+.awv-action-when {
+  margin: 6px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.awv-rule-summary.is-uncompiled {
+  color: var(--awv-error);
+}
+
+/* ----------------------------------------------------------- lists, panes */
+
+/* Two arrangements, because two things want the wide half. The workflow and
+   rule panels put a list of what the model declares on the left and the
+   picture on the right; the ERD is the picture, and its inspector is the
+   sidebar. Writing one class for both is what put a seventeen-entity diagram
+   in a 260px column. */
+.awv-split {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.awv-split.is-canvas-first {
+  grid-template-columns: minmax(0, 1fr) 310px;
+}
+
+.awv-list {
+  display: grid;
+  gap: 5px;
+  max-height: 66vh;
+  overflow-y: auto;
+}
+
+.awv-list-item {
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--awv-border);
+  border-radius: 9px;
+  background: var(--awv-bg);
+  cursor: pointer;
+}
+
+.awv-list-item:hover {
+  border-color: var(--awv-primary);
+}
+
+.awv-list-item.is-active {
+  border-color: var(--awv-primary);
+  background: var(--awv-primary-soft);
+}
+
+.awv-list-kind {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awv-ink-muted);
+}
+
+.awv-list-kind.is-state {
+  color: var(--awv-action);
+}
+
+.awv-list-kind.is-saga {
+  color: var(--awv-compute);
+}
+
+.awv-list-kind.is-hook {
+  color: var(--awv-decision);
+}
+
+.awv-list-kind.is-rule {
+  color: var(--awv-primary);
+}
+
+.awv-list-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.awv-list-note {
+  font-size: 11.5px;
+  color: var(--awv-ink-muted);
+}
+
+.awv-detail-head h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.awv-detail-note {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--awv-ink-muted);
+  line-height: 1.5;
+}
+
+.awv-detail-problem {
+  margin: 0 0 10px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: var(--awv-error);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.awv-detail-canvas {
+  height: 62vh;
+  min-height: 480px;
+}
+
+.awv-detail-actions {
+  margin-top: 16px;
+}
+
+.awv-detail-actions h4,
+.awv-inspector-section h4,
+.awv-access-transitions h4 {
+  margin: 0 0 7px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awv-ink-muted);
+}
+
+/* ----------------------------------------------------------- inspector */
+
+.awv-inspector {
+  padding: 14px;
+  border: 1px solid var(--awv-border);
+  border-radius: var(--awv-radius);
+  background: var(--awv-surface);
+  max-height: 66vh;
+  overflow-y: auto;
+}
+
+.awv-inspector-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.awv-inspector-table {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--awv-ink-faint);
+}
+
+.awv-inspector-help {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  color: var(--awv-ink-muted);
+  line-height: 1.5;
+}
+
+.awv-inspector-section {
+  margin-top: 15px;
+}
+
+.awv-inspector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.awv-inspector-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 9px;
+  background: var(--awv-bg);
+  border: 1px solid var(--awv-border);
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+
+.awv-inspector-list li.is-clickable {
+  cursor: pointer;
+}
+
+.awv-inspector-list li.is-clickable:hover {
+  border-color: var(--awv-primary);
+}
+
+.awv-inspector-note {
+  color: var(--awv-ink-muted);
+  font-size: 11.5px;
+}
+
+.awv-link-arrow {
+  color: var(--awv-primary);
+  font-weight: 700;
+}
+
+.awv-link-card {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--awv-ink-muted);
+}
+
+.awv-link-name {
+  color: var(--awv-ink-muted);
+  font-size: 11.5px;
+}
+
+.awv-link-fk,
+.awv-access-op {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--awv-surface);
+  color: var(--awv-ink-muted);
+}
+
+/* --------------------------------------------------------------- hooks */
+
+.awv-hooks {
+  display: grid;
+  gap: 11px;
+}
+
+.awv-hook-entity {
+  margin: 0 0 5px;
+  font-size: 13px;
+}
+
+.awv-hook-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  counter-reset: hook;
+}
+
+.awv-hook {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 1px solid var(--awv-border);
+  border-radius: 7px;
+  background: var(--awv-bg);
+  font-size: 12.5px;
+}
+
+.awv-hook-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--awv-decision-bg);
+  color: #92400e;
+}
+
+.awv-hook-handler {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- access */
+
+.awv-access-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.awv-access-table th,
+.awv-access-table td {
+  text-align: left;
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--awv-border);
+}
+
+.awv-access-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--awv-ink-muted);
+}
+
+.awv-access-table tr.is-admin {
+  background: var(--awv-surface);
+}
+
+.awv-access-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.awv-access-roles {
+  font-size: 11.5px;
+  color: var(--awv-primary);
+  font-weight: 600;
+}
+
+.awv-access-transitions {
+  margin-top: 20px;
+}
+
+/* --------------------------------------------------------------- source */
+
+.awv-source {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--awv-border);
+  border-radius: var(--awv-radius);
+  background: var(--awv-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  max-height: 66vh;
+  overflow: auto;
+  white-space: pre;
+}
+
+.awv-paste {
+  width: 100%;
+  min-height: 190px;
+  padding: 12px;
+  border: 1px solid var(--awv-border-strong);
+  border-radius: var(--awv-radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.awv-drop {
+  margin-top: 10px;
+  padding: 18px;
+  border: 2px dashed var(--awv-border-strong);
+  border-radius: var(--awv-radius);
+  text-align: center;
+  color: var(--awv-ink-muted);
+  font-size: 13px;
+}
+
+.awv-drop.is-over {
+  border-color: var(--awv-primary);
+  background: var(--awv-primary-soft);
+  color: var(--awv-primary);
+}
+
+.awv-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* ---------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .awv-split,
+  .awv-split.is-canvas-first {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .awv-list {
+    max-height: none;
+  }
+
+  .awv-canvas {
+    height: 56vh;
+  }
+}
+
+/* Every panel is hidden until a model is loaded; the input panel is not. */
+.awv-root:not(.has-model) [data-needs-model] {
+  display: none;
+}
+
+/* --------------------------------------------------------- decision table */
+
+.awv-dt {
+  margin-top: 9px;
+  overflow-x: auto;
+}
+
+.awv-dt-policy {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--awv-ink-muted);
+}
+
+.awv-dt-grid {
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 100%;
+}
+
+.awv-dt-group {
+  padding: 3px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  border: 1px solid var(--awv-border);
+}
+
+.awv-dt-group.is-input {
+  background: var(--awv-decision-bg);
+  color: #92400e;
+}
+
+.awv-dt-group.is-output {
+  background: var(--awv-action-bg);
+  color: #0369a1;
+}
+
+.awv-dt-column {
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: bottom;
+  border: 1px solid var(--awv-border);
+  background: var(--awv-surface);
+  white-space: nowrap;
+}
+
+.awv-dt-column-name {
+  display: block;
+  font-weight: 700;
+}
+
+.awv-dt-column-field {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--awv-ink-faint);
+}
+
+.awv-dt-cell {
+  padding: 4px 8px;
+  border: 1px solid var(--awv-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+}
+
+.awv-dt-cell.is-output {
+  background: #fbfdff;
+}
+
+/* An empty input cell is the row saying it does not constrain that column. */
+.awv-dt-cell.is-any {
+  color: var(--awv-ink-faint);
+}
+
+.awv-edge.is-restricted .awv-edge-line {
+  stroke: var(--awv-decision);
+  stroke-dasharray: 6 4;
+}

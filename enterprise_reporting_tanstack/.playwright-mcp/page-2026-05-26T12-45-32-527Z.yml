@@ -1,0 +1,82 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e342]:
+    - generic [ref=e343]:
+      - img [ref=e346]
+      - heading "Welcome back" [level=3] [ref=e348]
+      - paragraph [ref=e349]: Sign in to your Enterprise Reporting account
+    - generic [ref=e350]:
+      - generic [ref=e351]:
+        - generic [ref=e352]:
+          - text: Email
+          - textbox "Email" [ref=e353]:
+            - /placeholder: name@example.com
+            - text: admin@admin.com
+        - generic [ref=e354]:
+          - text: Password
+          - textbox "Password" [ref=e355]: admin
+      - button "Sign In" [ref=e357] [cursor=pointer]
+  - region "Notifications alt+T"
+  - complementary "Tanstack query devtools" [ref=e243]:
+    - separator "Resize devtools panel" [ref=e244]
+    - button "Close tanstack query devtools" [ref=e245] [cursor=pointer]:
+      - img [ref=e246]
+    - generic [ref=e248]:
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - button "Close Tanstack query devtools" [ref=e251] [cursor=pointer]:
+            - generic [ref=e252]: TANSTACK
+            - generic [ref=e253]: React Query v5
+          - radiogroup "Toggle between queries and mutations view" [ref=e254]:
+            - group [ref=e255]:
+              - radio "Queries" [checked] [ref=e256]
+              - generic "Toggle Queries View" [ref=e257] [cursor=pointer]: Queries
+            - group [ref=e258]:
+              - radio "Mutations" [ref=e259]
+              - generic "Toggle Mutations View" [ref=e260] [cursor=pointer]: Mutations
+        - generic [ref=e261]:
+          - 'button "Fresh: 0" [disabled] [ref=e358]':
+            - generic [ref=e264]: Fresh
+            - generic [ref=e265]: "0"
+          - 'button "Fetching: 0" [disabled] [ref=e266]':
+            - generic [ref=e268]: Fetching
+            - generic [ref=e269]: "0"
+          - 'button "Paused: 0" [disabled] [ref=e270]':
+            - generic [ref=e272]: Paused
+            - generic [ref=e273]: "0"
+          - 'button "Stale: 0" [disabled] [ref=e274]':
+            - generic [ref=e276]: Stale
+            - generic [ref=e277]: "0"
+          - 'button "Inactive: 2" [disabled] [ref=e359]':
+            - generic [ref=e280]: Inactive
+            - generic [ref=e281]: "2"
+      - generic [ref=e282]:
+        - generic [ref=e283]:
+          - generic [ref=e284]:
+            - img [ref=e285]
+            - textbox "Filter queries by query key" [ref=e287]:
+              - /placeholder: Filter
+          - generic [ref=e288]:
+            - combobox "Sort queries by" [ref=e289]:
+              - option "Sort by status" [selected]
+              - option "Sort by query hash"
+              - option "Sort by last updated"
+            - img [ref=e290]
+          - button "Sort order ascending" [ref=e292] [cursor=pointer]:
+            - generic [ref=e293]: Asc
+            - img [ref=e294]
+        - generic [ref=e296]:
+          - button "Clear query cache" [ref=e297] [cursor=pointer]:
+            - img [ref=e298]
+          - button "Mock offline behavior" [ref=e300] [cursor=pointer]:
+            - img [ref=e301]
+          - button "Open in picture-in-picture mode" [ref=e304] [cursor=pointer]:
+            - img [ref=e305]
+          - button "Open settings menu" [ref=e307] [cursor=pointer]:
+            - img [ref=e308]
+      - generic [ref=e312]:
+        - button "Query key [\"user-permissions\"]" [ref=e360] [cursor=pointer]:
+          - generic [ref=e361]: "0"
+          - code [ref=e362]: "[\"user-permissions\"]"
+        - button "Query key [\"notifications\",false]" [ref=e363] [cursor=pointer]:
+          - generic [ref=e364]: "0"
+          - code [ref=e365]: "[\"notifications\",false]"

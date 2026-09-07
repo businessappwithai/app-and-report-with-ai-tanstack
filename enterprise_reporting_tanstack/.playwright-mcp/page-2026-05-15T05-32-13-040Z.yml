@@ -1,0 +1,125 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e16] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e17]:
+                - img [ref=e18]
+                - generic [ref=e21]: Dashboard
+            - link "SQL Editor" [ref=e22] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e23]:
+                - img [ref=e24]
+                - generic [ref=e26]: SQL Editor
+            - link "Saved Queries" [ref=e27] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e28]:
+                - img [ref=e29]
+                - generic [ref=e33]: Saved Queries
+            - link "Reports" [ref=e34] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e35]:
+                - img [ref=e36]
+                - generic [ref=e39]: Reports
+            - link "Charts" [ref=e40] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e41]:
+                - img [ref=e42]
+                - generic [ref=e44]: Charts
+            - link "Dashboards" [ref=e45] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e52]: Dashboards
+            - link "Filters" [ref=e53] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e54]:
+                - img [ref=e55]
+                - generic [ref=e57]: Filters
+            - link "Jobs" [ref=e58] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e59]:
+                - img [ref=e60]
+                - generic [ref=e62]: Jobs
+            - link "NL Query" [ref=e63] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e64]:
+                - img [ref=e65]
+                - generic [ref=e67]: NL Query
+        - generic [ref=e68]:
+          - heading "Administration" [level=2] [ref=e69]
+          - navigation [ref=e70]:
+            - link "Data Sources" [ref=e71] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e72]:
+                - img [ref=e73]
+                - generic [ref=e77]: Data Sources
+            - link "Queue Management" [ref=e78] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e79]:
+                - img [ref=e80]
+                - generic [ref=e84]: Queue Management
+            - link "System Logs" [ref=e85] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e86]:
+                - img [ref=e87]
+                - generic [ref=e90]: System Logs
+            - link "Users" [ref=e91] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e92]:
+                - img [ref=e93]
+                - generic [ref=e98]: Users
+            - link "Roles" [ref=e99] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e100]:
+                - img [ref=e101]
+                - generic [ref=e103]: Roles
+            - link "Permissions" [ref=e104] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e105]:
+                - img [ref=e106]
+                - generic [ref=e108]: Permissions
+            - link "Settings" [ref=e109] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e110]:
+                - img [ref=e111]
+                - generic [ref=e114]: Settings
+      - button [ref=e115] [cursor=pointer]:
+        - img [ref=e116]
+    - generic [ref=e118]:
+      - banner [ref=e119]:
+        - generic [ref=e121]:
+          - img [ref=e122]
+          - generic [ref=e124]: Loading connection...
+        - generic [ref=e125]:
+          - combobox [ref=e126] [cursor=pointer]:
+            - img [ref=e127]
+          - combobox [ref=e129]
+          - button "Notifications" [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+            - generic [ref=e134]: Notifications
+          - button "A" [ref=e135] [cursor=pointer]:
+            - generic [ref=e137]: A
+      - main [ref=e138]:
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - heading "Data Sources" [level=1] [ref=e142]
+              - paragraph [ref=e143]: Manage database connections for reports and queries
+            - button "New Data Source" [ref=e144] [cursor=pointer]:
+              - img [ref=e145]
+              - text: New Data Source
+          - generic [ref=e146]:
+            - heading "All Data Sources" [level=3] [ref=e148]:
+              - img [ref=e149]
+              - text: All Data Sources
+            - generic [ref=e154]: Loading data sources...
+  - region "Notifications alt+T"

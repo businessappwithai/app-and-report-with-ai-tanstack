@@ -1,0 +1,162 @@
+/**
+ * What the end-to-end run actually did, and how long it took.
+ *
+ * Every suite runs in its own test-runner process, so there is no shared memory
+ * to accumulate into. Each process appends NDJSON to its own shard under the
+ * run directory and the runner merges the shards once every suite has
+ * finished — append-only, one file per process, so two suites writing at the
+ * same moment cannot interleave a half-written line into each other's output.
+ *
+ * Inserts, updates and deletes are timed from the client: the round trip is
+ * what a user waits for, and it is the number that changes when an index goes
+ * missing or a hook starts doing real work.
+ *
+ * Rules and workflows are counted from the server's own report rather than
+ * guessed at. A write returns its promotion result, which names every rule
+ * action and every workflow that ran and how long the pipeline took — so a
+ * single insert that fires one rule and two workflows is recorded as exactly
+ * that, without the test having to know what the model declares.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * The write and execution phases every run measures.
+ *
+ * A phase is any named unit of work worth a throughput and a tail latency.
+ * These five come from instrumenting the client and reading the server's
+ * promotion result; the benchmark suite adds read phases ("list deep page",
+ * "search substring") by name, which is why `phase` is a string rather than
+ * this union — a phase the suites invent must not require editing the
+ * collector.
+ */
+export const WRITE_PHASES = ["insert", "update", "delete", "rule", "workflow"] as const;
+
+export type MetricOp = (typeof WRITE_PHASES)[number];
+
+export interface MetricSample {
+  /** `insert`, `list deep page`, … — whatever the run wants averaged. */
+  op: string;
+  /** Milliseconds. Client round trip for writes; server pipeline for rules and workflows. */
+  ms: number;
+  /**
+   * When the sample finished, epoch millis.
+   *
+   * Throughput has to come from the wall-clock span a phase occupied, not from
+   * the sum of its latencies: suites issue requests concurrently, so summed
+   * latency exceeds elapsed time and dividing by it understates throughput —
+   * badly. 870 inserts inside a 41-second run is not 14 per second.
+   *
+   * Stamped by `record` — callers never pass it.
+   */
+  at?: number;
+  /** Entity or rule/workflow name, for a per-name breakdown. */
+  name?: string;
+}
+
+/**
+ * Where this run's shards go. Set by the runner so every suite process agrees;
+ * absent when a suite is run directly, in which case nothing is recorded and
+ * the suite behaves exactly as before.
+ */
+const shardDir = process.env.E2E_METRICS_DIR;
+
+const shardFile = shardDir
+  ? join(shardDir, `shard-${process.pid}.ndjson`)
+  : null;
+
+if (shardDir) {
+  try {
+    mkdirSync(shardDir, { recursive: true });
+  } catch {
+    // The runner already created it; a race here is harmless.
+  }
+}
+
+/**
+ * Record one sample.
+ *
+ * Never throws. Metrics are an observation of the run, and a failure to write
+ * one must not turn a passing suite red.
+ */
+export function record(sample: MetricSample): void {
+  if (!shardFile) return;
+  try {
+    appendFileSync(shardFile, `${JSON.stringify({ ...sample, at: Date.now() })}\n`);
+  } catch {
+    // Losing a sample costs an average a little accuracy; failing the test
+    // because of it would cost far more.
+  }
+}
+
+/** The promotion result a write returns, as far as metrics care. */
+interface PromotionShape {
+  ranRules?: unknown;
+  ranWorkflows?: unknown;
+  durationMs?: unknown;
+}
+
+/**
+ * Record the rules and workflows a write set off.
+ *
+ * The promotion reports one duration for the whole pipeline rather than a
+ * figure per rule and per workflow, so that duration is attributed to each
+ * thing that ran. It is the honest reading of what the server measured: five
+ * executions sharing a 40ms pipeline each get 40ms, because 40ms is how long
+ * the work they were part of took.
+ */
+export function recordPromotion(payload: unknown): void {
+  if (!shardFile || !payload || typeof payload !== "object") return;
+
+  const promotion = (payload as { promotion?: PromotionShape }).promotion;
+  if (!promotion || typeof promotion !== "object") return;
+
+  const ms = typeof promotion.durationMs === "number" ? promotion.durationMs : 0;
+
+  if (Array.isArray(promotion.ranRules)) {
+    for (const name of promotion.ranRules) record({ op: "rule", ms, name: String(name) });
+  }
+  if (Array.isArray(promotion.ranWorkflows)) {
+    for (const name of promotion.ranWorkflows) record({ op: "workflow", ms, name: String(name) });
+  }
+}
+
+/**
+ * Which operation a request represents, if any.
+ *
+ * Only business-entity writes count. Auth, dictionary reads and the health
+ * check are traffic the run makes but not work the application was asked to
+ * do, and averaging them in would flatter or distort every number.
+ */
+/**
+ * Time one phase and record it.
+ *
+ * The benchmark suite's whole vocabulary: name what is being measured, run it,
+ * and the sample lands in the same file as everything else. Returns whatever
+ * the body returned, so a phase can assert on its own result.
+ */
+export async function timed<T>(phase: string, body: () => Promise<T>, name?: string): Promise<T> {
+  const startedAt = performance.now();
+  try {
+    return await body();
+  } finally {
+    record({ op: phase, ms: performance.now() - startedAt, name });
+  }
+}
+
+export function classify(method: string, path: string): { op: MetricOp; name: string } | null {
+  const match = /^\/bus\/([^/?]+)/.exec(path);
+  if (!match?.[1]) return null;
+
+  const name = match[1];
+  const verb = method.toUpperCase();
+
+  if (verb === "POST") return { op: "insert", name };
+  if (verb === "PUT" || verb === "PATCH") return { op: "update", name };
+  if (verb === "DELETE") return { op: "delete", name };
+  return null;
+}

@@ -1,0 +1,75 @@
+/**
+ * Better Auth, on the front end's own origin.
+ *
+ * Same forwarding as the sibling /api/$ route — the reasoning is in
+ * src/lib/api-proxy.ts — with one addition: when the API cannot be reached, a
+ * session lookup answers "nobody is signed in" rather than an error. The login
+ * page asks for the session before it renders, and an application that shows a
+ * blank screen because the API is still starting is worse than one that shows
+ * the login form.
+ *
+ * Better Auth checks the browser's Origin against its own trustedOrigins list
+ * and rejects anything else, so the header is passed through untouched. On a
+ * host other than localhost that means naming it: CORS_ORIGIN=http://your-host:{{config.frontendPort}}.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { createAPIFileRoute } from '@tanstack/start/api'
+// Relative rather than the `@/` alias — see the note in ../$.ts.
+import { apiUnavailable, proxyToBackend } from '../../../lib/api-proxy'
+
+/** No session, as a successful answer. What the login page needs to render. */
+function noSession(): Response {
+  return new Response(JSON.stringify({ user: null, session: null }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+// The parameter types are left to inference on purpose. These handlers are
+// written inline into the route, so TypeScript types them from the route's own
+// signature — which is exact, and which an explicit `Record<string, string>`
+// contradicted.
+const handlers = {
+  GET: async ({ request, params }) => {
+    const path = params._splat ?? ''
+    try {
+      return await proxyToBackend(request, `auth/${path}`)
+    } catch {
+      return noSession()
+    }
+  },
+  POST: async ({ request, params }) => {
+    const path = params._splat ?? ''
+    try {
+      return await proxyToBackend(request, `auth/${path}`)
+    } catch (error) {
+      return apiUnavailable(error, 'POST', `auth/${path}`)
+    }
+  },
+}
+
+// Both names, on purpose, and both hold their own call.
+//
+// The router registers an API route file by its `APIRoute` export and ignores
+// anything else, so a file exporting only `Route` is silently absent — and an
+// absent API route answers with the HTML of a missing page rather than a 404
+// anyone would recognise as a routing problem. That is why both exist.
+//
+// Neither may be an alias of the other, and that is the part that is easy to
+// get wrong. The route generator parses these files and requires the `Route`
+// export to be initialised by a call expression directly (assigning it from a
+// local const fails with `expected "Route" export to be initialized by a
+// CallExpression`). Meanwhile the dev server imports this file as
+// `?pick=APIRoute`, which strips every other export — so an `APIRoute` written
+// as `= Route` is left pointing at a binding that is no longer there, and the
+// route throws `ReferenceError: Route is not defined` on import. Every /api
+// call then answers 500, including sign-in, which makes the application
+// unusable in a browser while the backend is perfectly healthy.
+//
+// Two calls over one shared, non-exported handlers object satisfies both: each
+// export is a direct CallExpression, and neither reads the other.
+export const Route = createAPIFileRoute('/api/auth/$')(handlers)
+export const APIRoute = createAPIFileRoute('/api/auth/$')(handlers)

@@ -1,0 +1,155 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e81] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e82]:
+                - img [ref=e83]
+                - generic [ref=e86]: Dashboard
+            - link "SQL Editor" [ref=e87] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e88]:
+                - img [ref=e89]
+                - generic [ref=e91]: SQL Editor
+            - link "Saved Queries" [ref=e92] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e93]:
+                - img [ref=e94]
+                - generic [ref=e98]: Saved Queries
+            - link "Reports" [ref=e99] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e100]:
+                - img [ref=e101]
+                - generic [ref=e104]: Reports
+            - link "Charts" [ref=e105] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e106]:
+                - img [ref=e107]
+                - generic [ref=e109]: Charts
+            - link "Dashboards" [ref=e110] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e111]:
+                - img [ref=e112]
+                - generic [ref=e117]: Dashboards
+            - link "Filters" [ref=e118] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e119]:
+                - img [ref=e120]
+                - generic [ref=e122]: Filters
+            - link "Jobs" [ref=e123] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e124]:
+                - img [ref=e125]
+                - generic [ref=e127]: Jobs
+            - link "NL Query" [ref=e128] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e129]:
+                - img [ref=e130]
+                - generic [ref=e132]: NL Query
+        - generic [ref=e22]:
+          - heading "Administration" [level=2] [ref=e23]
+          - navigation [ref=e133]:
+            - link "Data Sources" [ref=e134] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e135]:
+                - img [ref=e136]
+                - generic [ref=e140]: Data Sources
+            - link "Queue Management" [ref=e141] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e142]:
+                - img [ref=e143]
+                - generic [ref=e147]: Queue Management
+            - link "System Logs" [ref=e148] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e149]:
+                - img [ref=e150]
+                - generic [ref=e153]: System Logs
+            - link "Users" [ref=e154] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e155]:
+                - img [ref=e156]
+                - generic [ref=e161]: Users
+            - link "Roles" [ref=e162] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e163]:
+                - img [ref=e164]
+                - generic [ref=e166]: Roles
+            - link "Permissions" [ref=e167] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e168]:
+                - img [ref=e169]
+                - generic [ref=e171]: Permissions
+            - link "Settings" [ref=e172] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e173]:
+                - img [ref=e174]
+                - generic [ref=e177]: Settings
+      - button [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e27]:
+      - banner [ref=e28]:
+        - generic [ref=e29]:
+          - combobox [ref=e30] [cursor=pointer]:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img [ref=e31]
+          - button "Notifications" [ref=e33] [cursor=pointer]:
+            - img [ref=e34]
+            - generic [ref=e37]: Notifications
+          - button "SA" [ref=e38] [cursor=pointer]:
+            - generic [ref=e40]: SA
+      - main [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - heading "SQL Editor" [level=1] [ref=e45]
+              - paragraph [ref=e46]: Write and execute SQL queries
+            - generic [ref=e47]:
+              - button "Validate" [ref=e48] [cursor=pointer]
+              - button "Running…" [disabled] [ref=e225]
+              - button "Save" [ref=e50] [cursor=pointer]
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - paragraph [ref=e53]: Data Source
+              - button "▲ collapse" [ref=e54] [cursor=pointer]
+            - combobox [ref=e178] [cursor=pointer]:
+              - generic: Neon PostgreSQL
+              - img [ref=e179]
+          - button [ref=e181]:
+            - code [ref=e184]:
+              - generic [ref=e185]:
+                - textbox "Editor content" [ref=e186]
+                - textbox [ref=e187]
+                - generic [ref=e219]: "1"
+                - generic [ref=e223]: SELECT current_database(), current_user, version()
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - paragraph [ref=e67]:
+                - text: Schema Browser
+                - generic [ref=e68]: (0 tables, 0 views)
+              - generic [ref=e69]:
+                - button "Refresh" [ref=e207] [cursor=pointer]:
+                  - img [ref=e208]
+                  - generic [ref=e213]: Refresh
+                - button "▼ collapse" [ref=e70] [cursor=pointer]
+            - textbox "Search tables..." [disabled] [ref=e216]
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - button "results" [ref=e75] [cursor=pointer]
+              - button "errors" [ref=e76] [cursor=pointer]
+              - button "logs" [ref=e77] [cursor=pointer]
+            - paragraph [ref=e228]: Executing query…
+  - region "Notifications alt+T"
+  - generic [ref=e199]:
+    - alert
+    - alert

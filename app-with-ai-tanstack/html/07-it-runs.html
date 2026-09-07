@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 · Watch it run — Build a CRM with APPWITHAI</title>
+<meta name="description" content="Qualify a lead and follow the rule, the action, the saga, the three rows it creates and the run record it leaves behind.">
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">E</span><span class="brand-name">APPWITHAI</span></a>
+  <p class="brand-sub">Build a CRM, end to end</p>
+  <div class="nav-heading">Start here</div>
+  <ul class="nav"><li><a href="index.html"><span class="nav-num">00</span> Overview</a></li></ul>
+  <div class="nav-heading">Write the model</div>
+  <ul class="nav">
+    <li><a href="01-data-model.html"><span class="nav-num">01</span> The data model</a></li>
+    <li><a href="02-business-rules.html"><span class="nav-num">02</span> Business rules</a></li>
+    <li><a href="03-workflows.html"><span class="nav-num">03</span> Workflows</a></li>
+  </ul>
+  <div class="nav-heading">Generate and run</div>
+  <ul class="nav">
+    <li><a href="04-generate.html"><span class="nav-num">04</span> Generate the app</a></li>
+    <li><a href="05-application.html"><span class="nav-num">05</span> Tour the app</a></li>
+    <li><a href="06-dictionary.html"><span class="nav-num">06</span> Application Dictionary</a></li>
+  </ul>
+  <div class="nav-heading">Prove it</div>
+  <ul class="nav">
+    <li><a href="07-it-runs.html" aria-current="page"><span class="nav-num">07</span> Watch it run</a></li>
+    <li><a href="08-reference.html"><span class="nav-num">08</span> Reference</a></li>
+    <li><a href="run-in-browser.html"><span class="nav-num">09</span> Run it here</a></li>
+  </ul>
+  <div class="sidebar-foot">Every screenshot is from the CRM built in this guide, running locally.<br><br>Model: <code>language/examples/crm.eml.mmd</code></div>
+</aside>
+
+<main class="main">
+<div class="content">
+
+<span class="eyebrow">Chapter 07</span>
+<h1>Watch the model run</h1>
+<p class="lede">
+  One user action — changing a lead's status to <em>qualified</em> — fires a rule, which fires an action,
+  which starts a saga, which evaluates a decision table and writes rows into three other tables. This
+  chapter follows that chain end to end and shows you where to look when it does not happen.
+</p>
+
+<h2>The chain, before we walk it</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>#</th><th>What runs</th><th>Declared in the model as</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>A user sets <code>status = qualified</code></td><td>a value of <code>%%enum LeadStatus</code></td></tr>
+    <tr><td>2</td><td><code>leadQualification</code> evaluates</td><td><code>%%rule … on Lead event: beforeUpdate</code></td></tr>
+    <tr><td>3</td><td>Its action fires</td><td><code>%%action … trigger-workflow when: status == "qualified"</code></td></tr>
+    <tr><td>4</td><td><code>LeadConversion</code> starts</td><td><code>%%workflow … kind: saga trigger: rule</code></td></tr>
+    <tr><td>5</td><td>A decision table sizes the account</td><td><code>%%step B Decision</code></td></tr>
+    <tr><td>6</td><td>Account, Contact, Opportunity created</td><td>three <code>%%step … CreateEntity</code></td></tr>
+    <tr><td>7</td><td>The lead is marked converted</td><td><code>%%step F UpdateEntity</code></td></tr>
+    <tr><td>8</td><td>The account's tier is stamped</td><td><code>%%step G UpdateEntity … targetSource</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Walk it</h2>
+
+<ol class="steps">
+  <li>
+    <h3>Note where you are starting</h3>
+    <p>Four accounts, four contacts, four opportunities — the seeded sample data.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">sql</span></div>
+<pre><code>select count(*) from bus_account;       <span class="c-com">-- 4</span>
+select count(*) from bus_contact;       <span class="c-com">-- 4</span>
+select count(*) from bus_opportunity;   <span class="c-com">-- 4</span></code></pre>
+    </div>
+  </li>
+
+  <li>
+    <h3>Create a lead worth converting</h3>
+    <p>
+      New → fill it in. The values that matter downstream are <strong>score 88</strong>, which the decision
+      table reads, and an owner, which every created row inherits. Status starts at <code>new</code>.
+    </p>
+    <figure>
+      <img src="img/10-crm-lead-new-form.png" alt="The New Lead form filled in for Dana Whitfield at Northwind Trading, with employee count 2500 and annual revenue 75,000,000.">
+      <figcaption><b>A new lead.</b> Seventeen fields, seven required. The form knows which is which from the model's <code>OPTIONAL</code> modifiers.</figcaption>
+    </figure>
+  </li>
+
+  <li>
+    <h3>Qualify it</h3>
+    <p>Edit → set Status to <em>qualified</em> → Save Changes. That is the entire user action.</p>
+  </li>
+
+  <li>
+    <h3>Count again</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">sql</span></div>
+<pre><code>select count(*) from bus_account;       <span class="c-com">-- 5  ← new</span>
+select count(*) from bus_contact;       <span class="c-com">-- 5  ← new</span>
+select count(*) from bus_opportunity;   <span class="c-com">-- 5  ← new</span>
+select status from bus_lead where email = <span class="c-str">'dana.whitfield@northwind.example'</span>;
+<span class="c-com">-- converted</span></code></pre>
+    </div>
+  </li>
+</ol>
+
+<figure>
+  <img src="img/28-crm-account-created-by-saga.png" alt="The Accounts list now showing Northwind Trading with account type prospect, tier strategic and industry technology alongside the four seeded accounts.">
+  <figcaption>
+    <b>The account the saga created.</b> Type <em>prospect</em>, tier <strong>strategic</strong> —
+    the decision table's answer for a score of 88 — and the industry carried across from the lead.
+    Account Number is blank because a <code>beforeCreate</code> hook mints it, and that hook is yours to
+    write.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="img/27-crm-lead-converted.png" alt="The lead detail view for Dana Whitfield after conversion.">
+  <figcaption>
+    <b>And the lead itself.</b> Marked converted by step F, in the same transaction that created the three
+    rows. If any step had failed, none of this would exist and the lead would still read
+    <em>qualified</em>.
+  </figcaption>
+</figure>
+
+<h2>The receipt</h2>
+<p>
+  Every run is recorded, with the mutations it applied. This is the first place to look when you want to
+  know what a workflow actually did rather than what you think it did.
+</p>
+
+<div class="code">
+  <div class="code-head"><span class="tag">sql</span><span>sys_workflow_runs</span></div>
+<pre><code>select workflow_name, operation, status, mutations_applied
+  from sys_workflow_runs
+ order by created_at desc
+ limit 1;</code></pre>
+</div>
+
+<div class="code">
+  <div class="code-head"><span class="tag">json</span><span>mutations_applied, abridged</span></div>
+<pre><code>[
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"Decision"</span>,
+    <span class="c-str">"published"</span>: { <span class="c-str">"accountTier"</span>: <span class="c-str">"strategic"</span>,
+                   <span class="c-str">"openingAmount"</span>: <span class="c-num">250000</span>,
+                   <span class="c-str">"openingAccountType"</span>: <span class="c-str">"prospect"</span> },
+    <span class="c-str">"matchedRows"</span>: <span class="c-num">1</span> },
+
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"CreateEntity"</span>, <span class="c-str">"table"</span>: <span class="c-str">"bus_account"</span>,
+    <span class="c-str">"boundTo"</span>: <span class="c-str">"newAccountId"</span>, <span class="c-str">"createdId"</span>: <span class="c-str">"0f81028e-…"</span> },
+
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"CreateEntity"</span>, <span class="c-str">"table"</span>: <span class="c-str">"bus_contact"</span>,
+    <span class="c-str">"values"</span>: { <span class="c-str">"account_id"</span>: <span class="c-str">"0f81028e-…"</span>, … } },
+
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"CreateEntity"</span>, <span class="c-str">"table"</span>: <span class="c-str">"bus_opportunity"</span>,
+    <span class="c-str">"values"</span>: { <span class="c-str">"amount"</span>: <span class="c-num">250000</span>, <span class="c-str">"stage"</span>: <span class="c-str">"prospecting"</span>, … } },
+
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"UpdateEntity"</span>, <span class="c-str">"table"</span>: <span class="c-str">"bus_lead"</span>,
+    <span class="c-str">"field"</span>: <span class="c-str">"status"</span>, <span class="c-str">"value"</span>: <span class="c-str">"converted"</span>, <span class="c-str">"rowsAffected"</span>: <span class="c-num">1</span> },
+
+  { <span class="c-str">"nodeType"</span>: <span class="c-str">"UpdateEntity"</span>, <span class="c-str">"table"</span>: <span class="c-str">"bus_account"</span>,
+    <span class="c-str">"field"</span>: <span class="c-str">"tier"</span>, <span class="c-str">"value"</span>: <span class="c-str">"strategic"</span>,
+    <span class="c-str">"matchedOn"</span>: <span class="c-str">"id=0f81028e-…"</span> }
+]</code></pre>
+</div>
+
+<div class="note win">
+  <div class="note-title">Read the last entry again</div>
+  <p>
+    Step G updated a row created by step C, matched on the id step C published. That is the shared context
+    doing its job — and it is the difference between a workflow that can only touch what it started from
+    and one that can run a process.
+  </p>
+</div>
+
+<p>
+  The same run list is in the app: open the workflow in the designer and its recent runs are in the
+  sidebar.
+</p>
+
+<figure>
+  <img src="img/33-crm-workflow-view-renewalplaybook.png" alt="The RenewalPlaybook workflow open in the designer, showing its trigger, steps and details.">
+  <figcaption>
+    <b>Any definition, opened.</b> RenewalPlaybook is the automatic counterpart: it runs on every contract
+    update rather than waiting for a rule, and it is the one saga that deletes as well as creates.
+  </figcaption>
+</figure>
+
+<h2>When the chain does not fire</h2>
+<p>
+  Work down this list in order. Each check rules out one link, and the first four cover almost everything.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symptom</th><th>Look at</th><th>Usually</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Nothing happened at all</td>
+      <td><code>select * from sys_workflow_runs order by created_at desc</code></td>
+      <td>No run means the rule never fired. Check the <code>%%action</code>'s <code>when:</code> against the record you actually saved.</td>
+    </tr>
+    <tr>
+      <td>Run exists, status <code>failed</code></td>
+      <td>Its <code>error_details</code></td>
+      <td>A required column no step supplied. NOT NULL violations here are a modelling bug: mark the column <code>OPTIONAL</code> if a hook mints it, or set it in the step's <code>fields</code>.</td>
+    </tr>
+    <tr>
+      <td>Rule triggers the wrong workflow, or none</td>
+      <td>The rule editor's coverage check</td>
+      <td>No catch-all row, so a record fell through the table and matched nothing.</td>
+    </tr>
+    <tr>
+      <td>Record stuck on Draft</td>
+      <td>The record's status message</td>
+      <td>A <code>validation-error</code> action or a <code>customValidate</code> hook refused the write. Working as designed — read the message.</td>
+    </tr>
+    <tr>
+      <td>A step silently did nothing</td>
+      <td><code>mutations_applied</code> for that node</td>
+      <td>A <code>Decision</code> that matched no row publishes nothing, and later steps that would have read its variables skip themselves.</td>
+    </tr>
+    <tr>
+      <td>Cross-entity step refused</td>
+      <td>The step's directive</td>
+      <td>An <code>entity:</code> with neither <code>targetSource</code> nor <code>targetField</code>. The executor refuses rather than guessing a row.</td>
+    </tr>
+    <tr>
+      <td>The backend log</td>
+      <td><code>[RulesEngine]</code> and <code>[WorkflowService]</code> lines</td>
+      <td>They name the rule, the workflow and the failure verbatim — quicker than any of the above.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note tip">
+  <div class="note-title">Prove it in a test, not by clicking</div>
+  <p>
+    The generator emits an end-to-end suite alongside the app. <code>bun run test:e2e:fast</code> exercises
+    the API, the rules and the workflows without the bulk-seed volume tests — the fastest way to know a
+    model change did not break a process you already had working.
+  </p>
+</div>
+
+<h2>What to try next</h2>
+<ul>
+  <li><strong>Change a threshold.</strong> Move the strategic band in step B's decision table from 85 to 95, regenerate, re-seed, convert another lead — the tier changes.</li>
+  <li><strong>Add a step.</strong> Give <code>LeadConversion</code> a seventh step that creates an onboarding Activity against the new account, using <code>targetSource: newAccountId</code>.</li>
+  <li><strong>Gate it differently.</strong> Change the action's <code>when:</code> to fire only for <code>score &gt;= 70</code>, and watch a low-scoring lead qualify without converting.</li>
+  <li><strong>Write a hook body.</strong> Fill in <code>assignAccountNumber</code> in <code>backend/src/modules/hooks/handlers/Account.ts</code> and the blank Account Number column fills itself in.</li>
+</ul>
+
+<nav class="pager">
+  <a href="06-dictionary.html"><span class="dir">Previous</span><div class="ttl">← 06 · Application Dictionary</div></a>
+  <a class="next" href="08-reference.html"><span class="dir">Next</span><div class="ttl">08 · Reference →</div></a>
+</nav>
+
+</div>
+</main>
+</div>
+<script src="assets/guide.js"></script>
+</body>
+</html>

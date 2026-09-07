@@ -1,0 +1,252 @@
+/**
+ * Business Rules Engine Service — GoRules (zen-engine)
+ *
+ * Evaluates business rules using the GoRules zen-engine and
+ * JSON Decision Model (JDM) files stored in ./jdm/.
+ *
+ * Each entity type maps to a dedicated JDM file:
+ {{#each entities}}
+ *   {{tableName}}  → jdm/{{tableName}}.jdm.json
+ {{/each}}
+ *
+ * Decision tables use hitPolicy "collect" so all matching rows are
+ * returned, enabling multiple validation errors in a single call.
+ *
+ * NOTE: zen-engine silently drops any rule row that does not set a value for
+ * every output column the table declares. When adding an output column to a
+ * decision table, give every existing row an explicit "''" for it, or the whole
+ * table stops matching.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ZenEngine } from '@gorules/zen-engine';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export interface RuleAction {
+  type: 'validate' | 'notify' | 'prevent' | 'transform' | 'cascade-update' | 'cascade-delete' | 'cascade-create' | 'trigger-workflow';
+  config: Record<string, unknown>;
+}
+
+export interface RuleEvaluationResult {
+  ruleId: string;
+  ruleName: string;
+  matched: boolean;
+  actions: RuleAction[];
+  errors?: string[];
+}
+
+/**
+ * Shape of each output row returned by a GoRules decision table.
+ *
+ * Everything past `ruleId` is action configuration: `workflowName` for
+ * trigger-workflow, and `targetEntity` / `linkField` / `updateData` for the
+ * cascade actions. Decision tables only need to emit the columns the action
+ * they select actually uses.
+ */
+interface JdmViolation {
+  action: string;
+  message: string;
+  ruleId: string;
+  rule_id?: string;
+  workflowName?: string;
+  /** cascade-update | cascade-delete | cascade-create: table to act on */
+  targetEntity?: string;
+  /** cascade-update | cascade-delete: column on targetEntity holding this row's id */
+  linkField?: string;
+  /** cascade-update: column/value pairs to set (JSON object, or a JSON string) */
+  updateData?: Record<string, unknown> | string;
+  /** cascade-create: column/value pairs to insert (JSON object, or a JSON string) */
+  createData?: Record<string, unknown> | string;
+  /** transform: column/value pairs to apply to the row being written */
+  transformData?: Record<string, unknown> | string;
+}
+
+@Injectable()
+export class RulesEngine implements OnModuleDestroy {
+  private readonly logger = new Logger(RulesEngine.name);
+
+  /** Single ZenEngine instance — thread-safe, reused across requests */
+  private readonly engine: ZenEngine;
+
+  /** Maps entity type names to their JDM file names */
+  private readonly jdmFiles: Record<string, string> = {
+    {{#each entities}}
+    {{tableName}}: '{{tableName}}.jdm.json',
+    {{/each}}
+  };
+
+  constructor() {
+    this.engine = new ZenEngine();
+  }
+
+  /** Release native resources when the NestJS module shuts down */
+  onModuleDestroy(): void {
+    this.engine.dispose();
+  }
+
+  /** Get the ZenEngine instance for external use */
+  getEngine(): ZenEngine {
+    return this.engine;
+  }
+
+  /**
+   * Evaluate rules with provided JDM content (from database)
+   */
+  async evaluateRulesWithJDM(
+    entityType: string,
+    jdmContent: string,
+    data: Record<string, unknown>,
+    action: 'create' | 'update' | 'delete',
+    dbRuleName?: string,
+  ): Promise<RuleEvaluationResult[]> {
+    this.logger.log(`Evaluating rules for ${entityType}:${action}`);
+
+    try {
+      const decision = this.engine.createDecision(Buffer.from(jdmContent));
+      // `_operation` carries the CRUD verb. It is deliberately not called
+      // `action`: that name belongs to the record. A model with an `action`
+      // column could never fire its own rules against it, because the engine
+      // had already replaced the value with "create"/"update" — and a required
+      // -field rule on such a column could never fire at all, since the
+      // injected value made the field look present even when it was omitted.
+      // Rules read the operation from `_operation`; the payload is passed
+      // through untouched.
+      const result = await decision.evaluate({ ...data, _operation: action });
+
+      let violations: JdmViolation[] = [];
+
+      if (Array.isArray(result.result)) {
+        violations = result.result as JdmViolation[];
+      } else if (result.result && typeof result.result === 'object') {
+        violations = [result.result as JdmViolation];
+      }
+
+      return violations.map((v) => ({
+        ruleId: dbRuleName || v.ruleId || v.rule_id || 'unknown',
+        ruleName: dbRuleName || v.ruleId || v.rule_id || 'unknown',
+        matched: true,
+        actions: [{ type: v.action as RuleAction['type'], config: this.toActionConfig(v) }],
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error evaluating rules for ${entityType}: ${message}`);
+      return [
+        {
+          ruleId: 'engine-error',
+          ruleName: 'Rules Engine Error',
+          matched: false,
+          actions: [],
+          errors: [message],
+        },
+      ];
+    }
+  }
+
+  /**
+   * Evaluate all rules for a given entity type and action.
+   *
+   * @param entityType  The bus_ table name (e.g. 'bus_patient')
+   * @param data        The entity data to validate
+   * @param action      The CRUD operation being performed
+   * @returns           Array of matched rule results (empty if no violations)
+   */
+  async evaluateRules(
+    entityType: string,
+    data: Record<string, unknown>,
+    action: 'create' | 'update' | 'delete',
+  ): Promise<RuleEvaluationResult[]> {
+    this.logger.log(`Evaluating rules for ${entityType}:${action}`);
+
+    const jdmFile = this.jdmFiles[entityType];
+    if (!jdmFile) {
+      this.logger.debug(`No JDM rules configured for entity: ${entityType}`);
+      return [];
+    }
+
+    const jdmPath = join(__dirname, 'jdm', jdmFile);
+    let content: Buffer;
+    try {
+      content = readFileSync(jdmPath);
+    } catch {
+      this.logger.warn(`JDM file not found for ${entityType}: ${jdmPath}`);
+      return [];
+    }
+
+    let violations: JdmViolation[] = [];
+    try {
+      const decision = this.engine.createDecision(content);
+      // `_operation` carries the CRUD verb. It is deliberately not called
+      // `action`: that name belongs to the record. A model with an `action`
+      // column could never fire its own rules against it, because the engine
+      // had already replaced the value with "create"/"update" — and a required
+      // -field rule on such a column could never fire at all, since the
+      // injected value made the field look present even when it was omitted.
+      // Rules read the operation from `_operation`; the payload is passed
+      // through untouched.
+      const result = await decision.evaluate({ ...data, _operation: action });
+
+      // hitPolicy "collect" returns an array; single-match returns an object or null
+      if (Array.isArray(result.result)) {
+        violations = result.result as JdmViolation[];
+      } else if (result.result && typeof result.result === 'object') {
+        violations = [result.result as JdmViolation];
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error evaluating rules for ${entityType}: ${message}`);
+      return [
+        {
+          ruleId: 'engine-error',
+          ruleName: 'Rules Engine Error',
+          matched: false,
+          actions: [],
+          errors: [message],
+        },
+      ];
+    }
+
+    return violations.map((v) => ({
+      ruleId: v.ruleId,
+      ruleName: v.ruleId,
+      matched: true,
+      actions: [{ type: v.action as RuleAction['type'], config: this.toActionConfig(v) }],
+    }));
+  }
+
+  /**
+   * Carry the whole decision-table output row into the action config.
+   *
+   * Only `message` and `workflowName` used to survive this step, which left the
+   * cascade actions permanently unconfigurable — they read `targetEntity`,
+   * `linkField` and `updateData`, and those were always undefined no matter what
+   * the decision table emitted.
+   */
+  private toActionConfig(v: JdmViolation): Record<string, unknown> {
+    return {
+      message: v.message,
+      workflowName: v.workflowName,
+      targetEntity: v.targetEntity,
+      linkField: v.linkField,
+      updateData: this.asObject(v.updateData),
+      createData: this.asObject(v.createData),
+      transformData: this.asObject(v.transformData),
+    };
+  }
+
+  /** Decision tables can emit an object or a JSON string; accept either. */
+  private asObject(value: Record<string, unknown> | string | undefined): Record<string, unknown> | undefined {
+    if (!value) return undefined;
+    if (typeof value !== 'string') return value;
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : undefined;
+    } catch {
+      this.logger.warn(`Rule action data is not valid JSON: ${value}`);
+      return undefined;
+    }
+  }
+}

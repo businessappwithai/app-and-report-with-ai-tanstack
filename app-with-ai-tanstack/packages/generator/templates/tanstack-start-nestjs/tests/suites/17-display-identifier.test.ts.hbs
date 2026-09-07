@@ -1,0 +1,214 @@
+/**
+ * What a record is called.
+ *
+ * Every screen that names a record — the window header, the breadcrumb, the
+ * record navigator, and every dropdown that points at it — asks the dictionary
+ * which columns identify it, then reads those off the row. `is_identifier` is
+ * the whole mechanism, and it travels in the field metadata.
+ *
+ * When it stopped travelling, nothing errored. The front end fell through to a
+ * list of guessed column names, missed, and titled every record with its own
+ * primary key:
+ *
+ *     ← List | 1a498937-ac17-421f-a427-1a2a329298c2
+ *
+ * on a Member whose dictionary row marks `full_name` as the identifier. Nine
+ * entities out of nine, unreadable by name, and every existing test green.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, harness } from "../harness/index.ts";
+
+interface FormField {
+  column_name: string;
+  is_identifier?: boolean;
+  is_key?: boolean;
+  ref_table_name?: string | null;
+  ref_label_fields?: string[] | null;
+  sys_reference_id?: number;
+  seq_no?: number;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function rows<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
+/** Every column the dictionary marks as naming the record, key excluded. */
+function identifiersOf(fields: FormField[]): FormField[] {
+  return fields
+    .filter((field) => field.is_identifier && !field.is_key)
+    .sort((a, b) => Number(a.seq_no ?? 0) - Number(b.seq_no ?? 0));
+}
+
+/**
+ * The identifiers a value can be read straight off the row — not references.
+ *
+ * A join entity has no name of its own, so the dictionary marks its foreign
+ * keys instead, and §3.7 says the label is those parents *resolved through
+ * their own labels*. The NestJS stack does not do that second hop yet: it
+ * reads the referenced row's identifier columns, which on a join entity are
+ * more uuids. So an entity whose identifiers are all references legitimately
+ * has no readable label here, and the assertions below say which case they are
+ * in rather than failing on a gap this suite did not open.
+ *
+ * Tracked in TODOS.md — "a join entity's display value is two raw uuids".
+ */
+function literalIdentifiersOf(fields: FormField[]): FormField[] {
+  return identifiersOf(fields).filter((field) => !field.ref_table_name);
+}
+
+describe("display value", () => {
+  const formFields = new Map<string, FormField[]>();
+  const gridFields = new Map<string, FormField[]>();
+
+  beforeAll(async () => {
+    await harness.setup();
+    for (const entity of entities) {
+      const form = await harness.client.get<FormField[]>(
+        `/bus/${entity.route}/fields/form?includeHidden=true`,
+        { allowFailure: true }
+      );
+      if (form.ok) formFields.set(entity.route, form.data ?? []);
+
+      const grid = await harness.client.get<FormField[]>(
+        `/bus/${entity.route}/fields/grid?includeHidden=true`,
+        { allowFailure: true }
+      );
+      if (grid.ok) gridFields.set(entity.route, grid.data ?? []);
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("sends is_identifier in the form metadata", () => {
+    // Absent, not false: a payload that never carries the property is the
+    // failure this suite was written for, and `false` everywhere is a
+    // different fault with a different fix.
+    const silent = entities
+      .filter((entity) => {
+        const fields = formFields.get(entity.route) ?? [];
+        return fields.length > 0 && fields.every((field) => field.is_identifier === undefined);
+      })
+      .map((entity) => entity.route);
+    expect(silent).toEqual([]);
+  });
+
+  it("sends is_key in the form metadata", () => {
+    const silent = entities
+      .filter((entity) => {
+        const fields = formFields.get(entity.route) ?? [];
+        return fields.length > 0 && fields.every((field) => field.is_key === undefined);
+      })
+      .map((entity) => entity.route);
+    expect(silent).toEqual([]);
+  });
+
+  it("sends is_identifier in the grid metadata too", () => {
+    const silent = entities
+      .filter((entity) => {
+        const fields = gridFields.get(entity.route) ?? [];
+        return fields.length > 0 && fields.every((field) => field.is_identifier === undefined);
+      })
+      .map((entity) => entity.route);
+    expect(silent).toEqual([]);
+  });
+
+  it("never marks the primary key as the display value", () => {
+    const offenders: string[] = [];
+    for (const entity of entities) {
+      for (const field of formFields.get(entity.route) ?? []) {
+        if (field.is_key && field.is_identifier) {
+          offenders.push(`${entity.route}.${field.column_name}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  for (const entity of entities) {
+    describe(entity.name, () => {
+      it("marks at least one column as the display value", () => {
+        const fields = formFields.get(entity.route) ?? [];
+        if (fields.length === 0) return;
+        expect(identifiersOf(fields).length).toBeGreaterThan(0);
+      });
+
+      it("names a record from its own columns, or from parents that exist", () => {
+        const fields = formFields.get(entity.route) ?? [];
+        if (fields.length === 0) return;
+
+        if (literalIdentifiersOf(fields).length > 0) return;
+
+        // A join entity: every identifier is a reference, so the label has to
+        // come from the parents. What is checkable today is that the chain is
+        // *followable* — each identifier names a table the dictionary knows.
+        // A `ref_table_name` pointing at nothing is a dead reference and the
+        // label can never be resolved, however many hops are implemented.
+        //
+        // Whether the second hop happens is the gap in TODOS.md; how deep it
+        // would have to go is model-dependent (Booking → ClassSession →
+        // ClassOffering is two), so asserting a depth here would encode this
+        // model's shape into every generated application's tests.
+        const referenced = identifiersOf(fields)
+          .map((field) => field.ref_table_name)
+          .filter((table): table is string => Boolean(table));
+        expect(referenced.length).toBeGreaterThan(0);
+
+        const dangling = referenced.filter(
+          (table) => !entities.some((item) => item.tableName === table)
+        );
+        expect(dangling).toEqual([]);
+      });
+
+      it("resolves a record to something other than its uuid", async () => {
+        const fields = formFields.get(entity.route) ?? [];
+        const identifiers = literalIdentifiersOf(fields);
+        if (identifiers.length === 0) return;
+
+        const listed = await harness.client.get(`/bus/${entity.route}?limit=5`, {
+          allowFailure: true,
+        });
+        if (!listed.ok) return;
+
+        const row = rows<Record<string, unknown>>(listed.data)[0];
+        if (!row) return;
+
+        const label = identifiers
+          .map((field) => row[field.column_name])
+          .filter((value) => value !== null && value !== undefined && value !== "")
+          .map(String)
+          .join(" ");
+
+        expect(label.length).toBeGreaterThan(0);
+        expect(UUID.test(label)).toBe(false);
+      });
+
+      it("gives every reference to it a label column to show", () => {
+        // The other side of the same mechanism: a lookup pointing here has to
+        // know what to display instead of the stored id.
+        const offenders: string[] = [];
+        for (const other of entities) {
+          for (const field of formFields.get(other.route) ?? []) {
+            if (field.ref_table_name !== entity.tableName) continue;
+            if (!field.ref_label_fields || field.ref_label_fields.length === 0) {
+              offenders.push(`${other.route}.${field.column_name}`);
+            }
+          }
+        }
+        expect(offenders).toEqual([]);
+      });
+    });
+  }
+});

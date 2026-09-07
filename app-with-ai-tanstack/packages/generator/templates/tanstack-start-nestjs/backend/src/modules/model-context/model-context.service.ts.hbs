@@ -1,0 +1,387 @@
+/**
+ * Retrieval over this application's own model.
+ *
+ * The application ships with the `.eml.mmd` it was generated from, in
+ * `model/model.eml.mmd`. This service chunks that document along its own
+ * structure, embeds the chunks, and stores them in pgvector beside the
+ * business data — so an administrator extending the application has an
+ * assistant that can answer from what the application actually declares
+ * rather than from what a language model remembers about ERDs in general.
+ *
+ * The chunker is `rag.ts` next to this file, copied verbatim from the
+ * generator's `language/` folder. It is dependency-free precisely so that copy
+ * is possible: the definition of what an EML document means should not fork
+ * between the tool that writes models and the applications that run them.
+ *
+ * Everything here degrades rather than throws. An application whose vector
+ * store is unreachable should serve its business data exactly as before and
+ * simply have a less useful assistant.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { sql, type Kysely } from 'kysely';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { InjectDatabase } from '../../database/database.service.decorator';
+import { chunkModel, extractEnums, type RagChunk } from './rag';
+import { SystemConfigService } from '../sys/services/system-config.service';
+
+export interface RetrievedChunk {
+  kind: string;
+  name: string;
+  text: string;
+  score: number;
+}
+
+@Injectable()
+export class ModelContextService implements OnModuleInit {
+  private readonly logger = new Logger(ModelContextService.name);
+  private ready = false;
+
+  constructor(
+    @InjectDatabase() private readonly db: Kysely<any>,
+    private readonly config: SystemConfigService,
+  ) {}
+
+  private get EMBEDDING_DIMENSIONS(): number { return this.config.getNumber('AI_EMBEDDING_DIMENSIONS', 384); }
+  private get EMBEDDING_MODEL(): string { return this.config.get('AI_EMBEDDING_MODEL', 'bge-small-en-v1.5'); }
+  private get AI_BASE_URL(): string { return this.config.get('AI_BASE_URL', 'http://localhost:8000/v1'); }
+  private get AI_API_KEY(): string { return this.config.get('AI_API_KEY', 'local'); }
+
+  /**
+   * Ingest at startup, in the background.
+   *
+   * Awaiting it would hold the application's boot on an embedding endpoint
+   * that may not be running — an assistant is not worth refusing to serve
+   * requests over. A first search before ingest finishes returns nothing,
+   * which the assistant reports honestly.
+   */
+  async onModuleInit(): Promise<void> {
+    void this.ingest().catch((error) => {
+      this.logger.warn(`Model context unavailable: ${error?.message ?? error}`);
+    });
+  }
+
+  /** Chunk and embed the shipped model. Safe to call again; it replaces. */
+  async ingest(): Promise<{ ingested: number }> {
+    const document = await this.readModel();
+    if (!document) {
+      this.logger.warn('No model/model.eml.mmd shipped with this application.');
+      return { ingested: 0 };
+    }
+
+    await this.ensureTable();
+
+    const chunks = this.chunk(document);
+    if (!chunks.length) return { ingested: 0 };
+
+    const vectors = await this.embed(chunks.map((chunk) => chunk.text));
+
+    await this.db.transaction().execute(async (trx) => {
+      // Replace rather than upsert by id: a model that loses an entity should
+      // lose its chunk, and an upsert leaves the old one to be retrieved as
+      // though that entity still existed.
+      await sql`DELETE FROM sys_model_context`.execute(trx);
+
+      for (const [index, chunk] of chunks.entries()) {
+        const vector = vectors[index];
+        if (!vector) continue;
+        await sql`
+          INSERT INTO sys_model_context (chunk_id, kind, name, entity, text, embedding)
+          VALUES (
+            ${chunk.id}, ${chunk.kind}, ${chunk.name},
+            ${chunk.metadata.entity ?? null}, ${chunk.text},
+            ${`[${vector.join(',')}]`}::vector
+          )
+        `.execute(trx);
+      }
+    });
+
+    this.ready = true;
+    this.logger.log(`Model context ready: ${chunks.length} chunks embedded.`);
+    return { ingested: chunks.length };
+  }
+
+  /**
+   * The chunks most relevant to a question.
+   *
+   * Ordered by cosine distance, which is what the index is built for.
+   */
+  async search(question: string, topK = 8, kinds?: string[]): Promise<RetrievedChunk[]> {
+    if (!question.trim()) return [];
+
+    const [vector] = await this.embed([question]);
+    if (!vector) return [];
+
+    const literal = `[${vector.join(',')}]`;
+    const rows = await sql<{
+      kind: string;
+      name: string;
+      text: string;
+      distance: number;
+    }>`
+      SELECT kind, name, text, (embedding <=> ${literal}::vector) AS distance
+      FROM sys_model_context
+      ${kinds?.length ? sql`WHERE kind = ANY(${kinds})` : sql``}
+      ORDER BY embedding <=> ${literal}::vector
+      LIMIT ${topK}
+    `.execute(this.db);
+
+    return rows.rows.map((row) => ({
+      kind: row.kind,
+      name: row.name,
+      text: row.text,
+      score: 1 - Number(row.distance),
+    }));
+  }
+
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  /* ---------------------------------------------------------------------- */
+
+  private async readModel(): Promise<string | null> {
+    // The backend runs from `backend/`, so the model sits one level up.
+    for (const candidate of ['../model/model.eml.mmd', 'model/model.eml.mmd']) {
+      try {
+        return await readFile(join(process.cwd(), candidate), 'utf-8');
+      } catch {
+        // try the next location
+      }
+    }
+    return null;
+  }
+
+  private chunk(document: string): RagChunk[] {
+    // Parsing here is deliberately shallow: the generated application does not
+    // carry the generator's Mermaid parser, and the chunker only needs the
+    // shape of the model rather than a compilable one. Entities and their
+    // fields come from the erDiagram block; rules and processes come from the
+    // directives that declare them.
+    const { entities, relationships } = parseErd(document);
+
+    return chunkModel(
+      {
+        name: '{{project.name}}',
+        entities,
+        relationships,
+        enums: extractEnums(document),
+        rules: parseRules(document),
+        sagas: parseSagas(document),
+      },
+      '{{project.name}}'
+    );
+  }
+
+  /** Embed via the OpenAI-compatible endpoint the application is configured with. */
+  private async embed(texts: string[]): Promise<number[][]> {
+    if (!texts.length) return [];
+
+    const response = await fetch(`${this.AI_BASE_URL}/embeddings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.AI_API_KEY}`,
+      },
+      // `encoding_format: float` asked for explicitly: without it a client may
+      // negotiate base64 and read the response four values to one.
+      body: JSON.stringify({ model: this.EMBEDDING_MODEL, input: texts, encoding_format: 'float' }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Embedding endpoint returned ${response.status}`);
+    }
+
+    const payload = (await response.json()) as {
+      data: { index: number; embedding: number[] }[];
+    };
+    const ordered = [...payload.data].sort((a, b) => a.index - b.index);
+    const vectors = ordered.map((item) => item.embedding);
+
+    const width = vectors[0]?.length;
+    if (width && width !== this.EMBEDDING_DIMENSIONS) {
+      throw new Error(
+        `Embedding model "${this.EMBEDDING_MODEL}" returned ${width}-dimension vectors but the ` +
+          `table expects ${this.EMBEDDING_DIMENSIONS}. Set AI_EMBEDDING_DIMENSIONS=${width} and re-ingest.`
+      );
+    }
+    return vectors;
+  }
+
+  private async ensureTable(): Promise<void> {
+    await sql`CREATE EXTENSION IF NOT EXISTS vector`.execute(this.db);
+    await sql`
+      CREATE TABLE IF NOT EXISTS sys_model_context (
+        id          bigserial PRIMARY KEY,
+        chunk_id    text NOT NULL,
+        kind        text NOT NULL,
+        name        text NOT NULL,
+        entity      text,
+        text        text NOT NULL,
+        embedding   vector(${sql.raw(String(this.EMBEDDING_DIMENSIONS))}) NOT NULL,
+        created_at  timestamptz NOT NULL DEFAULT now()
+      )
+    `.execute(this.db);
+    await sql`
+      CREATE INDEX IF NOT EXISTS sys_model_context_embedding_idx
+      ON sys_model_context USING hnsw (embedding vector_cosine_ops)
+    `.execute(this.db);
+    await sql`
+      CREATE INDEX IF NOT EXISTS sys_model_context_kind_idx ON sys_model_context (kind)
+    `.execute(this.db);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Shallow EML readers                                                        */
+/* -------------------------------------------------------------------------- */
+
+/** Entities and relationships from the `erDiagram` block. */
+function parseErd(document: string) {
+  const entities: Parameters<typeof chunkModel>[0]['entities'] = [];
+  const relationships: Parameters<typeof chunkModel>[0]['relationships'] = [];
+
+  let current: (typeof entities)[number] | null = null;
+
+  for (const raw of document.split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('%%')) continue;
+
+    const open = /^(\w+)\s*\{$/.exec(line);
+    if (open?.[1]) {
+      current = {
+        name: open[1],
+        tableName: `bus_${toSnake(open[1])}`,
+        attributes: [],
+        primaryKey: 'id',
+      };
+      continue;
+    }
+
+    if (line === '}' && current) {
+      entities.push(current);
+      current = null;
+      continue;
+    }
+
+    if (current) {
+      const [type, name, ...rest] = line.split(/\s+/);
+      if (!type || !name) continue;
+      const flags = rest.join(' ');
+      current.attributes.push({
+        name,
+        type,
+        required: !/OPTIONAL/i.test(flags),
+        unique: /\bUK\b/.test(flags),
+        isForeignKey: /\bFK\b/.test(flags),
+      });
+      if (/\bPK\b/.test(flags)) current.primaryKey = name;
+      continue;
+    }
+
+    const relation = /^(\w+)\s+([|}o][|o{-]+[|o{])\s+(\w+)\s*:\s*"?([^"]*)"?$/.exec(line);
+    if (relation) {
+      relationships.push({
+        sourceEntity: relation[1] ?? '',
+        targetEntity: relation[3] ?? '',
+        cardinality: cardinalityOf(relation[2] ?? ''),
+        name: relation[4],
+      });
+    }
+  }
+
+  return { entities, relationships };
+}
+
+function cardinalityOf(glyph: string): string {
+  if (glyph.includes('||--o{') || glyph.includes('||--|{')) return 'oneToMany';
+  if (glyph.includes('}o--||') || glyph.includes('}|--||')) return 'manyToOne';
+  if (glyph.includes('||--||')) return 'oneToOne';
+  if (glyph.includes('}o--o{')) return 'manyToMany';
+  return 'relatesTo';
+}
+
+/** `%%rule <name> on <Entity> event: <event> priority: <n>` */
+function parseRules(document: string): Parameters<typeof chunkModel>[0]['rules'] {
+  const rules: NonNullable<Parameters<typeof chunkModel>[0]['rules']> = [];
+  for (const raw of document.split('\n')) {
+    const match = /^\s*%%rule\s+(\S+)\s+on\s+(\S+)(.*)$/.exec(raw);
+    if (!match) continue;
+    const rest = match[3] ?? '';
+    const event = /event:\s*(\S+)/.exec(rest)?.[1] ?? 'beforeCreate';
+    rules.push({
+      name: match[1] ?? '',
+      entity: match[2] ?? '',
+      event,
+      operation: event.toLowerCase().includes('update')
+        ? 'UPDATE'
+        : event.toLowerCase().includes('delete')
+          ? 'DELETE'
+          : 'CREATE',
+      priority: Number(/priority:\s*(\d+)/.exec(rest)?.[1] ?? 100),
+    });
+  }
+  return rules;
+}
+
+/** `%%workflow <Name> entity: <Entity> kind: saga ...` plus its `%%step` lines. */
+function parseSagas(document: string): Parameters<typeof chunkModel>[0]['sagas'] {
+  const sagas: NonNullable<Parameters<typeof chunkModel>[0]['sagas']> = [];
+  const lines = document.split('\n');
+
+  for (let index = 0; index < lines.length; index++) {
+    const header = /^\s*%%workflow\s+(\S+)\s+entity:\s*(\S+)\s+kind:\s*saga(.*)$/.exec(
+      lines[index] ?? ''
+    );
+    if (!header) continue;
+
+    const rest = header[3] ?? '';
+    const saga = {
+      name: header[1] ?? '',
+      entity: header[2] ?? '',
+      trigger: /trigger:\s*rule/.test(rest) ? 'rule' : 'automatic',
+      operation: /operation:\s*(\S+)/.exec(rest)?.[1] ?? 'CREATE',
+      steps: [] as NonNullable<Parameters<typeof chunkModel>[0]['sagas']>[number]['steps'],
+    };
+
+    // Steps run to the next %%workflow or %%rule header.
+    for (let cursor = index + 1; cursor < lines.length; cursor++) {
+      const line = lines[cursor] ?? '';
+      if (/^\s*%%(workflow|rule)\s/.test(line)) break;
+      const step = /^\s*%%step\s+(\S+)\s+(\S+)\s*(.*)$/.exec(line);
+      if (!step) continue;
+      saga.steps.push({
+        nodeId: step[1] ?? '',
+        type: step[2] ?? '',
+        props: parseProps(step[3] ?? ''),
+      });
+    }
+
+    sagas.push(saga);
+  }
+  return sagas;
+}
+
+/** `key: value` pairs where a value runs to the next `key:` token. */
+function parseProps(rest: string): Record<string, string> {
+  const props: Record<string, string> = {};
+  const parts = rest.split(/\s+(?=[A-Za-z_][\w-]*:)/);
+  for (const part of parts) {
+    const at = part.indexOf(':');
+    if (at <= 0) continue;
+    const key = part.slice(0, at).trim();
+    if (key) props[key] = part.slice(at + 1).trim();
+  }
+  return props;
+}
+
+function toSnake(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toLowerCase();
+}

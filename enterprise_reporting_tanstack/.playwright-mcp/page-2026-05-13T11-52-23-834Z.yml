@@ -1,0 +1,68 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e164] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e165]:
+                - img [ref=e166]
+                - generic [ref=e169]: Dashboard
+        - generic [ref=e68]:
+          - heading "Administration" [level=2] [ref=e69]
+          - navigation [ref=e70]:
+            - link "Settings" [ref=e170] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e171]:
+                - img [ref=e172]
+                - generic [ref=e175]: Settings
+      - button [ref=e109] [cursor=pointer]:
+        - img [ref=e110]
+    - generic [ref=e112]:
+      - banner [ref=e113]:
+        - button "Sakila Demo DB sqlite3" [ref=e157] [cursor=pointer]:
+          - img [ref=e158]
+          - generic [ref=e162]: Sakila Demo DB
+          - generic [ref=e163]: sqlite3
+        - generic [ref=e119]:
+          - button "Toggle theme" [ref=e120] [cursor=pointer]:
+            - img [ref=e121]
+            - img
+            - generic [ref=e127]: Toggle theme
+          - button "Notifications" [ref=e128] [cursor=pointer]:
+            - img [ref=e129]
+            - generic [ref=e132]: Notifications
+          - button "A" [ref=e133] [cursor=pointer]:
+            - generic [ref=e135]: A
+      - main [ref=e136]:
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - heading "Admin Panel" [level=1] [ref=e139]
+            - paragraph [ref=e140]: Manage system users, roles, and permissions
+          - generic [ref=e141]:
+            - link "Users" [active] [ref=e142] [cursor=pointer]:
+              - /url: /admin/users/users
+            - link "Roles" [ref=e143] [cursor=pointer]:
+              - /url: /admin/users/roles
+            - link "Permissions" [ref=e144] [cursor=pointer]:
+              - /url: /admin/users/permissions
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - heading "User Management" [level=1] [ref=e179]
+                - paragraph [ref=e180]: Manage user accounts and assign roles
+              - button "Create User" [ref=e181] [cursor=pointer]:
+                - img [ref=e182]
+                - text: Create User
+            - generic [ref=e185]:
+              - heading "All Users" [level=3] [ref=e187]:
+                - img [ref=e188]
+                - text: All Users
+              - generic [ref=e191]: Loading users...
+  - region "Notifications alt+T"

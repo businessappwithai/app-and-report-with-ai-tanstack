@@ -1,0 +1,692 @@
+/**
+ * Multi-Step / Multi-Entity Workflow Tests
+ * Generated: {{generatedAt}}
+ * Project: {{project.name}}
+ *
+ * Covers the parts of the workflow executor that multi-step, multi-entity
+ * automations depend on:
+ *   1. Service tasks run in sequence-flow order, not XML document order
+ *   2. UpdateEntity can target a related entity (parent row or child rows)
+ *   3. CreateEntity, Formula and REST actually execute
+ *   4. Property values are XML-entity decoded (CreateEntity's field map is JSON)
+ *   5. Runs report rowsAffected instead of claiming success for a no-op
+ *
+ * Regression: found by /qa on 2026-07-26 — cross-entity UpdateEntity wrote to
+ * `id = <triggering row id>` regardless of which table it targeted, so every
+ * cross-entity step silently matched nothing while the run was recorded as
+ * successful; CreateEntity/Formula/REST were palette entries backed by stubs.
+ */
+
+import { describe, it, expect } from 'bun:test';
+import { WorkflowService } from '../src/modules/workflow/workflow.service';
+import { RulesEngine } from '../src/modules/rules/rules-engine.service';
+
+// ── BPMN fixtures ────────────────────────────────────────────────────────────
+
+/** Tasks are declared in REVERSE order; the sequence flows say 1 -> 2 -> 3. */
+const OUT_OF_ORDER_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:appwithai="http://appwithai/schema">
+  <bpmn:process id="p" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:serviceTask id="third">
+      <bpmn:extensionElements><appwithai:properties>
+        <appwithai:property name="nodeType" value="UpdateEntity"/>
+        <appwithai:property name="field" value="step_three"/>
+        <appwithai:property name="value" value="3"/>
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="second">
+      <bpmn:extensionElements><appwithai:properties>
+        <appwithai:property name="nodeType" value="UpdateEntity"/>
+        <appwithai:property name="field" value="step_two"/>
+        <appwithai:property name="value" value="2"/>
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="first">
+      <bpmn:extensionElements><appwithai:properties>
+        <appwithai:property name="nodeType" value="UpdateEntity"/>
+        <appwithai:property name="field" value="step_one"/>
+        <appwithai:property name="value" value="1"/>
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f0" sourceRef="start"  targetRef="first"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="first"  targetRef="second"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="second" targetRef="third"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+
+function updateTaskBpmn(props: Record<string, string>): string {
+  const lines = Object.entries(props)
+    .map(([k, v]) => `<appwithai:property name="${k}" value="${v}"/>`)
+    .join('\n        ');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:appwithai="http://appwithai/schema">
+  <bpmn:process id="p" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:serviceTask id="task">
+      <bpmn:extensionElements><appwithai:properties>
+        ${lines}
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f0" sourceRef="start" targetRef="task"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+}
+
+// ── Mock database ────────────────────────────────────────────────────────────
+
+interface RecordedUpdate {
+  table: string;
+  fields: Record<string, unknown>;
+  whereColumn: string;
+  whereValue: unknown;
+}
+
+/**
+ * Kysely-compatible fluent mock that records the WHERE clause, which is the
+ * thing the cross-entity targeting fix is actually about.
+ */
+function createMockDb(options: { rowsUpdated?: number; insertedId?: string } = {}) {
+  const updates: RecordedUpdate[] = [];
+  const inserts: Array<{ table: string; values: Record<string, unknown> }> = [];
+  const workflowRuns: Array<Record<string, unknown>> = [];
+
+  let op = 'select';
+  let table = '';
+  let pendingSet: Record<string, unknown> = {};
+  let pendingValues: Record<string, unknown> = {};
+  let whereColumn = '';
+  let whereValue: unknown = undefined;
+
+  const chain: any = {};
+  chain.selectFrom = (t: string) => { op = 'select'; table = t; return chain; };
+  chain.insertInto = (t: string) => { op = 'insert'; table = t; return chain; };
+  chain.updateTable = (t: string) => { op = 'update'; table = t; return chain; };
+  chain.deleteFrom = (t: string) => { op = 'delete'; table = t; return chain; };
+
+  for (const m of ['selectAll', 'orderBy', 'limit', 'select', 'returningAll']) {
+    chain[m] = () => chain;
+  }
+  chain.where = (col: any, _cmp?: any, val?: any) => {
+    if (typeof col === 'string') { whereColumn = col; whereValue = val; }
+    return chain;
+  };
+  chain.set = (data: Record<string, unknown>) => { pendingSet = data; return chain; };
+  chain.values = (data: Record<string, unknown>) => { pendingValues = data; return chain; };
+
+  const flushUpdate = () => {
+    if (table === 'sys_workflow_runs') {
+      workflowRuns.push({ ...pendingSet });
+    } else {
+      updates.push({ table, fields: { ...pendingSet }, whereColumn, whereValue });
+    }
+    pendingSet = {};
+  };
+
+  chain.execute = () => {
+    if (op === 'update') {
+      flushUpdate();
+      // Kysely resolves an update without RETURNING to a single UpdateResult.
+      return Promise.resolve([{ numUpdatedRows: BigInt(options.rowsUpdated ?? 1) }]);
+    }
+    if (op === 'insert') { inserts.push({ table, values: { ...pendingValues } }); pendingValues = {}; }
+    return Promise.resolve([]);
+  };
+
+  chain.executeTakeFirst = () => {
+    if (op === 'insert') {
+      inserts.push({ table, values: { ...pendingValues } });
+      pendingValues = {};
+      return Promise.resolve({ id: options.insertedId ?? 'new-row-id' });
+    }
+    return Promise.resolve(undefined);
+  };
+
+  return { chain, updates, inserts, workflowRuns };
+}
+
+/** Reach the private executor without going through the DB-backed entry points. */
+function runBpmn(
+  svc: WorkflowService,
+  bpmn: string,
+  triggeringTable: string,
+  entityData: Record<string, unknown>,
+  vars: Record<string, unknown> = {},
+): Promise<Record<string, unknown>[]> {
+  return (svc as any).executeBpmn(bpmn, triggeringTable, entityData, vars);
+}
+
+// ── 1. Step ordering ─────────────────────────────────────────────────────────
+
+describe('WorkflowService — multi-step ordering', () => {
+  it('runs service tasks in sequence-flow order, not XML document order', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    await runBpmn(svc, OUT_OF_ORDER_BPMN, 'bus_appointment', { id: 'row-1' });
+
+    expect(updates.map((u) => Object.keys(u.fields)[0])).toEqual([
+      'step_one',
+      'step_two',
+      'step_three',
+    ]);
+  });
+
+  it('still runs a task that the user left unconnected on the canvas', async () => {
+    const orphan = OUT_OF_ORDER_BPMN.replace(
+      '<bpmn:sequenceFlow id="f2" sourceRef="second" targetRef="third"/>',
+      '',
+    );
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    await runBpmn(svc, orphan, 'bus_test', { id: 'row-1' });
+
+    expect(updates.map((u) => Object.keys(u.fields)[0])).toContain('step_three');
+  });
+});
+
+// ── 2. Cross-entity targeting ────────────────────────────────────────────────
+
+describe('WorkflowService — UpdateEntity row targeting', () => {
+  it('updates the triggering row when no targeting is configured', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'UpdateEntity', field: 'state', value: 'done' }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].table).toBe('bus_appointment');
+    expect(updates[0].whereColumn).toBe('id');
+    expect(updates[0].whereValue).toBe('appt-1');
+  });
+
+  it('resolves a parent row through targetSource instead of the triggering id', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    await runBpmn(
+      svc,
+      updateTaskBpmn({
+        nodeType: 'UpdateEntity', entity: 'bus_patient', field: 'flag', value: 'seen',
+        targetField: 'id', targetSource: 'patient_id',
+      }),
+      'bus_appointment',
+      { id: 'appt-1', patient_id: 'patient-9' },
+    );
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].table).toBe('bus_patient');
+    // The bug this guards: whereValue used to be 'appt-1'.
+    expect(updates[0].whereValue).toBe('patient-9');
+  });
+
+  it('fans out over child rows when targetField names a foreign key', async () => {
+    const { chain, updates } = createMockDb({ rowsUpdated: 5 });
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({
+        nodeType: 'UpdateEntity', entity: 'bus_encounter', field: 'state', value: 'closed',
+        targetField: 'patient_id',
+      }),
+      'bus_patient',
+      { id: 'patient-9' },
+    );
+
+    expect(updates[0].whereColumn).toBe('patient_id');
+    expect(updates[0].whereValue).toBe('patient-9');
+    expect(mutation.rowsAffected).toBe(5);
+  });
+
+  it('refuses a cross-entity update with no link rather than guessing a row', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'UpdateEntity', entity: 'bus_patient', field: 'flag', value: 'x' }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(updates).toHaveLength(0);
+    expect(mutation.skipped).toContain('cross-entity');
+  });
+
+  it('reports rowsAffected: 0 instead of implying the update landed', async () => {
+    const { chain } = createMockDb({ rowsUpdated: 0 });
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'UpdateEntity', field: 'state', value: 'done' }),
+      'bus_appointment',
+      { id: 'missing-row' },
+    );
+
+    expect(mutation.rowsAffected).toBe(0);
+  });
+
+  // A node saved without its required property must still appear in the run
+  // record. Returning nothing made the step vanish from mutations_applied, so a
+  // run that silently did nothing was indistinguishable from one that worked.
+  it('records a skipped mutation when the node has no field configured', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'UpdateEntity', value: 'done' }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(updates).toHaveLength(0);
+    expect(mutation.skipped).toContain('field');
+  });
+
+  it('skips when the configured targetSource is absent from the context', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({
+        nodeType: 'UpdateEntity', entity: 'bus_patient', field: 'flag', value: 'x',
+        targetSource: 'nonexistent_id',
+      }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(updates).toHaveLength(0);
+    expect(mutation.skipped).toContain('nonexistent_id');
+  });
+});
+
+// ── 3. CreateEntity ──────────────────────────────────────────────────────────
+
+describe('WorkflowService — CreateEntity', () => {
+  // The designer stores the field map as JSON inside an XML attribute, so the
+  // quotes arrive escaped. Skipping entity decoding made every CreateEntity
+  // node fail with "invalid fields JSON".
+  const fieldsAttr = '{&quot;patient_id&quot;:&quot;patient_id&quot;,&quot;note&quot;:&quot;auto-opened&quot;}';
+
+  it('inserts a row, resolving context keys and passing literals through', async () => {
+    const { chain, inserts } = createMockDb({ insertedId: 'enc-1' });
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'CreateEntity', entity: 'bus_encounter', fields: fieldsAttr }),
+      'bus_appointment',
+      { id: 'appt-1', patient_id: 'patient-9' },
+    );
+
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].table).toBe('bus_encounter');
+    expect(inserts[0].values.patient_id).toBe('patient-9'); // resolved from context
+    expect(inserts[0].values.note).toBe('auto-opened');     // literal
+    expect(inserts[0].values.created_at).toBeInstanceOf(Date);
+    expect(mutation.createdId).toBe('enc-1');
+  });
+
+  it('skips without inserting when the field map is not valid JSON', async () => {
+    const { chain, inserts } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'CreateEntity', entity: 'bus_encounter', fields: 'not json' }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(inserts).toHaveLength(0);
+    expect(mutation.skipped).toContain('invalid fields JSON');
+  });
+
+  it('skips when no fields are configured', async () => {
+    const { chain, inserts } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'CreateEntity', entity: 'bus_encounter' }),
+      'bus_appointment',
+      { id: 'appt-1' },
+    );
+
+    expect(inserts).toHaveLength(0);
+    expect(mutation.skipped).toContain('no fields');
+  });
+});
+
+// ── 4. Formula ───────────────────────────────────────────────────────────────
+
+describe('WorkflowService — Formula', () => {
+  it('computes a value and publishes it to later steps through vars', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+    const vars: Record<string, unknown> = {};
+
+    const bpmn = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:appwithai="http://appwithai/schema">
+  <bpmn:process id="p" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:serviceTask id="calc">
+      <bpmn:extensionElements><appwithai:properties>
+        <appwithai:property name="nodeType" value="Formula"/>
+        <appwithai:property name="target" value="score"/>
+        <appwithai:property name="source" value="version"/>
+        <appwithai:property name="operation" value="multiply"/>
+        <appwithai:property name="operand" value="10"/>
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="apply">
+      <bpmn:extensionElements><appwithai:properties>
+        <appwithai:property name="nodeType" value="UpdateEntity"/>
+        <appwithai:property name="field" value="score"/>
+        <appwithai:property name="source" value="score"/>
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f0" sourceRef="start" targetRef="calc"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="calc"  targetRef="apply"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+
+    const mutations = await runBpmn(svc, bpmn, 'bus_lead', { id: 'lead-1', version: 3 }, vars);
+
+    expect(mutations[0]).toMatchObject({ nodeType: 'Formula', target: 'score', value: 30 });
+    expect(vars.score).toBe(30);
+    // The downstream step must see the computed value, not the literal.
+    expect(updates[0].fields.score).toBe(30);
+  });
+
+  it.each([
+    ['add', 4, 10],
+    ['subtract', 4, 2],
+    ['multiply', 4, 24],
+    ['divide', 4, 1.5],
+  ])('supports the %s operation', async (operation, operand, expected) => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+    const vars: Record<string, unknown> = {};
+
+    await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'Formula', target: 'out', source: 'n', operation, operand: String(operand) }),
+      'bus_lead',
+      { id: 'lead-1', n: 6 },
+      vars,
+    );
+
+    expect(vars.out).toBe(expected);
+  });
+
+  it('skips a non-numeric source instead of writing NaN', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+    const vars: Record<string, unknown> = {};
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'Formula', target: 'out', source: 'label', operation: 'multiply', operand: '2' }),
+      'bus_lead',
+      { id: 'lead-1', label: 'not a number' },
+      vars,
+    );
+
+    expect(vars.out).toBeUndefined();
+    expect(mutation.skipped).toContain('non-numeric');
+  });
+
+  it('records a skipped mutation when no target variable is configured', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'Formula', source: 'n', operation: 'multiply', operand: '2' }),
+      'bus_lead',
+      { id: 'lead-1', n: 6 },
+    );
+
+    expect(mutation.skipped).toContain('target');
+  });
+
+  it('skips division by zero', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+    const vars: Record<string, unknown> = {};
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'Formula', target: 'out', source: 'n', operation: 'divide', operand: '0' }),
+      'bus_lead',
+      { id: 'lead-1', n: 6 },
+      vars,
+    );
+
+    expect(vars.out).toBeUndefined();
+    expect(mutation.skipped).toContain('zero');
+  });
+});
+
+// ── 5. REST ──────────────────────────────────────────────────────────────────
+
+describe('WorkflowService — REST', () => {
+  it('posts an interpolated body and records the response status', async () => {
+    const originalFetch = globalThis.fetch;
+    const seen: Array<{ url: string; body: string }> = [];
+    globalThis.fetch = (async (url: string, init: any) => {
+      seen.push({ url, body: init?.body });
+      return { status: 202, ok: true } as Response;
+    }) as typeof fetch;
+
+    try {
+      const { chain } = createMockDb();
+      const svc = new WorkflowService(chain, new RulesEngine());
+
+      const [mutation] = await runBpmn(
+        svc,
+        updateTaskBpmn({
+          nodeType: 'REST', url: 'https://hooks.example.com/notify', method: 'POST',
+          bodyTemplate: '{&quot;id&quot;:&quot;\{{id}}&quot;}',
+        }),
+        'bus_appointment',
+        { id: 'appt-1' },
+      );
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0].body).toBe('{"id":"appt-1"}');
+      expect(mutation).toMatchObject({ status: 202, ok: true });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('records a failed call without failing the workflow', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => { throw new Error('ECONNREFUSED'); }) as typeof fetch;
+
+    try {
+      const { chain } = createMockDb();
+      const svc = new WorkflowService(chain, new RulesEngine());
+
+      const [mutation] = await runBpmn(
+        svc,
+        updateTaskBpmn({ nodeType: 'REST', url: 'https://down.example.com', method: 'POST' }),
+        'bus_appointment',
+        { id: 'appt-1' },
+      );
+
+      expect(mutation.error).toContain('ECONNREFUSED');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+// ── 6. Decision ──────────────────────────────────────────────────────────────
+
+/**
+ * A decision table authored inside a step. The executor wraps this in the
+ * input → table → output graph, so only the table itself is stored.
+ *
+ * Every row sets every output column: zen-engine silently discards a row that
+ * leaves one unset, which makes the whole table stop matching.
+ */
+const SEVERITY_TABLE = {
+  hitPolicy: 'collect',
+  inputs: [{ id: 'i1', name: 'Severity', field: 'severity' }],
+  outputs: [
+    { id: 'o1', name: 'Priority', field: 'priority' },
+    { id: 'o2', name: 'Owner', field: 'owner' },
+  ],
+  rules: [
+    { _id: 'critical', i1: '"critical"', o1: '1', o2: "'QA'" },
+    { _id: 'major', i1: '"major"', o1: '3', o2: "'Supervisor'" },
+  ],
+};
+
+function attr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Decision step, then an UpdateEntity step reading what the decision published. */
+function decisionThenUpdateBpmn(
+  decisionProps: Record<string, string>,
+  updateProps: Record<string, string>,
+): string {
+  const render = (props: Record<string, string>) =>
+    Object.entries(props)
+      .map(([k, v]) => `<appwithai:property name="${k}" value="${attr(v)}"/>`)
+      .join('\n        ');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:appwithai="http://appwithai/schema">
+  <bpmn:process id="p" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:serviceTask id="decide">
+      <bpmn:extensionElements><appwithai:properties>
+        ${render(decisionProps)}
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="apply">
+      <bpmn:extensionElements><appwithai:properties>
+        ${render(updateProps)}
+      </appwithai:properties></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f0" sourceRef="start"  targetRef="decide"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="decide" targetRef="apply"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+}
+
+describe('WorkflowService — Decision', () => {
+  it('publishes the outputs of a matched row as variables a later step reads', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const mutations = await runBpmn(
+      svc,
+      decisionThenUpdateBpmn(
+        { nodeType: 'Decision', decisionTable: JSON.stringify(SEVERITY_TABLE) },
+        { nodeType: 'UpdateEntity', field: 'assigned_to', source: 'owner' },
+      ),
+      'bus_deviation_report',
+      { id: 'dev-1', severity: 'critical' },
+    );
+
+    expect(mutations[0]).toMatchObject({
+      nodeType: 'Decision',
+      matchedRows: 1,
+      published: { priority: 1, owner: 'QA' },
+    });
+    // The point of the step: the next one wrote a value it could not have known.
+    expect(updates).toHaveLength(1);
+    expect(updates[0].fields).toMatchObject({ assigned_to: 'QA' });
+  });
+
+  it('publishes nothing when no row matches, and does not fail the run', async () => {
+    const { chain, updates } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const mutations = await runBpmn(
+      svc,
+      decisionThenUpdateBpmn(
+        { nodeType: 'Decision', decisionTable: JSON.stringify(SEVERITY_TABLE) },
+        { nodeType: 'UpdateEntity', field: 'assigned_to', source: 'owner' },
+      ),
+      'bus_deviation_report',
+      { id: 'dev-1', severity: 'minor' },
+    );
+
+    expect(mutations[0]).toMatchObject({ nodeType: 'Decision', matchedRows: 0 });
+    // Nothing to write, so the update skips rather than writing undefined.
+    expect(updates).toHaveLength(0);
+  });
+
+  it('honours the publish allow-list', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [decision] = await runBpmn(
+      svc,
+      decisionThenUpdateBpmn(
+        {
+          nodeType: 'Decision',
+          decisionTable: JSON.stringify(SEVERITY_TABLE),
+          publish: 'owner',
+        },
+        { nodeType: 'UpdateEntity', field: 'assigned_to', source: 'owner' },
+      ),
+      'bus_deviation_report',
+      { id: 'dev-1', severity: 'major' },
+    );
+
+    expect((decision as any).published).toEqual({ owner: 'Supervisor' });
+  });
+
+  it('skips a step configured with neither a table nor a rule', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      updateTaskBpmn({ nodeType: 'Decision' }),
+      'bus_deviation_report',
+      { id: 'dev-1' },
+    );
+
+    expect(mutation.skipped).toContain('no decision table');
+  });
+
+  it('reports malformed JSON instead of throwing', async () => {
+    const { chain } = createMockDb();
+    const svc = new WorkflowService(chain, new RulesEngine());
+
+    const [mutation] = await runBpmn(
+      svc,
+      decisionThenUpdateBpmn(
+        { nodeType: 'Decision', decisionTable: '{ not json' },
+        { nodeType: 'UpdateEntity', field: 'assigned_to', source: 'owner' },
+      ),
+      'bus_deviation_report',
+      { id: 'dev-1' },
+    );
+
+    expect(mutation.skipped).toContain('not valid JSON');
+  });
+});

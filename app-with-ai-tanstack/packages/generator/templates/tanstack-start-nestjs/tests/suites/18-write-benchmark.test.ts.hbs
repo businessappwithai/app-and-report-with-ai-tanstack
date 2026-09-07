@@ -1,0 +1,236 @@
+/**
+ * Write throughput and tail latency — per entity, and under concurrency.
+ *
+ * `10-benchmark` measures reads on the largest table. Writes are the other half
+ * of the picture and behave differently: every insert runs the model's rules
+ * and workflows through the promotion pipeline, so an entity with a saga on it
+ * costs several times one without, and no read benchmark shows that.
+ *
+ * Two things are measured here that the incidental instrumentation on the HTTP
+ * client cannot give:
+ *
+ *   - **per entity**, so the expensive one is named rather than averaged away;
+ *   - **under concurrency**, because a pool exhausted at eight parallel writers
+ *     is invisible to any number of sequential ones.
+ *
+ * Every sample lands in the same collector as the rest of the run, so the
+ * report tabulates these beside the read phases.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, firstTextField, harness, record, timed } from "../harness/index.ts";
+
+/** Writes per entity per phase. Small: this runs for every entity in the model. */
+const REPS = Number(process.env.E2E_WRITE_REPS ?? 5);
+
+/** Parallel writers for the concurrency phase. */
+const CONCURRENCY = Number(process.env.E2E_WRITE_CONCURRENCY ?? 8);
+
+interface Row {
+  id?: string;
+  [column: string]: unknown;
+}
+
+describe("write benchmark", () => {
+  /** Entities a payload could actually be built for — the rest are skipped, not failed. */
+  const writable: Array<(typeof entities)[number]> = [];
+
+  beforeAll(async () => {
+    await harness.setup();
+    for (const entity of entities) {
+      const probe = await harness.createWithParents(entity);
+      if (probe?.id) writable.push(entity);
+    }
+    console.log(
+      `\n  write benchmark: ${writable.length}/${entities.length} entities, ` +
+        `${REPS} writes each, ${CONCURRENCY} parallel\n`
+    );
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("has at least one entity it can write to", () => {
+    expect(writable.length).toBeGreaterThan(0);
+  });
+
+  for (const entity of entities) {
+    describe(entity.name, () => {
+      it("insert", async () => {
+        if (!writable.includes(entity)) return;
+
+        let created = 0;
+        for (let index = 0; index < REPS; index++) {
+          const payload = await harness.buildValidRecord(entity);
+          const response = await timed(
+            "insert (benchmark)",
+            () =>
+              harness.client.post<Row>(`/bus/${entity.route}`, payload, { allowFailure: true }),
+            entity.route
+          );
+          if (response.ok) {
+            created++;
+            const id = response.data?.id;
+            if (id) harness.track(entity.route, id);
+          }
+        }
+        // A phase that wrote nothing measured nothing; say so rather than
+        // reporting a confident zero.
+        expect(created).toBeGreaterThan(0);
+      });
+
+      it("update", async () => {
+        if (!writable.includes(entity)) return;
+        const text = firstTextField(entity);
+        if (!text) return;
+
+        const seed = await harness.createWithParents(entity);
+        const id = seed?.id as string | undefined;
+        if (!id) return;
+
+        let updated = 0;
+        for (let index = 0; index < REPS; index++) {
+          const response = await timed(
+            "update (benchmark)",
+            () =>
+              harness.client.patch<Row>(
+                `/bus/${entity.route}/${id}`,
+                { [text.name]: `e2e-bench-${index}-${Date.now().toString(36)}` },
+                { allowFailure: true }
+              ),
+            entity.route
+          );
+          if (response.ok) updated++;
+        }
+        expect(updated).toBeGreaterThan(0);
+      });
+
+      it("delete", async () => {
+        if (!writable.includes(entity)) return;
+
+        const ids: string[] = [];
+        for (let index = 0; index < REPS; index++) {
+          const created = await harness.createWithParents(entity);
+          const id = created?.id as string | undefined;
+          if (id) ids.push(id);
+        }
+        if (ids.length === 0) return;
+
+        let removed = 0;
+        for (const id of ids) {
+          const response = await timed(
+            "delete (benchmark)",
+            () => harness.client.delete(`/bus/${entity.route}/${id}`, { allowFailure: true }),
+            entity.route
+          );
+          if (response.ok) removed++;
+        }
+        expect(removed).toBeGreaterThan(0);
+      });
+    });
+  }
+
+  // ── Concurrency ───────────────────────────────────────────────────────────
+
+  describe("under concurrency", () => {
+    it(`sustains ${CONCURRENCY} parallel writers`, async () => {
+      const entity = writable[0];
+      if (!entity) return;
+
+      const payloads = await Promise.all(
+        Array.from({ length: CONCURRENCY }, () => harness.buildValidRecord(entity))
+      );
+
+      const startedAt = performance.now();
+      const responses = await Promise.all(
+        payloads.map((payload) =>
+          harness.client.post<Row>(`/bus/${entity.route}`, payload, { allowFailure: true })
+        )
+      );
+      const elapsed = performance.now() - startedAt;
+
+      for (const response of responses) {
+        const id = response.data?.id;
+        if (response.ok && id) harness.track(entity.route, id);
+      }
+
+      const succeeded = responses.filter((response) => response.ok).length;
+
+      // Recorded as one sample per successful write, so the phase's ops/sec is
+      // computed from the wall-clock span the burst occupied rather than from
+      // summed latencies — which, run in parallel, exceed the elapsed time.
+      for (let index = 0; index < succeeded; index++) {
+        record({ op: "insert (concurrent)", ms: elapsed / Math.max(succeeded, 1), name: entity.route });
+      }
+
+      // The claim is that concurrency does not *break* it — a pool that
+      // deadlocks or a serialisation failure shows up as a refusal here. The
+      // throughput itself belongs to the machine and is reported, not asserted.
+      expect(succeeded).toBeGreaterThan(0);
+      expect(succeeded).toBe(CONCURRENCY);
+    });
+
+    it("keeps every concurrent write distinct", async () => {
+      const entity = writable[0];
+      if (!entity) return;
+
+      const payloads = await Promise.all(
+        Array.from({ length: CONCURRENCY }, () => harness.buildValidRecord(entity))
+      );
+      const responses = await Promise.all(
+        payloads.map((payload) =>
+          harness.client.post<Row>(`/bus/${entity.route}`, payload, { allowFailure: true })
+        )
+      );
+
+      const ids = responses
+        .filter((response) => response.ok)
+        .map((response) => response.data?.id)
+        .filter((id): id is string => typeof id === "string");
+
+      for (const id of ids) harness.track(entity.route, id);
+
+      // Two writers handed the same id would mean one row silently replaced
+      // another — the failure mode a sequential test can never produce.
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("serialises concurrent updates to one record", async () => {
+      const entity = writable[0];
+      if (!entity) return;
+      const text = firstTextField(entity);
+      if (!text) return;
+
+      const created = await harness.createWithParents(entity);
+      const id = created?.id as string | undefined;
+      if (!id) return;
+
+      const responses = await Promise.all(
+        Array.from({ length: CONCURRENCY }, (_, index) =>
+          harness.client.patch<Row>(
+            `/bus/${entity.route}/${id}`,
+            { [text.name]: `e2e-race-${index}` },
+            { allowFailure: true }
+          )
+        )
+      );
+
+      // Some may lose the race and that is correct; none may 500.
+      const crashed = responses.filter((response) => response.status >= 500).length;
+      expect(crashed).toBe(0);
+
+      const after = await harness.client.get<Row>(`/bus/${entity.route}/${id}`, {
+        allowFailure: true,
+      });
+      if (!after.ok) return;
+
+      // Whoever won, the row is one of the values written — not a blend.
+      const value = String(after.data[text.name] ?? "");
+      expect(value.startsWith("e2e-race-")).toBe(true);
+    });
+  });
+});

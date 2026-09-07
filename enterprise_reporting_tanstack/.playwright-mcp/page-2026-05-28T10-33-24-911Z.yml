@@ -1,0 +1,194 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+                  - link:
+                    - /url: /sql-editor
+                    - button:
+                      - img
+                      - generic: SQL Editor
+                  - link:
+                    - /url: /queries
+                    - button:
+                      - img
+                      - generic: Saved Queries
+                  - link:
+                    - /url: /reports
+                    - button:
+                      - img
+                      - generic: Reports
+                  - link:
+                    - /url: /charts
+                    - button:
+                      - img
+                      - generic: Charts
+                  - link:
+                    - /url: /dashboards
+                    - button:
+                      - img
+                      - generic: Dashboards
+                  - link:
+                    - /url: /filters
+                    - button:
+                      - img
+                      - generic: Filters
+                  - link:
+                    - /url: /jobs
+                    - button:
+                      - img
+                      - generic: Jobs
+                  - link:
+                    - /url: /nl-query
+                    - button:
+                      - img
+                      - generic: NL Query
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /data-sources
+                    - button:
+                      - img
+                      - generic: Data Sources
+                  - link:
+                    - /url: /bull-board
+                    - button:
+                      - img
+                      - generic: Queue Management
+                  - link:
+                    - /url: /logs
+                    - button:
+                      - img
+                      - generic: System Logs
+                  - link:
+                    - /url: /admin/users
+                    - button:
+                      - img
+                      - generic: Users
+                  - link:
+                    - /url: /admin/roles
+                    - button:
+                      - img
+                      - generic: Roles
+                  - link:
+                    - /url: /admin/permissions
+                    - button:
+                      - img
+                      - generic: Permissions
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - combobox:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img
+          - button:
+            - img
+            - generic: Notifications
+          - button:
+            - generic:
+              - generic: SA
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Data Sources
+              - paragraph: Manage database connections for reports and queries
+            - button [expanded]:
+              - img
+              - text: New Data Source
+          - generic:
+            - generic:
+              - heading [level=3]:
+                - img
+                - text: All Data Sources
+            - generic:
+              - generic: No data sources configured. Add your first data source to get started.
+  - region "Notifications alt+T"
+  - dialog "Add Data Source" [active] [ref=e60]:
+    - generic [ref=e61]:
+      - heading "Add Data Source" [level=2] [ref=e62]
+      - paragraph [ref=e63]: Configure a new database connection for your reports.
+    - generic [ref=e64]:
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - text: Name
+          - textbox "Name" [ref=e67]:
+            - /placeholder: Production Database
+            - text: Local PostgreSQL
+        - generic [ref=e68]:
+          - text: Database Type
+          - combobox "Database Type" [ref=e69] [cursor=pointer]:
+            - generic: PostgreSQL
+            - img [ref=e70]
+      - generic [ref=e72]:
+        - text: Description
+        - textbox "Description" [ref=e73]:
+          - /placeholder: Optional description
+      - generic [ref=e74]:
+        - button "Connection String" [ref=e76] [cursor=pointer]
+        - button "Individual Fields" [ref=e78] [cursor=pointer]
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - text: Host
+          - textbox "Host" [ref=e81]:
+            - /placeholder: localhost
+            - text: postgres
+        - generic [ref=e82]:
+          - text: Port
+          - textbox "Port" [ref=e83]:
+            - /placeholder: "5432"
+      - generic [ref=e84]:
+        - text: Database
+        - textbox "Database" [ref=e85]:
+          - /placeholder: mydb
+          - text: test_database
+      - generic [ref=e86]:
+        - generic [ref=e87]:
+          - text: Username
+          - textbox "Username" [ref=e88]:
+            - /placeholder: dbuser
+            - text: test_user
+        - generic [ref=e89]:
+          - text: Password
+          - textbox "Password" [ref=e90]:
+            - /placeholder: "********"
+            - text: test_password
+      - generic [ref=e99]:
+        - img [ref=e100]
+        - generic [ref=e102]: Connection Successful
+    - generic [ref=e91]:
+      - generic [ref=e103]:
+        - img [ref=e104]
+        - generic [ref=e106]: All set! Click Create to add your data source.
+      - generic [ref=e92]:
+        - button "Test Connection" [ref=e98] [cursor=pointer]
+        - button "Create" [ref=e107] [cursor=pointer]
+    - button "Close" [ref=e93] [cursor=pointer]:
+      - img [ref=e94]
+      - generic [ref=e97]: Close

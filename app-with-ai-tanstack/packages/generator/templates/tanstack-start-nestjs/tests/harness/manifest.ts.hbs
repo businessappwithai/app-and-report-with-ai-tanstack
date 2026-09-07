@@ -1,0 +1,98 @@
+/**
+ * Seed manifest.
+ *
+ * The bulk-seed suite deliberately leaves its records in the database for the
+ * rules and workflow suites that follow, so nothing tracks them for teardown.
+ * This manifest is what makes that reversible: every id the seeder creates is
+ * recorded here, and `cleanup.ts` deletes exactly those rows — leaving the
+ * application's own seed data (roles, admin user, dictionary) untouched.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { existsSync } from "node:fs";
+import { readFile, unlink, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// `import.meta.dir` is Bun's; `import.meta.url` is the standard both runtimes
+// provide, and this file has to load under either.
+const here = dirname(fileURLToPath(import.meta.url));
+
+export const MANIFEST_PATH = join(here, "..", ".e2e-seed-manifest.json");
+
+export interface SeedManifest {
+  /** ISO timestamp of the run that produced this manifest. */
+  createdAt: string;
+  /** Faker seed used, so a run can be reproduced. */
+  fakerSeed: number;
+  /** Records requested per entity. */
+  recordsPerEntity: number;
+  /** entity route → created record ids. */
+  records: Record<string, string[]>;
+  /** Rule ids created by the suites. */
+  ruleIds: string[];
+}
+
+function empty(): SeedManifest {
+  return {
+    createdAt: new Date().toISOString(),
+    fakerSeed: 0,
+    recordsPerEntity: 0,
+    records: {},
+    ruleIds: [],
+  };
+}
+
+export async function readManifest(): Promise<SeedManifest | null> {
+  if (!existsSync(MANIFEST_PATH)) return null;
+  try {
+    const raw = await readFile(MANIFEST_PATH, "utf8");
+    const parsed = JSON.parse(raw) as SeedManifest;
+    // Tolerate a manifest written by an older version.
+    return { ...empty(), ...parsed, records: parsed.records ?? {} };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Merge ids into the manifest on disk. Merging rather than overwriting means a
+ * partial re-run adds to the cleanup set instead of orphaning the previous run's
+ * rows.
+ */
+export async function recordSeeded(
+  entityRoute: string,
+  ids: string[],
+  meta: { fakerSeed: number; recordsPerEntity: number }
+): Promise<void> {
+  const manifest = (await readManifest()) ?? empty();
+
+  manifest.createdAt = new Date().toISOString();
+  manifest.fakerSeed = meta.fakerSeed;
+  manifest.recordsPerEntity = meta.recordsPerEntity;
+
+  const existing = new Set(manifest.records[entityRoute] ?? []);
+  for (const id of ids) existing.add(id);
+  manifest.records[entityRoute] = [...existing];
+
+  await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+}
+
+export async function recordRules(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const manifest = (await readManifest()) ?? empty();
+  const existing = new Set(manifest.ruleIds ?? []);
+  for (const id of ids) existing.add(id);
+  manifest.ruleIds = [...existing];
+  await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+}
+
+export async function clearManifest(): Promise<void> {
+  if (existsSync(MANIFEST_PATH)) await unlink(MANIFEST_PATH);
+}
+
+export function totalRecords(manifest: SeedManifest): number {
+  return Object.values(manifest.records).reduce((sum, ids) => sum + ids.length, 0);
+}

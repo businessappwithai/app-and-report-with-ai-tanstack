@@ -1,0 +1,48 @@
+# ==========================================
+# STT Server — whisper.cpp (tiny.en)
+# Builds whisper-server from source, bakes in
+# the ggml-tiny.en model (~77 MB).
+# Exposes an OpenAI-compatible HTTP server on :8081
+# ==========================================
+
+# ── Build stage ──────────────────────────────────────────────────────────────
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake git curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git clone --depth=1 https://github.com/ggerganov/whisper.cpp .
+
+RUN cmake -B build \
+      -DWHISPER_BUILD_SERVER=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+    && cmake --build build --config Release --target whisper-server
+
+# Download the smallest English model (~77 MB)
+RUN bash ./models/download-ggml-model.sh tiny.en
+
+# ── Runtime stage ─────────────────────────────────────────────────────────────
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ffmpeg ca-certificates libstdc++6 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /build/build/bin/whisper-server .
+COPY --from=builder /build/models/ggml-tiny.en.bin ./models/
+
+EXPOSE 8081
+
+# whisper-server starts in < 5 s with the tiny model
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+  CMD curl -f http://localhost:8081/health || exit 1
+
+# --convert  lets whisper.cpp call ffmpeg to handle webm/mp3/ogg → wav
+CMD ["./whisper-server", "--host", "0.0.0.0", "--port", "8081", \
+     "-m", "./models/ggml-tiny.en.bin", "--convert"]

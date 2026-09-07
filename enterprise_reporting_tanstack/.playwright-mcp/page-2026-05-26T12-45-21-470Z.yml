@@ -1,0 +1,285 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+                  - link:
+                    - /url: /sql-editor
+                    - button:
+                      - img
+                      - generic: SQL Editor
+                  - link:
+                    - /url: /queries
+                    - button:
+                      - img
+                      - generic: Saved Queries
+                  - link:
+                    - /url: /reports
+                    - button:
+                      - img
+                      - generic: Reports
+                  - link:
+                    - /url: /charts
+                    - button:
+                      - img
+                      - generic: Charts
+                  - link:
+                    - /url: /dashboards
+                    - button:
+                      - img
+                      - generic: Dashboards
+                  - link:
+                    - /url: /filters
+                    - button:
+                      - img
+                      - generic: Filters
+                  - link:
+                    - /url: /jobs
+                    - button:
+                      - img
+                      - generic: Jobs
+                  - link:
+                    - /url: /nl-query
+                    - button:
+                      - img
+                      - generic: NL Query
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /data-sources
+                    - button:
+                      - img
+                      - generic: Data Sources
+                  - link:
+                    - /url: /bull-board
+                    - button:
+                      - img
+                      - generic: Queue Management
+                  - link:
+                    - /url: /logs
+                    - button:
+                      - img
+                      - generic: System Logs
+                  - link:
+                    - /url: /admin/users
+                    - button:
+                      - img
+                      - generic: Users
+                  - link:
+                    - /url: /admin/roles
+                    - button:
+                      - img
+                      - generic: Roles
+                  - link:
+                    - /url: /admin/permissions
+                    - button:
+                      - img
+                      - generic: Permissions
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - combobox:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img
+          - button:
+            - img
+            - generic: Notifications
+          - button [expanded]:
+            - generic:
+              - generic: SA
+      - main:
+        - generic:
+          - generic:
+            - heading [level=1]: Dashboard
+            - paragraph: Welcome to the Enterprise Reporting System - admin@admin.com
+          - generic:
+            - link:
+              - /url: /reports
+              - generic:
+                - generic:
+                  - heading [level=3]: Total Reports
+                  - img
+                - generic:
+                  - generic: "0"
+            - link:
+              - /url: /charts
+              - generic:
+                - generic:
+                  - heading [level=3]: Active Charts
+                  - img
+                - generic:
+                  - generic: "0"
+            - link:
+              - /url: /dashboards
+              - generic:
+                - generic:
+                  - heading [level=3]: Dashboards
+                  - img
+                - generic:
+                  - generic: "0"
+            - link:
+              - /url: /jobs
+              - generic:
+                - generic:
+                  - heading [level=3]: Scheduled Jobs
+                  - img
+                - generic:
+                  - generic: "0"
+          - generic:
+            - heading [level=2]: Quick Actions
+            - generic:
+              - link:
+                - /url: /sql-editor
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - heading [level=3]: SQL Editor
+                  - generic:
+                    - paragraph: Write and execute SQL queries
+              - link:
+                - /url: /reports
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - heading [level=3]: Reports
+                  - generic:
+                    - paragraph: View and manage reports
+              - link:
+                - /url: /charts
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - heading [level=3]: Charts
+                  - generic:
+                    - paragraph: Create data visualizations
+              - link:
+                - /url: /dashboards
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - heading [level=3]: Dashboards
+                  - generic:
+                    - paragraph: Build interactive dashboards
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=3]:
+                  - img
+                  - text: Recent Jobs
+              - generic:
+                - paragraph: No recent job executions
+            - generic:
+              - generic:
+                - heading [level=3]:
+                  - img
+                  - text: Recent Activity
+              - generic:
+                - paragraph: No recent activity
+  - region "Notifications alt+T"
+  - complementary:
+    - separator
+    - button:
+      - img
+    - generic:
+      - generic:
+        - generic:
+          - button:
+            - generic: TANSTACK
+            - generic: React Query v5
+          - radiogroup:
+            - group:
+              - radio [checked]
+              - generic: Queries
+            - group:
+              - radio
+              - generic: Mutations
+        - generic:
+          - button [disabled]:
+            - generic: Fresh
+            - generic: "2"
+          - button [disabled]:
+            - generic: Fetching
+            - generic: "0"
+          - button [disabled]:
+            - generic: Paused
+            - generic: "0"
+          - button [disabled]:
+            - generic: Stale
+            - generic: "0"
+          - button [disabled]:
+            - generic: Inactive
+            - generic: "0"
+      - generic:
+        - generic:
+          - generic:
+            - img
+            - textbox:
+              - /placeholder: Filter
+          - generic:
+            - combobox
+            - img
+          - button:
+            - generic: Asc
+            - img
+        - generic:
+          - button:
+            - img
+          - button:
+            - img
+          - button:
+            - img
+          - button:
+            - img
+      - generic:
+        - generic:
+          - button:
+            - generic: "1"
+            - code: "[\"notifications\",false]"
+          - button:
+            - generic: "28"
+            - code: "[\"user-permissions\"]"
+  - menu "SA" [active] [ref=e319]:
+    - generic [ref=e321]:
+      - paragraph [ref=e322]: System Administrator
+      - paragraph [ref=e323]: admin@admin.com
+    - separator [ref=e324]
+    - menuitem "Profile" [ref=e325]:
+      - img [ref=e326]
+      - generic [ref=e329]: Profile
+    - menuitem "Settings" [ref=e330]:
+      - img [ref=e331]
+      - generic [ref=e334]: Settings
+    - separator [ref=e335]
+    - menuitem "Log out" [ref=e336]:
+      - img [ref=e337]
+      - generic [ref=e340]: Log out

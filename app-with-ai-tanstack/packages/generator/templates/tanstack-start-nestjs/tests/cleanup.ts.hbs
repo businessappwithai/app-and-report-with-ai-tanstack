@@ -1,0 +1,229 @@
+#!/usr/bin/env node
+/**
+ * Remove faker-generated test data.
+ *
+ * Two modes:
+ *
+ *   node cleanup.ts            Delete exactly the rows recorded in
+ *                                 .e2e-seed-manifest.json — the records the
+ *                                 bulk-seed suite created. The application's own
+ *                                 seed data (roles, admin user, dictionary,
+ *                                 sample business rows) is left alone.
+ *
+ *   node cleanup.ts --all      Delete every row in every bus_ table,
+ *                                 manifest or not. Use when a run crashed before
+ *                                 writing the manifest, or when you want a truly
+ *                                 empty set of business tables.
+ *
+ * Flags:
+ *   --rules      Also deactivate the business rules the suites registered.
+ *   --dry-run    Report what would be deleted without deleting it.
+ *   --yes        Skip the confirmation prompt for --all.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { login } from "./harness/auth.ts";
+import { config } from "./harness/config.ts";
+import { entities, topologicalEntities } from "./harness/entities.ts";
+import { HttpClient } from "./harness/http.ts";
+import {
+  clearManifest,
+  readManifest,
+  type SeedManifest,
+  totalRecords,
+} from "./harness/manifest.ts";
+import { isServerUp, waitForServer } from "./harness/server.ts";
+
+const args = process.argv.slice(2);
+const all = args.includes("--all");
+const alsoRules = args.includes("--rules");
+const dryRun = args.includes("--dry-run");
+const assumeYes = args.includes("--yes") || args.includes("-y");
+
+/** Batch size for concurrent deletes — matches the seeder's write concurrency. */
+const DELETE_BATCH = 25;
+
+interface Outcome {
+  entity: string;
+  deleted: number;
+  failed: number;
+}
+
+async function deleteIds(
+  client: HttpClient,
+  route: string,
+  ids: string[]
+): Promise<Outcome> {
+  let deleted = 0;
+  let failed = 0;
+
+  for (let offset = 0; offset < ids.length; offset += DELETE_BATCH) {
+    const batch = ids.slice(offset, offset + DELETE_BATCH);
+    const results = await Promise.allSettled(
+      batch.map((id) => client.delete(`/bus/${route}/${id}`, { allowFailure: true }))
+    );
+
+    for (const result of results) {
+      // 404 counts as deleted: the row is gone, which is the goal.
+      if (
+        result.status === "fulfilled" &&
+        (result.value.ok || result.value.status === 404)
+      ) {
+        deleted += 1;
+      } else {
+        failed += 1;
+      }
+    }
+  }
+
+  return { entity: route, deleted, failed };
+}
+
+/** Every id currently in a bus_ table, paged out. */
+async function allIds(client: HttpClient, route: string): Promise<string[]> {
+  const ids: string[] = [];
+  const limit = 200;
+
+  for (let page = 1; ; page++) {
+    const response = await client.get<{ data: Array<{ id: string }>; meta?: { total: number } }>(
+      `/bus/${route}?page=${page}&limit=${limit}&orderBy=id&orderDir=asc`,
+      { allowFailure: true }
+    );
+    if (!response.ok) break;
+
+    const rows = response.data?.data ?? [];
+    if (rows.length === 0) break;
+
+    ids.push(...rows.map((row) => row.id).filter(Boolean));
+    if (rows.length < limit) break;
+
+    // Defensive stop — a misbehaving pager should not spin forever.
+    if (page > 500) break;
+  }
+
+  return ids;
+}
+
+async function confirm(question: string): Promise<boolean> {
+  if (assumeYes) return true;
+  process.stdout.write(`${question} [y/N] `);
+  for await (const line of console) {
+    return /^y(es)?$/i.test(line.trim());
+  }
+  return false;
+}
+
+async function main(): Promise<void> {
+  console.log("\n═══════════════════════════════════════════");
+  console.log("  {{project.name}} — E2E data cleanup");
+  console.log("═══════════════════════════════════════════\n");
+
+  if (!(await isServerUp())) {
+    console.error(
+      `✗ No backend listening on ${config.baseUrl}.\n` +
+        `  Start it first: cd ../backend && npm run start`
+    );
+    process.exit(1);
+  }
+  await waitForServer();
+
+  const client = new HttpClient();
+  await login(client);
+
+  let manifest: SeedManifest | null = null;
+  let plan: Array<{ route: string; ids: string[] }> = [];
+
+  if (all) {
+    console.log("  Mode: --all (every row in every bus_ table)\n");
+
+    // Children before parents so foreign keys never block a delete.
+    const ordered = [...topologicalEntities()].reverse();
+    for (const entity of ordered) {
+      const ids = await allIds(client, entity.route);
+      if (ids.length > 0) plan.push({ route: entity.route, ids });
+    }
+  } else {
+    manifest = await readManifest();
+    if (!manifest) {
+      console.log("  No .e2e-seed-manifest.json found — nothing recorded to clean.");
+      console.log("  Run with --all to clear every bus_ table instead.\n");
+      return;
+    }
+
+    console.log(`  Mode: manifest (${manifest.createdAt})`);
+    console.log(`  Faker seed: ${manifest.fakerSeed}, ${manifest.recordsPerEntity}/entity\n`);
+
+    const order = new Map(topologicalEntities().map((e, index) => [e.route, index]));
+    plan = Object.entries(manifest.records)
+      .map(([route, ids]) => ({ route, ids }))
+      // Reverse topological order: children first.
+      .sort((a, b) => (order.get(b.route) ?? 0) - (order.get(a.route) ?? 0));
+  }
+
+  const total = plan.reduce((sum, item) => sum + item.ids.length, 0);
+
+  if (total === 0) {
+    console.log("  Nothing to delete.\n");
+    if (manifest) await clearManifest();
+    return;
+  }
+
+  for (const item of plan) {
+    const entity = entities.find((e) => e.route === item.route);
+    console.log(`  ${(entity?.displayName ?? item.route).padEnd(28)} ${item.ids.length} records`);
+  }
+  console.log(`  ${"".padEnd(28)} ${"─".repeat(16)}`);
+  console.log(`  ${"Total".padEnd(28)} ${total} records\n`);
+
+  if (dryRun) {
+    console.log("  --dry-run: nothing was deleted.\n");
+    return;
+  }
+
+  if (all && !(await confirm(`  Delete all ${total} business records?`))) {
+    console.log("\n  Cancelled.\n");
+    return;
+  }
+
+  const outcomes: Outcome[] = [];
+  for (const item of plan) {
+    const outcome = await deleteIds(client, item.route, item.ids);
+    outcomes.push(outcome);
+    const entity = entities.find((e) => e.route === item.route);
+    console.log(
+      `  ✓ ${(entity?.displayName ?? item.route).padEnd(28)} deleted ${outcome.deleted}` +
+        (outcome.failed > 0 ? ` (${outcome.failed} failed)` : "")
+    );
+  }
+
+  if (alsoRules) {
+    const ruleIds = manifest?.ruleIds ?? [];
+    let deactivated = 0;
+    for (const id of ruleIds) {
+      const response = await client.delete(`/rules/${id}`, { allowFailure: true });
+      if (response.ok) deactivated += 1;
+    }
+    if (ruleIds.length > 0) {
+      console.log(`  ✓ ${"Business rules".padEnd(28)} deactivated ${deactivated}/${ruleIds.length}`);
+    }
+  }
+
+  const deleted = outcomes.reduce((sum, o) => sum + o.deleted, 0);
+  const failed = outcomes.reduce((sum, o) => sum + o.failed, 0);
+
+  if (manifest && failed === 0) await clearManifest();
+
+  console.log(`\n  ${deleted} deleted, ${failed} failed\n`);
+  if (failed > 0) {
+    console.log("  Some rows could not be deleted — they may be referenced by");
+    console.log("  records outside the manifest. Re-run with --all to clear those.\n");
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error("\n✗ Cleanup failed:", error instanceof Error ? error.message : error);
+  process.exit(1);
+});

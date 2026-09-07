@@ -1,0 +1,64 @@
+# Bun Configuration for APPWITHAI v5.1
+# See https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Lockfile configuration
+lockfile = true
+lockfileSave = true
+lockfilePrint = "yarn"
+
+# Cache configuration
+cache = true
+globalCacheDir = "~/.bun/install/cache"
+scopeCacheDir = "~/.bun/install/cache"
+
+# Install behavior
+autoInstallPeers = true
+frozenLockfile = false
+production = false
+
+# Registry configuration
+registry = "https://registry.npmjs.org"
+
+# Trust workspaces for monorepo
+trustedDependencies = [
+  "esbuild",
+  "sass",
+  "postcss",
+  "tailwindcss"
+]
+
+[install.scopes]
+# Scoped package registries can be configured here
+
+[test]
+# Unit tests run via vitest in packages/web (bun run test)
+# E2E tests run via Playwright (bun run test:playwright)
+coverage = true
+coverageThreshold = 0.6
+
+[run]
+# Run behavior
+silent = false
+
+[lockfile]
+# Lockfile print format
+print = "yaml"
+
+[log]
+# Logging configuration
+level = "info"
+
+[define]
+# Global constants for different environments
+# These can be overridden by environment variables
+"process.env.NODE_ENV" = "\"development\""
+
+# Performance settings
+preload = []
+
+# TypeScript settings
+[loader]
+# Custom loaders for different file extensions
+".toml" = "file"
+".md" = "text"

@@ -1,0 +1,24 @@
+{
+  "name": "@erdwithai/eml-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Build applications from an EML (.mmd) model describing an ERD, business rules, and workflows.",
+  "bin": {
+    "eml": "./eml.ts"
+  },
+  "scripts": {
+    "start": "bun eml.ts",
+    "validate:examples": "bun eml.ts validate -i ../examples/crm.eml.mmd",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check ."
+  },
+  "engines": {
+    "bun": ">=1.0",
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "22",
+    "bun-types": "^1.3.14",
+    "typescript": "5.6.3"
+  }
+}

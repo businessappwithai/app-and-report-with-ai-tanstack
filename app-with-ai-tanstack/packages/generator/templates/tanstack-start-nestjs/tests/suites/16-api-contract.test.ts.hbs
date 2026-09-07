@@ -1,0 +1,239 @@
+/**
+ * The list endpoint's contract.
+ *
+ * Every screen in the application is a page of a list, and every one of them
+ * is drawn from `meta` — the total, the page, the size. A pager that computes
+ * from a hard-coded 50 rather than from the server's echoed limit puts a reader
+ * on page 3 of 2; a deep page that repeats rows from page 1 loses records
+ * without erroring. Both look like working software from the outside.
+ *
+ * `10-benchmark` times these shapes. This one asserts they are *correct*, which
+ * is the half a stopwatch cannot see.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, firstTextField, harness } from "../harness/index.ts";
+
+interface Page {
+  data?: Array<{ id?: string; [column: string]: unknown }>;
+  meta?: { total?: number; page?: number; pageSize?: number; limit?: number };
+}
+
+const ABSENT_ID = "00000000-0000-0000-0000-000000000000";
+
+describe("list endpoint contract", () => {
+  /** route → how many rows it holds, so a test can tell an empty table from a broken one. */
+  const counts = new Map<string, number>();
+
+  beforeAll(async () => {
+    await harness.setup();
+    for (const entity of entities) {
+      const response = await harness.client.get<Page>(`/bus/${entity.route}?limit=1`, {
+        allowFailure: true,
+      });
+      counts.set(entity.route, response.ok ? Number(response.data.meta?.total ?? 0) : 0);
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("answers 404 for an entity the dictionary does not know", async () => {
+    const response = await harness.client.get("/bus/not_an_entity_at_all?limit=1", {
+      allowFailure: true,
+    });
+    expect(response.status).toBe(404);
+  });
+
+  it("says which entity it could not find", async () => {
+    const response = await harness.client.get("/bus/not_an_entity_at_all?limit=1", {
+      allowFailure: true,
+    });
+    const body = JSON.stringify(response.data ?? "").toLowerCase();
+    expect(body.includes("not_an_entity_at_all")).toBe(true);
+  });
+
+  it("refuses an anonymous caller", async () => {
+    const entity = entities[0];
+    if (!entity) return;
+    const { HttpClient } = await import("../harness/http.ts");
+    const anonymous = new HttpClient();
+    const response = await anonymous.get(`/bus/${entity.route}?limit=1`, { allowFailure: true });
+    expect(response.status).toBe(401);
+  });
+
+  for (const entity of entities) {
+    describe(entity.name, () => {
+      it("echoes the page size it was asked for", async () => {
+        const response = await harness.client.get<Page>(`/bus/${entity.route}?page=1&limit=3`, {
+          allowFailure: true,
+        });
+        expect(response.status).toBe(200);
+
+        const size = response.data.meta?.pageSize ?? response.data.meta?.limit;
+        expect(Number(size)).toBe(3);
+        expect((response.data.data ?? []).length).toBeLessThanOrEqual(3);
+      });
+
+      it("reports a total consistent with what it returns", async () => {
+        const response = await harness.client.get<Page>(`/bus/${entity.route}?page=1&limit=5`, {
+          allowFailure: true,
+        });
+        expect(response.status).toBe(200);
+
+        const total = Number(response.data.meta?.total ?? 0);
+        const returned = (response.data.data ?? []).length;
+        expect(total).toBeGreaterThanOrEqual(returned);
+      });
+
+      it("gives page 2 rows that page 1 did not", async () => {
+        // The assertion that found the unstable sort. `created_at` is the
+        // default order and a seed writes a whole table with one timestamp, so
+        // without a unique tiebreaker the two pages shared a row and between
+        // them missed another — a list a reader could page through and never
+        // see all of.
+        if ((counts.get(entity.route) ?? 0) < 4) return;
+
+        const first = await harness.client.get<Page>(`/bus/${entity.route}?page=1&limit=2`, {
+          allowFailure: true,
+        });
+        const second = await harness.client.get<Page>(`/bus/${entity.route}?page=2&limit=2`, {
+          allowFailure: true,
+        });
+        if (!first.ok || !second.ok) return;
+
+        const firstIds = new Set((first.data.data ?? []).map((row) => row.id));
+        const overlap = (second.data.data ?? []).filter((row) => firstIds.has(row.id));
+        expect(overlap).toEqual([]);
+      });
+
+      it("answers a page past the end with an empty list, not an error", async () => {
+        const total = counts.get(entity.route) ?? 0;
+        const page = Math.floor(total / 5) + 50;
+
+        const response = await harness.client.get<Page>(
+          `/bus/${entity.route}?page=${page}&limit=5`,
+          { allowFailure: true }
+        );
+        expect(response.status).toBe(200);
+        expect((response.data.data ?? []).length).toBe(0);
+      });
+
+      it("sorts ascending and descending differently", async () => {
+        if ((counts.get(entity.route) ?? 0) < 3) return;
+        const text = firstTextField(entity);
+        if (!text) return;
+
+        const ascending = await harness.client.get<Page>(
+          `/bus/${entity.route}?limit=10&orderBy=${text.name}&orderDir=asc`,
+          { allowFailure: true }
+        );
+        const descending = await harness.client.get<Page>(
+          `/bus/${entity.route}?limit=10&orderBy=${text.name}&orderDir=desc`,
+          { allowFailure: true }
+        );
+        if (!ascending.ok || !descending.ok) return;
+
+        const up = (ascending.data.data ?? []).map((row) => String(row[text.name] ?? ""));
+        const down = (descending.data.data ?? []).map((row) => String(row[text.name] ?? ""));
+        if (up.length < 2 || down.length < 2) return;
+
+        // Not a full sort assertion — collation is the database's business —
+        // but the two orders must not be identical, which is what a sort
+        // parameter silently ignored looks like.
+        expect(up.join("|") === down.join("|")).toBe(false);
+      });
+
+      it("filters to rows that match", async () => {
+        const text = firstTextField(entity);
+        if (!text) return;
+
+        const created = await harness.createWithParents(entity);
+        const marker = created?.[text.name];
+        if (!created || marker === null || marker === undefined || marker === "") return;
+
+        const response = await harness.client.get<Page>(
+          `/bus/${entity.route}?limit=25&${text.name}=${encodeURIComponent(String(marker))}`,
+          { allowFailure: true }
+        );
+        if (!response.ok) return;
+
+        const wrong = (response.data.data ?? []).filter(
+          (row) => String(row[text.name] ?? "") !== String(marker)
+        );
+        expect(wrong).toEqual([]);
+      });
+
+      it("finds a record it just wrote by search", async () => {
+        const text = firstTextField(entity);
+        if (!text) return;
+
+        const marker = `e2e-find-${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+        const created = await harness.createWithParents(entity, { [text.name]: marker });
+        if (!created) return;
+        // The factory may have refused the override and fallen back; only
+        // assert on a record that actually carries the marker.
+        if (String(created[text.name] ?? "") !== marker) return;
+
+        const response = await harness.client.get<Page>(
+          `/bus/${entity.route}?limit=25&search=${encodeURIComponent(marker)}`,
+          { allowFailure: true }
+        );
+        if (!response.ok) return;
+
+        const ids = (response.data.data ?? []).map((row) => row.id);
+        expect(ids.includes(created.id as string)).toBe(true);
+      });
+
+      it("refuses a malformed id rather than treating it as a filter", async () => {
+        const response = await harness.client.get(`/bus/${entity.route}/not-a-uuid`, {
+          allowFailure: true,
+        });
+        // 400 or 404 both say "no such record"; a 200 would mean the id was
+        // parsed as something else entirely.
+        expect(response.status).toBeGreaterThanOrEqual(400);
+        expect(response.status).toBeLessThan(500);
+      });
+
+      it("survives a quote in a search term", async () => {
+        // Not a claim that the driver is injectable — it parameterises — but
+        // the one input a reader types by accident, and a 500 here is the
+        // difference between a search box and a stack trace.
+        const response = await harness.client.get(
+          `/bus/${entity.route}?limit=5&search=${encodeURIComponent("' OR 1=1 --")}`,
+          { allowFailure: true }
+        );
+        expect(response.status).toBeLessThan(500);
+      });
+
+      it("serves grid fields and form fields for the same entity", async () => {
+        const grid = await harness.client.get(`/bus/${entity.route}/fields/grid`, {
+          allowFailure: true,
+        });
+        const form = await harness.client.get(`/bus/${entity.route}/fields/form`, {
+          allowFailure: true,
+        });
+        expect(grid.status).toBe(200);
+        expect(form.status).toBe(200);
+      });
+
+      it("answers 404 for the metadata of an entity that does not exist", async () => {
+        const response = await harness.client.get(`/bus/${entity.route}xyz/meta`, {
+          allowFailure: true,
+        });
+        expect(response.status).toBe(404);
+      });
+
+      it("answers 404 rather than 500 for an absent record", async () => {
+        const response = await harness.client.get(`/bus/${entity.route}/${ABSENT_ID}`, {
+          allowFailure: true,
+        });
+        expect(response.status).toBe(404);
+      });
+    });
+  }
+});

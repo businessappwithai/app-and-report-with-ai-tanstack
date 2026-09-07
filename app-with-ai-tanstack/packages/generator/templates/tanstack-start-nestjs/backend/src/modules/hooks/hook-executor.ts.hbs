@@ -1,0 +1,66 @@
+/**
+ * Hook Executor
+ *
+ * Executes registered hooks for entity lifecycle events.
+ * Generated: {{now}}
+ */
+
+import { HookContext, HookLifecycle } from './hook.types';
+import { globalHookRegistry } from './hook-registry';
+import { getLogger } from '../../common/logging/logger.service';
+
+export class HookExecutor {
+  private readonly log = getLogger('hooks');
+
+  async execute<T>(
+    entityName: string,
+    lifecycle: HookLifecycle,
+    data: T,
+    metadata?: Record<string, any>
+  ): Promise<T> {
+    const hooks = globalHookRegistry.getHooks(entityName, lifecycle);
+
+    let result = data;
+    const context: HookContext<T> = {
+      entity: entityName,
+      lifecycle,
+      data: result,
+      metadata
+    };
+
+    for (const hook of hooks) {
+      const startedAt = Date.now();
+      const handler = (hook as { name?: string }).name ?? 'anonymous';
+
+      try {
+        const hookResult = await hook.execute(context);
+        if (hookResult !== undefined) {
+          result = hookResult;
+          context.data = result;
+        }
+        this.log.event('hooks.executed', {
+          entity: entityName,
+          event: lifecycle,
+          handler,
+          durationMs: Date.now() - startedAt,
+        });
+      } catch (err) {
+        // Rethrown, not swallowed: a `beforeCreate` hook that fails must stop
+        // the write, and a caller deciding otherwise is the caller's business.
+        // What changes here is that the failure is now attributable — which
+        // hook, on which entity, at which lifecycle event.
+        this.log.event('hooks.failed', {
+          entity: entityName,
+          event: lifecycle,
+          handler,
+          err,
+        });
+        throw err;
+      }
+    }
+
+    return result;
+  }
+}
+
+export const globalHookExecutor = new HookExecutor();

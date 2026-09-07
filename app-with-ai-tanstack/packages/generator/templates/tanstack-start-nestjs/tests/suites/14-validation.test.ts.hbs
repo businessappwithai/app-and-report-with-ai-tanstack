@@ -1,0 +1,242 @@
+/**
+ * What the API refuses, and with which status.
+ *
+ * The generated backend validates in three places — the dictionary's own rules
+ * (`is_mandatory`, `field_length`, the reference type), the model's compiled
+ * business rules, and the database's constraints — and a reader only ever sees
+ * the status code. So that is what this asserts: a bad write is refused, and
+ * refused as the thing it is. A unique collision answering 400 instead of 409
+ * is not a cosmetic difference; it is the difference between a client that can
+ * retry with a new value and one that cannot tell what went wrong.
+ *
+ * Written per entity, from the dictionary the application serves, so it holds
+ * for whatever the model declared rather than for a shape assumed here.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import {
+  entities,
+  firstTextField,
+  harness,
+  scalarFields,
+  writableFields,
+} from "../harness/index.ts";
+
+interface FormField {
+  column_name: string;
+  is_mandatory?: boolean;
+  field_length?: number | null;
+  sys_reference_id?: number;
+  default_value?: string | null;
+}
+
+/** A uuid that is well-formed and cannot exist. */
+const ABSENT_ID = "00000000-0000-0000-0000-000000000000";
+
+describe("validation", () => {
+  /** route → the dictionary's form fields, which is what the server validates against. */
+  const fieldsByRoute = new Map<string, FormField[]>();
+
+  beforeAll(async () => {
+    await harness.setup();
+    for (const entity of entities) {
+      const response = await harness.client.get<FormField[]>(
+        `/bus/${entity.route}/fields/form?includeHidden=true`,
+        { allowFailure: true }
+      );
+      if (response.ok) fieldsByRoute.set(entity.route, response.data ?? []);
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("serves form metadata for every entity", () => {
+    const missing = entities.filter((entity) => !fieldsByRoute.has(entity.route)).map((e) => e.route);
+    expect(missing).toEqual([]);
+  });
+
+  for (const entity of entities) {
+    describe(entity.name, () => {
+      /** The mandatory column a test can leave out — one with no default to fall back on. */
+      const droppable = (): FormField | undefined =>
+        (fieldsByRoute.get(entity.route) ?? []).find(
+          (field) =>
+            field.is_mandatory === true &&
+            !field.default_value &&
+            field.column_name !== "id" &&
+            writableFields(entity).some((writable) => writable.name === field.column_name)
+        );
+
+      it("refuses an empty payload", async () => {
+        const required = (fieldsByRoute.get(entity.route) ?? []).filter(
+          (field) => field.is_mandatory && !field.default_value && field.column_name !== "id"
+        );
+        // An entity with nothing mandatory legitimately accepts `{}`.
+        if (required.length === 0) return;
+
+        const response = await harness.client.post(`/bus/${entity.route}`, {}, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+        expect(response.status).toBe(400);
+      });
+
+      it("refuses a payload missing a mandatory column", async () => {
+        const field = droppable();
+        if (!field) return;
+
+        const payload = await harness.buildValidRecord(entity);
+        delete payload[field.column_name];
+
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+        expect(response.status).toBe(400);
+      });
+
+      it("names the column it refused", async () => {
+        const field = droppable();
+        if (!field) return;
+
+        const payload = await harness.buildValidRecord(entity);
+        delete payload[field.column_name];
+
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+          return;
+        }
+
+        // A 400 that does not say which field is a dead end for a form trying
+        // to put the message beside the right input.
+        const body = JSON.stringify(response.data ?? "").toLowerCase();
+        expect(body.includes(field.column_name.toLowerCase())).toBe(true);
+      });
+
+      it("refuses a string longer than the column holds", async () => {
+        const limited = (fieldsByRoute.get(entity.route) ?? []).find(
+          (field) =>
+            typeof field.field_length === "number" &&
+            field.field_length > 0 &&
+            field.field_length < 4000 &&
+            scalarFields(entity).some(
+              (scalar) =>
+                scalar.name === field.column_name &&
+                (scalar.type === "string" || scalar.type === "text")
+            )
+        );
+        if (!limited || typeof limited.field_length !== "number") return;
+
+        const payload = await harness.buildValidRecord(entity, {
+          [limited.column_name]: "x".repeat(limited.field_length + 50),
+        });
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      });
+
+      it("refuses a foreign key pointing at nothing", async () => {
+        const fk = writableFields(entity).find(
+          (field) => field.isForeignKey || field.name.endsWith("_id")
+        );
+        if (!fk) return;
+
+        const payload = await harness.buildValidRecord(entity, { [fk.name]: ABSENT_ID });
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      });
+
+      it("answers 409 on a unique collision", async () => {
+        const unique = writableFields(entity).find(
+          (field) => field.unique && field.name !== "id" && field.type === "string"
+        );
+        if (!unique) return;
+
+        const first = await harness.createWithParents(entity);
+        if (!first) return;
+
+        const taken = first[unique.name];
+        if (taken === null || taken === undefined || taken === "") return;
+
+        const payload = await harness.buildValidRecord(entity, { [unique.name]: taken });
+        const response = await harness.client.post(`/bus/${entity.route}`, payload, {
+          allowFailure: true,
+        });
+        if (response.ok) {
+          const id = (response.data as { id?: string } | undefined)?.id;
+          if (id) harness.track(entity.route, id);
+        }
+        expect(response.status).toBe(409);
+      });
+
+      it("answers 404 for a record that does not exist", async () => {
+        const response = await harness.client.get(`/bus/${entity.route}/${ABSENT_ID}`, {
+          allowFailure: true,
+        });
+        expect(response.status).toBe(404);
+      });
+
+      it("refuses an update to a record that does not exist", async () => {
+        const text = firstTextField(entity);
+        const patch = text ? { [text.name]: "e2e-absent" } : {};
+        const response = await harness.client.patch(`/bus/${entity.route}/${ABSENT_ID}`, patch, {
+          allowFailure: true,
+        });
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      });
+
+      it("ignores or refuses a client-supplied server-managed column", async () => {
+        const created = await harness.createWithParents(entity);
+        if (!created) return;
+
+        const id = created.id as string;
+        const before = created.version;
+
+        // `version` is the server's to move. A client that can set it can
+        // defeat the optimistic-concurrency check for everyone else.
+        const response = await harness.client.patch(
+          `/bus/${entity.route}/${id}`,
+          { version: 9999 },
+          { allowFailure: true }
+        );
+
+        if (response.ok) {
+          const after = await harness.client.get<Record<string, unknown>>(
+            `/bus/${entity.route}/${id}`,
+            { allowFailure: true }
+          );
+          if (after.ok) expect(after.data.version).not.toBe(9999);
+        } else {
+          expect(response.status).toBeGreaterThanOrEqual(400);
+        }
+        expect(before === undefined || typeof before === "number").toBe(true);
+      });
+    });
+  }
+});

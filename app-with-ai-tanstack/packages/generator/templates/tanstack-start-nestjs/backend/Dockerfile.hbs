@@ -1,0 +1,67 @@
+FROM oven/bun:1.4.0-alpine AS builder
+
+WORKDIR /app
+
+# The whole project before installing, rather than the manifests first.
+#
+# Copying manifests alone is the usual trick for cache reuse, and it is what
+# this file used to do — `package.json`, `backend/package.json`,
+# `frontend/package.json`, install. But the root manifest is a *workspace root*
+# and it names `tests` as well, so an install that cannot see that directory
+# fails outright with `Workspace not found "tests"`. `docker compose up --build`
+# therefore failed on every generated project that kept its test suite, which is
+# the default; the root Dockerfile had already learned this and copies the whole
+# context for the same reason. A generated project is rewritten wholesale
+# anyway, so there was little cache to preserve.
+#
+# `bun install` still resolves a lockfile when the project has committed one —
+# the generator writes none, because it has no registry to resolve against.
+COPY . .
+RUN if [ -f bun.lock ]; then bun install --frozen-lockfile; else bun install; fi
+
+WORKDIR /app/backend
+RUN bun run build
+
+# Prune to production dependencies *here* rather than re-installing in the
+# runtime stage, and for the same reason as above: the runtime stage carries no
+# `tests` directory, so an install run there would fail on the workspace it
+# cannot see.
+WORKDIR /app
+RUN if [ -f bun.lock ]; then bun install --frozen-lockfile --production; \
+    else bun install --production; fi
+
+# ─── runtime ───────────────────────────────────────────────────────────────
+FROM oven/bun:1.4.0-alpine
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# The pruned dependency tree, carried over rather than reinstalled. Both trees,
+# not just the root one: Bun keeps a workspace's own dependencies under that
+# workspace rather than hoisting everything, so copying only `/app/node_modules`
+# yields an image whose application cannot resolve `pg`.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/node_modules ./backend/node_modules
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/backend/package.json ./backend/
+
+# Copy backend application. `src` and `seeds` travel as sources because the
+# migrations and seeds are looked up by path at runtime rather than imported.
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/src ./backend/src
+COPY --from=builder /app/backend/seeds ./backend/seeds
+COPY --from=builder /app/backend/tsconfig.json ./backend/
+
+# The model the application was generated from. The assistant reads it at
+# `../model/model.eml.mmd` relative to the backend, and without it every
+# start logs "No model/model.eml.mmd shipped with this application" and the
+# model-context assistant answers nothing.
+COPY --from=builder /app/model ./model
+
+# Copy startup script
+COPY --from=builder /app/backend/run-app.sh ./backend/
+RUN chmod +x ./backend/run-app.sh
+
+EXPOSE {{config.port}}
+
+CMD ["/app/backend/run-app.sh"]

@@ -1,0 +1,70 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Bun-specific
+bun.lockb
+
+# Build output
+.next
+dist
+out
+
+# Development
+.env
+.env.local
+.env.development
+.env.test
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Testing
+e2e
+tests
+playwright-report
+test-results
+playwright.config.ts
+coverage
+
+# Documentation
+*.md
+LICENSE
+
+# Docker (prevent recursive copy)
+Dockerfile
+docker-compose*.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Data directories (these are mounted as volumes)
+data/*
+job-outputs
+uploads
+logs
+database
+
+# Exception: Include Sakila demo database
+!data/uploads/sakila.db
+
+# Scripts not needed at build time
+scripts/diagnose-vps.sh
+scripts/backup-hostinger.sh
+
+# Misc
+*.tar.gz
+*.zip
