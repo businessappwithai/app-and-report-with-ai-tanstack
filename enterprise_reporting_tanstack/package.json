@@ -11,7 +11,7 @@
     "lint": "biome lint src",
     "lint:fix": "biome lint src --write",
     "format": "biome format src --write",
-    "format:check": "biome format src --check",
+    "format:check": "biome format src",
     "setup": "bun scripts/setup.ts",
     "db:migrate": "bun scripts/rebuild-db.ts",
     "db:seed": "bun src/lib/db/seeds/001_initial_data.ts",

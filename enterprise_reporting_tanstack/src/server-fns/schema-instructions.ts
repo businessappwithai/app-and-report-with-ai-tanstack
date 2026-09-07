@@ -93,10 +93,13 @@ export const saveFieldInstruction = createServerFn({
   const user = await db
     .selectFrom("users")
     .selectAll()
-    .where("id", "=", session.user.id as any)
+    .where("id", "=", session.user.id)
     .executeTakeFirst();
 
-  if (!(user as any)?.is_admin) {
+  // FIXME: `is_admin` is not a column on `users`, so this is always
+  // undefined and this handler refuses every caller, administrators
+  // included. The real check belongs on roles/hasPermission.
+  if (!(user as { is_admin?: boolean } | undefined)?.is_admin) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
@@ -112,7 +115,7 @@ export const saveFieldInstruction = createServerFn({
           constraints: input.constraints,
           business_meaning: input.businessMeaning,
           updated_at: new Date(),
-          updated_by: session.user.id as any,
+          updated_by: session.user.id,
         })
         .where("id", "=", input.id)
         .execute();
@@ -146,8 +149,8 @@ export const saveFieldInstruction = createServerFn({
           example_values: input.exampleValues,
           constraints: input.constraints,
           business_meaning: input.businessMeaning,
-          created_by: session.user.id as any,
-          updated_by: session.user.id as any,
+          created_by: session.user.id,
+          updated_by: session.user.id,
         })
         .execute();
 
@@ -183,10 +186,13 @@ export const saveTableInstruction = createServerFn({
   const user = await db
     .selectFrom("users")
     .selectAll()
-    .where("id", "=", session.user.id as any)
+    .where("id", "=", session.user.id)
     .executeTakeFirst();
 
-  if (!(user as any)?.is_admin) {
+  // FIXME: `is_admin` is not a column on `users`, so this is always
+  // undefined and this handler refuses every caller, administrators
+  // included. The real check belongs on roles/hasPermission.
+  if (!(user as { is_admin?: boolean } | undefined)?.is_admin) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
@@ -201,7 +207,7 @@ export const saveTableInstruction = createServerFn({
           example_queries: input.exampleQueries,
           business_domain: input.businessDomain,
           updated_at: new Date(),
-          updated_by: session.user.id as any,
+          updated_by: session.user.id,
         })
         .where("id", "=", input.id)
         .execute();
@@ -216,8 +222,8 @@ export const saveTableInstruction = createServerFn({
           llm_instructions: input.llmInstructions,
           example_queries: input.exampleQueries,
           business_domain: input.businessDomain,
-          created_by: session.user.id as any,
-          updated_by: session.user.id as any,
+          created_by: session.user.id,
+          updated_by: session.user.id,
         })
         .execute();
     }
