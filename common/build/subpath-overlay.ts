@@ -1,0 +1,193 @@
+#!/usr/bin/env bun
+/**
+ * Put a TanStack Start application on a URL sub-path.
+ *
+ * Both applications here are served from one origin — the generated one under
+ * `/app`, the reporting one under `/report` — and neither was written to live
+ * anywhere but the root of a host. Three things have to agree for that to work,
+ * and getting one of them wrong produces a blank page rather than an error:
+ *
+ *   1. the bundler's `base`, so the HTML asks for `/report/assets/x.js` rather
+ *      than `/assets/x.js`
+ *   2. the router's `basepath`, so a client-side link is built as
+ *      `/report/dashboard` and an incoming `/report/dashboard` still matches
+ *      the `/dashboard` route
+ *   3. any hand-written static-file server in front of the app, which maps a
+ *      URL path to a file on disk and will not find `assets/x.js` under a
+ *      directory it was told is `/report/assets/x.js`
+ *
+ * The prefix is deliberately *not* stripped by the proxy in front. Stripping it
+ * would satisfy (3) for free and then break (2): the server would receive
+ * `/dashboard` while every link the router writes says `/report/dashboard`.
+ *
+ * Applied to a *copy*: the generated application's output, which this project
+ * owns, and the reporting application's source inside its image at build time.
+ * Neither checked-in project is modified.
+ *
+ *   bun build/subpath-overlay.ts --dir <appRoot> --base /report
+ *
+ * Idempotent — a second run over an already-patched tree changes nothing and
+ * says so, because the image build and the local generate both run it.
+ */
+
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+interface Patch {
+  file: string;
+  /** Skip when already applied. */
+  done: (src: string) => boolean;
+  apply: (src: string, base: string) => string;
+  /** A file that simply is not in this flavour of app, rather than a failure. */
+  optional?: boolean;
+}
+
+const MARKER = "/* subpath-overlay */";
+
+const PATCHES: Patch[] = [
+  // --- Vite, as the reporting application configures it ---------------------
+  {
+    file: "vite.config.ts",
+    optional: true,
+    done: (s) => s.includes(MARKER),
+    apply: (s, base) => {
+      const anchor = "export default defineConfig({";
+      if (!s.includes(anchor)) throw new Error("vite.config.ts: no defineConfig({ to anchor on");
+      return s.replace(anchor, `${anchor}\n  ${MARKER} base: ${JSON.stringify(`${base}/`)},`);
+    },
+  },
+
+  // --- TanStack Start's own config, as the generated application uses it -----
+  {
+    file: "app.config.ts",
+    optional: true,
+    done: (s) => s.includes(MARKER),
+    apply: (s, base) => {
+      const anchor = "  vite: {";
+      if (!s.includes(anchor)) throw new Error("app.config.ts: no `vite: {` block to anchor on");
+      return s.replace(anchor, `${anchor}\n    ${MARKER} base: ${JSON.stringify(`${base}/`)},`);
+    },
+  },
+
+  // --- The router ------------------------------------------------------------
+  {
+    file: "src/router.tsx",
+    done: (s) => s.includes(MARKER),
+    apply: (s, base) => {
+      // Two shapes in play: `createRouter({ routeTree })` in the generated app,
+      // and a multi-line options object in the reporting app.
+      const oneLine = /createRouter\(\{\s*routeTree\s*\}\)/;
+      if (oneLine.test(s)) {
+        return s.replace(
+          oneLine,
+          `createRouter({ routeTree, ${MARKER} basepath: ${JSON.stringify(base)} })`
+        );
+      }
+      const multi = "return createRouter({";
+      if (!s.includes(multi)) throw new Error("src/router.tsx: no createRouter({ to anchor on");
+      return s.replace(multi, `${multi}\n    ${MARKER} basepath: ${JSON.stringify(base)},`);
+    },
+  },
+
+  // --- The hand-written static server in front of the reporting app ---------
+  {
+    file: "server-static-wrapper.mjs",
+    optional: true,
+    done: (s) => s.includes(MARKER),
+    apply: (s, base) => {
+      const anchor = "    const pathname = url.pathname;";
+      if (!s.includes(anchor)) {
+        throw new Error(
+          "server-static-wrapper.mjs: no `const pathname = url.pathname;` to anchor on"
+        );
+      }
+      // `pathname` keeps the prefix, because the router downstream needs it.
+      // Only the two branches that map a URL to a file on disk look at the
+      // stripped form.
+      return s
+        .replace(
+          anchor,
+          `${anchor}\n    ${MARKER}\n` +
+            `    const BASE_PATH = ${JSON.stringify(base)};\n` +
+            `    const filePathname = pathname.startsWith(BASE_PATH + '/')\n` +
+            `      ? pathname.slice(BASE_PATH.length)\n` +
+            `      : pathname;`
+        )
+        .replace(
+          "    if (pathname.startsWith('/assets/')) {",
+          "    if (filePathname.startsWith('/assets/')) {"
+        )
+        .replace(
+          "      const relPath = pathname.substring(1);",
+          "      const relPath = filePathname.substring(1);"
+        )
+        .replace(
+          "    if (pathname === '/favicon.ico' || pathname === '/icon.svg' || pathname.startsWith('/vs/')) {",
+          "    if (filePathname === '/favicon.ico' || filePathname === '/icon.svg' || filePathname.startsWith('/vs/')) {"
+        )
+        .replace(
+          "      const publicPath = resolve(process.cwd(), 'public', pathname.replace(/^\\//, ''));",
+          "      const publicPath = resolve(process.cwd(), 'public', filePathname.replace(/^\\//, ''));"
+        );
+    },
+  },
+];
+
+function main(): number {
+  const argv = process.argv.slice(2);
+  const flag = (n: string): string | undefined => {
+    const i = argv.indexOf(n);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const dir = flag("--dir");
+  const base = (flag("--base") ?? "").replace(/\/+$/, "");
+
+  if (!dir || !base || !base.startsWith("/")) {
+    console.error("usage: subpath-overlay.ts --dir <appRoot> --base /report");
+    return 2;
+  }
+  if (!existsSync(dir)) {
+    console.error(`No such directory: ${dir}`);
+    return 2;
+  }
+
+  let applied = 0;
+  let already = 0;
+  let missing = 0;
+
+  for (const patch of PATCHES) {
+    const file = path.join(dir, patch.file);
+    if (!existsSync(file)) {
+      if (patch.optional) {
+        missing++;
+        continue;
+      }
+      console.error(`  FAIL  ${patch.file} not found under ${dir}`);
+      return 1;
+    }
+    const src = readFileSync(file, "utf8");
+    if (patch.done(src)) {
+      already++;
+      continue;
+    }
+    try {
+      writeFileSync(file, patch.apply(src, base));
+      console.log(`  base ${base}  ${patch.file}`);
+      applied++;
+    } catch (err) {
+      console.error(`  FAIL  ${patch.file}: ${err instanceof Error ? err.message : err}`);
+      return 1;
+    }
+  }
+
+  // A run that patched nothing at all is the failure this reports: it means
+  // every anchor moved, and the app would build and then 404 its own assets.
+  if (applied === 0 && already === 0) {
+    console.error(`  FAIL  nothing to patch under ${dir} — ${missing} file(s) absent`);
+    return 1;
+  }
+  console.log(`  ${applied} patched, ${already} already at ${base}, ${missing} not applicable`);
+  return 0;
+}
+
+process.exit(main());
