@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuth } from "@/lib/auth/middleware";
 import { getDb } from "@/lib/db/config";
+import { isAdmin } from "@/lib/permissions/permissions";
 import { logAudit } from "@/lib/security/audit";
 
 export interface FieldInstruction {
@@ -89,17 +90,10 @@ export const saveFieldInstruction = createServerFn({
   const session = await requireAuth();
   const db = getDb();
 
-  // Verify user is admin
-  const user = await db
-    .selectFrom("users")
-    .selectAll()
-    .where("id", "=", session.user.id)
-    .executeTakeFirst();
-
-  // FIXME: `is_admin` is not a column on `users`, so this is always
-  // undefined and this handler refuses every caller, administrators
-  // included. The real check belongs on roles/hasPermission.
-  if (!(user as { is_admin?: boolean } | undefined)?.is_admin) {
+  // Verify user is admin. `isAdmin` reads roles/user_roles, which is where
+  // this codebase keeps the answer; the `users` row this used to select has no
+  // `is_admin` column, so the check it replaced refused everyone.
+  if (!(await isAdmin(session.user.id))) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
@@ -182,17 +176,10 @@ export const saveTableInstruction = createServerFn({
   const session = await requireAuth();
   const db = getDb();
 
-  // Verify user is admin
-  const user = await db
-    .selectFrom("users")
-    .selectAll()
-    .where("id", "=", session.user.id)
-    .executeTakeFirst();
-
-  // FIXME: `is_admin` is not a column on `users`, so this is always
-  // undefined and this handler refuses every caller, administrators
-  // included. The real check belongs on roles/hasPermission.
-  if (!(user as { is_admin?: boolean } | undefined)?.is_admin) {
+  // Verify user is admin. `isAdmin` reads roles/user_roles, which is where
+  // this codebase keeps the answer; the `users` row this used to select has no
+  // `is_admin` column, so the check it replaced refused everyone.
+  if (!(await isAdmin(session.user.id))) {
     return { success: false, error: "Only administrators can manage schema instructions" };
   }
 
