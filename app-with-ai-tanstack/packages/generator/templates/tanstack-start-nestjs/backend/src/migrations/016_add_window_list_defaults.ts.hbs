@@ -1,0 +1,65 @@
+/**
+ * `sys_window.where_clause` and `sys_window.order_by_clause` — what a list
+ * shows, and in what order, decided in the Application Dictionary rather than
+ * in the code that renders it.
+ *
+ * The dictionary already decides which columns a grid shows and what they are
+ * called. It could not say which *rows* it shows or in what order, so every
+ * list opened as the whole table in whatever order the query planner chose.
+ * These two columns close that: an administrator sets them on the window and
+ * every list served for that entity honours them.
+ *
+ * NEITHER COLUMN HOLDS SQL. That is the whole point of the shape they take:
+ *
+ *   where_clause     the application's own filter syntax, comma-separated —
+ *                    `status=equals:active, region=contains:north`. Every
+ *                    clause is parsed, its column checked against sys_column
+ *                    and its value bound as a parameter, exactly as a filter
+ *                    typed into the grid would be.
+ *
+ *   order_by_clause  comma-separated `column [ASC|DESC]` —
+ *                    `updated_at DESC, name ASC`. Each column is checked
+ *                    against sys_column and the direction against two literals.
+ *
+ * A string that reached the database as SQL would make an administrator's text
+ * box into the application's most direct injection route, and this table is
+ * editable from a screen. Anything unrecognised is dropped and logged, never
+ * passed through.
+ *
+ * Existing windows are backfilled with the same default new ones get:
+ * `updated_at DESC`, most recently modified first. A list whose first page is
+ * whatever the planner returned is a list nobody can navigate.
+ */
+
+import { type Kysely, sql } from 'kysely';
+
+/** The order a list takes when its window says nothing: newest change first. */
+const DEFAULT_ORDER_BY = 'updated_at DESC';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  // Added separately and idempotently rather than in sys_window's CREATE TABLE:
+  // that migration is recorded as executed in every application generated
+  // before these columns existed, so it would never run again for them.
+  await sql`ALTER TABLE sys_window ADD COLUMN IF NOT EXISTS where_clause TEXT`.execute(db);
+  await sql`ALTER TABLE sys_window ADD COLUMN IF NOT EXISTS order_by_clause TEXT`.execute(db);
+
+  // Backfill, then set the default, so an existing window and a new one behave
+  // the same. Only rows that have said nothing yet — a window someone has
+  // already ordered deliberately keeps its choice if this migration is re-run
+  // against a database where the column somehow already exists.
+  await sql`
+    UPDATE sys_window
+       SET order_by_clause = ${DEFAULT_ORDER_BY}
+     WHERE order_by_clause IS NULL
+  `.execute(db);
+
+  await sql`
+    ALTER TABLE sys_window
+      ALTER COLUMN order_by_clause SET DEFAULT ${sql.lit(DEFAULT_ORDER_BY)}
+  `.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`ALTER TABLE sys_window DROP COLUMN IF EXISTS where_clause`.execute(db);
+  await sql`ALTER TABLE sys_window DROP COLUMN IF EXISTS order_by_clause`.execute(db);
+}

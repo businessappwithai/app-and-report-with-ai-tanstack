@@ -1,0 +1,55 @@
+- generic:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - img
+      - generic:
+        - heading [level=1]: Something went wrong
+        - paragraph: An unexpected error has occurred. Our team has been notified and we're working to fix it.
+      - generic:
+        - paragraph: useDashboardState must be used within a DashboardStateProvider
+      - generic:
+        - button:
+          - img
+          - text: Reload Page
+        - button: Report Error
+      - paragraph: If this problem persists, please contact your system administrator.
+  - dialog "Error Report" [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e5]
+        - heading "Error Report" [level=2] [ref=e7]
+      - paragraph [ref=e8]: An unexpected error occurred. Please help us improve by reporting this issue.
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: useDashboardState must be used within a DashboardStateProvider
+        - paragraph [ref=e12]: 2026-05-13T11:12:13.700Z
+      - generic [ref=e13]:
+        - text: Additional Information (Optional)
+        - textbox "Additional Information (Optional)" [active] [ref=e14]:
+          - /placeholder: Describe what you were doing when this error occurred...
+      - generic [ref=e15]:
+        - text: Email Preview
+        - generic [ref=e16]:
+          - textbox "Email Preview" [ref=e17]: "ERROR REPORT ============ Timestamp: 2026-05-13T11:12:13.700Z Error: useDashboardState must be used within a DashboardStateProvider Stack Trace: Error: useDashboardState must be used within a DashboardStateProvider at useDashboardState (http://localhost:4050/src/components/dashboard/DashboardState.tsx:63:11) at DashboardViewerContent (http://localhost:4050/src/routes/_authed/dashboards/$id/index.tsx?tsr-split=component:43:7) at Object.react_stack_bottom_frame (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:18509:20) at renderWithHooks (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:5654:24) at updateFunctionComponent (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:7475:21) at beginWork (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:8525:20) at runWithFiberInDEV (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:997:72) at performUnitOfWork (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:12561:98) at workLoopSync (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:12424:43) at renderRootSync (http://localhost:4050/node_modules/.vite/deps/react-dom_client.js?v=8c68d3f8:12408:13) Component Stack: at DashboardViewerContent (http://localhost:4050/src/routes/_authed/dashboards/$id/index.tsx?tsr-split=component:37:3) at DashboardViewerPage (http://localhost:4050/src/routes/_authed/dashboards/$id/index.tsx?tsr-split=component:557:13) at Lazy (<anonymous>) at MatchInnerImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:127:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at MatchView (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:66:22) at MatchImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:16:47) at OutletImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:250:18) at main (<anonymous>) at div (<anonymous>) at div (<anonymous>) at ActiveDataSourceProvider (http://localhost:4050/src/lib/hooks/use-active-datasource.tsx:20:44) at AppShell (http://localhost:4050/src/components/layout/app-shell.tsx:23:28) at AuthedLayout (http://localhost:4050/src/routes/_authed.tsx?tsr-split=component:25:13) at Lazy (<anonymous>) at MatchInnerImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:127:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at MatchView (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:66:22) at MatchImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:16:47) at Suspense (<anonymous>) at OutletImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:250:18) at V (http://localhost:4050/node_modules/.vite/deps/next-themes.js?v=8c68d3f8:44:25) at J (http://localhost:4050/node_modules/.vite/deps/next-themes.js?v=8c68d3f8:42:18) at QueryClientProvider (http://localhost:4050/node_modules/.vite/deps/@tanstack_react-query.js?v=8c68d3f8:3170:3) at Provider (http://localhost:4050/node_modules/.vite/deps/chunk-T7TJSXWD.js?v=8c68d3f8:54:15) at TooltipProvider (http://localhost:4050/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=8c68d3f8:157:5) at ErrorBoundary (http://localhost:4050/src/components/errors/error-boundary.tsx:11:5) at body (<anonymous>) at html (<anonymous>) at RootComponent (http://localhost:4050/src/routes/__root.tsx:43:33) at MatchInnerImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:127:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at MatchView (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:66:22) at MatchImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Match.js?v=8c68d3f8:16:47) at CatchBoundaryImpl (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js?v=8c68d3f8:20:5) at CatchBoundary (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js?v=8c68d3f8:5:32) at MatchesInner (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Matches.js?v=8c68d3f8:24:18) at SafeFragment (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js?v=8c68d3f8:5:57) at Matches (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/Matches.js?v=8c68d3f8:14:18) at RouterContextProvider (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/RouterProvider.js?v=8c68d3f8:12:34) at RouterProvider (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/RouterProvider.js?v=8c68d3f8:37:27) at AwaitInner (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/awaited.js?v=8c68d3f8:27:15) at Await (http://localhost:4050/node_modules/@tanstack/react-router/dist/esm/awaited.js?v=8c68d3f8:20:12) at StartClient (<anonymous>) Context: URL: http://localhost:4050/dashboards/94226ddc-ee49-4af8-bcc0-1453786d7420 User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+          - button "Copy" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+            - text: Copy
+        - paragraph [ref=e22]: This will be sent to admin@yourcompany.com
+      - paragraph [ref=e24]:
+        - strong [ref=e25]: "What happens next:"
+        - text: Clicking "Send Error Report" will open your email client with the error details pre-filled. You can review the contents before sending.
+    - generic [ref=e26]:
+      - button "Dismiss" [ref=e27] [cursor=pointer]:
+        - img [ref=e28]
+        - text: Dismiss
+      - button "Copy to Clipboard" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+        - text: Copy to Clipboard
+      - button "Send Error Report" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+        - text: Send Error Report
+    - button "Close" [ref=e39] [cursor=pointer]:
+      - img [ref=e40]
+      - generic [ref=e43]: Close

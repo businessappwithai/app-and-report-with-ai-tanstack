@@ -1,0 +1,2 @@
+Certificates dropped here are installed into the image's trust store at build
+time. Empty by default; the build works without any. See the Dockerfile.

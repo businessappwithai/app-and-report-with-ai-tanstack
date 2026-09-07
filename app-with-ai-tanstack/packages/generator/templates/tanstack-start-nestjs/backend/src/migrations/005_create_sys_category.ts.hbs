@@ -1,0 +1,75 @@
+/**
+ * Application Dictionary — entity categories.
+ *
+ * Adds `sys_category`, the dictionary table that groups business entities into
+ * named sections, and the `sys_category_id` link on `sys_table`.
+ *
+ * The dashboard renders one block per category, ordered by name, and the admin
+ * dictionary exposes a maintenance form for them.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { type Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS sys_category (
+      sys_category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+      -- Identity
+      name VARCHAR(100) NOT NULL UNIQUE,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      description TEXT,
+
+      -- Presentation: the dashboard uses these to render the category header
+      icon VARCHAR(50),
+      color VARCHAR(20),
+
+      -- Ordering. The dashboard sorts by name, but seq_no lets an administrator
+      -- pin important categories to the top of admin listings.
+      seq_no INTEGER NOT NULL DEFAULT 0,
+
+      -- Exactly one category may be the fallback for uncategorised entities.
+      is_default BOOLEAN NOT NULL DEFAULT false,
+
+      is_active BOOLEAN NOT NULL DEFAULT true,
+
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by VARCHAR(100) DEFAULT 'system',
+      updated_by VARCHAR(100) DEFAULT 'system'
+    )
+  `.execute(db);
+
+  // Only one row may carry is_default — a partial unique index enforces it.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_sys_category_single_default
+      ON sys_category ((is_default)) WHERE is_default = true
+  `.execute(db);
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_category_name ON sys_category (name)
+  `.execute(db);
+
+  // Link entities to their category. NULL means uncategorised, which the
+  // dashboard groups under the default category.
+  await sql`
+    ALTER TABLE sys_table
+      ADD COLUMN IF NOT EXISTS sys_category_id UUID
+      REFERENCES sys_category(sys_category_id) ON DELETE SET NULL
+  `.execute(db);
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_table_category ON sys_table (sys_category_id)
+  `.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP INDEX IF EXISTS idx_sys_table_category`.execute(db);
+  await sql`ALTER TABLE sys_table DROP COLUMN IF EXISTS sys_category_id`.execute(db);
+  await sql`DROP INDEX IF EXISTS idx_sys_category_single_default`.execute(db);
+  await sql`DROP INDEX IF EXISTS idx_sys_category_name`.execute(db);
+  await sql`DROP TABLE IF EXISTS sys_category`.execute(db);
+}

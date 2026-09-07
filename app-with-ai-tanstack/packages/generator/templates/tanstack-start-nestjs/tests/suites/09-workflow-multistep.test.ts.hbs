@@ -1,0 +1,419 @@
+/**
+ * Multi-step workflows triggered by a business rule.
+ *
+ * The chain under test, end to end:
+ *
+ *   write a record  →  rule fires `trigger-workflow`  →  the workflow runs
+ *     step 1  stage a value into a workflow variable
+ *     step 2  compute a second variable from the first
+ *     step 3  CREATE a row in another entity, capturing its id
+ *     step 4  CREATE a second row in that entity, capturing its id
+ *     step 5  UPDATE the record that triggered the workflow
+ *     step 6  UPDATE the row created in step 3, using both the captured id and
+ *             the computed value
+ *     step 7  DELETE the row created in step 4, by its captured id
+ *
+ * That covers what a multi-step workflow has to get right: ordering,
+ * create/update/delete against an entity other than the triggering one, and
+ * values carried from one step into a later one. A workflow that could not
+ * carry a created row's id forward could only ever touch the record it
+ * started from.
+ *
+ * The suite also pins the negative case: a rule-triggered definition must NOT
+ * run when its rule does not fire. Definitions used to be auto-run purely on
+ * entity + operation, so a workflow gated on a condition ran regardless of it.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it, sleep } from "../harness/testing.ts";
+import {
+  buildRecord,
+  buildWorkflowBpmn,
+  createRule,
+  createWorkflowDefinition,
+  deleteWorkflowDefinition,
+  entities,
+  foreignKeyFields,
+  harness,
+  isFailure,
+  isTerminal,
+  runsForEntity,
+  updateRule,
+  type EntityMeta,
+  type FieldMeta,
+  type WorkflowRun,
+  type WorkflowStep,
+} from "../harness/index.ts";
+
+const suiteId = `ms${Date.now().toString(36).slice(-5)}`;
+
+/**
+ * Writable text columns the workflow can stamp a value into.
+ *
+ * Wide enough to hold the suite's marker strings — a `varchar(8)` column would
+ * truncate them and turn every assertion into a mystery.
+ */
+/**
+ * Columns the generated business rules constrain by *format*, which a marker
+ * string cannot satisfy.
+ *
+ * Generation writes a decision-table row for any column named `email` —
+ * `!contains(email, "@")` → prevent, see
+ * backend/src/modules/rules/jdm/entity.jdm.json — so stamping `ms1a2b3-source`
+ * into it is refused 400 before the workflow chain ever starts. On a model
+ * whose first long string column is an email (Instructor, Member, …) that made
+ * this suite unrunnable, and the failure pointed at the workflow rather than at
+ * the column the suite had chosen.
+ */
+const FORMAT_CONSTRAINED_COLUMNS = new Set(["email"]);
+
+function stampableFields(entity: EntityMeta): FieldMeta[] {
+  return entity.fields.filter(
+    (field) =>
+      !field.isForeignKey &&
+      !field.name.endsWith("_id") &&
+      field.name !== "id" &&
+      !FORMAT_CONSTRAINED_COLUMNS.has(field.name) &&
+      (field.type === "string" || field.type === "text") &&
+      (field.maxLength === undefined || field.maxLength >= 24)
+  );
+}
+
+/**
+ * Pick a trigger entity and a different target entity.
+ *
+ * The target needs two writable columns: one holds the marker that identifies
+ * the rows this suite created, the other receives the computed value. Reusing a
+ * single column would erase the marker the assertions look the rows up by.
+ *
+ * Returns null when the model has no such pair, so the suite skips rather than
+ * asserting against a shape this model does not have.
+ */
+function pickPair(): { trigger: EntityMeta; target: EntityMeta } | null {
+  const target = entities.find((entity) => stampableFields(entity).length >= 2);
+  if (!target) return null;
+  const trigger = entities.find(
+    (entity) => entity.tableName !== target.tableName && stampableFields(entity).length >= 1
+  );
+  return trigger ? { trigger, target } : null;
+}
+
+const pair = pickPair();
+
+describe("multi-step workflows triggered by rules", () => {
+  const registered: { ruleId?: string; definitionId?: string } = {};
+  let triggerEntity: EntityMeta;
+  let targetEntity: EntityMeta;
+  let triggerField: FieldMeta;
+  /** Carries the suite marker, so the rows the workflow created can be found. */
+  let targetMarker: FieldMeta;
+  /** Receives the value computed by steps 1–2. */
+  let targetValue: FieldMeta;
+  let workflowName: string;
+  let setupFailure: string | null = null;
+
+  beforeAll(async () => {
+    if (!pair) return;
+    await harness.setup();
+
+    triggerEntity = pair.trigger;
+    targetEntity = pair.target;
+    triggerField = stampableFields(triggerEntity)[0]!;
+    [targetMarker, targetValue] = stampableFields(targetEntity) as [FieldMeta, FieldMeta];
+    workflowName = `${suiteId}-escalation`;
+
+    try {
+      const keptFields = await buildTargetPayload("kept");
+      const doomedFields = await buildTargetPayload("doomed");
+
+      const steps: WorkflowStep[] = [
+        {
+          id: "s1_stage",
+          name: "Stage a value",
+          props: { nodeType: "Formula", target: "stagedNumber", operation: "set", value: "6" },
+        },
+        {
+          id: "s2_compute",
+          name: "Compute from the staged value",
+          props: {
+            nodeType: "Formula",
+            target: "computedNumber",
+            source: "stagedNumber",
+            operation: "multiply",
+            operand: "7",
+          },
+        },
+        {
+          id: "s3_create_kept",
+          name: `Create a ${targetEntity.displayName}`,
+          props: {
+            nodeType: "CreateEntity",
+            entity: targetEntity.tableName,
+            as: "keptId",
+            fields: JSON.stringify(keptFields),
+          },
+        },
+        {
+          id: "s4_create_doomed",
+          name: `Create a ${targetEntity.displayName} to retire`,
+          props: {
+            nodeType: "CreateEntity",
+            entity: targetEntity.tableName,
+            as: "doomedId",
+            fields: JSON.stringify(doomedFields),
+          },
+        },
+        {
+          id: "s5_update_self",
+          name: "Update the triggering record",
+          props: {
+            nodeType: "UpdateEntity",
+            field: triggerField.name,
+            value: `${suiteId}-touched`,
+          },
+        },
+        {
+          id: "s6_update_other",
+          name: "Write the computed value onto the created row",
+          props: {
+            nodeType: "UpdateEntity",
+            entity: targetEntity.tableName,
+            targetSource: "keptId",
+            field: targetValue.name,
+            source: "computedNumber",
+          },
+        },
+        {
+          id: "s7_delete_other",
+          name: "Retire the second created row",
+          props: {
+            nodeType: "DeleteEntity",
+            entity: targetEntity.tableName,
+            targetSource: "doomedId",
+          },
+        },
+      ];
+
+      const definition = await createWorkflowDefinition(harness.client, {
+        name: workflowName,
+        entityName: triggerEntity.tableName,
+        operation: "CREATE",
+        bpmnXml: buildWorkflowBpmn(`${suiteId}_process`, steps),
+        description: "E2E: multi-step rule-triggered workflow",
+        // Reached only through the rule, so the rule is what decides.
+        triggerType: "rule",
+      });
+      registered.definitionId = definition.id;
+
+      const rule = await createRule(harness.client, {
+        entityName: triggerEntity.tableName,
+        ruleName: `${suiteId}-trigger`,
+        operation: "CREATE",
+        jdmContent: buildTriggerJdm(workflowName),
+      });
+      registered.ruleId = rule.id;
+      harness.trackRule(rule.id);
+    } catch (error) {
+      // Surface the reason in a failing assertion instead of an opaque
+      // beforeAll crash that takes every test in the file with it.
+      setupFailure = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  afterAll(async () => {
+    if (registered.definitionId) {
+      await deleteWorkflowDefinition(harness.client, registered.definitionId);
+    }
+    await harness.teardown();
+  });
+
+  it.skipIf(!pair)("registers a rule-triggered definition", () => {
+    expect(setupFailure).toBeNull();
+    expect(registered.definitionId).toBeTruthy();
+    expect(registered.ruleId).toBeTruthy();
+  });
+
+  it.skipIf(!pair)("runs the whole chain on a matching write", async () => {
+    const created = await harness.createWithParents(triggerEntity, {
+      [triggerField.name]: `${suiteId}-source`,
+    });
+    const triggerId = created?.id as string;
+    expect(triggerId).toBeTruthy();
+
+    const run = await waitForOurRun(triggerId);
+    expect(run).not.toBeNull();
+    expect(isFailure(run?.status)).toBe(false);
+
+    // Step 5 — the triggering record was updated by its own workflow.
+    const self = await readRecord(triggerEntity, triggerId);
+    expect(String(self?.[triggerField.name])).toBe(`${suiteId}-touched`);
+  });
+
+  it.skipIf(!pair)("carries a computed value into a row an earlier step created", async () => {
+    const rows = await listTargetRows();
+    const kept = rows.find((row) => String(row[targetMarker.name]) === `${suiteId}-kept`);
+
+    // Step 3 created it; step 6 found it again by the id step 3 captured and
+    // wrote `computedNumber` — which step 2 derived from what step 1 staged:
+    // 6 * 7 = 42. Nothing else in the chain could have produced that value.
+    expect(kept).toBeDefined();
+    expect(String(kept?.[targetValue.name])).toBe("42");
+  });
+
+  it.skipIf(!pair)("deletes a row a later step targeted by captured id", async () => {
+    const rows = await listTargetRows();
+    const doomed = rows.find((row) => String(row[targetMarker.name]) === `${suiteId}-doomed`);
+
+    // The delete is soft, so dropping out of the list is the observable effect.
+    expect(doomed).toBeUndefined();
+  });
+
+  it.skipIf(!pair)("does not run when the rule does not fire", async () => {
+    // Deactivating the rule has the same shape as its condition evaluating
+    // false: no `trigger-workflow` action is emitted for this write.
+    await updateRule(harness.client, registered.ruleId!, { isActive: false });
+
+    try {
+      const before = (await listTargetRows()).length;
+      const created = await harness.createWithParents(triggerEntity, {
+        [triggerField.name]: `${suiteId}-nomatch`,
+      });
+      const triggerId = created?.id as string;
+      expect(triggerId).toBeTruthy();
+      await sleep(2000);
+
+      const runs = await ourRuns(triggerId);
+      const after = (await listTargetRows()).length;
+
+      // A rule-triggered definition must not be auto-run on entity + operation.
+      expect(runs.length).toBe(0);
+      expect(after).toBe(before);
+    } finally {
+      await updateRule(harness.client, registered.ruleId!, { isActive: true });
+    }
+  });
+
+  /**
+   * A create payload for the target entity, as the literal field map the
+   * CreateEntity steps insert. Built through the same factory the CRUD suites
+   * use, so it stays valid for whatever this model is.
+   */
+  async function buildTargetPayload(stamp: string): Promise<Record<string, unknown>> {
+    const foreignKeys: Record<string, string> = {};
+    for (const fk of foreignKeyFields(targetEntity)) {
+      const parent = harness.resolveParentEntity(fk.name);
+      if (!parent) continue;
+      const id = await harness.anyRecordId(parent);
+      if (id) foreignKeys[fk.name] = id;
+    }
+
+    const record = buildRecord(targetEntity, {
+      requiredOnly: true,
+      foreignKeys,
+      uniqueSalt: `${suiteId}${stamp}`,
+      overrides: { [targetMarker.name]: `${suiteId}-${stamp}` },
+    });
+
+    // The executor writes these values straight into the column — it does not
+    // go through the API's serialisation — so structured values have to arrive
+    // as text the driver can store.
+    for (const [key, value] of Object.entries(record)) {
+      if (value !== null && typeof value === "object") record[key] = JSON.stringify(value);
+    }
+    return record;
+  }
+
+  /**
+   * Runs of *this* suite's workflow. Filtering by name matters: the generator
+   * also seeds automatic definitions per entity, and those produce runs of
+   * their own against the same record.
+   */
+  async function ourRuns(triggerId: string): Promise<WorkflowRun[]> {
+    const runs = await runsForEntity(harness.client, triggerEntity.tableName, triggerId);
+    return runs.filter((run) => run.workflow_name === workflowName);
+  }
+
+  async function waitForOurRun(triggerId: string): Promise<WorkflowRun | null> {
+    const deadline = Date.now() + 20_000;
+    let last: WorkflowRun | null = null;
+    while (Date.now() < deadline) {
+      const [run] = await ourRuns(triggerId);
+      if (run) {
+        last = run;
+        if (isTerminal(run.status)) return run;
+      }
+      await sleep(400);
+    }
+    return last;
+  }
+
+  async function readRecord(
+    entity: EntityMeta,
+    id: string
+  ): Promise<Record<string, unknown> | null> {
+    const response = await harness.client.get<Record<string, unknown>>(
+      `/bus/${entity.route}/${id}`,
+      { allowFailure: true }
+    );
+    if (!response.ok) return null;
+    const body = response.data as Record<string, unknown> | undefined;
+    return (body?.data as Record<string, unknown>) ?? body ?? null;
+  }
+
+  /**
+   * The rows this suite's workflow created, found by the marker it stamps.
+   *
+   * Filtered server-side rather than paged through: the bulk-seed suite leaves
+   * thousands of rows behind, and a fixed `limit` would quietly stop containing
+   * the rows under test as the database fills up.
+   */
+  async function listTargetRows(): Promise<Array<Record<string, unknown>>> {
+    const response = await harness.client.get<{ data?: Array<Record<string, unknown>> }>(
+      `/bus/${targetEntity.route}?limit=100&filter.${targetMarker.name}=contains:${suiteId}`,
+      { allowFailure: true }
+    );
+    return response.ok ? (response.data?.data ?? []) : [];
+  }
+});
+
+/** A decision graph whose only row emits `trigger-workflow` naming one workflow. */
+function buildTriggerJdm(workflowName: string): string {
+  return JSON.stringify({
+    nodes: [
+      { id: "input", type: "inputNode", name: "Input", position: { x: 0, y: 0 } },
+      {
+        id: "trigger-table",
+        type: "decisionTableNode",
+        name: "Multi-step trigger",
+        position: { x: 300, y: 0 },
+        content: {
+          hitPolicy: "collect",
+          inputs: [{ id: "i1", name: "Record", field: "" }],
+          outputs: [
+            { id: "o1", name: "Action", field: "action" },
+            { id: "o2", name: "Message", field: "message" },
+            { id: "o3", name: "Rule ID", field: "ruleId" },
+            { id: "o4", name: "Workflow Name", field: "workflowName" },
+          ],
+          rules: [
+            {
+              _id: `${workflowName}-row`,
+              i1: "true",
+              o1: "'trigger-workflow'",
+              o2: "'Multi-step workflow triggered'",
+              o3: `'${workflowName}'`,
+              o4: `'${workflowName}'`,
+            },
+          ],
+        },
+      },
+      { id: "output", type: "outputNode", name: "Output", position: { x: 600, y: 0 } },
+    ],
+    edges: [
+      { id: "e1", sourceId: "input", targetId: "trigger-table" },
+      { id: "e2", sourceId: "trigger-table", targetId: "output" },
+    ],
+  });
+}

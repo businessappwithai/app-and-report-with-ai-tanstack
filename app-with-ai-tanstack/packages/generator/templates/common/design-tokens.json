@@ -1,0 +1,42 @@
+{
+  "$comment": [
+    "The Swiss Clean palette, stated once.",
+    "",
+    "Two files paint a generated application and they cannot share a stylesheet:",
+    "the React front end's globals.css declares Tailwind/shadcn variables as HSL",
+    "triples, and the browser runtime's styles.css declares plain CSS variables",
+    "as hex, because it has no Tailwind. Before this file they each carried their",
+    "own copy of every colour, and the note in CLAUDE.md saying 'when that palette",
+    "changes, this has to change with it' was the only thing holding them",
+    "together.",
+    "",
+    "This is now what both are checked against, by",
+    "packages/generator/src/generators/wasm/__tests__/design-tokens.test.ts. It is",
+    "not generated from — regenerating a stylesheet from JSON would mean a build",
+    "step between editing a colour and seeing it — but a drift fails a test rather",
+    "than shipping two applications that look like different products.",
+    "",
+    "Change a colour here first, then in both stylesheets; the test names any you",
+    "miss."
+  ],
+
+  "light": {
+    "background": "#FAFAFA",
+    "surface": "#FFFFFF",
+    "foreground": "#1A1A1A",
+    "muted": "#F5F5F5",
+    "mutedForeground": "#888888",
+    "primary": "#0D6E6E",
+    "primaryForeground": "#FFFFFF",
+    "destructive": "#E07B54",
+    "border": "#E5E5E5"
+  },
+
+  "radius": "0.75rem",
+
+  "fonts": {
+    "display": "Newsreader",
+    "body": "Inter",
+    "mono": "JetBrains Mono"
+  }
+}

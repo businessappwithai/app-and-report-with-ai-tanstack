@@ -1,0 +1,299 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e288] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e289]:
+                - img [ref=e290]
+                - generic [ref=e293]: Dashboard
+            - link "SQL Editor" [ref=e294] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e295]:
+                - img [ref=e296]
+                - generic [ref=e298]: SQL Editor
+            - link "Saved Queries" [ref=e299] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e300]:
+                - img [ref=e301]
+                - generic [ref=e305]: Saved Queries
+            - link "Reports" [ref=e306] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e307]:
+                - img [ref=e308]
+                - generic [ref=e311]: Reports
+            - link "Charts" [ref=e312] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e313]:
+                - img [ref=e314]
+                - generic [ref=e316]: Charts
+            - link "Dashboards" [ref=e317] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e318]:
+                - img [ref=e319]
+                - generic [ref=e324]: Dashboards
+            - link "Filters" [ref=e325] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e326]:
+                - img [ref=e327]
+                - generic [ref=e329]: Filters
+            - link "Jobs" [ref=e330] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e331]:
+                - img [ref=e332]
+                - generic [ref=e334]: Jobs
+            - link "NL Query" [ref=e335] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e336]:
+                - img [ref=e337]
+                - generic [ref=e339]: NL Query
+        - generic [ref=e22]:
+          - heading "Administration" [level=2] [ref=e23]
+          - navigation [ref=e107]:
+            - link "Data Sources" [ref=e340] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e341]:
+                - img [ref=e342]
+                - generic [ref=e346]: Data Sources
+            - link "Queue Management" [ref=e347] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e348]:
+                - img [ref=e349]
+                - generic [ref=e353]: Queue Management
+            - link "System Logs" [ref=e354] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e355]:
+                - img [ref=e356]
+                - generic [ref=e359]: System Logs
+            - link "Users" [ref=e360] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e361]:
+                - img [ref=e362]
+                - generic [ref=e367]: Users
+            - link "Roles" [ref=e368] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e369]:
+                - img [ref=e370]
+                - generic [ref=e372]: Roles
+            - link "Permissions" [ref=e373] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e374]:
+                - img [ref=e375]
+                - generic [ref=e377]: Permissions
+            - link "Settings" [ref=e378] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e379]:
+                - img [ref=e380]
+                - generic [ref=e383]: Settings
+      - button [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e27]:
+      - banner [ref=e28]:
+        - generic [ref=e29]:
+          - combobox [ref=e30] [cursor=pointer]:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img [ref=e31]
+          - button "Notifications" [ref=e34] [cursor=pointer]:
+            - img [ref=e35]
+            - generic [ref=e38]: Notifications
+          - button "SA" [ref=e39] [cursor=pointer]:
+            - generic [ref=e41]: SA
+      - main [ref=e42]:
+        - generic [ref=e385]:
+          - generic [ref=e386]:
+            - generic [ref=e387]:
+              - link [ref=e388] [cursor=pointer]:
+                - /url: /charts
+                - button [ref=e389]:
+                  - img [ref=e390]
+              - generic [ref=e392]:
+                - heading "Chart Editor" [level=1] [ref=e393]
+                - paragraph [ref=e394]: Edit chart configuration
+            - generic [ref=e395]:
+              - button "Hide Preview" [ref=e396] [cursor=pointer]:
+                - img [ref=e397]
+                - text: Hide Preview
+              - button "Save Chart" [ref=e400] [cursor=pointer]:
+                - img [ref=e401]
+                - text: Save Chart
+          - generic [ref=e405]:
+            - generic [ref=e406]:
+              - generic [ref=e407]:
+                - heading "Basic Information" [level=3] [ref=e410]
+                - generic [ref=e411]:
+                  - generic [ref=e412]:
+                    - text: Chart Name *
+                    - textbox "Chart Name *" [ref=e413]:
+                      - /placeholder: My Sales Chart
+                      - text: Hospital Tables Bar Chart
+                  - generic [ref=e414]:
+                    - text: Description
+                    - textbox "Description" [ref=e415]:
+                      - /placeholder: Describe what this chart shows...
+              - generic [ref=e416]:
+                - heading "Data Source" [level=3] [ref=e419]
+                - generic [ref=e420]:
+                  - generic [ref=e421]:
+                    - text: Select Query *
+                    - combobox "Select Query *" [ref=e422] [cursor=pointer]:
+                      - generic:
+                        - generic:
+                          - generic: Hospital Tables Query
+                          - generic: No description
+                      - img [ref=e423]
+                    - paragraph [ref=e425]: "Using: Hospital Tables Query"
+                  - generic [ref=e427]:
+                    - img [ref=e428]
+                    - generic [ref=e430]:
+                      - paragraph [ref=e431]: Available Fields
+                      - generic [ref=e433]: table_name
+              - generic [ref=e434]:
+                - generic [ref=e436]:
+                  - heading "Reusable Filters" [level=3] [ref=e437]
+                  - paragraph [ref=e438]: Add pre-configured filters that users can select from dropdowns when viewing the chart.
+                - generic [ref=e439]:
+                  - generic [ref=e440]:
+                    - generic [ref=e441]:
+                      - text: Select Filter
+                      - combobox "Select Filter" [ref=e442] [cursor=pointer]:
+                        - generic: Choose a filter...
+                        - img [ref=e443]
+                    - generic [ref=e445]:
+                      - text: Target Column
+                      - combobox "Target Column" [ref=e446] [cursor=pointer]:
+                        - generic: Select column...
+                        - img [ref=e447]
+                    - button "Add" [disabled]:
+                      - img
+                      - text: Add
+                  - generic [ref=e449]: No filters added. Add filters above to allow users to filter the chart.
+              - generic [ref=e450]:
+                - heading "Chart Type" [level=3] [ref=e453]
+                - generic [ref=e454]:
+                  - combobox [ref=e455] [cursor=pointer]:
+                    - generic:
+                      - generic:
+                        - img
+                        - generic:
+                          - generic: Bar Chart
+                          - generic: Compare values across different categories using vertical bars
+                    - img [ref=e456]
+                  - generic [ref=e458]:
+                    - text: How to Use This Chart
+                    - textbox "How to Use This Chart" [ref=e459]: "Best for: Comparing sales by region, population by country, revenue by product. Requires: 1 category field (X-axis) and 1+ value fields (Y-axis)."
+              - generic [ref=e460]:
+                - heading "Axis Configuration" [level=3] [ref=e463]
+                - generic [ref=e464]:
+                  - generic [ref=e465]:
+                    - generic [ref=e467]: X-Axis (Categories) *
+                    - combobox "X-Axis (Categories) *" [ref=e468] [cursor=pointer]:
+                      - generic: Select field...
+                      - img [ref=e469]
+                  - generic [ref=e471]:
+                    - generic [ref=e472]:
+                      - generic [ref=e473]: Y-Axis (Values) *
+                      - button "Add Series" [ref=e474] [cursor=pointer]:
+                        - img [ref=e475]
+                        - text: Add Series
+                    - paragraph [ref=e476]: Add at least one Y-axis series
+                  - generic [ref=e477]:
+                    - generic [ref=e479]: Group By (Optional)
+                    - combobox "Group By (Optional)" [ref=e480] [cursor=pointer]:
+                      - generic: Select field to group by...
+                      - img [ref=e481]
+                  - generic [ref=e483]:
+                    - generic [ref=e485]: Color By (Optional)
+                    - combobox "Color By (Optional)" [ref=e486] [cursor=pointer]:
+                      - generic: Select field to color by...
+                      - img [ref=e487]
+              - generic [ref=e489]:
+                - heading "Appearance" [level=3] [ref=e492]
+                - generic [ref=e493]:
+                  - generic [ref=e494]:
+                    - generic [ref=e495]: Show Title
+                    - switch "Show Title" [checked] [ref=e496] [cursor=pointer]
+                  - textbox "Chart title" [ref=e497]
+                  - generic [ref=e498]:
+                    - generic [ref=e499]: Show Legend
+                    - switch "Show Legend" [checked] [ref=e500] [cursor=pointer]
+                  - generic [ref=e501]:
+                    - generic [ref=e502]: Enable Tooltip
+                    - switch "Enable Tooltip" [checked] [ref=e503] [cursor=pointer]
+                  - generic [ref=e504]:
+                    - generic [ref=e505]: Animation
+                    - switch "Animation" [checked] [ref=e506] [cursor=pointer]
+                  - generic [ref=e507]:
+                    - generic [ref=e508]:
+                      - text: Stacked Chart
+                      - paragraph [ref=e509]: Stack multiple series on top of each other (for bar/column charts)
+                    - switch "Stacked Chart" [ref=e510] [cursor=pointer]
+                  - generic [ref=e511]:
+                    - text: Chart Colors
+                    - paragraph [ref=e512]: Customize the color palette for your chart. Click to edit.
+                    - generic [ref=e513]:
+                      - generic [ref=e514]:
+                        - 'textbox "Color 1: #3b82f6" [ref=e515] [cursor=pointer]': "#3b82f6"
+                        - button "Remove color" [ref=e516] [cursor=pointer]:
+                          - img [ref=e517]
+                      - generic [ref=e520]:
+                        - 'textbox "Color 2: #10b981" [ref=e521] [cursor=pointer]': "#10b981"
+                        - button "Remove color" [ref=e522] [cursor=pointer]:
+                          - img [ref=e523]
+                      - generic [ref=e526]:
+                        - 'textbox "Color 3: #f59e0b" [ref=e527] [cursor=pointer]': "#f59e0b"
+                        - button "Remove color" [ref=e528] [cursor=pointer]:
+                          - img [ref=e529]
+                      - generic [ref=e532]:
+                        - 'textbox "Color 4: #ef4444" [ref=e533] [cursor=pointer]': "#ef4444"
+                        - button "Remove color" [ref=e534] [cursor=pointer]:
+                          - img [ref=e535]
+                      - generic [ref=e538]:
+                        - 'textbox "Color 5: #8b5cf6" [ref=e539] [cursor=pointer]': "#8b5cf6"
+                        - button "Remove color" [ref=e540] [cursor=pointer]:
+                          - img [ref=e541]
+                      - button "Add" [ref=e544] [cursor=pointer]:
+                        - img [ref=e545]
+                        - text: Add
+                    - button "Reset to Default" [ref=e546] [cursor=pointer]
+            - generic [ref=e547]:
+              - generic [ref=e549]:
+                - heading "Preview" [level=3] [ref=e552]
+                - paragraph [ref=e555]: Configure X and Y axes to see the preview
+              - generic [ref=e556]:
+                - heading "Sample Data" [level=3] [ref=e559]
+                - generic [ref=e560]:
+                  - table [ref=e562]:
+                    - rowgroup [ref=e563]:
+                      - row "table_name" [ref=e564]:
+                        - columnheader "table_name" [ref=e565]
+                    - rowgroup [ref=e566]:
+                      - row "knex_migrations" [ref=e567]:
+                        - cell "knex_migrations" [ref=e568]
+                      - row "knex_migrations_lock" [ref=e569]:
+                        - cell "knex_migrations_lock" [ref=e570]
+                      - row "sys_reference" [ref=e571]:
+                        - cell "sys_reference" [ref=e572]
+                      - row "sys_ref_list" [ref=e573]:
+                        - cell "sys_ref_list" [ref=e574]
+                      - row "sys_entity_menu" [ref=e575]:
+                        - cell "sys_entity_menu" [ref=e576]
+                  - paragraph [ref=e577]: Showing 5 of 10 rows
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e578]:
+        - img [ref=e580]
+        - generic [ref=e583]: Chart created successfully
+  - generic [ref=e158]:
+    - img [ref=e160]
+    - button "Open Tanstack query devtools" [ref=e208] [cursor=pointer]:
+      - img [ref=e209]

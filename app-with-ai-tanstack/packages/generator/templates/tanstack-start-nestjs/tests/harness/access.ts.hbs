@@ -1,0 +1,107 @@
+/**
+ * What `%%rbac` declared, and who the application seeded to hold it.
+ *
+ * Two halves, and the suites need both. `rbacRules` is the model's own word on
+ * which roles an `(entity, operation)` pair admits — compiled from the
+ * directives, not read back from `sys_operation_access`, so a rule the seed
+ * dropped fails a test instead of agreeing with itself. `roleAccounts` is the
+ * address the application created for each role, from the same derivation the
+ * seed used, so a suite signing in as a role is using the account that exists.
+ *
+ * A model with no `%%rbac` directives leaves both empty and the access suite
+ * skips itself. That is the honest outcome: there is nothing declared to check,
+ * and inventing a restriction to test would be testing the test.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+export type RbacOperation = "create" | "read" | "update" | "delete";
+
+export interface RbacRule {
+  /** ERD entity name, as the model declares it. */
+  entity: string;
+  /** Physical table the guard matches on. */
+  tableName: string;
+  /** Route segment the API is addressed by. */
+  route: string;
+  operation: RbacOperation;
+  /** Roles permitted. Never empty — an empty list would mean "nobody". */
+  roles: string[];
+}
+
+export interface RoleAccount {
+  email: string;
+  name: string;
+  /** Role as the dictionary spells it, e.g. `Class Manager`. */
+  roleName: string;
+  /** Role as the model spells it, e.g. `class_manager`. */
+  declaredAs: string;
+  /** Master roles bypass every operation rule. */
+  isAdmin: boolean;
+}
+
+export const rbacRules: RbacRule[] = [
+{{#each rbacRules}}
+  {
+    entity: "{{entity}}",
+    tableName: "{{tableName}}",
+    route: "{{route}}",
+    operation: "{{operation}}",
+    roles: [{{#each roles}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}],
+  },
+{{/each}}
+];
+
+export const roleAccounts: RoleAccount[] = [
+{{#each roleAccounts}}
+  {
+    email: "{{email}}",
+    name: "{{name}}",
+    roleName: "{{roleName}}",
+    declaredAs: "{{declaredAs}}",
+    isAdmin: {{#if isAdmin}}true{{else}}false{{/if}},
+  },
+{{/each}}
+];
+
+/** Role names compare case- and separator-insensitively: `class_manager` is `Class Manager`. */
+export function sameRole(a: string, b: string): boolean {
+  const fold = (value: string) => value.trim().toLowerCase().replace(/[\s\-_]+/g, "");
+  return fold(a) === fold(b);
+}
+
+/**
+ * The roles a pair admits, or `null` when the model restricts it to nobody in
+ * particular.
+ *
+ * `null` is not "denied" — an `(entity, operation)` no directive names is
+ * unrestricted, open to anyone the session guard already admitted. Callers that
+ * treat the absence of a rule as a denial invert the whole scheme.
+ */
+export function rolesFor(route: string, operation: RbacOperation): string[] | null {
+  const rule = rbacRules.find((item) => item.route === route && item.operation === operation);
+  return rule ? rule.roles : null;
+}
+
+/** Whether an account may perform an operation, according to the model alone. */
+export function modelAllows(
+  account: RoleAccount,
+  route: string,
+  operation: RbacOperation
+): boolean {
+  if (account.isAdmin) return true;
+  const roles = rolesFor(route, operation);
+  if (!roles) return true;
+  return roles.some((role) => sameRole(role, account.declaredAs) || sameRole(role, account.roleName));
+}
+
+/** Every route the model restricts for `read`, which is what scopes navigation. */
+export function readRestrictedRoutes(): string[] {
+  return [...new Set(rbacRules.filter((rule) => rule.operation === "read").map((r) => r.route))];
+}
+
+/** The non-admin accounts, which are the ones a restriction can be observed on. */
+export function restrictedAccounts(): RoleAccount[] {
+  return roleAccounts.filter((account) => !account.isAdmin);
+}

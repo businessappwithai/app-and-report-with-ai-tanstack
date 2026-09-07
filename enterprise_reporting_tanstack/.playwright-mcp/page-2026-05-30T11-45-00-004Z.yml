@@ -1,0 +1,226 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e99] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e100]:
+                - img [ref=e101]
+                - generic [ref=e104]: Dashboard
+            - link "SQL Editor" [ref=e105] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e106]:
+                - img [ref=e107]
+                - generic [ref=e109]: SQL Editor
+            - link "Saved Queries" [ref=e110] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e111]:
+                - img [ref=e112]
+                - generic [ref=e116]: Saved Queries
+            - link "Reports" [ref=e117] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e118]:
+                - img [ref=e119]
+                - generic [ref=e122]: Reports
+            - link "Charts" [ref=e123] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e124]:
+                - img [ref=e125]
+                - generic [ref=e127]: Charts
+            - link "Dashboards" [ref=e128] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e129]:
+                - img [ref=e130]
+                - generic [ref=e135]: Dashboards
+            - link "Filters" [ref=e136] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e137]:
+                - img [ref=e138]
+                - generic [ref=e140]: Filters
+            - link "Jobs" [ref=e141] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e142]:
+                - img [ref=e143]
+                - generic [ref=e145]: Jobs
+            - link "NL Query" [ref=e146] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e147]:
+                - img [ref=e148]
+                - generic [ref=e150]: NL Query
+        - generic [ref=e22]:
+          - heading "Administration" [level=2] [ref=e23]
+          - navigation [ref=e151]:
+            - link "Data Sources" [ref=e152] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e153]:
+                - img [ref=e154]
+                - generic [ref=e158]: Data Sources
+            - link "Queue Management" [ref=e159] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e160]:
+                - img [ref=e161]
+                - generic [ref=e165]: Queue Management
+            - link "System Logs" [ref=e166] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e167]:
+                - img [ref=e168]
+                - generic [ref=e171]: System Logs
+            - link "Users" [ref=e172] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e173]:
+                - img [ref=e174]
+                - generic [ref=e179]: Users
+            - link "Roles" [ref=e180] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e181]:
+                - img [ref=e182]
+                - generic [ref=e184]: Roles
+            - link "Permissions" [ref=e185] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e186]:
+                - img [ref=e187]
+                - generic [ref=e189]: Permissions
+            - link "Settings" [ref=e190] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e191]:
+                - img [ref=e192]
+                - generic [ref=e195]: Settings
+      - button [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e27]:
+      - banner [ref=e28]:
+        - generic [ref=e29]:
+          - combobox [ref=e30] [cursor=pointer]:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img [ref=e31]
+          - button "Notifications" [ref=e34] [cursor=pointer]:
+            - img [ref=e35]
+            - generic [ref=e38]: Notifications
+          - button "SA" [ref=e39] [cursor=pointer]:
+            - generic [ref=e41]: SA
+      - main [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - generic [ref=e47]:
+                - heading "Natural Language Query" [level=1] [ref=e48]
+                - paragraph [ref=e49]: Use the chat sidebar to ask questions — AI generates and runs SQL for you
+              - button "History" [active] [ref=e50] [cursor=pointer]:
+                - img [ref=e51]
+                - text: History
+                - img [ref=e320]
+            - generic [ref=e196]:
+              - generic [ref=e197]: Data Source
+              - combobox [ref=e198] [cursor=pointer]:
+                - generic:
+                  - generic:
+                    - generic: Local PostgreSQL
+                    - generic: Inspected 30/05/2026, 13:44:01
+                - img [ref=e199]
+            - generic [ref=e322]:
+              - generic [ref=e323]:
+                - heading "Saved SQL History (your role)" [level=3] [ref=e324]:
+                  - img [ref=e325]
+                  - text: Saved SQL History (your role)
+                - generic [ref=e328]:
+                  - generic [ref=e329]:
+                    - img [ref=e330]
+                    - textbox "Search queries... e.g. patient, gender" [ref=e333]
+                  - button "Search" [ref=e334] [cursor=pointer]
+              - generic [ref=e336]:
+                - generic [ref=e337]:
+                  - generic [ref=e338]:
+                    - generic [ref=e339]:
+                      - paragraph [ref=e340]: How many patients are there?
+                      - paragraph [ref=e341]: SELECT COUNT(*) AS patient_count FROM bus_patient;...
+                    - button "Run" [ref=e342] [cursor=pointer]:
+                      - img [ref=e343]
+                      - generic [ref=e345]: Run
+                  - generic [ref=e346]:
+                    - generic [ref=e347]: Administrator
+                    - generic [ref=e348]: System Administrator
+                    - generic [ref=e349]: Local PostgreSQL
+                    - generic [ref=e350]: 1 rows
+                    - generic [ref=e351]: 0ms
+                    - generic [ref=e352]: 30/05/2026, 16:48:33
+                - generic [ref=e353]:
+                  - generic [ref=e354]:
+                    - generic [ref=e355]:
+                      - paragraph [ref=e356]: Show me all tables in the database
+                      - paragraph [ref=e357]: SELECT 1 as test_value, 'hello' as greeting...
+                    - button "Run" [ref=e358] [cursor=pointer]:
+                      - img [ref=e359]
+                      - generic [ref=e361]: Run
+                  - generic [ref=e362]:
+                    - generic [ref=e363]: Administrator
+                    - generic [ref=e364]: System Administrator
+                    - generic [ref=e365]: Local PostgreSQL
+                    - generic [ref=e366]: 1 rows
+                    - generic [ref=e367]: 0ms
+                    - generic [ref=e368]: 30/05/2026, 10:16:07
+            - generic [ref=e60]:
+              - img [ref=e61]
+              - paragraph [ref=e63]: No results yet
+              - paragraph [ref=e64]: "Open the chat sidebar and ask a question about your data. Try: \"Show me total patients by gender\" or \"What are the top 10 diagnoses?\""
+          - generic [ref=e65]:
+            - button "Open Chat" [ref=e369] [cursor=pointer]:
+              - img [ref=e371]
+              - generic:
+                - img
+            - generic:
+              - generic:
+                - generic: NL Query Assistant
+                - generic:
+                  - generic:
+                    - generic:
+                      - button "Open Help": Help
+                    - button "Debug":
+                      - text: Debug
+                      - img
+                  - button "Close":
+                    - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "Ask me anything about your data! I can generate SQL queries, create charts, and help you explore your database. Try: \"Show me total patients by gender\" or \"What are the top 10 diagnoses?\""
+                      - generic:
+                        - button "Regenerate response":
+                          - img
+                        - button "Copy to clipboard":
+                          - img
+                        - button "Thumbs up":
+                          - img
+                        - button "Thumbs down":
+                          - img
+                - generic:
+                  - generic:
+                    - textbox "Ask about your data..."
+                    - generic:
+                      - generic:
+                        - button "Voice input":
+                          - img
+                      - button "Send" [disabled]:
+                        - img
+                  - generic:
+                    - paragraph: Powered by CopilotKit
+        - button "Web Inspector" [ref=e216]:
+          - note [ref=e217]:
+            - generic [ref=e218]: "🪁 Big update: Series A, Threads and CopilotKit Enterprise Intelligence"
+          - img "Inspector logo" [ref=e220]
+  - region "Notifications alt+T"
+  - generic [ref=e221]:
+    - img [ref=e223]
+    - button "Open Tanstack query devtools" [ref=e271] [cursor=pointer]:
+      - img [ref=e272]

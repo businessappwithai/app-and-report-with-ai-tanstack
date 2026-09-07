@@ -1,0 +1,46 @@
+/*
+   The few things this page has that page 09 does not. Everything else — the
+   flow steps, the build monitor, the diagnostics, the log — is shared with
+   run-in-browser.css, because they are the same page doing different work and
+   should not look like two products.
+*/
+
+.result__note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin: 20px 0 0;
+  max-width: none;
+}
+
+.compare__col {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 16px 18px;
+}
+
+.compare__col h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.compare__col ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-soft);
+}
+
+.compare__col b {
+  color: var(--text);
+}

@@ -1,0 +1,216 @@
+%% E-Commerce Domain Model
+%%
+%% This ERD demonstrates a typical e-commerce application with:
+%% - Customer management
+%% - Product catalog with categories
+%% - Order processing
+%% - Inventory tracking
+%%
+%% Use: appwithai generate -i examples/ecommerce.erd.mmd -o ./generated -n ecommerce-app
+
+erDiagram
+
+    %% Customer and Authentication
+    Customer {
+        string id PK
+        string email UK
+        string password_hash
+        string first_name
+        string last_name
+        string phone OPTIONAL
+        string status
+        datetime last_login OPTIONAL
+        boolean is_verified
+    }
+
+    Address {
+        string id PK
+        string customer_id FK
+        string street_line_1
+        string street_line_2 OPTIONAL
+        string city
+        string state
+        string postal_code
+        string country
+        string address_type
+        boolean is_default
+    }
+
+    %% Product Catalog
+    Category {
+        string id PK
+        string parent_id FK OPTIONAL
+        string name
+        string slug UK
+        text description OPTIONAL
+        string image_url OPTIONAL
+        integer sort_order
+        boolean is_active
+    }
+
+    Product {
+        string id PK
+        string category_id FK
+        string sku UK
+        string name
+        string slug UK
+        text description OPTIONAL
+        text short_description OPTIONAL
+        decimal price
+        decimal compare_at_price OPTIONAL
+        decimal cost OPTIONAL
+        string status
+        boolean is_featured
+        boolean is_taxable
+        decimal weight OPTIONAL
+    }
+
+    ProductImage {
+        string id PK
+        string product_id FK
+        string url
+        string alt_text OPTIONAL
+        integer sort_order
+        boolean is_primary
+    }
+
+    ProductVariant {
+        string id PK
+        string product_id FK
+        string sku UK
+        string name
+        decimal price OPTIONAL
+        integer stock_quantity
+        json options
+    }
+
+    %% Inventory
+    Inventory {
+        string id PK
+        string product_id FK
+        string variant_id FK OPTIONAL
+        string warehouse_id FK
+        integer quantity
+        integer reserved_quantity
+        integer reorder_point
+        datetime last_counted_at OPTIONAL
+    }
+
+    Warehouse {
+        string id PK
+        string name
+        string code UK
+        string address
+        string city
+        string country
+        boolean is_active
+    }
+
+    %% Orders
+    Order {
+        string id PK
+        string customer_id FK
+        string order_number UK
+        string status
+        decimal subtotal
+        decimal tax_amount
+        decimal shipping_amount
+        decimal discount_amount
+        decimal total_amount
+        string currency
+        string payment_status
+        string fulfillment_status
+        text notes OPTIONAL
+        datetime placed_at
+        datetime shipped_at OPTIONAL
+        datetime delivered_at OPTIONAL
+    }
+
+    OrderItem {
+        string id PK
+        string order_id FK
+        string product_id FK
+        string variant_id FK OPTIONAL
+        string sku
+        string name
+        integer quantity
+        decimal unit_price
+        decimal discount_amount
+        decimal tax_amount
+        decimal total_price
+    }
+
+    ShippingAddress {
+        string id PK
+        string order_id FK
+        string recipient_name
+        string street_line_1
+        string street_line_2 OPTIONAL
+        string city
+        string state
+        string postal_code
+        string country
+        string phone OPTIONAL
+    }
+
+    %% Payments
+    Payment {
+        string id PK
+        string order_id FK
+        string transaction_id UK
+        string payment_method
+        string status
+        decimal amount
+        string currency
+        json gateway_response OPTIONAL
+        datetime processed_at OPTIONAL
+    }
+
+    %% Reviews
+    Review {
+        string id PK
+        string product_id FK
+        string customer_id FK
+        integer rating
+        string title OPTIONAL
+        text content OPTIONAL
+        boolean is_verified
+        boolean is_approved
+    }
+
+    %% Coupons
+    Coupon {
+        string id PK
+        string code UK
+        string discount_type
+        decimal discount_value
+        decimal minimum_order_amount OPTIONAL
+        integer usage_limit OPTIONAL
+        integer usage_count
+        datetime valid_from
+        datetime valid_until OPTIONAL
+        boolean is_active
+    }
+
+    %% Relationships
+    Customer ||--o{ Address : "has"
+    Customer ||--o{ Order : "places"
+    Customer ||--o{ Review : "writes"
+
+    Category ||--o{ Category : "parent_of"
+    Category ||--o{ Product : "contains"
+
+    Product ||--o{ ProductImage : "has"
+    Product ||--o{ ProductVariant : "has"
+    Product ||--o{ Inventory : "tracked_in"
+    Product ||--o{ OrderItem : "ordered_as"
+    Product ||--o{ Review : "receives"
+
+    ProductVariant ||--o{ Inventory : "tracked_in"
+    ProductVariant ||--o{ OrderItem : "ordered_as"
+
+    Warehouse ||--o{ Inventory : "stores"
+
+    Order ||--o{ OrderItem : "contains"
+    Order ||--|| ShippingAddress : "shipped_to"
+    Order ||--o{ Payment : "paid_by"

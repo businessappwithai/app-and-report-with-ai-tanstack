@@ -1,0 +1,416 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e46] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e47]:
+                - img [ref=e48]
+                - generic [ref=e51]: Dashboard
+            - link "SQL Editor" [ref=e52] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e53]:
+                - img [ref=e54]
+                - generic [ref=e56]: SQL Editor
+            - link "Saved Queries" [ref=e57] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e58]:
+                - img [ref=e59]
+                - generic [ref=e63]: Saved Queries
+            - link "Reports" [ref=e64] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e69]: Reports
+            - link "Charts" [ref=e70] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e71]:
+                - img [ref=e72]
+                - generic [ref=e74]: Charts
+            - link "Dashboards" [ref=e75] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e76]:
+                - img [ref=e77]
+                - generic [ref=e82]: Dashboards
+            - link "Filters" [ref=e83] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e84]:
+                - img [ref=e85]
+                - generic [ref=e87]: Filters
+            - link "Jobs" [ref=e88] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e89]:
+                - img [ref=e90]
+                - generic [ref=e92]: Jobs
+            - link "NL Query" [ref=e93] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e94]:
+                - img [ref=e95]
+                - generic [ref=e97]: NL Query
+        - generic [ref=e22]:
+          - heading "Administration" [level=2] [ref=e23]
+          - navigation [ref=e98]:
+            - link "Data Sources" [ref=e99] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e100]:
+                - img [ref=e101]
+                - generic [ref=e105]: Data Sources
+            - link "Queue Management" [ref=e106] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e107]:
+                - img [ref=e108]
+                - generic [ref=e112]: Queue Management
+            - link "System Logs" [ref=e113] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e114]:
+                - img [ref=e115]
+                - generic [ref=e118]: System Logs
+            - link "Users" [ref=e119] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e120]:
+                - img [ref=e121]
+                - generic [ref=e126]: Users
+            - link "Roles" [ref=e127] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e128]:
+                - img [ref=e129]
+                - generic [ref=e131]: Roles
+            - link "Permissions" [ref=e132] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e133]:
+                - img [ref=e134]
+                - generic [ref=e136]: Permissions
+            - link "Settings" [ref=e137] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e138]:
+                - img [ref=e139]
+                - generic [ref=e142]: Settings
+      - button [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e27]:
+      - banner [ref=e28]:
+        - generic [ref=e29]:
+          - combobox [ref=e30] [cursor=pointer]:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img [ref=e31]
+          - button "Notifications" [ref=e34] [cursor=pointer]:
+            - img [ref=e35]
+            - generic [ref=e38]: Notifications
+          - button "SA" [ref=e39] [cursor=pointer]:
+            - generic [ref=e41]: SA
+      - main [ref=e42]:
+        - generic [ref=e43]:
+          - navigation [ref=e143]:
+            - link [ref=e144] [cursor=pointer]:
+              - /url: /
+              - img [ref=e145]
+            - generic [ref=e148]:
+              - img [ref=e149]
+              - link "Reports" [ref=e151] [cursor=pointer]:
+                - /url: /reports
+            - generic [ref=e152]:
+              - img [ref=e153]
+              - generic [ref=e155]: Patient
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - link [ref=e158] [cursor=pointer]:
+                - /url: /reports
+                - button [ref=e159]:
+                  - img [ref=e160]
+              - heading "Patient" [level=1] [ref=e163]
+            - generic [ref=e164]:
+              - button "Refresh" [ref=e165] [cursor=pointer]:
+                - img [ref=e166]
+                - text: Refresh
+              - button "CSV" [ref=e171] [cursor=pointer]:
+                - img [ref=e172]
+                - text: CSV
+              - button "Excel" [ref=e175] [cursor=pointer]:
+                - img [ref=e176]
+                - text: Excel
+              - button "HTML" [ref=e179] [cursor=pointer]:
+                - img [ref=e180]
+                - text: HTML
+              - button "PDF" [ref=e183] [cursor=pointer]:
+                - img [ref=e184]
+                - text: PDF
+              - link "Edit" [ref=e187] [cursor=pointer]:
+                - /url: /reports/ac3cf510-636f-4207-8528-393723bc28e8/editor
+                - button "Edit" [ref=e188]:
+                  - img [ref=e189]
+                  - text: Edit
+          - generic [ref=e192]:
+            - heading "Report Data" [level=3] [ref=e194]
+            - generic [ref=e196]:
+              - generic [ref=e197]:
+                - generic [ref=e198]:
+                  - generic [ref=e199]:
+                    - img [ref=e200] [cursor=pointer]
+                    - textbox "Search all columns..." [ref=e203]
+                  - button "Search" [ref=e204] [cursor=pointer]:
+                    - img [ref=e205]
+                    - text: Search
+                - button "Columns" [ref=e209] [cursor=pointer]:
+                  - img [ref=e210]
+                  - text: Columns
+              - table [ref=e215]:
+                - rowgroup [ref=e216]:
+                  - row "FName LName" [ref=e217]:
+                    - columnheader "FName" [ref=e218]:
+                      - button "FName" [ref=e219] [cursor=pointer]:
+                        - text: FName
+                        - img [ref=e220]
+                    - columnheader "LName" [ref=e223]:
+                      - button "LName" [ref=e224] [cursor=pointer]:
+                        - text: LName
+                        - img [ref=e225]
+                - rowgroup [ref=e228]:
+                  - row "Erika Lang" [ref=e229]:
+                    - cell "Erika" [ref=e230]
+                    - cell "Lang" [ref=e231]
+                  - row "Karin Gerber" [ref=e232]:
+                    - cell "Karin" [ref=e233]
+                    - cell "Gerber" [ref=e234]
+                  - row "Andrea Fuchs" [ref=e235]:
+                    - cell "Andrea" [ref=e236]
+                    - cell "Fuchs" [ref=e237]
+                  - row "Barbara Braun" [ref=e238]:
+                    - cell "Barbara" [ref=e239]
+                    - cell "Braun" [ref=e240]
+                  - row "Adrian Roth" [ref=e241]:
+                    - cell "Adrian" [ref=e242]
+                    - cell "Roth" [ref=e243]
+                  - row "Martin Rieder" [ref=e244]:
+                    - cell "Martin" [ref=e245]
+                    - cell "Rieder" [ref=e246]
+                  - row "Simon Meier" [ref=e247]:
+                    - cell "Simon" [ref=e248]
+                    - cell "Meier" [ref=e249]
+                  - row "Daniel Rey" [ref=e250]:
+                    - cell "Daniel" [ref=e251]
+                    - cell "Rey" [ref=e252]
+                  - row "Andrea Kunz" [ref=e253]:
+                    - cell "Andrea" [ref=e254]
+                    - cell "Kunz" [ref=e255]
+                  - row "Ella Gerber" [ref=e256]:
+                    - cell "Ella" [ref=e257]
+                    - cell "Gerber" [ref=e258]
+                  - row "Elisabeth Arnet" [ref=e259]:
+                    - cell "Elisabeth" [ref=e260]
+                    - cell "Arnet" [ref=e261]
+                  - row "Daniel Marti" [ref=e262]:
+                    - cell "Daniel" [ref=e263]
+                    - cell "Marti" [ref=e264]
+                  - row "Michael Keller" [ref=e265]:
+                    - cell "Michael" [ref=e266]
+                    - cell "Keller" [ref=e267]
+                  - row "Michelle Fuchs" [ref=e268]:
+                    - cell "Michelle" [ref=e269]
+                    - cell "Fuchs" [ref=e270]
+                  - row "Klaus Brunner" [ref=e271]:
+                    - cell "Klaus" [ref=e272]
+                    - cell "Brunner" [ref=e273]
+                  - row "Michelle Staub" [ref=e274]:
+                    - cell "Michelle" [ref=e275]
+                    - cell "Staub" [ref=e276]
+                  - row "Ella Fischer" [ref=e277]:
+                    - cell "Ella" [ref=e278]
+                    - cell "Fischer" [ref=e279]
+                  - row "Elisabeth Marti" [ref=e280]:
+                    - cell "Elisabeth" [ref=e281]
+                    - cell "Marti" [ref=e282]
+                  - row "Marco Lang" [ref=e283]:
+                    - cell "Marco" [ref=e284]
+                    - cell "Lang" [ref=e285]
+                  - row "Marco Müller" [ref=e286]:
+                    - cell "Marco" [ref=e287]
+                    - cell "Müller" [ref=e288]
+                  - row "Marco Schneider" [ref=e289]:
+                    - cell "Marco" [ref=e290]
+                    - cell "Schneider" [ref=e291]
+                  - row "Martin Keller" [ref=e292]:
+                    - cell "Martin" [ref=e293]
+                    - cell "Keller" [ref=e294]
+                  - row "Sarah Frei" [ref=e295]:
+                    - cell "Sarah" [ref=e296]
+                    - cell "Frei" [ref=e297]
+                  - row "Andreas Blaser" [ref=e298]:
+                    - cell "Andreas" [ref=e299]
+                    - cell "Blaser" [ref=e300]
+                  - row "Lorenz Lüthi" [ref=e301]:
+                    - cell "Lorenz" [ref=e302]
+                    - cell "Lüthi" [ref=e303]
+                  - row "Sarah Brunner" [ref=e304]:
+                    - cell "Sarah" [ref=e305]
+                    - cell "Brunner" [ref=e306]
+                  - row "Andrea Rey" [ref=e307]:
+                    - cell "Andrea" [ref=e308]
+                    - cell "Rey" [ref=e309]
+                  - row "Laura Beck" [ref=e310]:
+                    - cell "Laura" [ref=e311]
+                    - cell "Beck" [ref=e312]
+                  - row "Renate Kramer" [ref=e313]:
+                    - cell "Renate" [ref=e314]
+                    - cell "Kramer" [ref=e315]
+                  - row "Mila Furrer" [ref=e316]:
+                    - cell "Mila" [ref=e317]
+                    - cell "Furrer" [ref=e318]
+                  - row "Felix Schneider" [ref=e319]:
+                    - cell "Felix" [ref=e320]
+                    - cell "Schneider" [ref=e321]
+                  - row "Adrian Lüthi" [ref=e322]:
+                    - cell "Adrian" [ref=e323]
+                    - cell "Lüthi" [ref=e324]
+                  - row "Brigitte Keller" [ref=e325]:
+                    - cell "Brigitte" [ref=e326]
+                    - cell "Keller" [ref=e327]
+                  - row "Sarah Suter" [ref=e328]:
+                    - cell "Sarah" [ref=e329]
+                    - cell "Suter" [ref=e330]
+                  - row "Michael Schneider" [ref=e331]:
+                    - cell "Michael" [ref=e332]
+                    - cell "Schneider" [ref=e333]
+                  - row "Susanne Rohner" [ref=e334]:
+                    - cell "Susanne" [ref=e335]
+                    - cell "Rohner" [ref=e336]
+                  - row "Peter Meyer" [ref=e337]:
+                    - cell "Peter" [ref=e338]
+                    - cell "Meyer" [ref=e339]
+                  - row "Maria Fischer" [ref=e340]:
+                    - cell "Maria" [ref=e341]
+                    - cell "Fischer" [ref=e342]
+                  - row "Marco Brunner" [ref=e343]:
+                    - cell "Marco" [ref=e344]
+                    - cell "Brunner" [ref=e345]
+                  - row "Lorenz Rey" [ref=e346]:
+                    - cell "Lorenz" [ref=e347]
+                    - cell "Rey" [ref=e348]
+                  - row "Marco Marti" [ref=e349]:
+                    - cell "Marco" [ref=e350]
+                    - cell "Marti" [ref=e351]
+                  - row "Mara Meyer" [ref=e352]:
+                    - cell "Mara" [ref=e353]
+                    - cell "Meyer" [ref=e354]
+                  - row "Noah Beck" [ref=e355]:
+                    - cell "Noah" [ref=e356]
+                    - cell "Beck" [ref=e357]
+                  - row "Susanne Bösch" [ref=e358]:
+                    - cell "Susanne" [ref=e359]
+                    - cell "Bösch" [ref=e360]
+                  - row "Michelle Keller" [ref=e361]:
+                    - cell "Michelle" [ref=e362]
+                    - cell "Keller" [ref=e363]
+                  - row "Bruno Schmid" [ref=e364]:
+                    - cell "Bruno" [ref=e365]
+                    - cell "Schmid" [ref=e366]
+                  - row "Jana Wettstein" [ref=e367]:
+                    - cell "Jana" [ref=e368]
+                    - cell "Wettstein" [ref=e369]
+                  - row "Monika Bäuerle" [ref=e370]:
+                    - cell "Monika" [ref=e371]
+                    - cell "Bäuerle" [ref=e372]
+                  - row "David Bäuerle" [ref=e373]:
+                    - cell "David" [ref=e374]
+                    - cell "Bäuerle" [ref=e375]
+                  - row "Christian Bäuerle" [ref=e376]:
+                    - cell "Christian" [ref=e377]
+                    - cell "Bäuerle" [ref=e378]
+              - generic [ref=e379]:
+                - generic [ref=e381]: Showing 1 to 50 of 100000 results
+                - generic [ref=e382]:
+                  - generic [ref=e383]:
+                    - generic [ref=e384]: Rows per page
+                    - combobox [ref=e385] [cursor=pointer]:
+                      - generic: "50"
+                      - img [ref=e386]
+                  - generic [ref=e388]:
+                    - button [disabled]:
+                      - img
+                    - button [disabled]:
+                      - img
+                    - generic [ref=e389]: Page 1 of 2000
+                    - button [ref=e390] [cursor=pointer]:
+                      - img [ref=e391]
+                    - button [ref=e393] [cursor=pointer]:
+                      - img [ref=e394]
+  - region "Notifications alt+T"
+  - complementary "Tanstack query devtools" [ref=e397]:
+    - separator "Resize devtools panel" [ref=e398]
+    - button "Close tanstack query devtools" [ref=e399] [cursor=pointer]:
+      - img [ref=e400]
+    - generic [ref=e402]:
+      - generic [ref=e403]:
+        - generic [ref=e404]:
+          - button "Close Tanstack query devtools" [ref=e405] [cursor=pointer]:
+            - generic [ref=e406]: TANSTACK
+            - generic [ref=e407]: React Query v5
+          - radiogroup "Toggle between queries and mutations view" [ref=e408]:
+            - group [ref=e409]:
+              - radio "Queries" [checked] [ref=e410]
+              - generic "Toggle Queries View" [ref=e411] [cursor=pointer]: Queries
+            - group [ref=e412]:
+              - radio "Mutations" [ref=e413]
+              - generic "Toggle Mutations View" [ref=e414] [cursor=pointer]: Mutations
+        - generic [ref=e415]:
+          - 'button "Fresh: 4" [disabled] [ref=e416]':
+            - generic [ref=e418]: Fresh
+            - generic [ref=e419]: "4"
+          - 'button "Fetching: 0" [disabled] [ref=e420]':
+            - generic [ref=e422]: Fetching
+            - generic [ref=e423]: "0"
+          - 'button "Paused: 0" [disabled] [ref=e424]':
+            - generic [ref=e426]: Paused
+            - generic [ref=e427]: "0"
+          - 'button "Stale: 0" [disabled] [ref=e428]':
+            - generic [ref=e430]: Stale
+            - generic [ref=e431]: "0"
+          - 'button "Inactive: 0" [disabled] [ref=e432]':
+            - generic [ref=e434]: Inactive
+            - generic [ref=e435]: "0"
+      - generic [ref=e436]:
+        - generic [ref=e437]:
+          - generic [ref=e438]:
+            - img [ref=e439]
+            - textbox "Filter queries by query key" [ref=e441]:
+              - /placeholder: Filter
+          - generic [ref=e442]:
+            - combobox "Sort queries by" [ref=e443]:
+              - option "Sort by status" [selected]
+              - option "Sort by query hash"
+              - option "Sort by last updated"
+            - img [ref=e444]
+          - button "Sort order ascending" [ref=e446] [cursor=pointer]:
+            - generic [ref=e447]: Asc
+            - img [ref=e448]
+        - generic [ref=e450]:
+          - button "Clear query cache" [ref=e451] [cursor=pointer]:
+            - img [ref=e452]
+          - button "Mock offline behavior" [ref=e454] [cursor=pointer]:
+            - img [ref=e455]
+          - button "Open in picture-in-picture mode" [ref=e458] [cursor=pointer]:
+            - img [ref=e459]
+          - button "Open settings menu" [ref=e461] [cursor=pointer]:
+            - img [ref=e462]
+      - generic [ref=e466]:
+        - button "Query key [\"report-data\",\"ac3cf510-636f-4207-8528-393723bc28e8\",0,50]" [ref=e467] [cursor=pointer]:
+          - generic [ref=e468]: "1"
+          - code [ref=e469]: "[\"report-data\",\"ac3cf510-636f-4207-8528-393723bc28e8\",0,50]"
+        - button "Query key [\"report\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]" [ref=e470] [cursor=pointer]:
+          - generic [ref=e471]: "1"
+          - code [ref=e472]: "[\"report\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]"
+        - button "Query key [\"notifications\",false]" [ref=e473] [cursor=pointer]:
+          - generic [ref=e474]: "1"
+          - code [ref=e475]: "[\"notifications\",false]"
+        - button "Query key [\"user-permissions\"]" [ref=e476] [cursor=pointer]:
+          - generic [ref=e477]: "28"
+          - code [ref=e478]: "[\"user-permissions\"]"

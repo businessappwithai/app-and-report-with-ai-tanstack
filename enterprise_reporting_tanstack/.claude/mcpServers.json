@@ -1,0 +1,14 @@
+{
+  "tanstack-start": {
+    "command": "bun",
+    "args": [".claude/mcp/tanstack-start-mcp.ts"],
+    "disabled": false,
+    "description": "MCP server providing deep understanding of TanStack Start project structure, routes, components, server functions, database schema, and architecture"
+  },
+  "tanstack": {
+    "command": "node",
+    "args": [".claude/mcp/tanstack-mcp/dist/index.mjs"],
+    "disabled": false,
+    "description": "TanStack ecosystem MCP - search official docs, fetch guides, scaffold projects, list libraries and ecosystem partners"
+  }
+}

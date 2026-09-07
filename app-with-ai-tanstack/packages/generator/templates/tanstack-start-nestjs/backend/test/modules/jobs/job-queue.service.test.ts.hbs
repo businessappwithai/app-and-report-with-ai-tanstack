@@ -1,0 +1,69 @@
+/**
+ * Unit tests for JobQueueService (Trigger.dev v3 integration)
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { JobQueueService } from '../../../src/modules/jobs/job-queue.service';
+
+// Mock objects to track calls
+const mocks = {
+  sendEmailTask: { trigger: async () => ({ id: 'email-run-abc123' }) },
+  generateReportTask: { trigger: async () => ({ id: 'report-run-def456' }) },
+  syncEntityTask: { trigger: async () => ({ id: 'sync-run-ghi789' }) },
+};
+
+describe('JobQueueService', () => {
+  let service: JobQueueService;
+
+  beforeEach(() => {
+    service = new JobQueueService();
+  });
+
+  describe('initialization', () => {
+    it('creates a service instance', () => {
+      expect(service).toBeDefined();
+      expect(service instanceof JobQueueService).toBe(true);
+    });
+  });
+
+  describe('getJobStatus()', () => {
+    it('returns an object with the provided jobId', async () => {
+      const status = await service.getJobStatus('email', 'some-run-id-123');
+
+      expect(status.id).toBe('some-run-id-123');
+    });
+
+    it('returns status as "triggered"', async () => {
+      const status = await service.getJobStatus('reports', 'report-run-id');
+
+      expect(status.status).toBe('triggered');
+    });
+
+    it('returns a message referencing the Trigger.dev dashboard', async () => {
+      const status = await service.getJobStatus('sync', 'sync-run-id');
+
+      expect(status.message).toContain('Trigger.dev');
+    });
+  });
+
+  describe('email job methods', () => {
+    it('has addEmailJob method', () => {
+      expect(typeof service.addEmailJob).toBe('function');
+    });
+  });
+
+  describe('report job methods', () => {
+    it('has addReportJob method', () => {
+      expect(typeof service.addReportJob).toBe('function');
+    });
+  });
+
+  describe('sync job methods', () => {
+    it('has addSyncJob method', () => {
+      expect(typeof service.addSyncJob).toBe('function');
+    });
+  });
+});

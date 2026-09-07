@@ -1,0 +1,66 @@
+import { defineConfig } from '@tanstack/start/config'
+import path from 'path'
+
+export default defineConfig({
+  // node-server, which is the default, and deliberately kept rather than the
+  // `bun` preset even though bun is what runs the result.
+  //
+  // The two build differently because they resolve packages differently: bun
+  // honours a `bun` export condition that node ignores, so each preset copies
+  // the files its own runtime would ask for and leaves the other's behind. The
+  // node build under bun cannot load `jose` (whose `bun` condition points at a
+  // build the node trace omits), which is what stops `@copilotkit/runtime`
+  // loading and takes the assistant with it. But the bun build cannot resolve
+  // `react-dom/server`, which is every page in the application — a much worse
+  // trade, so the assistant is the one that loses.
+  //
+  // Running the built server under node fixes both; the images do not carry a
+  // node runtime today. Set SERVER_PRESET to deploy elsewhere.
+  server: {
+    preset: process.env.SERVER_PRESET || 'node-server',
+  },
+  tsr: {
+    appDirectory: 'src',
+    routesDirectory: 'src/routes',
+    generatedRouteTree: 'src/routeTree.gen.ts',
+    quoteStyle: 'single',
+    semicolons: false,
+  },
+  react: {
+    jsxRuntime: 'automatic',
+    jsxImportSource: 'react',
+  },
+  vite: {
+    esbuild: {
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve('./src'),
+      },
+    },
+    // @ts-expect-error - server proxy is valid Vite config but not typed in StartUserViteConfig
+    server: {
+      proxy: {
+        '/api': {
+          target: process.env.VITE_API_URL || '{{config.baseUrl}}',
+          changeOrigin: true,
+          configure: (proxy: any) => {
+            proxy.on('error', (_err: Error, req: any, res: any) => {
+              if (res.headersSent) return
+              const isAuth = (req.url as string)?.includes('/auth/')
+              if (isAuth) {
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ user: null, session: null }))
+              } else {
+                res.writeHead(503, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: 'Backend unavailable' }))
+              }
+            })
+          },
+        },
+      },
+    },
+  },
+})

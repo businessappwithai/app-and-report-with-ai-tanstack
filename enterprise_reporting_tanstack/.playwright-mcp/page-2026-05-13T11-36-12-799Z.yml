@@ -1,0 +1,109 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e259] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e260]:
+                - img [ref=e261]
+                - generic [ref=e264]: Dashboard
+        - generic [ref=e68]:
+          - heading "Administration" [level=2] [ref=e69]
+          - navigation [ref=e70]:
+            - link "Settings" [ref=e265] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e266]:
+                - img [ref=e267]
+                - generic [ref=e270]: Settings
+      - button [ref=e109] [cursor=pointer]:
+        - img [ref=e110]
+    - generic [ref=e112]:
+      - banner [ref=e113]:
+        - button "Sakila Demo DB sqlite3" [ref=e252] [cursor=pointer]:
+          - img [ref=e253]
+          - generic [ref=e257]: Sakila Demo DB
+          - generic [ref=e258]: sqlite3
+        - generic [ref=e119]:
+          - button "Toggle theme" [ref=e120] [cursor=pointer]:
+            - img [ref=e121]
+            - img
+            - generic [ref=e127]: Toggle theme
+          - button "Notifications" [ref=e128] [cursor=pointer]:
+            - img [ref=e129]
+            - generic [ref=e132]: Notifications
+          - button "A" [ref=e133] [cursor=pointer]:
+            - generic [ref=e135]: A
+      - main [ref=e136]:
+        - generic [ref=e271]:
+          - generic [ref=e273]:
+            - heading "Charts" [level=1] [ref=e274]
+            - paragraph [ref=e275]: Create and manage data visualizations
+          - generic [ref=e276]:
+            - heading "All Charts" [level=3] [ref=e278]:
+              - img [ref=e279]
+              - text: All Charts
+            - table [ref=e283]:
+              - rowgroup [ref=e284]:
+                - row "Name Type Query Created Actions" [ref=e285]:
+                  - columnheader "Name" [ref=e286]
+                  - columnheader "Type" [ref=e287]
+                  - columnheader "Query" [ref=e288]
+                  - columnheader "Created" [ref=e289]
+                  - columnheader "Actions" [ref=e290]
+              - rowgroup [ref=e291]:
+                - row "Top Products Bar Chart bar No Query May 13, 2026, 04:59 PM" [ref=e292]:
+                  - cell "Top Products Bar Chart" [ref=e293]
+                  - cell "bar" [ref=e294]:
+                    - generic [ref=e295]:
+                      - img [ref=e296]
+                      - text: bar
+                  - cell "No Query" [ref=e298]:
+                    - generic [ref=e299]: No Query
+                  - cell "May 13, 2026, 04:59 PM" [ref=e300]
+                  - cell [ref=e301]:
+                    - button [ref=e302] [cursor=pointer]:
+                      - img [ref=e303]
+                - row "Regional Comparison bar No Query May 13, 2026, 04:59 PM" [ref=e307]:
+                  - cell "Regional Comparison" [ref=e308]
+                  - cell "bar" [ref=e309]:
+                    - generic [ref=e310]:
+                      - img [ref=e311]
+                      - text: bar
+                  - cell "No Query" [ref=e313]:
+                    - generic [ref=e314]: No Query
+                  - cell "May 13, 2026, 04:59 PM" [ref=e315]
+                  - cell [ref=e316]:
+                    - button [ref=e317] [cursor=pointer]:
+                      - img [ref=e318]
+                - row "Regional Sales Distribution pie No Query May 13, 2026, 04:59 PM" [ref=e322]:
+                  - cell "Regional Sales Distribution" [ref=e323]
+                  - cell "pie" [ref=e324]:
+                    - generic [ref=e325]:
+                      - img [ref=e326]
+                      - text: pie
+                  - cell "No Query" [ref=e329]:
+                    - generic [ref=e330]: No Query
+                  - cell "May 13, 2026, 04:59 PM" [ref=e331]
+                  - cell [ref=e332]:
+                    - button [ref=e333] [cursor=pointer]:
+                      - img [ref=e334]
+                - row "Sales Trend line No Query May 13, 2026, 04:59 PM" [ref=e338]:
+                  - cell "Sales Trend" [ref=e339]
+                  - cell "line" [ref=e340]:
+                    - generic [ref=e341]:
+                      - img [ref=e342]
+                      - text: line
+                  - cell "No Query" [ref=e345]:
+                    - generic [ref=e346]: No Query
+                  - cell "May 13, 2026, 04:59 PM" [ref=e347]
+                  - cell [ref=e348]:
+                    - button [ref=e349] [cursor=pointer]:
+                      - img [ref=e350]
+  - region "Notifications alt+T"

@@ -1,0 +1,330 @@
+/**
+ * `%%rbac` — driven as each role it names.
+ *
+ * The model says which roles may read, create, update and delete each entity.
+ * The guard reads `sys_operation_access` and refuses the rest. Between those
+ * two there are three ways to be wrong, and this suite is written to catch all
+ * three:
+ *
+ *   - the seed dropped a rule, so an entity nobody should reach is open;
+ *   - the guard refuses a role the model admits, so a role cannot do its job;
+ *   - the *navigation* is unscoped, so every role is offered every entity and
+ *     the refusal only arrives after the click.
+ *
+ * The third is the one a dictionary test cannot see and the reason this suite
+ * exists. `/sys/categories/with-entities` and `/sys/tables` are what the
+ * dashboard is built from; if they answer with entities the caller may not
+ * read, the application offers nine doors and opens four, and the reader
+ * cannot tell a permission from a bug.
+ *
+ * Every assertion compares against `harness/access.ts` — the compiled
+ * directives — not against the rows the same generator seeded.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import {
+  config,
+  entities,
+  harness,
+  HttpClient,
+  login,
+  modelAllows,
+  rbacRules,
+  readRestrictedRoutes,
+  restrictedAccounts,
+  roleAccounts,
+  rolesFor,
+  sameRole,
+  type RoleAccount,
+} from "../harness/index.ts";
+
+/** Nothing to assert on a model that declares no restrictions. */
+const declared = rbacRules.length > 0 && roleAccounts.length > 0;
+
+interface CategoryGroup {
+  name?: string;
+  entities?: Array<{ table_name?: string; name?: string }>;
+}
+
+function rows<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
+/** A signed-in client per role, built once — logging in per assertion is slow and pointless. */
+const clients = new Map<string, HttpClient>();
+
+async function clientFor(account: RoleAccount): Promise<HttpClient | null> {
+  const cached = clients.get(account.email);
+  if (cached) return cached;
+  const client = new HttpClient();
+  try {
+    await login(client, account.email, config.admin.password);
+  } catch {
+    return null;
+  }
+  clients.set(account.email, client);
+  return client;
+}
+
+describe("access control — %%rbac, as each role", () => {
+  /** Route → an id that exists, so update and delete have something to aim at. */
+  const sampleIds = new Map<string, string>();
+
+  beforeAll(async () => {
+    if (!declared) return;
+    await harness.setup();
+
+    for (const account of roleAccounts) await clientFor(account);
+
+    for (const route of new Set(rbacRules.map((rule) => rule.route))) {
+      const entity = entities.find((item) => item.route === route);
+      if (!entity) continue;
+      const id = await harness.anyRecordId(entity);
+      if (id) sampleIds.set(route, id);
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it.skipIf(!declared)("the model declares at least one restriction", () => {
+    expect(rbacRules.length).toBeGreaterThan(0);
+  });
+
+  it.skipIf(!declared)("every role the directives name has a seeded account", () => {
+    const named = new Set<string>();
+    for (const rule of rbacRules) for (const role of rule.roles) named.add(role);
+
+    const missing = [...named].filter(
+      (role) =>
+        !roleAccounts.some(
+          (account) => sameRole(account.declaredAs, role) || sameRole(account.roleName, role)
+        )
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it.skipIf(!declared)("every seeded role account can sign in", () => {
+    const failed = roleAccounts.filter((account) => !clients.has(account.email)).map((a) => a.email);
+    expect(failed).toEqual([]);
+  });
+
+  // ── Reads, per role, per restricted entity ────────────────────────────────
+  //
+  // Split from the write operations because a read is the one a reader
+  // *notices*: it decides which screens exist for them at all.
+
+  describe("reads", () => {
+    for (const account of restrictedAccounts()) {
+      for (const route of readRestrictedRoutes()) {
+        const allowed = modelAllows(account, route, "read");
+        it.skipIf(!declared)(
+          `${account.roleName} ${allowed ? "may" : "may not"} read ${route}`,
+          async () => {
+            const client = await clientFor(account);
+            expect(client).toBeTruthy();
+            const response = await client!.get(`/bus/${route}?limit=1`, { allowFailure: true });
+            if (allowed) {
+              expect(response.status).toBe(200);
+            } else {
+              expect(response.status).toBe(403);
+            }
+          }
+        );
+      }
+    }
+  });
+
+  // ── Writes, per role, per restricted pair ─────────────────────────────────
+  //
+  // Only the refusals are asserted. A *permitted* create needs a payload that
+  // satisfies every rule the model declares for that entity, which is the CRUD
+  // suite's job; what belongs here is that the roles the model excludes are
+  // actually excluded, and that the refusal is a 403 rather than a 400 that
+  // happens to look like one.
+
+  describe("writes the model forbids", () => {
+    for (const account of restrictedAccounts()) {
+      for (const rule of rbacRules) {
+        if (rule.operation === "read") continue;
+        if (modelAllows(account, rule.route, rule.operation)) continue;
+
+        it.skipIf(!declared)(
+          `${account.roleName} may not ${rule.operation} ${rule.route}`,
+          async () => {
+            const client = await clientFor(account);
+            expect(client).toBeTruthy();
+
+            const id = sampleIds.get(rule.route);
+            const response =
+              rule.operation === "create"
+                ? await client!.post(`/bus/${rule.route}`, {}, { allowFailure: true })
+                : rule.operation === "update"
+                  ? await client!.patch(`/bus/${rule.route}/${id ?? "00000000-0000-0000-0000-000000000000"}`, { }, { allowFailure: true })
+                  : await client!.delete(`/bus/${rule.route}/${id ?? "00000000-0000-0000-0000-000000000000"}`, { allowFailure: true });
+
+            expect(response.status).toBe(403);
+          }
+        );
+      }
+    }
+  });
+
+  // ── The navigation the dashboard is built from ────────────────────────────
+
+  describe("navigation is scoped to what the role may read", () => {
+    for (const account of restrictedAccounts()) {
+      it.skipIf(!declared)(
+        `/sys/categories/with-entities offers ${account.roleName} nothing it may not read`,
+        async () => {
+          const client = await clientFor(account);
+          expect(client).toBeTruthy();
+
+          const response = await client!.get("/sys/categories/with-entities", {
+            allowFailure: true,
+          });
+          expect(response.status).toBe(200);
+
+          const offered = rows<CategoryGroup>(response.data)
+            .flatMap((group) => group.entities ?? [])
+            .map((table) => String(table.table_name ?? ""))
+            .filter(Boolean);
+
+          const forbidden = offered.filter((tableName) => {
+            const entity = entities.find((item) => item.tableName === tableName);
+            if (!entity) return false;
+            return !modelAllows(account, entity.route, "read");
+          });
+          expect(forbidden).toEqual([]);
+        }
+      );
+
+      it.skipIf(!declared)(
+        `/sys/tables offers ${account.roleName} nothing it may not read`,
+        async () => {
+          const client = await clientFor(account);
+          expect(client).toBeTruthy();
+
+          const response = await client!.get("/sys/tables?prefix=bus_&limit=500", {
+            allowFailure: true,
+          });
+          expect(response.status).toBe(200);
+
+          const forbidden = rows<{ table_name?: string }>(response.data)
+            .map((table) => String(table.table_name ?? ""))
+            .filter((tableName) => {
+              const entity = entities.find((item) => item.tableName === tableName);
+              if (!entity) return false;
+              return !modelAllows(account, entity.route, "read");
+            });
+          expect(forbidden).toEqual([]);
+        }
+      );
+
+      it.skipIf(!declared)(
+        `${account.roleName} is offered every entity it may read`,
+        async () => {
+          const client = await clientFor(account);
+          expect(client).toBeTruthy();
+
+          const response = await client!.get("/sys/categories/with-entities", {
+            allowFailure: true,
+          });
+          expect(response.status).toBe(200);
+
+          const offered = new Set(
+            rows<CategoryGroup>(response.data)
+              .flatMap((group) => group.entities ?? [])
+              .map((table) => String(table.table_name ?? ""))
+          );
+
+          // Scoping too far is the mirror-image bug, and it hides a screen the
+          // role is meant to work in — the sort of thing that reads as "the
+          // feature is missing" rather than as a permission.
+          const missing = entities
+            .filter((entity) => modelAllows(account, entity.route, "read"))
+            .map((entity) => entity.tableName)
+            .filter((tableName) => !offered.has(tableName));
+          expect(missing).toEqual([]);
+        }
+      );
+    }
+  });
+
+  // ── The administrator, as the control ─────────────────────────────────────
+
+  describe("the administrator", () => {
+    it.skipIf(!declared)("reads every restricted entity", async () => {
+      const admin = roleAccounts.find((account) => account.isAdmin);
+      expect(admin).toBeTruthy();
+
+      const client = await clientFor(admin!);
+      expect(client).toBeTruthy();
+
+      const refused: string[] = [];
+      for (const route of readRestrictedRoutes()) {
+        const response = await client!.get(`/bus/${route}?limit=1`, { allowFailure: true });
+        if (response.status !== 200) refused.push(`${route} → ${response.status}`);
+      }
+      expect(refused).toEqual([]);
+    });
+
+    it.skipIf(!declared)("is offered every entity in the navigation", async () => {
+      const admin = roleAccounts.find((account) => account.isAdmin);
+      const client = await clientFor(admin!);
+      expect(client).toBeTruthy();
+
+      const response = await client!.get("/sys/categories/with-entities", { allowFailure: true });
+      expect(response.status).toBe(200);
+
+      const offered = new Set(
+        rows<CategoryGroup>(response.data)
+          .flatMap((group) => group.entities ?? [])
+          .map((table) => String(table.table_name ?? ""))
+      );
+      const missing = entities.map((e) => e.tableName).filter((name) => !offered.has(name));
+      expect(missing).toEqual([]);
+    });
+  });
+
+  // ── An anonymous caller ───────────────────────────────────────────────────
+
+  it.skipIf(!declared)("refuses an anonymous caller every restricted entity", async () => {
+    const anonymous = new HttpClient();
+    const allowed: string[] = [];
+    for (const route of readRestrictedRoutes()) {
+      const response = await anonymous.get(`/bus/${route}?limit=1`, { allowFailure: true });
+      if (response.status === 200) allowed.push(route);
+    }
+    expect(allowed).toEqual([]);
+  });
+
+  it.skipIf(!declared)("names the roles it requires when it refuses", async () => {
+    const denial = rbacRules.find(
+      (rule) => rule.operation === "read" && restrictedAccounts().some((a) => !modelAllows(a, rule.route, "read"))
+    );
+    if (!denial) return;
+
+    const account = restrictedAccounts().find((a) => !modelAllows(a, denial.route, "read"));
+    const client = await clientFor(account!);
+    expect(client).toBeTruthy();
+
+    const response = await client!.get(`/bus/${denial.route}?limit=1`, { allowFailure: true });
+    expect(response.status).toBe(403);
+
+    // A refusal that does not say what would have been enough is a dead end for
+    // whoever has to configure the role.
+    const message = JSON.stringify(response.data ?? "");
+    const named = rolesFor(denial.route, "read") ?? [];
+    expect(named.some((role) => message.toLowerCase().includes(role.toLowerCase()))).toBe(true);
+  });
+});

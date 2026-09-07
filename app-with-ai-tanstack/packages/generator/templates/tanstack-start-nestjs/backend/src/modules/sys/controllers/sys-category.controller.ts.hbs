@@ -1,0 +1,98 @@
+/**
+ * SysCategory Controller
+ *
+ * REST API for Application Dictionary entity categories.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
+import {
+  type CreateCategoryDto,
+  SysCategoryService,
+  type UpdateCategoryDto,
+} from '../services/sys-category.service';
+
+@ApiTags('sys-category')
+@ApiBearerAuth()
+@UseGuards(SessionAuthGuard)
+@Controller('sys/categories')
+export class SysCategoryController {
+  constructor(private readonly service: SysCategoryService) {}
+
+  // Static routes must be declared before ':id' or they get shadowed.
+
+  @Get('with-entities')
+  @ApiOperation({
+    summary: 'Categories with their entities attached, ordered by category name',
+  })
+  async findAllWithEntities(@CurrentUser() user: CurrentUser) {
+    // Scoped to the caller: this is where the dashboard's navigation comes
+    // from, and a role's application is the set of entities it may read.
+    return this.service.findAllWithEntities(user as never);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List categories, ordered by name' })
+  async findAll(
+    @Query('includeInactive') includeInactive?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.service.findAll({
+      includeInactive: includeInactive === 'true',
+      search,
+    });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a category by ID' })
+  async findOne(@Param('id') id: string) {
+    return this.service.findById(id);
+  }
+
+  @Get(':id/entities')
+  @ApiOperation({ summary: 'Entities belonging to a category' })
+  async entities(@Param('id') id: string) {
+    return this.service.entitiesFor(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a category' })
+  async create(@Body() dto: CreateCategoryDto) {
+    return this.service.create(dto);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update a category' })
+  async update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Partially update a category' })
+  async patch(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Post(':id/entities')
+  @ApiOperation({ summary: 'Assign entities to a category' })
+  async assign(@Param('id') id: string, @Body() body: { tableIds: string[] }) {
+    return this.service.assignEntities(id, body.tableIds ?? []);
+  }
+
+  @Post('unassign')
+  @ApiOperation({ summary: 'Detach entities from any category' })
+  async unassign(@Body() body: { tableIds: string[] }) {
+    return this.service.assignEntities(null, body.tableIds ?? []);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Deactivate a category and detach its entities' })
+  async remove(@Param('id') id: string) {
+    return this.service.remove(id);
+  }
+}

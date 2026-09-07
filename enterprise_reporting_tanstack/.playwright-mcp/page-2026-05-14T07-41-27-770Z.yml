@@ -1,0 +1,475 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e176] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e177]:
+                - img [ref=e178]
+                - generic [ref=e181]: Dashboard
+            - link "SQL Editor" [ref=e182] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e183]:
+                - img [ref=e184]
+                - generic [ref=e186]: SQL Editor
+            - link "Saved Queries" [ref=e187] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e188]:
+                - img [ref=e189]
+                - generic [ref=e193]: Saved Queries
+            - link "Reports" [ref=e194] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e195]:
+                - img [ref=e196]
+                - generic [ref=e199]: Reports
+            - link "Charts" [ref=e200] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e201]:
+                - img [ref=e202]
+                - generic [ref=e204]: Charts
+            - link "Dashboards" [ref=e205] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e206]:
+                - img [ref=e207]
+                - generic [ref=e212]: Dashboards
+            - link "Filters" [ref=e213] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e214]:
+                - img [ref=e215]
+                - generic [ref=e217]: Filters
+            - link "Jobs" [ref=e218] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e219]:
+                - img [ref=e220]
+                - generic [ref=e222]: Jobs
+            - link "NL Query" [ref=e223] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e224]:
+                - img [ref=e225]
+                - generic [ref=e227]: NL Query
+        - generic [ref=e68]:
+          - heading "Administration" [level=2] [ref=e69]
+          - navigation [ref=e70]:
+            - link "Data Sources" [ref=e228] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e229]:
+                - img [ref=e230]
+                - generic [ref=e234]: Data Sources
+            - link "Queue Management" [ref=e235] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e236]:
+                - img [ref=e237]
+                - generic [ref=e241]: Queue Management
+            - link "Users" [ref=e242] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e243]:
+                - img [ref=e244]
+                - generic [ref=e249]: Users
+            - link "Roles" [ref=e250] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e251]:
+                - img [ref=e252]
+                - generic [ref=e254]: Roles
+            - link "Permissions" [ref=e255] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e256]:
+                - img [ref=e257]
+                - generic [ref=e259]: Permissions
+            - link "Settings" [ref=e260] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e261]:
+                - img [ref=e262]
+                - generic [ref=e265]: Settings
+      - button [ref=e109] [cursor=pointer]:
+        - img [ref=e110]
+    - generic [ref=e112]:
+      - banner [ref=e113]:
+        - button "Sakila Demo DB sqlite3" [ref=e266] [cursor=pointer]:
+          - img [ref=e267]
+          - generic [ref=e271]: Sakila Demo DB
+          - generic [ref=e272]: sqlite3
+        - generic [ref=e119]:
+          - button "Toggle theme" [ref=e120] [cursor=pointer]:
+            - img [ref=e121]
+            - img
+            - generic [ref=e127]: Toggle theme
+          - button "Notifications" [ref=e128] [cursor=pointer]:
+            - img [ref=e129]
+            - generic [ref=e132]: Notifications
+          - button "SA" [ref=e133] [cursor=pointer]:
+            - generic [ref=e135]: SA
+      - main [ref=e136]:
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - heading "SQL Editor" [level=1] [ref=e140]
+              - paragraph [ref=e141]: Write and execute SQL queries
+            - generic [ref=e142]:
+              - button "Validate" [ref=e143] [cursor=pointer]
+              - button "Run Query" [ref=e144] [cursor=pointer]
+              - button "Save Query" [ref=e145] [cursor=pointer]
+          - generic [ref=e146]:
+            - generic [ref=e147]:
+              - paragraph [ref=e148]: "Data Source:"
+              - button "▲" [ref=e149] [cursor=pointer]
+            - combobox [ref=e273] [cursor=pointer]:
+              - generic: HMS
+              - img [ref=e274]
+          - button [ref=e276]:
+            - code [ref=e278]:
+              - generic [ref=e279]:
+                - textbox "Editor content" [ref=e280]
+                - textbox [ref=e281]
+                - generic [ref=e286]: "1"
+                - generic [ref=e292]: SELECT * FROM actor LIMIT 10;
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - paragraph [ref=e162]: Schema Browser (80 tables, 0 views)
+              - generic [ref=e163]:
+                - button "Refresh" [ref=e321] [cursor=pointer]:
+                  - img [ref=e322]
+                  - text: Refresh
+                - button "▼" [ref=e164] [cursor=pointer]
+            - generic [ref=e327]:
+              - textbox "Search tables..." [ref=e329]
+              - generic [ref=e334]:
+                - generic [ref=e335]: Tables (80)
+                - button "bus_admission" [ref=e337] [cursor=pointer]:
+                  - img [ref=e338]
+                  - img [ref=e340]
+                  - button "bus_admission" [ref=e342]
+                - button "bus_appointment" [ref=e344] [cursor=pointer]:
+                  - img [ref=e345]
+                  - img [ref=e347]
+                  - button "bus_appointment" [ref=e349]
+                - button "bus_audit_log" [ref=e351] [cursor=pointer]:
+                  - img [ref=e352]
+                  - img [ref=e354]
+                  - button "bus_audit_log" [ref=e356]
+                - button "bus_bed" [ref=e358] [cursor=pointer]:
+                  - img [ref=e359]
+                  - img [ref=e361]
+                  - button "bus_bed" [ref=e363]
+                - button "bus_bed_transfer" [ref=e365] [cursor=pointer]:
+                  - img [ref=e366]
+                  - img [ref=e368]
+                  - button "bus_bed_transfer" [ref=e370]
+                - button "bus_bill" [ref=e372] [cursor=pointer]:
+                  - img [ref=e373]
+                  - img [ref=e375]
+                  - button "bus_bill" [ref=e377]
+                - button "bus_bill_item" [ref=e379] [cursor=pointer]:
+                  - img [ref=e380]
+                  - img [ref=e382]
+                  - button "bus_bill_item" [ref=e384]
+                - button "bus_charge_item" [ref=e386] [cursor=pointer]:
+                  - img [ref=e387]
+                  - img [ref=e389]
+                  - button "bus_charge_item" [ref=e391]
+                - button "bus_claim_denial" [ref=e393] [cursor=pointer]:
+                  - img [ref=e394]
+                  - img [ref=e396]
+                  - button "bus_claim_denial" [ref=e398]
+                - button "bus_clinical_note" [ref=e400] [cursor=pointer]:
+                  - img [ref=e401]
+                  - img [ref=e403]
+                  - button "bus_clinical_note" [ref=e405]
+                - button "bus_clinical_order" [ref=e407] [cursor=pointer]:
+                  - img [ref=e408]
+                  - img [ref=e410]
+                  - button "bus_clinical_order" [ref=e412]
+                - button "bus_consent" [ref=e414] [cursor=pointer]:
+                  - img [ref=e415]
+                  - img [ref=e417]
+                  - button "bus_consent" [ref=e419]
+                - button "bus_department" [ref=e421] [cursor=pointer]:
+                  - img [ref=e422]
+                  - img [ref=e424]
+                  - button "bus_department" [ref=e426]
+                - button "bus_diagnosis" [ref=e428] [cursor=pointer]:
+                  - img [ref=e429]
+                  - img [ref=e431]
+                  - button "bus_diagnosis" [ref=e433]
+                - button "bus_dispensing" [ref=e435] [cursor=pointer]:
+                  - img [ref=e436]
+                  - img [ref=e438]
+                  - button "bus_dispensing" [ref=e440]
+                - button "bus_drug_batch" [ref=e442] [cursor=pointer]:
+                  - img [ref=e443]
+                  - img [ref=e445]
+                  - button "bus_drug_batch" [ref=e447]
+                - button "bus_encounter" [ref=e449] [cursor=pointer]:
+                  - img [ref=e450]
+                  - img [ref=e452]
+                  - button "bus_encounter" [ref=e454]
+                - button "bus_goods_receipt" [ref=e456] [cursor=pointer]:
+                  - img [ref=e457]
+                  - img [ref=e459]
+                  - button "bus_goods_receipt" [ref=e461]
+                - button "bus_goods_receipt_item" [ref=e463] [cursor=pointer]:
+                  - img [ref=e464]
+                  - img [ref=e466]
+                  - button "bus_goods_receipt_item" [ref=e468]
+                - button "bus_insurance_claim" [ref=e470] [cursor=pointer]:
+                  - img [ref=e471]
+                  - img [ref=e473]
+                  - button "bus_insurance_claim" [ref=e475]
+                - button "bus_insurance_provider" [ref=e477] [cursor=pointer]:
+                  - img [ref=e478]
+                  - img [ref=e480]
+                  - button "bus_insurance_provider" [ref=e482]
+                - button "bus_inventory_item" [ref=e484] [cursor=pointer]:
+                  - img [ref=e485]
+                  - img [ref=e487]
+                  - button "bus_inventory_item" [ref=e489]
+                - button "bus_inventory_stock" [ref=e491] [cursor=pointer]:
+                  - img [ref=e492]
+                  - img [ref=e494]
+                  - button "bus_inventory_stock" [ref=e496]
+                - button "bus_lab_equipment" [ref=e498] [cursor=pointer]:
+                  - img [ref=e499]
+                  - img [ref=e501]
+                  - button "bus_lab_equipment" [ref=e503]
+                - button "bus_lab_order" [ref=e505] [cursor=pointer]:
+                  - img [ref=e506]
+                  - img [ref=e508]
+                  - button "bus_lab_order" [ref=e510]
+                - button "bus_lab_result" [ref=e512] [cursor=pointer]:
+                  - img [ref=e513]
+                  - img [ref=e515]
+                  - button "bus_lab_result" [ref=e517]
+                - button "bus_lab_sample" [ref=e519] [cursor=pointer]:
+                  - img [ref=e520]
+                  - img [ref=e522]
+                  - button "bus_lab_sample" [ref=e524]
+                - button "bus_lab_test" [ref=e526] [cursor=pointer]:
+                  - img [ref=e527]
+                  - img [ref=e529]
+                  - button "bus_lab_test" [ref=e531]
+                - button "bus_lab_test_parameter" [ref=e533] [cursor=pointer]:
+                  - img [ref=e534]
+                  - img [ref=e536]
+                  - button "bus_lab_test_parameter" [ref=e538]
+                - button "bus_location" [ref=e540] [cursor=pointer]:
+                  - img [ref=e541]
+                  - img [ref=e543]
+                  - button "bus_location" [ref=e545]
+                - button "bus_medication" [ref=e547] [cursor=pointer]:
+                  - img [ref=e548]
+                  - img [ref=e550]
+                  - button "bus_medication" [ref=e552]
+                - button "bus_medication_administration" [ref=e554] [cursor=pointer]:
+                  - img [ref=e555]
+                  - img [ref=e557]
+                  - button "bus_medication_administration" [ref=e559]
+                - button "bus_modality" [ref=e561] [cursor=pointer]:
+                  - img [ref=e562]
+                  - img [ref=e564]
+                  - button "bus_modality" [ref=e566]
+                - button "bus_narcotic_log" [ref=e568] [cursor=pointer]:
+                  - img [ref=e569]
+                  - img [ref=e571]
+                  - button "bus_narcotic_log" [ref=e573]
+                - button "bus_order_set" [ref=e575] [cursor=pointer]:
+                  - img [ref=e576]
+                  - img [ref=e578]
+                  - button "bus_order_set" [ref=e580]
+                - button "bus_order_set_item" [ref=e582] [cursor=pointer]:
+                  - img [ref=e583]
+                  - img [ref=e585]
+                  - button "bus_order_set_item" [ref=e587]
+                - button "bus_patient" [ref=e589] [cursor=pointer]:
+                  - img [ref=e590]
+                  - img [ref=e592]
+                  - button "bus_patient" [ref=e594]
+                - button "bus_patient_allergy" [ref=e596] [cursor=pointer]:
+                  - img [ref=e597]
+                  - img [ref=e599]
+                  - button "bus_patient_allergy" [ref=e601]
+                - button "bus_patient_document" [ref=e603] [cursor=pointer]:
+                  - img [ref=e604]
+                  - img [ref=e606]
+                  - button "bus_patient_document" [ref=e608]
+                - button "bus_patient_insurance" [ref=e610] [cursor=pointer]:
+                  - img [ref=e611]
+                  - img [ref=e613]
+                  - button "bus_patient_insurance" [ref=e615]
+                - button "bus_payment" [ref=e617] [cursor=pointer]:
+                  - img [ref=e618]
+                  - img [ref=e620]
+                  - button "bus_payment" [ref=e622]
+                - button "bus_prescription" [ref=e624] [cursor=pointer]:
+                  - img [ref=e625]
+                  - img [ref=e627]
+                  - button "bus_prescription" [ref=e629]
+                - button "bus_prescription_item" [ref=e631] [cursor=pointer]:
+                  - img [ref=e632]
+                  - img [ref=e634]
+                  - button "bus_prescription_item" [ref=e636]
+                - button "bus_purchase_order" [ref=e638] [cursor=pointer]:
+                  - img [ref=e639]
+                  - img [ref=e641]
+                  - button "bus_purchase_order" [ref=e643]
+                - button "bus_purchase_order_item" [ref=e645] [cursor=pointer]:
+                  - img [ref=e646]
+                  - img [ref=e648]
+                  - button "bus_purchase_order_item" [ref=e650]
+                - button "bus_purchase_requisition" [ref=e652] [cursor=pointer]:
+                  - img [ref=e653]
+                  - img [ref=e655]
+                  - button "bus_purchase_requisition" [ref=e657]
+                - button "bus_purchase_requisition_item" [ref=e659] [cursor=pointer]:
+                  - img [ref=e660]
+                  - img [ref=e662]
+                  - button "bus_purchase_requisition_item" [ref=e664]
+                - button "bus_queue_token" [ref=e666] [cursor=pointer]:
+                  - img [ref=e667]
+                  - img [ref=e669]
+                  - button "bus_queue_token" [ref=e671]
+                - button "bus_radiology_image" [ref=e673] [cursor=pointer]:
+                  - img [ref=e674]
+                  - img [ref=e676]
+                  - button "bus_radiology_image" [ref=e678]
+                - button "bus_radiology_order" [ref=e680] [cursor=pointer]:
+                  - img [ref=e681]
+                  - img [ref=e683]
+                  - button "bus_radiology_order" [ref=e685]
+                - button "bus_radiology_report" [ref=e687] [cursor=pointer]:
+                  - img [ref=e688]
+                  - img [ref=e690]
+                  - button "bus_radiology_report" [ref=e692]
+                - button "bus_radiology_study" [ref=e694] [cursor=pointer]:
+                  - img [ref=e695]
+                  - img [ref=e697]
+                  - button "bus_radiology_study" [ref=e699]
+                - button "bus_room" [ref=e701] [cursor=pointer]:
+                  - img [ref=e702]
+                  - img [ref=e704]
+                  - button "bus_room" [ref=e706]
+                - button "bus_staff" [ref=e708] [cursor=pointer]:
+                  - img [ref=e709]
+                  - img [ref=e711]
+                  - button "bus_staff" [ref=e713]
+                - button "bus_staff_credential" [ref=e715] [cursor=pointer]:
+                  - img [ref=e716]
+                  - img [ref=e718]
+                  - button "bus_staff_credential" [ref=e720]
+                - button "bus_staff_schedule" [ref=e722] [cursor=pointer]:
+                  - img [ref=e723]
+                  - img [ref=e725]
+                  - button "bus_staff_schedule" [ref=e727]
+                - button "bus_supplier" [ref=e729] [cursor=pointer]:
+                  - img [ref=e730]
+                  - img [ref=e732]
+                  - button "bus_supplier" [ref=e734]
+                - button "bus_telemedicine_session" [ref=e736] [cursor=pointer]:
+                  - img [ref=e737]
+                  - img [ref=e739]
+                  - button "bus_telemedicine_session" [ref=e741]
+                - button "bus_user" [ref=e743] [cursor=pointer]:
+                  - img [ref=e744]
+                  - img [ref=e746]
+                  - button "bus_user" [ref=e748]
+                - button "bus_vital_sign" [ref=e750] [cursor=pointer]:
+                  - img [ref=e751]
+                  - img [ref=e753]
+                  - button "bus_vital_sign" [ref=e755]
+                - button "bus_ward" [ref=e757] [cursor=pointer]:
+                  - img [ref=e758]
+                  - img [ref=e760]
+                  - button "bus_ward" [ref=e762]
+                - button "knex_migrations" [ref=e764] [cursor=pointer]:
+                  - img [ref=e765]
+                  - img [ref=e767]
+                  - button "knex_migrations" [ref=e769]
+                - button "knex_migrations_lock" [ref=e771] [cursor=pointer]:
+                  - img [ref=e772]
+                  - img [ref=e774]
+                  - button "knex_migrations_lock" [ref=e776]
+                - button "sys_access" [ref=e778] [cursor=pointer]:
+                  - img [ref=e779]
+                  - img [ref=e781]
+                  - button "sys_access" [ref=e783]
+                - button "sys_change_log" [ref=e785] [cursor=pointer]:
+                  - img [ref=e786]
+                  - img [ref=e788]
+                  - button "sys_change_log" [ref=e790]
+                - button "sys_column" [ref=e792] [cursor=pointer]:
+                  - img [ref=e793]
+                  - img [ref=e795]
+                  - button "sys_column" [ref=e797]
+                - button "sys_entity_menu" [ref=e799] [cursor=pointer]:
+                  - img [ref=e800]
+                  - img [ref=e802]
+                  - button "sys_entity_menu" [ref=e804]
+                - button "sys_field" [ref=e806] [cursor=pointer]:
+                  - img [ref=e807]
+                  - img [ref=e809]
+                  - button "sys_field" [ref=e811]
+                - button "sys_field_group" [ref=e813] [cursor=pointer]:
+                  - img [ref=e814]
+                  - img [ref=e816]
+                  - button "sys_field_group" [ref=e818]
+                - button "sys_ref_list" [ref=e820] [cursor=pointer]:
+                  - img [ref=e821]
+                  - img [ref=e823]
+                  - button "sys_ref_list" [ref=e825]
+                - button "sys_ref_table" [ref=e827] [cursor=pointer]:
+                  - img [ref=e828]
+                  - img [ref=e830]
+                  - button "sys_ref_table" [ref=e832]
+                - button "sys_reference" [ref=e834] [cursor=pointer]:
+                  - img [ref=e835]
+                  - img [ref=e837]
+                  - button "sys_reference" [ref=e839]
+                - button "sys_role" [ref=e841] [cursor=pointer]:
+                  - img [ref=e842]
+                  - img [ref=e844]
+                  - button "sys_role" [ref=e846]
+                - button "sys_session" [ref=e848] [cursor=pointer]:
+                  - img [ref=e849]
+                  - img [ref=e851]
+                  - button "sys_session" [ref=e853]
+                - button "sys_tab" [ref=e855] [cursor=pointer]:
+                  - img [ref=e856]
+                  - img [ref=e858]
+                  - button "sys_tab" [ref=e860]
+                - button "sys_table" [ref=e862] [cursor=pointer]:
+                  - img [ref=e863]
+                  - img [ref=e865]
+                  - button "sys_table" [ref=e867]
+                - button "sys_user" [ref=e869] [cursor=pointer]:
+                  - img [ref=e870]
+                  - img [ref=e872]
+                  - button "sys_user" [ref=e874]
+                - button "sys_user_roles" [ref=e876] [cursor=pointer]:
+                  - img [ref=e877]
+                  - img [ref=e879]
+                  - button "sys_user_roles" [ref=e881]
+                - button "sys_val_rule" [ref=e883] [cursor=pointer]:
+                  - img [ref=e884]
+                  - img [ref=e886]
+                  - button "sys_val_rule" [ref=e888]
+                - button "sys_window" [ref=e890] [cursor=pointer]:
+                  - img [ref=e891]
+                  - img [ref=e893]
+                  - button "sys_window" [ref=e895]
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - button "Results" [ref=e169] [cursor=pointer]
+              - button "Errors" [ref=e170] [cursor=pointer]
+              - button "Logs" [ref=e171] [cursor=pointer]
+            - generic [ref=e897]:
+              - heading "Query Error" [level=3] [ref=e898]
+              - generic [ref=e899]: relation "actor" does not exist
+  - region "Notifications alt+T"
+  - generic [ref=e294]:
+    - alert
+    - alert

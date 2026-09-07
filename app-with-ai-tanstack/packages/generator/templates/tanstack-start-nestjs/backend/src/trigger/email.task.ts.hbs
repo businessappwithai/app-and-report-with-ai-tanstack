@@ -1,0 +1,46 @@
+/**
+ * Email Task - Trigger.dev v3
+ *
+ * Background task for sending email notifications.
+ * Triggered via sendEmailTask.trigger(payload) from JobQueueService.
+ *
+ * Configure your email provider (SendGrid, Resend, etc.) in the run() body.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { task } from '@trigger.dev/sdk/v3';
+
+export interface EmailTaskPayload {
+  to: string;
+  subject: string;
+  template: string;
+  data?: Record<string, unknown>;
+}
+
+export const sendEmailTask = task({
+  id: 'send-email',
+  maxDuration: 60,
+  retry: {
+    maxAttempts: 3,
+    factor: 2,
+    minTimeoutInMs: 1000,
+    maxTimeoutInMs: 10000,
+  },
+  run: async (payload: EmailTaskPayload) => {
+    // TODO: integrate with your email provider (e.g. Resend, SendGrid, Nodemailer)
+    // Example with Resend:
+    //   const resend = new Resend(process.env.RESEND_API_KEY);
+    //   await resend.emails.send({ from: 'noreply@{{kebabCase project.name}}.com', to: payload.to, subject: payload.subject, ... });
+
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    return {
+      success: true,
+      messageId,
+      to: payload.to,
+      subject: payload.subject,
+    };
+  },
+});

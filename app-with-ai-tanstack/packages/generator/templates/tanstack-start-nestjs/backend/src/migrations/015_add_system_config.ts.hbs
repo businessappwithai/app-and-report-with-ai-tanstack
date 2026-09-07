@@ -1,0 +1,43 @@
+/**
+ * `sys_system` — database-backed application configuration.
+ *
+ * Environment variables that can be changed at runtime without a redeploy
+ * live here: AI endpoints, feature toggles, rate limits, logging, CORS,
+ * and application identity (name and description).
+ *
+ * Fallback chain: DB row (active + non-empty) -> process.env -> hardcoded
+ * default. Bootstrap variables (DATABASE_URL, BETTER_AUTH_SECRET, PORT,
+ * HOST, NODE_ENV) stay in .env only — they are needed before the database
+ * is reachable.
+ */
+
+import { type Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS sys_system (
+      sys_system_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      config_key VARCHAR(200) NOT NULL,
+      config_value TEXT,
+      data_type VARCHAR(20) NOT NULL DEFAULT 'string',
+      category VARCHAR(100) NOT NULL DEFAULT 'general',
+      description TEXT,
+      is_sensitive BOOLEAN NOT NULL DEFAULT false,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_by VARCHAR(200),
+      updated_by VARCHAR(200),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT uq_sys_system_config_key UNIQUE (config_key)
+    )
+  `.execute(db);
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_system_category
+      ON sys_system (category, config_key)
+  `.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP TABLE IF EXISTS sys_system`.execute(db);
+}

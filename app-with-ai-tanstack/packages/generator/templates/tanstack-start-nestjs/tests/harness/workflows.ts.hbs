@@ -1,0 +1,222 @@
+/**
+ * Workflow helpers.
+ *
+ * A rule action of type `trigger-workflow` enqueues a run. Runs are async, so
+ * everything here polls to a terminal state rather than assuming completion.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { config } from "./config.ts";
+import type { HttpClient } from "./http.ts";
+import { sleep } from "./testing.ts";
+
+export interface WorkflowRun {
+  id?: string;
+  run_id?: string;
+  workflow_name?: string;
+  entity_name?: string;
+  entity_id?: string;
+  status?: string;
+  error_details?: unknown;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+const TERMINAL = new Set(["completed", "success", "succeeded", "failed", "error", "cancelled"]);
+const FAILED = new Set(["failed", "error", "cancelled"]);
+
+export function isTerminal(status?: string): boolean {
+  return !!status && TERMINAL.has(status.toLowerCase());
+}
+
+export function isFailure(status?: string): boolean {
+  return !!status && FAILED.has(status.toLowerCase());
+}
+
+function unwrap(body: unknown): WorkflowRun[] {
+  if (Array.isArray(body)) return body as WorkflowRun[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as WorkflowRun[];
+    if (Array.isArray(record.runs)) return record.runs as WorkflowRun[];
+  }
+  return [];
+}
+
+export async function listRuns(
+  client: HttpClient,
+  filters: { status?: string; limit?: number } = {}
+): Promise<WorkflowRun[]> {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.limit) params.set("limit", String(filters.limit));
+  const query = params.toString();
+  const response = await client.get(`/workflows/runs${query ? `?${query}` : ""}`, {
+    allowFailure: true,
+  });
+  return response.ok ? unwrap(response.data) : [];
+}
+
+export async function getRun(client: HttpClient, runId: string): Promise<WorkflowRun | null> {
+  const response = await client.get<WorkflowRun>(`/workflows/runs/${runId}`, {
+    allowFailure: true,
+  });
+  return response.ok ? response.data : null;
+}
+
+/** Workflow runs recorded against one entity record. */
+export async function runsForEntity(
+  client: HttpClient,
+  entityName: string,
+  entityId: string
+): Promise<WorkflowRun[]> {
+  const response = await client.get(`/workflows/entity/${entityName}/${entityId}`, {
+    allowFailure: true,
+  });
+  return response.ok ? unwrap(response.data) : [];
+}
+
+export async function retryRun(client: HttpClient, runId: string): Promise<boolean> {
+  const response = await client.post(`/workflows/runs/${runId}/retry`, {}, { allowFailure: true });
+  return response.ok;
+}
+
+/**
+ * Wait until at least one workflow run exists for a record and has reached a
+ * terminal state. Resolves with whatever runs exist when the deadline passes —
+ * callers decide whether an empty result is a failure, because workflow
+ * dispatch is fire-and-forget in some configurations.
+ */
+export async function waitForEntityRuns(
+  client: HttpClient,
+  entityName: string,
+  entityId: string,
+  options: { timeoutMs?: number; requireTerminal?: boolean } = {}
+): Promise<WorkflowRun[]> {
+  const timeoutMs = options.timeoutMs ?? config.workflowTimeoutMs;
+  const deadline = Date.now() + timeoutMs;
+  let runs: WorkflowRun[] = [];
+
+  while (Date.now() < deadline) {
+    runs = await runsForEntity(client, entityName, entityId);
+    if (runs.length > 0) {
+      if (!options.requireTerminal) return runs;
+      if (runs.every((run) => isTerminal(run.status))) return runs;
+    }
+    await sleep(400);
+  }
+
+  return runs;
+}
+
+/** Poll one run until terminal. Returns the final run, or null if it vanished. */
+export async function waitForRun(
+  client: HttpClient,
+  runId: string,
+  timeoutMs: number = config.workflowTimeoutMs
+): Promise<WorkflowRun | null> {
+  const deadline = Date.now() + timeoutMs;
+  let run: WorkflowRun | null = null;
+
+  while (Date.now() < deadline) {
+    run = await getRun(client, runId);
+    if (run && isTerminal(run.status)) return run;
+    await sleep(400);
+  }
+  return run;
+}
+
+// ── Multi-step workflow authoring ───────────────────────────────────────────
+
+/**
+ * One step of a workflow, as the BPMN executor reads it.
+ *
+ * `props` are the `appwithai:property` entries the executor looks for. The
+ * builder below does not validate them — a suite asserting on a mis-typed
+ * property should see the executor skip that node, which is the behaviour worth
+ * testing.
+ */
+export interface WorkflowStep {
+  id: string;
+  name: string;
+  props: Record<string, string>;
+}
+
+function escapeXmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Build executable BPMN from an ordered list of steps.
+ *
+ * Steps are wired start → s1 → s2 → … → end, because the executor walks the
+ * sequence flows: a multi-step workflow only means anything if the steps run in
+ * the order they were written.
+ */
+export function buildWorkflowBpmn(processId: string, steps: WorkflowStep[]): string {
+  const tasks = steps
+    .map((step) => {
+      const props = Object.entries(step.props)
+        .map(([k, v]) => `          <appwithai:property name="${k}" value="${escapeXmlAttr(v)}" />`)
+        .join("\n");
+      return `    <bpmn:serviceTask id="${step.id}" name="${escapeXmlAttr(step.name)}">
+      <bpmn:extensionElements>
+        <appwithai:properties xmlns:appwithai="http://appwithai.dev/bpmn">
+${props}
+        </appwithai:properties>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>`;
+    })
+    .join("\n");
+
+  const ids = ["start", ...steps.map((s) => s.id), "end"];
+  const flows = ids
+    .slice(0, -1)
+    .map((from, i) => `    <bpmn:sequenceFlow id="flow_${i}" sourceRef="${from}" targetRef="${ids[i + 1]}" />`)
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="defs_${processId}" targetNamespace="http://appwithai.dev/bpmn">
+  <bpmn:process id="${processId}" isExecutable="true">
+    <bpmn:startEvent id="start" name="Start" />
+${tasks}
+${flows}
+    <bpmn:endEvent id="end" name="Done" />
+  </bpmn:process>
+</bpmn:definitions>
+`;
+}
+
+export interface WorkflowDefinitionRecord {
+  id: string;
+  name: string;
+  entity_name?: string;
+  entityName?: string;
+  trigger_type?: string;
+}
+
+/** Register a workflow definition through the admin API. */
+export async function createWorkflowDefinition(
+  client: HttpClient,
+  input: {
+    name: string;
+    entityName: string;
+    operation: "CREATE" | "UPDATE" | "DELETE" | "ALL";
+    bpmnXml: string;
+    description?: string;
+    triggerType?: "automatic" | "rule";
+  }
+): Promise<WorkflowDefinitionRecord> {
+  const response = await client.post<WorkflowDefinitionRecord>("/workflow-definitions", input);
+  return response.data;
+}
+
+export async function deleteWorkflowDefinition(client: HttpClient, id: string): Promise<void> {
+  await client.delete(`/workflow-definitions/${id}`, { allowFailure: true });
+}

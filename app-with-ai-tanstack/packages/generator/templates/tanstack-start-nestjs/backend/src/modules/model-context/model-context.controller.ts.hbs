@@ -1,0 +1,52 @@
+/**
+ * Model search, for the administrator's assistant.
+ *
+ * Admin-only. The model describes the whole application's data design,
+ * including entities a given user may have no access to, so retrieval must not
+ * become a way to read the shape of data the row-level checks would refuse.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { ModelContextService } from './model-context.service';
+
+@ApiTags('model-context')
+@Controller('model-context')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
+export class ModelContextController {
+  constructor(private readonly modelContext: ModelContextService) {}
+
+  @Get('status')
+  @ApiOperation({ summary: 'Whether the model has been embedded yet' })
+  status() {
+    return { ready: this.modelContext.isReady() };
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: "Search this application's model and return the matching parts" })
+  @ApiResponse({ status: 200, description: 'Matching chunks, most relevant first' })
+  async search(@Body() body: { question?: string; topK?: number; kinds?: string[] }) {
+    const question = body.question?.trim() ?? '';
+    if (!question) return { chunks: [] };
+
+    const chunks = await this.modelContext.search(
+      question,
+      Math.min(body.topK ?? 8, 20),
+      body.kinds
+    );
+    return { chunks, ready: this.modelContext.isReady() };
+  }
+
+  @Post('reindex')
+  @ApiOperation({ summary: 'Re-embed the model, after the model file has been changed' })
+  async reindex() {
+    return this.modelContext.ingest();
+  }
+}

@@ -1,0 +1,75 @@
+/**
+ * Job Queue Service - Trigger.dev v3
+ *
+ * Manages background job tasks for:
+ * - Email notifications
+ * - Report generation
+ * - Data synchronization
+ *
+ * Uses Trigger.dev v3 tasks which run on Trigger.dev's durable execution
+ * infrastructure without requiring a self-hosted Redis instance.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Injectable, Logger } from '@nestjs/common';
+import { sendEmailTask, EmailTaskPayload } from '../../trigger/email.task';
+import { generateReportTask, ReportTaskPayload } from '../../trigger/report.task';
+import { syncEntityTask, SyncTaskPayload } from '../../trigger/sync.task';
+
+// Re-export payload types to preserve the existing public API surface
+export type EmailJobData = EmailTaskPayload;
+export type ReportJobData = ReportTaskPayload;
+export type SyncJobData = SyncTaskPayload;
+
+@Injectable()
+export class JobQueueService {
+  private readonly logger = new Logger(JobQueueService.name);
+
+  /**
+   * Trigger an email send task.
+   * @param data  Email payload (to, subject, template, data)
+   * @param _delay Scheduling is handled via Trigger.dev task options when needed
+   * @returns Trigger.dev run ID
+   */
+  async addEmailJob(data: EmailJobData, _delay = 0): Promise<string> {
+    const handle = await sendEmailTask.trigger(data);
+    this.logger.log(`Email task triggered: ${handle.id} -> ${data.to}`);
+    return handle.id;
+  }
+
+  /**
+   * Trigger a report generation task.
+   * @param data Report payload (reportType, params, userId)
+   * @returns Trigger.dev run ID
+   */
+  async addReportJob(data: ReportJobData): Promise<string> {
+    const handle = await generateReportTask.trigger(data);
+    this.logger.log(`Report task triggered: ${handle.id} -> ${data.reportType}`);
+    return handle.id;
+  }
+
+  /**
+   * Trigger a data sync task.
+   * @param data Sync payload (entityType, entityId, action)
+   * @returns Trigger.dev run ID
+   */
+  async addSyncJob(data: SyncJobData): Promise<string> {
+    const handle = await syncEntityTask.trigger(data);
+    this.logger.log(`Sync task triggered: ${handle.id} -> ${data.entityType}:${data.action}`);
+    return handle.id;
+  }
+
+  /**
+   * Returns the Trigger.dev run ID for the given job.
+   * Full status, logs, and retries are visible in the Trigger.dev dashboard.
+   */
+  async getJobStatus(_queueName: string, jobId: string) {
+    return {
+      id: jobId,
+      status: 'triggered',
+      message: 'Check the Trigger.dev dashboard for real-time status and logs.',
+    };
+  }
+}

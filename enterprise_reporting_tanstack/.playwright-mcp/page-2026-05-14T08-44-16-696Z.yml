@@ -1,0 +1,20 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e7]
+      - heading "Welcome back" [level=3] [ref=e9]
+      - paragraph [ref=e10]: Sign in to your Enterprise Reporting account
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - alert [ref=e19]:
+          - generic [ref=e20]: Invalid credentials
+        - generic [ref=e13]:
+          - text: Email
+          - textbox "Email" [ref=e14]:
+            - /placeholder: name@example.com
+            - text: admin@admin.com
+        - generic [ref=e15]:
+          - text: Password
+          - textbox "Password" [ref=e16]: admin
+      - button "Sign In" [ref=e18] [cursor=pointer]
+  - region "Notifications alt+T"

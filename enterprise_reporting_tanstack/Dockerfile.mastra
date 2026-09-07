@@ -1,0 +1,33 @@
+# ==========================================
+# Enterprise Reporting System
+# Mastra AI Agent Server
+# NL-to-SQL + STT via OpenAI-compatible API
+# ==========================================
+FROM oven/bun:1.3-slim
+
+WORKDIR /app
+
+# Build tools required for native modules in package.json
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies (shared bun.lock with main app)
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile && bun pm cache rm
+
+# Copy the Mastra agent server and its config
+COPY mastra ./mastra
+COPY .env.mastra ./.env.mastra
+
+EXPOSE 4111
+
+# Health check — polls the /health endpoint
+HEALTHCHECK --interval=15s --timeout=5s --start-period=25s --retries=5 \
+  CMD curl -f http://localhost:4111/health || exit 1
+
+CMD ["bun", "run", "mastra/server.ts"]

@@ -1,0 +1,3 @@
+[submodule "enterprise_reporting_tanstack/.claude/skills/gstack"]
+	path = enterprise_reporting_tanstack/.claude/skills/gstack
+	url = https://github.com/garrytan/gstack.git

@@ -1,0 +1,229 @@
+# {{project.name}}
+#
+#   docker compose up --build
+#
+# Everything the application needs runs here, database included — no external
+# service has to exist first. Point DATABASE_URL somewhere else and the bundled
+# database is simply unused.
+#
+#   app        the whole application in one container (Dockerfile at the root)
+#   backend    } the same application split in two, which is what you want
+#   frontend   } when the two halves scale differently
+#
+# The split pair is the default. `docker compose --profile single up app` runs
+# the one-container build instead.
+#
+# Either way the browser talks to one address — {{project.frontendPort}}. The web front end
+# serves /api itself and forwards it to the API (see frontend/src/routes/api/$.ts),
+# so there is no second origin, no CORS negotiation, and the session cookie is an
+# ordinary same-origin cookie that works over plain HTTP. The API's own port is
+# published as well, but only for curl and health checks; nothing in the browser
+# uses it.
+#
+# Configuration comes from a `.env` beside this file — `cp .env.example .env`.
+# Every value has a working default here, so an absent `.env` still brings the
+# application up; the file is where the AI endpoint and the real secrets go.
+#
+# Reaching the application by any name other than localhost means naming it, so
+# that the sign-in request's Origin is one the API recognises:
+#
+#   CORS_ORIGIN=http://app.internal:{{project.frontendPort}} docker compose up
+#
+# Left unset on a non-localhost host, sign-in answers "Invalid origin".
+
+# The image names use `project.id`, not `project.name`. A Docker reference may
+# not contain a space or a capital, and a project called "Acme CRM" produced
+# `image: Acme CRM:latest` — which compose rejects before it builds anything.
+services:
+  postgres:
+    # pgvector rather than stock Postgres: the model-context assistant stores
+    # embeddings, and `CREATE EXTENSION vector` fails on an image without it.
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: {{project.name | replace '-' '_'}}
+      POSTGRES_USER: ${DB_USER:-app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-app}
+    volumes:
+      # Postgres 18 wants one mount at /var/lib/postgresql and puts its data in a
+
+      # subdirectory; mounting the old /data path directly makes the image refuse
+
+      # to start.
+
+      - postgres_data:/var/lib/postgresql
+    # Electric follows the write-ahead log, which it can only do when the log
+    # carries row data. Without this the electric service starts and then fails
+    # on its first shape request.
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Streams the Application Dictionary to browsers so each client reads it
+  # locally instead of fetching it per screen.
+  #
+  # Deliberately not published to the host: Electric applies no authorization of
+  # its own, so anything that can reach it can read any table it is pointed at.
+  # The only way in is the backend's /v1/shape proxy, which requires a session
+  # and narrows every shape to that session's roles.
+  electric:
+    image: electricsql/electric:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@postgres:5432/{{project.name | replace '-' '_'}}
+      ELECTRIC_INSECURE: "true"
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The single-image build. Not started by default — name it, or use the profile.
+  app:
+    profiles: ["single"]
+    image: {{project.id}}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Empty: the client calls /api on whatever origin it was served from.
+        # See the note at the top of this file.
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_APP_URL: ${VITE_APP_URL:-http://localhost:{{project.frontendPort}}}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-{{project.frontendPort}}}:{{project.frontendPort}}"
+      - "${BACKEND_PORT:-{{project.backendPort}}}:{{project.backendPort}}"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@postgres:5432/{{project.name | replace '-' '_'}}}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me-in-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:{{project.frontendPort}}}
+      ELECTRIC_URL: http://electric:3000
+      # The AI assistant — retrieval over this application's own model.
+      #
+      # One endpoint serves it: OpenAI-compatible `POST /v1/embeddings`. Point
+      # AI_BASE_URL at a local model, at OpenAI, or at any gateway that speaks
+      # it; `.env.example` spells out all three. Unset, the defaults below
+      # assume a local server on the host, the assistant fails to reach it, logs
+      # one warning, and every other screen is unaffected.
+      AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:8000/v1}
+      AI_API_KEY: ${AI_API_KEY:-local}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-bge-small-en-v1.5}
+      # The pgvector column width, fixed when the index is created. Changing it
+      # after the first start means re-creating the index and re-ingesting.
+      AI_EMBEDDING_DIMENSIONS: ${AI_EMBEDDING_DIMENSIONS:-384}
+      ENABLE_MODEL_CONTEXT: ${ENABLE_MODEL_CONTEXT:-true}
+      # Read from the environment but not called yet: the Claude API has no
+      # embeddings endpoint, so it cannot serve the assistant on its own. Set
+      # alongside an embeddings provider, it is here for the chat surface.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      electric:
+        condition: service_started
+
+  backend:
+    image: {{project.id}}-backend:${IMAGE_TAG:-latest}
+    build:
+      # The whole project, not ./backend. Both service Dockerfiles install the
+      # workspace — they COPY `backend/package.json` *and* `frontend/package.json`
+      # so the lockfile resolution matches what the app was generated against —
+      # and a context of ./backend puts those paths out of reach. The build got
+      # as far as `COPY backend/package.json` and failed with "not found",
+      # which reads like a missing file rather than the wrong root.
+      context: .
+      dockerfile: ./backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-{{project.backendPort}}}:{{project.backendPort}}"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@postgres:5432/{{project.name | replace '-' '_'}}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me-in-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:{{project.frontendPort}}}
+      PORT: {{project.backendPort}}
+      ELECTRIC_URL: http://electric:3000
+      # The AI assistant — retrieval over this application's own model.
+      #
+      # One endpoint serves it: OpenAI-compatible `POST /v1/embeddings`. Point
+      # AI_BASE_URL at a local model, at OpenAI, or at any gateway that speaks
+      # it; `.env.example` spells out all three. Unset, the defaults below
+      # assume a local server on the host, the assistant fails to reach it, logs
+      # one warning, and every other screen is unaffected.
+      AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:8000/v1}
+      AI_API_KEY: ${AI_API_KEY:-local}
+      AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-bge-small-en-v1.5}
+      # The pgvector column width, fixed when the index is created. Changing it
+      # after the first start means re-creating the index and re-ingesting.
+      AI_EMBEDDING_DIMENSIONS: ${AI_EMBEDDING_DIMENSIONS:-384}
+      ENABLE_MODEL_CONTEXT: ${ENABLE_MODEL_CONTEXT:-true}
+      # Read from the environment but not called yet: the Claude API has no
+      # embeddings endpoint, so it cannot serve the assistant on its own. Set
+      # alongside an embeddings provider, it is here for the chat surface.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    extra_hosts:
+      # So `host.docker.internal` resolves on Linux too, where it is not
+      # provided automatically — that is the address a container uses to reach
+      # a model server running on the machine hosting it.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      electric:
+        condition: service_started
+    healthcheck:
+      # `127.0.0.1`, not `localhost`. Inside the container `localhost` resolves
+      # to both `127.0.0.1` and `::1`, busybox wget tries the IPv6 address
+      # first, and the API listens on IPv4 only — so this check answered
+      # "connection refused" against a perfectly healthy server. The backend
+      # then never became healthy, and the front end, which waits on it, never
+      # started at all: `docker compose up` sat at "container is unhealthy"
+      # while the API answered 200 to anyone who asked from the host.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:{{project.backendPort}}/api/me/health || exit 1"]
+      # Tight enough that a start is not spent waiting for the first probe.
+      # `start_period` keeps the migrations and seeds from counting as failures.
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  frontend:
+    image: {{project.id}}-frontend:${IMAGE_TAG:-latest}
+    build:
+      # The whole project — see the note on the backend service.
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      args:
+        # Empty: the client calls /api on whatever origin it was served from.
+        # See the note at the top of this file.
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_APP_URL: ${VITE_APP_URL:-http://localhost:{{project.frontendPort}}}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-{{project.frontendPort}}}:{{project.frontendPort}}"
+    environment:
+      NODE_ENV: production
+      PORT: {{project.frontendPort}}
+      # Where this server forwards /api/*. Container-to-container, so it names
+      # the service rather than a published port.
+      BACKEND_URL: http://backend:{{project.backendPort}}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

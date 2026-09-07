@@ -1,0 +1,255 @@
+/**
+ * Application Dictionary — references.
+ *
+ * A reference is what turns a column into a control. `sys_reference_id` 13 on a
+ * uuid column makes it read-only; a list reference makes a dropdown and carries
+ * the values it offers; a table reference makes a lookup and carries the table
+ * it searches and the column it shows instead of the stored id.
+ *
+ * Every failure here has the same shape on screen: the control degrades to a
+ * plain text box. A dropdown that lost its list becomes free text, so `status`
+ * accepts a value the state machine has no edge for. A lookup that lost its
+ * table becomes a box asking a human to type a uuid. Neither errors, and both
+ * are invisible to a test that only checks the column exists.
+ *
+ * So the assertions here compare the running application against the *model* —
+ * `harness/model.ts`, generated from the `%%enum` directives — rather than
+ * against the dictionary that the same generator wrote.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import {
+  entities,
+  foreignKeyFields,
+  harness,
+  modelEnums,
+  writableFields,
+} from "../harness/index.ts";
+
+/** sys_reference ids the generator treats as built-in scalars. */
+const STANDARD = {
+  string: 10,
+  integer: 11,
+  amount: 12,
+  id: 13,
+  text: 14,
+  date: 15,
+  dateTime: 16,
+  list: 17,
+  table: 18,
+  tableDirect: 19,
+  yesNo: 20,
+} as const;
+
+/** Model enums are allocated from 1000 up; anything at or above is a dropdown. */
+const FIRST_MODEL_REFERENCE = 1000;
+
+interface FormField {
+  column_name: string;
+  name?: string;
+  sys_reference_id?: number;
+  is_mandatory?: boolean;
+  /** Present on table references — the table the lookup searches. */
+  ref_table_name?: string | null;
+  /** Present on table references — the columns shown instead of the id. */
+  ref_label_fields?: string[] | null;
+  /** Present on list references — the dropdown's contents. */
+  options?: Array<{ value: string; label: string }> | null;
+}
+
+interface ReferenceRow {
+  sys_reference_id: number;
+  name: string;
+  validation_type?: string;
+}
+
+function rows<T>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
+describe("application dictionary — references", () => {
+  let references: ReferenceRow[] = [];
+  let referenceIds = new Set<number>();
+  /** entity route → its form fields, including the hidden ones. */
+  const fieldsByRoute = new Map<string, FormField[]>();
+  const registeredTables = new Set(entities.map((entity) => entity.tableName));
+
+  beforeAll(async () => {
+    await harness.setup();
+
+    const response = await harness.client.get("/sys/references?limit=1000", {
+      allowFailure: true,
+    });
+    references = response.ok ? rows<ReferenceRow>(response.data) : [];
+    referenceIds = new Set(references.map((reference) => reference.sys_reference_id));
+
+    for (const entity of entities) {
+      const fields = await harness.client.get<FormField[]>(
+        `/bus/${entity.route}/fields/form?includeHidden=true`,
+        { allowFailure: true }
+      );
+      if (fields.ok) fieldsByRoute.set(entity.route, fields.data);
+    }
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("serves the reference registry", () => {
+    expect(references.length).toBeGreaterThan(0);
+  });
+
+  it("registers the standard scalar references", () => {
+    const missing = Object.values(STANDARD).filter((id) => !referenceIds.has(id));
+    expect(missing).toEqual([]);
+  });
+
+  // ── The model's enums ─────────────────────────────────────────────────────
+
+  describe("model enums", () => {
+    it("registers a reference for every enum the model declares", () => {
+      const missing = modelEnums
+        .filter((modelEnum) => !referenceIds.has(modelEnum.referenceId))
+        .map((modelEnum) => modelEnum.name);
+      expect(missing).toEqual([]);
+    });
+
+    for (const modelEnum of modelEnums) {
+      it(`${modelEnum.name} offers exactly the values the model declares`, async () => {
+        const response = await harness.client.get<Array<{ value: string; name?: string }>>(
+          `/sys/ref-list?sys_reference_id=${modelEnum.referenceId}`,
+          { allowFailure: true }
+        );
+        expect(response.status).toBe(200);
+
+        const served = rows<{ value: string }>(response.data)
+          .map((entry) => entry.value)
+          .sort();
+        expect(served).toEqual([...modelEnum.values].sort());
+      });
+    }
+  });
+
+  // ── Per entity ────────────────────────────────────────────────────────────
+
+  for (const entity of entities) {
+    describe(entity.displayName, () => {
+      it("gives every field a reference that resolves", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        expect(fields.length).toBeGreaterThan(0);
+
+        const dangling = fields
+          .filter((field) => typeof field.sys_reference_id === "number")
+          .filter((field) => !referenceIds.has(field.sys_reference_id as number))
+          .map((field) => `${field.column_name}→${field.sys_reference_id}`);
+        expect(dangling).toEqual([]);
+      });
+
+      // The one that catches a lookup degraded to a uuid text box.
+      it("points every foreign key at a table that exists", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const byColumn = new Map(fields.map((field) => [field.column_name, field]));
+
+        const unresolved: string[] = [];
+        for (const fk of foreignKeyFields(entity)) {
+          const field = byColumn.get(fk.name);
+          if (!field) continue; // absence is 02b's failure, not this one's
+          const target = field.ref_table_name;
+          if (!target || !registeredTables.has(target)) {
+            unresolved.push(`${fk.name}→${target ?? "unresolved"}`);
+          }
+        }
+        expect(unresolved).toEqual([]);
+      });
+
+      it("gives every foreign key a column to display instead of the id", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const byColumn = new Map(fields.map((field) => [field.column_name, field]));
+
+        const unlabelled: string[] = [];
+        for (const fk of foreignKeyFields(entity)) {
+          const field = byColumn.get(fk.name);
+          if (!field?.ref_table_name) continue; // covered by the test above
+          const labels = field.ref_label_fields;
+          if (!Array.isArray(labels) || labels.length === 0) unlabelled.push(fk.name);
+        }
+        expect(unlabelled).toEqual([]);
+      });
+
+      // A label column the target table does not have resolves to nothing at
+      // render time, which puts the raw id back on screen.
+      it("names label columns the target table actually has", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const byTable = new Map(entities.map((item) => [item.tableName, item]));
+
+        const bad: string[] = [];
+        for (const fk of foreignKeyFields(entity)) {
+          const field = byColumn(fields, fk.name);
+          const target = field?.ref_table_name;
+          if (!target) continue;
+          const targetEntity = byTable.get(target);
+          if (!targetEntity) continue;
+          const columns = new Set(targetEntity.fields.map((item) => item.name));
+          for (const label of field?.ref_label_fields ?? []) {
+            if (!columns.has(label)) bad.push(`${fk.name}→${target}.${label}`);
+          }
+        }
+        expect(bad).toEqual([]);
+      });
+
+      it("feeds every dropdown with options", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const empty = fields
+          .filter((field) => (field.sys_reference_id ?? 0) >= FIRST_MODEL_REFERENCE)
+          .filter((field) => !Array.isArray(field.options) || field.options.length === 0)
+          .map((field) => field.column_name);
+        expect(empty).toEqual([]);
+      });
+
+      // A dropdown whose options are not among the model's values would let a
+      // user pick something no rule or workflow was written for.
+      it("offers only values the model declares", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const byReference = new Map(modelEnums.map((item) => [item.referenceId, item]));
+
+        const strays: string[] = [];
+        for (const field of fields) {
+          const modelEnum = byReference.get(field.sys_reference_id ?? -1);
+          if (!modelEnum || !Array.isArray(field.options)) continue;
+          const allowed = new Set(modelEnum.values);
+          for (const option of field.options) {
+            if (!allowed.has(option.value)) {
+              strays.push(`${field.column_name}=${option.value}`);
+            }
+          }
+        }
+        expect(strays).toEqual([]);
+      });
+
+      it("marks the model's required fields mandatory", () => {
+        const fields = fieldsByRoute.get(entity.route) ?? [];
+        const byName = new Map(fields.map((field) => [field.column_name, field]));
+
+        const wrong = writableFields(entity)
+          .filter((field) => field.required)
+          .filter((field) => byName.has(field.name))
+          .filter((field) => byName.get(field.name)?.is_mandatory !== true)
+          .map((field) => field.name);
+        expect(wrong).toEqual([]);
+      });
+    });
+  }
+});
+
+function byColumn(fields: FormField[], name: string): FormField | undefined {
+  return fields.find((field) => field.column_name === name);
+}

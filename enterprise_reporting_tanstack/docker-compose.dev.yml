@@ -1,0 +1,93 @@
+version: '3.9'
+
+services:
+  # ==========================================
+  # MariaDB Configuration Database
+  # ==========================================
+  mariadb:
+    image: mariadb:latest
+    container_name: ers-mariadb-dev
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root_pass}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-enterprise_config}
+      MARIADB_USER: ${MARIADB_USER:-enterprise}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-enterprise_pass}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ers-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  # ==========================================
+  # Redis (for job queue)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: ers-redis-dev
+    restart: unless-stopped
+    command: >
+      sh -c 'if [ -z "$$REDIS_PASSWORD" ]; then
+        redis-server --appendonly yes;
+      else
+        redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+      fi'
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ers-network
+
+  # ==========================================
+  # Application (TanStack Start + Bun)
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ers-app-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MARIADB_HOST: mariadb
+      MARIADB_PORT: 3306
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-enterprise_config}
+      MARIADB_USER: ${MARIADB_USER:-enterprise}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-enterprise_pass}
+      AUTH_SECRET: ${AUTH_SECRET:-u+xA6iwkg5BuouPQ50O4tN+cbGpB0uDk/p0ZNt17k4A=}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-d2b33b537501f585cc6a16949fc1fb6086394a348e1330ce855c1816a613a0a3}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "80:3000"
+    networks:
+      - ers-network
+    volumes:
+      - ./data:/app/data
+
+networks:
+  ers-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    driver: local
+  redis_data:
+    driver: local

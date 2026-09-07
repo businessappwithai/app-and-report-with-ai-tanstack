@@ -1,0 +1,44 @@
+# What never belongs in a build context.
+#
+# All three services now build from the project root — they install the whole
+# workspace so the dependency resolution matches what the application was
+# generated against. That makes the context the entire project, and without this
+# file every `docker compose build` would upload `node_modules` and `.git` to the
+# daemon before running a single instruction. On a generated app that is hundreds
+# of megabytes and several seconds, every build.
+#
+# Dependencies are installed *inside* the image from `package.json`, so a host
+# `node_modules` is not merely wasteful — it is the wrong platform's binaries.
+node_modules
+**/node_modules
+.git
+.gitignore
+
+# Build output. Regenerated in the image; a stale copy shadows it.
+dist
+**/dist
+.output
+**/.output
+.vinxi
+**/.vinxi
+.nitro
+**/.nitro
+build
+**/build
+
+# Local state and secrets. `.env` in particular: compose passes configuration as
+# environment variables, and baking a developer's keys into an image layer is
+# how they end up in a registry.
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode
+.idea
+
+# Test and coverage artifacts
+coverage
+**/coverage
+test-results
+playwright-report

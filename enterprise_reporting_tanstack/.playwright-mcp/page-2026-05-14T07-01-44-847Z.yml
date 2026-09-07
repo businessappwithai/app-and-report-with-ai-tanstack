@@ -1,0 +1,167 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e19]:
+    - complementary [ref=e20]:
+      - link "Enterprise Reports" [ref=e22] [cursor=pointer]:
+        - /url: /
+        - img [ref=e23]
+        - generic [ref=e25]: Enterprise Reports
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - heading "Main" [level=2] [ref=e31]
+          - navigation [ref=e32]:
+            - link "Dashboard" [ref=e422] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e423]:
+                - img [ref=e424]
+                - generic [ref=e427]: Dashboard
+            - link "SQL Editor" [ref=e428] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e429]:
+                - img [ref=e430]
+                - generic [ref=e432]: SQL Editor
+            - link "Saved Queries" [ref=e433] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e434]:
+                - img [ref=e435]
+                - generic [ref=e439]: Saved Queries
+            - link "Reports" [ref=e440] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e441]:
+                - img [ref=e442]
+                - generic [ref=e445]: Reports
+            - link "Charts" [ref=e446] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e447]:
+                - img [ref=e448]
+                - generic [ref=e450]: Charts
+            - link "Dashboards" [ref=e451] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e452]:
+                - img [ref=e453]
+                - generic [ref=e458]: Dashboards
+            - link "Filters" [ref=e459] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e460]:
+                - img [ref=e461]
+                - generic [ref=e463]: Filters
+            - link "Jobs" [ref=e464] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e465]:
+                - img [ref=e466]
+                - generic [ref=e468]: Jobs
+            - link "NL Query" [ref=e469] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e470]:
+                - img [ref=e471]
+                - generic [ref=e473]: NL Query
+        - generic [ref=e85]:
+          - heading "Administration" [level=2] [ref=e86]
+          - navigation [ref=e87]:
+            - link "Data Sources" [ref=e474] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e475]:
+                - img [ref=e476]
+                - generic [ref=e480]: Data Sources
+            - link "Queue Management" [ref=e481] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e482]:
+                - img [ref=e483]
+                - generic [ref=e487]: Queue Management
+            - link "Users" [ref=e488] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e489]:
+                - img [ref=e490]
+                - generic [ref=e495]: Users
+            - link "Roles" [ref=e496] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e497]:
+                - img [ref=e498]
+                - generic [ref=e500]: Roles
+            - link "Permissions" [ref=e501] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e502]:
+                - img [ref=e503]
+                - generic [ref=e505]: Permissions
+            - link "Settings" [ref=e506] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e507]:
+                - img [ref=e508]
+                - generic [ref=e511]: Settings
+      - button [ref=e126] [cursor=pointer]:
+        - img [ref=e127]
+    - generic [ref=e129]:
+      - banner [ref=e130]:
+        - button "Sakila Demo DB sqlite3" [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+          - generic [ref=e137]: Sakila Demo DB
+          - generic [ref=e138]: sqlite3
+        - generic [ref=e139]:
+          - button "Toggle theme" [ref=e140] [cursor=pointer]:
+            - img [ref=e141]
+            - img
+            - generic [ref=e147]: Toggle theme
+          - button "Notifications" [ref=e148] [cursor=pointer]:
+            - img [ref=e149]
+            - generic [ref=e152]: Notifications
+          - button "SA" [ref=e153] [cursor=pointer]:
+            - generic [ref=e155]: SA
+      - main [ref=e156]:
+        - generic [ref=e512]:
+          - generic [ref=e513]:
+            - generic [ref=e514]:
+              - heading "Dashboards" [level=1] [ref=e515]
+              - paragraph [ref=e516]: Create and manage interactive dashboards
+            - button "New Dashboard" [ref=e517] [cursor=pointer]:
+              - img [ref=e518]
+              - text: New Dashboard
+          - generic [ref=e519]:
+            - heading "All Dashboards" [level=3] [ref=e521]:
+              - img [ref=e522]
+              - text: All Dashboards
+            - table [ref=e529]:
+              - rowgroup [ref=e530]:
+                - row "Name Description Visibility Created Modified Actions" [ref=e531]:
+                  - columnheader "Name" [ref=e532]
+                  - columnheader "Description" [ref=e533]
+                  - columnheader "Visibility" [ref=e534]
+                  - columnheader "Created" [ref=e535]
+                  - columnheader "Modified" [ref=e536]
+                  - columnheader "Actions" [ref=e537]
+              - rowgroup [ref=e538]:
+                - row "Executive Dashboard High-level business metrics Private May 14, 2026, 12:26 PM May 14, 2026, 12:26 PM" [ref=e539]:
+                  - cell "Executive Dashboard" [ref=e540]
+                  - cell "High-level business metrics" [ref=e541]
+                  - cell "Private" [ref=e542]:
+                    - generic [ref=e543]:
+                      - img [ref=e544]
+                      - text: Private
+                  - cell "May 14, 2026, 12:26 PM" [ref=e547]
+                  - cell "May 14, 2026, 12:26 PM" [ref=e548]
+                  - cell [ref=e549]:
+                    - button [ref=e550] [cursor=pointer]:
+                      - img [ref=e551]
+                - row "Sales Dashboard Sales metrics and KPIs Private May 14, 2026, 12:26 PM May 14, 2026, 12:26 PM" [ref=e555]:
+                  - cell "Sales Dashboard" [ref=e556]
+                  - cell "Sales metrics and KPIs" [ref=e557]
+                  - cell "Private" [ref=e558]:
+                    - generic [ref=e559]:
+                      - img [ref=e560]
+                      - text: Private
+                  - cell "May 14, 2026, 12:26 PM" [ref=e563]
+                  - cell "May 14, 2026, 12:26 PM" [ref=e564]
+                  - cell [ref=e565]:
+                    - button [ref=e566] [cursor=pointer]:
+                      - img [ref=e567]
+                - row "Product Performance Product-level analytics Private May 14, 2026, 12:26 PM May 14, 2026, 12:26 PM" [ref=e571]:
+                  - cell "Product Performance" [ref=e572]
+                  - cell "Product-level analytics" [ref=e573]
+                  - cell "Private" [ref=e574]:
+                    - generic [ref=e575]:
+                      - img [ref=e576]
+                      - text: Private
+                  - cell "May 14, 2026, 12:26 PM" [ref=e579]
+                  - cell "May 14, 2026, 12:26 PM" [ref=e580]
+                  - cell [ref=e581]:
+                    - button [ref=e582] [cursor=pointer]:
+                      - img [ref=e583]
+  - region "Notifications alt+T"

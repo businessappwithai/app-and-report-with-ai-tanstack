@@ -1,0 +1,111 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - button:
+            - img
+            - generic: Enterprise Database
+            - generic: pg
+        - generic:
+          - button:
+            - img
+            - generic: Toggle theme
+          - button:
+            - img
+            - generic: Notifications
+          - button:
+            - generic:
+              - generic: A
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Dashboards
+              - paragraph: Create and manage interactive dashboards
+          - generic:
+            - generic:
+              - heading [level=3]:
+                - img
+                - text: All Dashboards
+            - generic:
+              - generic:
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: Name
+                      - columnheader: Description
+                      - columnheader: Visibility
+                      - columnheader: Created
+                      - columnheader: Modified
+                      - columnheader: Actions
+                  - rowgroup:
+                    - row:
+                      - cell: Product Performance
+                      - cell: Product-focused analytics
+                      - cell:
+                        - generic:
+                          - img
+                          - text: Private
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button:
+                          - img
+                    - row:
+                      - cell: Sales Dashboard
+                      - cell: Sales team metrics and KPIs
+                      - cell:
+                        - generic:
+                          - img
+                          - text: Private
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button:
+                          - img
+                    - row:
+                      - cell: Executive Dashboard
+                      - cell: High-level view of business metrics
+                      - cell:
+                        - generic:
+                          - img
+                          - text: Private
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button [expanded]:
+                          - img
+  - region "Notifications alt+T"
+  - menu [active] [ref=e230]:
+    - menuitem "View" [ref=e231]:
+      - img [ref=e232]
+      - text: View

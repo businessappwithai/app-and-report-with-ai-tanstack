@@ -1,0 +1,117 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - button:
+            - img
+            - generic: Enterprise Database
+            - generic: pg
+        - generic:
+          - button:
+            - img
+            - generic: Toggle theme
+          - button:
+            - img
+            - generic: Notifications
+          - button:
+            - generic:
+              - generic: A
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Reports
+              - paragraph: Create and manage tabular reports
+            - button:
+              - img
+              - text: New Report
+          - generic:
+            - generic:
+              - heading [level=3]:
+                - img
+                - text: All Reports
+            - generic:
+              - generic:
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: Name
+                      - columnheader: Description
+                      - columnheader: Query
+                      - columnheader: Created
+                      - columnheader: Modified
+                      - columnheader: Actions
+                  - rowgroup:
+                    - row:
+                      - cell:
+                        - generic: Top 10 Products
+                      - cell: "Report: Top 10 Products"
+                      - cell:
+                        - generic: Linked
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button [expanded]:
+                          - img
+                    - row:
+                      - cell:
+                        - generic: Monthly Revenue Report
+                      - cell: "Report: Monthly Revenue Report"
+                      - cell:
+                        - generic: Linked
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button:
+                          - img
+                    - row:
+                      - cell:
+                        - generic: Sales by Region Report
+                      - cell: "Report: Sales by Region Report"
+                      - cell:
+                        - generic: Linked
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell: May 13, 2026, 04:37 PM
+                      - cell:
+                        - button:
+                          - img
+  - region "Notifications alt+T"
+  - menu [active] [ref=e224]:
+    - menuitem "View" [ref=e225]:
+      - img [ref=e226]
+      - text: View
+    - menuitem "Edit" [ref=e229]:
+      - img [ref=e230]
+      - text: Edit
+    - menuitem "Delete" [ref=e233]:
+      - img [ref=e234]
+      - text: Delete

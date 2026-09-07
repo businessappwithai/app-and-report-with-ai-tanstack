@@ -1,0 +1,70 @@
+/**
+ * Entity Lifecycle Workflow - Trigger.dev v3 Task (Placeholder)
+ *
+ * This is a placeholder for async workflow orchestration.
+ * When integrated with Trigger.dev, this task would:
+ * 1. Load entity + related entities from database
+ * 2. Load JDM rule from sys_rule_definitions table
+ * 3. Execute @gorules/zen-engine with JSON context
+ * 4. Parse output mutations and apply to database
+ * 5. Write sys_workflow_runs record
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { task } from '@trigger.dev/sdk/v3';
+import { ZenEngine } from '@gorules/zen-engine';
+
+// Placeholder task that logs workflow execution
+export const entityLifecycleWorkflow = task({
+  id: 'entity-lifecycle-workflow',
+  run: async (payload: {
+    workflowRunId: string;
+    entityName: string;
+    entityId: string;
+    operation: 'create' | 'update' | 'delete';
+    userId?: string;
+  }) => {
+    console.log(`[Workflow] Task triggered for ${payload.entityName}:${payload.operation}:${payload.entityId}`);
+
+    // In production, this would:
+    // 1. Load entity from database
+    // 2. Execute rules
+    // 3. Apply mutations
+    // 4. Update workflow_runs table
+
+    return {
+      success: true,
+      message: 'Workflow task received (placeholder)',
+      workflowRunId: payload.workflowRunId,
+    };
+  },
+});
+
+// Helper function to evaluate rules (placeholder)
+async function evaluateRules(
+  engine: ZenEngine,
+  jdmContent: string,
+  context: Record<string, unknown>
+): Promise<any[]> {
+  try {
+    const result = await engine.evaluate(JSON.parse(jdmContent), context) as any;
+    return (result && typeof result === 'object' && 'violations' in result) ? result.violations : [];
+  } catch (error) {
+    console.error('Rule evaluation error:', error);
+    return [];
+  }
+}
+
+// Helper function to load entity with relations (placeholder)
+async function loadEntityWithContext(
+  entityName: string,
+  entityId: string
+): Promise<{ entity: Record<string, unknown>; relations: Record<string, unknown> }> {
+  // In production, this would query the database and load entity with all relations
+  return {
+    entity: { id: entityId },
+    relations: {},
+  };
+}

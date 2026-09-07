@@ -1,0 +1,81 @@
+/**
+ * Application Dictionary — the metadata that drives the generated UI.
+ *
+ * Every entity in the ERD must be registered with columns and field layouts,
+ * otherwise the frontend renders an empty form for it.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { afterAll, beforeAll, describe, expect, it } from "../harness/testing.ts";
+import { entities, harness, writableFields } from "../harness/index.ts";
+
+describe("application dictionary", () => {
+  beforeAll(async () => {
+    await harness.setup();
+  });
+
+  afterAll(async () => {
+    await harness.teardown();
+  });
+
+  it("has at least one entity generated from the ERD", () => {
+    expect(entities.length).toBeGreaterThan(0);
+  });
+
+  for (const entity of entities) {
+    describe(entity.displayName, () => {
+      it("exposes dictionary metadata", async () => {
+        const response = await harness.client.get<{ columns: Array<Record<string, unknown>> }>(
+          `/bus/${entity.route}/meta`
+        );
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.data.columns)).toBe(true);
+        expect(response.data.columns.length).toBeGreaterThan(0);
+      });
+
+      it("registers every ERD column in sys_column", async () => {
+        const response = await harness.client.get<{
+          columns: Array<{ column_name: string }>;
+        }>(`/bus/${entity.route}/meta`);
+
+        const registered = new Set(response.data.columns.map((c) => c.column_name));
+        const missing = writableFields(entity)
+          .map((f) => f.name)
+          .filter((name) => !registered.has(name));
+
+        expect(missing).toEqual([]);
+      });
+
+      it("returns ordered form fields", async () => {
+        const response = await harness.client.get<Array<{ seq_no?: number }>>(
+          `/bus/${entity.route}/fields/form`
+        );
+
+        expect(Array.isArray(response.data)).toBe(true);
+
+        const sequences = response.data
+          .map((field) => field.seq_no)
+          .filter((seq): seq is number => typeof seq === "number");
+        const sorted = [...sequences].sort((a, b) => a - b);
+        expect(sequences).toEqual(sorted);
+      });
+
+      it("returns ordered grid fields", async () => {
+        const response = await harness.client.get<Array<{ seq_no_grid?: number }>>(
+          `/bus/${entity.route}/fields/grid`
+        );
+
+        expect(Array.isArray(response.data)).toBe(true);
+
+        const sequences = response.data
+          .map((field) => field.seq_no_grid)
+          .filter((seq): seq is number => typeof seq === "number");
+        const sorted = [...sequences].sort((a, b) => a - b);
+        expect(sequences).toEqual(sorted);
+      });
+    });
+  }
+});

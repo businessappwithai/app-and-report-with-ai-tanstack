@@ -1,0 +1,306 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e45] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e50]: Dashboard
+            - link "SQL Editor" [ref=e51] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e55]: SQL Editor
+            - link "Saved Queries" [ref=e56] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e57]:
+                - img [ref=e58]
+                - generic [ref=e62]: Saved Queries
+            - link "Reports" [ref=e63] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e64]:
+                - img [ref=e65]
+                - generic [ref=e68]: Reports
+            - link "Charts" [ref=e69] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e70]:
+                - img [ref=e71]
+                - generic [ref=e73]: Charts
+            - link "Dashboards" [ref=e74] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e75]:
+                - img [ref=e76]
+                - generic [ref=e81]: Dashboards
+            - link "Filters" [ref=e82] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e83]:
+                - img [ref=e84]
+                - generic [ref=e86]: Filters
+            - link "Jobs" [ref=e87] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e88]:
+                - img [ref=e89]
+                - generic [ref=e91]: Jobs
+            - link "NL Query" [ref=e92] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e93]:
+                - img [ref=e94]
+                - generic [ref=e96]: NL Query
+        - generic [ref=e22]:
+          - heading "Administration" [level=2] [ref=e23]
+          - navigation [ref=e97]:
+            - link "Data Sources" [ref=e98] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e99]:
+                - img [ref=e100]
+                - generic [ref=e104]: Data Sources
+            - link "Queue Management" [ref=e105] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e106]:
+                - img [ref=e107]
+                - generic [ref=e111]: Queue Management
+            - link "System Logs" [ref=e112] [cursor=pointer]:
+              - /url: /logs
+              - button "System Logs" [ref=e113]:
+                - img [ref=e114]
+                - generic [ref=e117]: System Logs
+            - link "Users" [ref=e118] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e119]:
+                - img [ref=e120]
+                - generic [ref=e125]: Users
+            - link "Roles" [ref=e126] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e127]:
+                - img [ref=e128]
+                - generic [ref=e130]: Roles
+            - link "Permissions" [ref=e131] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e132]:
+                - img [ref=e133]
+                - generic [ref=e135]: Permissions
+            - link "Settings" [ref=e136] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e137]:
+                - img [ref=e138]
+                - generic [ref=e141]: Settings
+      - button [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e27]:
+      - banner [ref=e28]:
+        - generic [ref=e29]:
+          - combobox [ref=e30] [cursor=pointer]:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img [ref=e31]
+          - button "Notifications" [ref=e34] [cursor=pointer]:
+            - img [ref=e35]
+            - generic [ref=e38]: Notifications
+          - button "SA" [ref=e39] [cursor=pointer]:
+            - generic [ref=e41]: SA
+      - main [ref=e42]:
+        - generic [ref=e43]:
+          - navigation [ref=e142]:
+            - link [ref=e143] [cursor=pointer]:
+              - /url: /
+              - img [ref=e144]
+            - generic [ref=e147]:
+              - img [ref=e148]
+              - link "Reports" [ref=e150] [cursor=pointer]:
+                - /url: /reports
+            - generic [ref=e151]:
+              - img [ref=e152]
+              - link "Patient" [ref=e154] [cursor=pointer]:
+                - /url: /reports/ac3cf510-636f-4207-8528-393723bc28e8/viewer
+            - generic [ref=e155]:
+              - img [ref=e156]
+              - generic [ref=e158]: Edit
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - heading "Edit Report" [level=1] [ref=e162]
+              - paragraph [ref=e163]: Configure report columns and settings
+            - generic [ref=e164]:
+              - button "Preview" [ref=e165] [cursor=pointer]:
+                - img [ref=e166]
+                - text: Preview
+              - button "Save" [ref=e169] [cursor=pointer]:
+                - img [ref=e170]
+                - text: Save
+          - generic [ref=e174]:
+            - tablist [ref=e175]:
+              - tab "General" [ref=e176] [cursor=pointer]
+              - tab "Columns" [ref=e177] [cursor=pointer]
+              - tab "Filters" [ref=e178] [cursor=pointer]
+              - tab "Export" [active] [selected] [ref=e179] [cursor=pointer]
+            - tabpanel "Export" [ref=e180]:
+              - generic [ref=e181]:
+                - heading "Export Settings" [level=3] [ref=e182]
+                - generic [ref=e183]:
+                  - generic [ref=e184]:
+                    - generic [ref=e185]:
+                      - generic [ref=e186]:
+                        - text: CSV Export
+                        - paragraph [ref=e187]: Comma-separated values format
+                      - switch "CSV Export" [checked] [ref=e188] [cursor=pointer]
+                    - generic [ref=e189]:
+                      - generic [ref=e190]:
+                        - text: Excel Export
+                        - paragraph [ref=e191]: Native Excel format
+                      - switch "Excel Export" [checked] [ref=e192] [cursor=pointer]
+                    - generic [ref=e193]:
+                      - generic [ref=e194]:
+                        - text: HTML Export
+                        - paragraph [ref=e195]: Interactive HTML with search and pagination
+                      - switch "HTML Export" [checked] [ref=e196] [cursor=pointer]
+                    - generic [ref=e197]:
+                      - generic [ref=e198]:
+                        - text: PDF Export
+                        - paragraph [ref=e199]: Portable Document Format
+                      - switch "PDF Export" [checked] [ref=e200] [cursor=pointer]
+                  - generic [ref=e201]:
+                    - heading "Filename Template" [level=4] [ref=e202]
+                    - paragraph [ref=e203]: Customize export filenames by selecting fields to concatenate with the report name
+                    - generic [ref=e204]:
+                      - generic [ref=e205]:
+                        - text: First Additional Field (optional)
+                        - combobox "First Additional Field (optional)" [ref=e206] [cursor=pointer]:
+                          - generic: FName
+                          - img [ref=e207]
+                      - generic [ref=e209]:
+                        - text: Second Additional Field (optional)
+                        - combobox "Second Additional Field (optional)" [ref=e210] [cursor=pointer]:
+                          - generic: LName
+                          - img [ref=e211]
+                      - paragraph [ref=e214]: "Example: Patient[first_name][last_name] .pdf"
+                  - generic [ref=e215]:
+                    - heading "Color Theme" [level=4] [ref=e216]
+                    - generic [ref=e217]:
+                      - generic [ref=e218]:
+                        - text: Header Background
+                        - generic [ref=e219]:
+                          - textbox [ref=e220] [cursor=pointer]: "#1e293b"
+                          - generic [ref=e221]: "#1e293b"
+                      - generic [ref=e222]:
+                        - text: Header Text
+                        - generic [ref=e223]:
+                          - textbox [ref=e224] [cursor=pointer]: "#ffffff"
+                          - generic [ref=e225]: "#ffffff"
+                      - generic [ref=e226]:
+                        - text: Row Background
+                        - generic [ref=e227]:
+                          - textbox [ref=e228] [cursor=pointer]: "#ffffff"
+                          - generic [ref=e229]: "#ffffff"
+                      - generic [ref=e230]:
+                        - text: Row Text
+                        - generic [ref=e231]:
+                          - textbox [ref=e232] [cursor=pointer]: "#334155"
+                          - generic [ref=e233]: "#334155"
+                      - generic [ref=e234]:
+                        - text: Alternating Row Background
+                        - generic [ref=e235]:
+                          - textbox [ref=e236] [cursor=pointer]: "#f8fafc"
+                          - generic [ref=e237]: "#f8fafc"
+                      - generic [ref=e238]:
+                        - text: Alternating Row Text
+                        - generic [ref=e239]:
+                          - textbox [ref=e240] [cursor=pointer]: "#334155"
+                          - generic [ref=e241]: "#334155"
+                      - generic [ref=e242]:
+                        - text: Border Color
+                        - generic [ref=e243]:
+                          - textbox [ref=e244] [cursor=pointer]: "#e2e8f0"
+                          - generic [ref=e245]: "#e2e8f0"
+  - region "Notifications alt+T"
+  - complementary "Tanstack query devtools" [ref=e246]:
+    - separator "Resize devtools panel" [ref=e247]
+    - button "Close tanstack query devtools" [ref=e248] [cursor=pointer]:
+      - img [ref=e249]
+    - generic [ref=e251]:
+      - generic [ref=e252]:
+        - generic [ref=e253]:
+          - button "Close Tanstack query devtools" [ref=e254] [cursor=pointer]:
+            - generic [ref=e255]: TANSTACK
+            - generic [ref=e256]: React Query v5
+          - radiogroup "Toggle between queries and mutations view" [ref=e257]:
+            - group [ref=e258]:
+              - radio "Queries" [checked] [ref=e259]
+              - generic "Toggle Queries View" [ref=e260] [cursor=pointer]: Queries
+            - group [ref=e261]:
+              - radio "Mutations" [ref=e262]
+              - generic "Toggle Mutations View" [ref=e263] [cursor=pointer]: Mutations
+        - generic [ref=e264]:
+          - 'button "Fresh: 7" [disabled] [ref=e265]':
+            - generic [ref=e267]: Fresh
+            - generic [ref=e268]: "7"
+          - 'button "Fetching: 0" [disabled] [ref=e269]':
+            - generic [ref=e271]: Fetching
+            - generic [ref=e272]: "0"
+          - 'button "Paused: 0" [disabled] [ref=e273]':
+            - generic [ref=e275]: Paused
+            - generic [ref=e276]: "0"
+          - 'button "Stale: 0" [disabled] [ref=e277]':
+            - generic [ref=e279]: Stale
+            - generic [ref=e280]: "0"
+          - 'button "Inactive: 1" [disabled] [ref=e281]':
+            - generic [ref=e283]: Inactive
+            - generic [ref=e284]: "1"
+      - generic [ref=e285]:
+        - generic [ref=e286]:
+          - generic [ref=e287]:
+            - img [ref=e288]
+            - textbox "Filter queries by query key" [ref=e290]:
+              - /placeholder: Filter
+          - generic [ref=e291]:
+            - combobox "Sort queries by" [ref=e292]:
+              - option "Sort by status" [selected]
+              - option "Sort by query hash"
+              - option "Sort by last updated"
+            - img [ref=e293]
+          - button "Sort order ascending" [ref=e295] [cursor=pointer]:
+            - generic [ref=e296]: Asc
+            - img [ref=e297]
+        - generic [ref=e299]:
+          - button "Clear query cache" [ref=e300] [cursor=pointer]:
+            - img [ref=e301]
+          - button "Mock offline behavior" [ref=e303] [cursor=pointer]:
+            - img [ref=e304]
+          - button "Open in picture-in-picture mode" [ref=e307] [cursor=pointer]:
+            - img [ref=e308]
+          - button "Open settings menu" [ref=e310] [cursor=pointer]:
+            - img [ref=e311]
+      - generic [ref=e315]:
+        - button "Query key [\"query-result\",\"ba62d3b2-f59c-4372-bf08-aeb5a8f6938f\"]" [ref=e316] [cursor=pointer]:
+          - generic [ref=e317]: "1"
+          - code [ref=e318]: "[\"query-result\",\"ba62d3b2-f59c-4372-bf08-aeb5a8f6938f\"]"
+        - button "Query key [\"report-filters\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]" [ref=e319] [cursor=pointer]:
+          - generic [ref=e320]: "1"
+          - code [ref=e321]: "[\"report-filters\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]"
+        - button "Query key [\"filters\"]" [ref=e322] [cursor=pointer]:
+          - generic [ref=e323]: "1"
+          - code [ref=e324]: "[\"filters\"]"
+        - button "Query key [\"queries\"]" [ref=e325] [cursor=pointer]:
+          - generic [ref=e326]: "1"
+          - code [ref=e327]: "[\"queries\"]"
+        - button "Query key [\"report\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]" [ref=e328] [cursor=pointer]:
+          - generic [ref=e329]: "1"
+          - code [ref=e330]: "[\"report\",\"ac3cf510-636f-4207-8528-393723bc28e8\"]"
+        - button "Query key [\"notifications\",false]" [ref=e331] [cursor=pointer]:
+          - generic [ref=e332]: "1"
+          - code [ref=e333]: "[\"notifications\",false]"
+        - button "Query key [\"user-permissions\"]" [ref=e334] [cursor=pointer]:
+          - generic [ref=e335]: "28"
+          - code [ref=e336]: "[\"user-permissions\"]"
+        - button "Query key [\"query-result\",\"\"], disabled" [ref=e337] [cursor=pointer]:
+          - generic [ref=e338]: "0"
+          - code [ref=e339]: "[\"query-result\",\"\"]"
+          - generic [ref=e340]: disabled

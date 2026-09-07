@@ -1,0 +1,252 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - img
+          - generic: Enterprise Reports
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: Main
+                - navigation:
+                  - link:
+                    - /url: /
+                    - button:
+                      - img
+                      - generic: Dashboard
+                  - link:
+                    - /url: /sql-editor
+                    - button:
+                      - img
+                      - generic: SQL Editor
+                  - link:
+                    - /url: /queries
+                    - button:
+                      - img
+                      - generic: Saved Queries
+                  - link:
+                    - /url: /reports
+                    - button:
+                      - img
+                      - generic: Reports
+                  - link:
+                    - /url: /charts
+                    - button:
+                      - img
+                      - generic: Charts
+                  - link:
+                    - /url: /dashboards
+                    - button:
+                      - img
+                      - generic: Dashboards
+                  - link:
+                    - /url: /filters
+                    - button:
+                      - img
+                      - generic: Filters
+                  - link:
+                    - /url: /jobs
+                    - button:
+                      - img
+                      - generic: Jobs
+                  - link:
+                    - /url: /monitoring
+                    - button:
+                      - img
+                      - generic: Monitoring
+                  - link:
+                    - /url: /nl-query
+                    - button:
+                      - img
+                      - generic: NL Query
+              - generic:
+                - heading [level=2]: Administration
+                - navigation:
+                  - link:
+                    - /url: /data-sources
+                    - button:
+                      - img
+                      - generic: Data Sources
+                  - link:
+                    - /url: /bull-board
+                    - button:
+                      - img
+                      - generic: Queue Management
+                  - link:
+                    - /url: /logs
+                    - button:
+                      - img
+                      - generic: System Logs
+                  - link:
+                    - /url: /admin/users
+                    - button:
+                      - img
+                      - generic: Users
+                  - link:
+                    - /url: /admin/roles
+                    - button:
+                      - img
+                      - generic: Roles
+                  - link:
+                    - /url: /admin/permissions
+                    - button:
+                      - img
+                      - generic: Permissions
+                  - link:
+                    - /url: /settings
+                    - button:
+                      - img
+                      - generic: Settings
+      - button:
+        - img
+    - generic:
+      - banner:
+        - generic:
+          - combobox:
+            - generic:
+              - generic:
+                - img
+                - generic: Light Theme
+            - img
+          - button:
+            - img
+            - generic: Notifications
+          - button:
+            - generic:
+              - generic: SA
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=1]: Monitoring Rules
+              - paragraph: Automated threshold monitoring with intelligent alerts
+            - link:
+              - /url: /monitoring/create
+              - button: + New Monitor
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - table:
+                    - rowgroup:
+                      - row:
+                        - columnheader: Name
+                        - columnheader: Data Source
+                        - columnheader: Metric Column
+                        - columnheader: Threshold
+                        - columnheader: Schedule
+                        - columnheader: Status
+                        - columnheader: Last Run
+                        - columnheader: Last Value
+                        - columnheader: Actions
+                    - rowgroup:
+                      - row:
+                        - cell: Weekly Patient Admission Drop Alert
+                        - cell: Hospital Management System
+                        - cell: total_patients_admitted
+                        - cell: < 50
+                        - cell: Every Monday at midnight
+                        - cell:
+                          - generic: Active
+                        - cell: Jun 4, 2026, 09:33 AM
+                        - cell: "144.0000"
+                        - cell:
+                          - generic:
+                            - button:
+                              - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+  - region "Notifications alt+T"
+  - generic:
+    - generic:
+      - img
+    - button:
+      - img
+  - dialog "Execution Investigation" [ref=e164]:
+    - generic [ref=e165]:
+      - heading "Execution Investigation" [level=2] [ref=e166]:
+        - img [ref=e167]
+        - text: Execution Investigation
+      - paragraph [ref=e170]: Step-by-step trace for the most recent run of Weekly Patient Admission Drop Alert
+    - generic [ref=e171]:
+      - generic [ref=e172]:
+        - img [ref=e173]
+        - generic [ref=e176]:
+          - generic [ref=e177]:
+            - generic [ref=e178]: PASS
+            - generic [ref=e179]: · 6ms total
+          - paragraph [ref=e180]: Jun 4, 2026, 09:33 AM
+        - generic [ref=e181]: 73e63b8d…
+      - button "1 Rule Loaded" [ref=e183] [cursor=pointer]:
+        - generic [ref=e184]: "1"
+        - img [ref=e186]
+        - generic [ref=e190]: Rule Loaded
+        - img [ref=e191]
+        - img [ref=e194]
+      - button "2 RBAC Validation" [ref=e197] [cursor=pointer]:
+        - generic [ref=e198]: "2"
+        - img [ref=e200]
+        - generic [ref=e203]: RBAC Validation
+        - img [ref=e204]
+        - img [ref=e207]
+      - generic [ref=e209]:
+        - button "3 SQL Execution — 1 row returned" [ref=e210] [cursor=pointer]:
+          - generic [ref=e211]: "3"
+          - img [ref=e213]
+          - generic [ref=e217]: SQL Execution — 1 row returned
+          - img [ref=e218]
+          - img [ref=e221]
+        - generic [ref=e223]:
+          - generic [ref=e224]:
+            - generic [ref=e225]: Duration
+            - generic [ref=e226]: 6ms
+          - generic [ref=e227]:
+            - generic [ref=e228]: Rows returned
+            - generic [ref=e229]: "1"
+          - paragraph [ref=e230]: "SQL executed:"
+          - generic [ref=e231]: SELECT COUNT(*) AS total_patients_admitted FROM bus_admission WHERE EXTRACT(DOW FROM admission_datetime) = 1
+      - generic [ref=e232]:
+        - button "4 Threshold Evaluation — PASS" [ref=e233] [cursor=pointer]:
+          - generic [ref=e234]: "4"
+          - img [ref=e236]
+          - generic [ref=e239]: Threshold Evaluation — PASS
+          - img [ref=e240]
+          - img [ref=e243]
+        - generic [ref=e245]:
+          - generic [ref=e246]:
+            - generic [ref=e247]: Metric value
+            - generic [ref=e248]: "144"
+          - generic [ref=e249]:
+            - generic [ref=e250]: Previous value
+            - generic [ref=e251]: "144"
+          - generic [ref=e252]:
+            - generic [ref=e253]: Change
+            - generic [ref=e255]: +0.00%
+          - generic [ref=e256]:
+            - generic [ref=e257]: Outcome
+            - generic [ref=e258]: Threshold satisfied — no alert needed
+      - button "5 Alert Dispatch — Skipped" [ref=e260] [cursor=pointer]:
+        - generic [ref=e261]: "5"
+        - img [ref=e263]
+        - generic [ref=e268]: Alert Dispatch — Skipped
+        - img [ref=e269]
+        - img [ref=e272]
+      - button "6 Execution Record Written" [ref=e275] [cursor=pointer]:
+        - generic [ref=e276]: "6"
+        - img [ref=e278]
+        - generic [ref=e281]: Execution Record Written
+        - img [ref=e282]
+        - img [ref=e285]
+    - button "Close" [active] [ref=e287] [cursor=pointer]:
+      - img [ref=e288]
+      - generic [ref=e291]: Close

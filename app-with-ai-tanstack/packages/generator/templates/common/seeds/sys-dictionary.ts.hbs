@@ -1,0 +1,875 @@
+/**
+ * System Dictionary Seed
+ * Populates sys_ tables with metadata for business entities
+ *
+ * Generated: {{now}}
+ *
+ * This seed creates:
+ * - sys_table entries for each business entity
+ * - sys_column entries for each entity attribute
+ * - sys_window entries for entity management
+ * - sys_tab entries for window tabs
+ * - sys_field entries with randomized seq_no for runtime modification demo
+ */
+
+import { Kysely, sql } from 'kysely';
+import { v4 as uuidv4 } from 'uuid';
+
+// ============================================================================
+// Application Dictionary Help Text
+// ============================================================================
+// Help is composed from the dictionary itself rather than hand-written per
+// project, so it cannot drift from the schema it describes: what is mandatory,
+// what has to be unique, which records link to which, and the draft -> final
+// lifecycle every business record goes through.
+//
+// Administrators can overwrite any of this from Window, Tab and Field; the
+// seed only supplies the starting text.
+
+interface HelpColumn {
+  columnName: string;
+  displayName: string;
+  type: string;
+  isMandatory: boolean;
+  isUnique: boolean;
+  isForeignKey: boolean;
+  maxLength?: number;
+  /** Display label of the entity this column points at, once resolved. */
+  fkTarget?: string;
+  /** The entity's own <name>_id column carried over from the ERD. */
+  isBusinessKey?: boolean;
+}
+
+interface HelpEntity {
+  label: string;
+  tableName: string;
+  stem: string;
+  columns: HelpColumn[];
+}
+
+/** Columns the framework maintains; never described as user input. */
+const HELP_AUDIT_COLUMNS = [
+  'created_at',
+  'updated_at',
+  'deleted_at',
+  'created_by',
+  'updated_by',
+  'version',
+];
+
+/** 'a', 'a and b', 'a, b and c' */
+function helpJoin(items: string[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** 'a Patient' / 'an Encounter' */
+function helpArticle(word: string): string {
+  return /^[aeiou]/i.test(word) ? 'an' : 'a';
+}
+
+function isAuditColumn(col: HelpColumn): boolean {
+  return HELP_AUDIT_COLUMNS.includes(col.columnName);
+}
+
+/**
+ * Resolve the cross-references the help text leans on: which columns point at
+ * another entity, and which entities point back at this one.
+ */
+function resolveHelpModel(entities: HelpEntity[]): Map<string, { entity: HelpEntity; children: string[] }> {
+  const byStem = new Map(entities.map((e) => [e.stem, e]));
+  const resolved = new Map<string, { entity: HelpEntity; children: string[] }>();
+
+  for (const entity of entities) {
+    for (const col of entity.columns) {
+      if (!col.columnName.endsWith('_id')) continue;
+      const stem = col.columnName.slice(0, -'_id'.length);
+      const target = byStem.get(stem);
+      if (!target) continue;
+      if (target.tableName === entity.tableName) {
+        // The entity's own identifier from the ERD, not a link to anything.
+        col.isBusinessKey = true;
+      } else if (col.isForeignKey) {
+        col.fkTarget = target.label;
+      }
+    }
+  }
+
+  for (const entity of entities) {
+    const children = entities
+      .filter((other) =>
+        other.tableName !== entity.tableName &&
+        other.columns.some((c) => c.fkTarget === entity.label),
+      )
+      .map((other) => other.label);
+    resolved.set(entity.tableName, { entity, children });
+  }
+
+  return resolved;
+}
+
+function windowHelpText(entity: HelpEntity, children: string[]): string {
+  const label = entity.label;
+  const parents = [...new Set(entity.columns.filter((c) => c.fkTarget).map((c) => c.fkTarget!))];
+  const uniques = entity.columns.filter((c) => c.isUnique).map((c) => c.displayName);
+  const required = entity.columns
+    .filter((c) => c.isMandatory && !isAuditColumn(c))
+    .map((c) => c.displayName);
+
+  const paragraphs: string[] = [];
+
+  paragraphs.push(
+    `Create, find and maintain ${label} records. The list shows every ${label} you have access to — ` +
+      `select a row to open it, or use New to add one. Each row is a single ${label}, described by ` +
+      `${entity.columns.length} field${entity.columns.length === 1 ? '' : 's'}.`,
+  );
+
+  const identity: string[] = [];
+  if (uniques.length > 0) {
+    identity.push(
+      `${helpJoin(uniques)} ${uniques.length === 1 ? 'is unique' : 'are unique'}: no two ${label} records ` +
+        `may share the same value, and a save that would duplicate one is rejected.`,
+    );
+  }
+  if (required.length > 0) {
+    identity.push(`${helpJoin(required)} must be filled in before the record can be saved.`);
+  }
+  if (identity.length > 0) paragraphs.push(identity.join(' '));
+
+  const links: string[] = [];
+  if (parents.length > 0) {
+    links.push(
+      `Every ${label} points at ${helpJoin(parents)}. Choose the linked record from the lookup on those ` +
+        `fields rather than typing an identifier.`,
+    );
+  }
+  if (children.length > 0) {
+    links.push(
+      `${helpJoin(children)} ${children.length === 1 ? 'refers' : 'refer'} back to ${label}, so what you ` +
+        `change here can affect ${children.length === 1 ? 'that record' : 'those records'}.`,
+    );
+  }
+  if (links.length > 0) paragraphs.push(links.join(' '));
+
+  paragraphs.push(
+    `Every save starts as a Draft. The business rules and workflows attached to ${label} then run together ` +
+      `in a single transaction: if all of them succeed the record becomes Final; if any of them fails, ` +
+      `nothing they changed is kept — the record stays Draft and the reason is written onto it so you can ` +
+      `fix the cause and retry. ${helpArticle(label) === 'an' ? 'An' : 'A'} ${label} with no rules or ` +
+      `workflows attached is marked Final immediately.`,
+  );
+
+  return paragraphs.join('\n\n');
+}
+
+function tabHelpText(entity: HelpEntity): string {
+  const label = entity.label;
+  const required = entity.columns.filter((c) => c.isMandatory && !isAuditColumn(c));
+  const lookups = entity.columns.filter((c) => c.fkTarget);
+  const sentences: string[] = [];
+
+  sentences.push(
+    `Shows one ${label} at a time. Fields are grouped: General carries the identifying fields and Details ` +
+      `carries the rest.`,
+  );
+  if (required.length > 0) {
+    sentences.push(
+      `${required.length} field${required.length === 1 ? '' : 's'} marked with a red asterisk (*) must have ` +
+        `a value before Save will accept the record.`,
+    );
+  }
+  if (lookups.length > 0) {
+    sentences.push(
+      `${helpJoin(lookups.map((c) => c.displayName))} ${lookups.length === 1 ? 'is a lookup' : 'are lookups'} — ` +
+        `search the linked records instead of entering an identifier by hand.`,
+    );
+  }
+  sentences.push(
+    `Any field showing a ? beside its label has help of its own; click it for the rules that apply there.`,
+  );
+
+  return sentences.join(' ');
+}
+
+function fieldTypeSentence(entity: HelpEntity, col: HelpColumn): string {
+  const noun = col.displayName.toLowerCase();
+  switch (col.type) {
+    case 'date':
+      return `The ${noun} of this ${entity.label}, as a calendar date.`;
+    case 'datetime':
+      return `The ${noun} of this ${entity.label}, as a date and time.`;
+    case 'integer':
+      return `The ${noun} of this ${entity.label}, as a whole number.`;
+    case 'decimal':
+      return `The ${noun} of this ${entity.label}, as a decimal amount.`;
+    case 'boolean':
+      return `Whether this ${entity.label} is marked as ${noun}.`;
+    case 'text':
+      return `Free-form ${noun} for this ${entity.label}. The box grows as you type.`;
+    case 'json':
+      return `The ${noun} of this ${entity.label}, held as structured JSON.`;
+    default:
+      return `The ${noun} of this ${entity.label}.`;
+  }
+}
+
+function fieldHelpText(entity: HelpEntity, col: HelpColumn): string {
+  const parts: string[] = [];
+
+  if (col.fkTarget) {
+    parts.push(
+      `Links this ${entity.label} to ${helpArticle(col.fkTarget)} ${col.fkTarget} record. Pick the ` +
+        `${col.fkTarget} from the lookup — the identifier is stored for you.`,
+    );
+  } else if (col.isBusinessKey) {
+    parts.push(
+      `The ${entity.label} reference used outside this system. It identifies the ${entity.label} on ` +
+        `documents and in exports, and stays with the record for its whole life.`,
+    );
+  } else if (isAuditColumn(col)) {
+    parts.push(`Maintained by the system as part of the audit trail. It is set automatically, not entered here.`);
+  } else {
+    parts.push(fieldTypeSentence(entity, col));
+  }
+
+  if (col.isMandatory && !isAuditColumn(col)) {
+    parts.push(`Required — the record cannot be saved while this is empty.`);
+  }
+  if (col.isUnique) {
+    parts.push(`Must be unique: a save is rejected if another ${entity.label} already uses this value.`);
+  }
+  if (col.maxLength) {
+    parts.push(`Up to ${col.maxLength} characters.`);
+  }
+
+  return parts.join(' ');
+}
+
+const dictionaryHelpEntities: HelpEntity[] = [
+  {{#each entities}}
+  {
+    label: '{{displayName}}',
+    tableName: '{{tableName}}',
+    stem: '{{snakeCase name}}',
+    columns: [
+      {{#each attributes}}
+      { columnName: '{{columnName}}', displayName: '{{displayName}}', type: '{{type}}', isMandatory: {{#if (or (eq columnName 'created_at') (eq columnName 'updated_at') (eq columnName 'deleted_at'))}}false{{else}}{{#if required}}true{{else}}false{{/if}}{{/if}}, isUnique: {{#if unique}}true{{else}}false{{/if}}, isForeignKey: {{#if isForeignKey}}true{{else}}false{{/if}}{{#if maxLength}}, maxLength: {{maxLength}}{{/if}} },
+      {{/each}}
+    ],
+  },
+  {{/each}}
+];
+
+const dictionaryHelp = resolveHelpModel(dictionaryHelpEntities);
+
+function windowHelpFor(tableName: string): string | null {
+  const found = dictionaryHelp.get(tableName);
+  return found ? windowHelpText(found.entity, found.children) : null;
+}
+
+function tabHelpFor(tableName: string): string | null {
+  const found = dictionaryHelp.get(tableName);
+  return found ? tabHelpText(found.entity) : null;
+}
+
+function fieldHelpFor(tableName: string, columnName: string): string | null {
+  const found = dictionaryHelp.get(tableName);
+  const col = found?.entity.columns.find((c) => c.columnName === columnName);
+  return found && col ? fieldHelpText(found.entity, col) : null;
+}
+
+export async function seed(db: Kysely<any>): Promise<void> {
+  const now = new Date();
+  const createdBy = '{{config.createdBy}}';
+
+  // Truncate sys_ tables so the seed is idempotent (safe to re-run)
+  await sql`TRUNCATE sys_field, sys_tab, sys_window, sys_column, sys_table, sys_field_group CASCADE`.execute(db).catch(() => {});
+
+  // ============================================================================
+  // Create Default Roles (lookup-or-create so re-runs are safe)
+  // ============================================================================
+  let adminRoleId: string;
+  const existingAdminRole = await db.selectFrom('sys_role').select('sys_role_id').where('name', '=', 'Administrator').executeTakeFirst();
+  if (existingAdminRole) {
+    adminRoleId = existingAdminRole.sys_role_id;
+  } else {
+    adminRoleId = uuidv4();
+    await db.insertInto('sys_role').values({
+      sys_role_id: adminRoleId,
+      name: 'Administrator',
+      description: 'System administrator with full access',
+      user_level: 'S',
+      is_master_role: true,
+      is_can_export: true,
+      is_can_report: true,
+      is_personal_lock: false,
+      is_personal_access: false,
+      max_query_records: 0,
+      is_show_accounting: true,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    }).execute();
+  }
+
+  let userRoleId: string;
+  const existingUserRole = await db.selectFrom('sys_role').select('sys_role_id').where('name', '=', 'User').executeTakeFirst();
+  if (existingUserRole) {
+    userRoleId = existingUserRole.sys_role_id;
+  } else {
+    userRoleId = uuidv4();
+    await db.insertInto('sys_role').values({
+      sys_role_id: userRoleId,
+      name: 'User',
+      description: 'Standard user with limited access',
+      user_level: 'C',
+      is_master_role: false,
+      is_can_export: true,
+      is_can_report: true,
+      is_personal_lock: false,
+      is_personal_access: false,
+      max_query_records: 1000,
+      is_show_accounting: false,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    }).execute();
+  }
+
+  // Every role that is not the Administrator gets the business windows.
+  //
+  // Granting only 'User' was invisible while the dictionary was served
+  // unfiltered over HTTP — every role saw every window regardless. Now that a
+  // shape is scoped by role, a role with no grant syncs no dictionary at all,
+  // and 00_users_and_roles seeds Manager and Analyst accounts that would open
+  // to an empty application.
+  const businessRoles = await db
+    .selectFrom('sys_role')
+    .select('sys_role_id')
+    .where('sys_role_id', '!=', adminRoleId)
+    .where('is_active', '=', true)
+    .execute();
+  const businessRoleIds: string[] = businessRoles.length > 0
+    ? businessRoles.map((r: { sys_role_id: string }) => r.sys_role_id)
+    : [userRoleId];
+
+  /**
+   * Role ids for the names a `%%rbac … .read` directive used.
+   *
+   * The model writes `support_agent` and the dictionary seeds `Support Agent`,
+   * so the match normalises separators and case — the same rule the runtime
+   * guard applies, and for the same reason: a name that resolves in the guard
+   * and not here would hide a window from the very role allowed to read it.
+   */
+  const normalizeRole = (value: string) =>
+    String(value ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const allRoles = await db
+    .selectFrom('sys_role')
+    .select(['sys_role_id', 'name'])
+    .where('is_active', '=', true)
+    .execute();
+  const roleIdsNamed = (names: string[]): string[] => {
+    const wanted = new Set(names.map(normalizeRole));
+    return allRoles
+      .filter((r: { name: string }) => wanted.has(normalizeRole(r.name)))
+      .map((r: { sys_role_id: string }) => r.sys_role_id);
+  };
+
+  // ============================================================================
+  // Create Default Admin User (lookup-or-create so re-runs are safe)
+  // ============================================================================
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.com';
+
+  let adminUserId: string;
+  const existingAdmin = await db.selectFrom('sys_user').select('sys_user_id').where('email', '=', adminEmail).executeTakeFirst();
+  if (existingAdmin) {
+    adminUserId = existingAdmin.sys_user_id;
+  } else {
+    adminUserId = uuidv4();
+    await db.insertInto('sys_user').values({
+      sys_user_id: adminUserId,
+      name: 'System Administrator',
+      email: adminEmail,
+      password_hash: '$2b$10$rIC/7qZmzCi9F4g4OKL8wO4k5XYzJ5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5', // replaced by ensureAdminUser on first boot
+      description: 'Default system administrator',
+      is_system_user: true,
+      is_sales_rep: false,
+      login_failure_count: 0,
+      is_locked: false,
+      is_account_verified: true,
+      default_sys_role_id: adminRoleId,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    }).execute();
+  }
+
+  // Assign admin role to admin user (idempotent)
+  await db.insertInto('sys_user_roles').values({
+    sys_user_roles_id: uuidv4(),
+    sys_user_id: adminUserId,
+    sys_role_id: adminRoleId,
+    entity_type: 'D',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).onConflict((oc) => oc.doNothing()).execute();
+
+  // ============================================================================
+  // Create Default Field Groups
+  // ============================================================================
+  const fieldGroupGeneral = uuidv4();
+  const fieldGroupDetails = uuidv4();
+  const fieldGroupSystem = uuidv4();
+
+  await db.insertInto('sys_field_group').values([
+    {
+      sys_field_group_id: fieldGroupGeneral,
+      name: 'General',
+      description: 'General information fields',
+      field_group_type: 'C',
+      is_collapsed_by_default: false,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      sys_field_group_id: fieldGroupDetails,
+      name: 'Details',
+      description: 'Detailed information fields',
+      field_group_type: 'C',
+      is_collapsed_by_default: true,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      sys_field_group_id: fieldGroupSystem,
+      name: 'System',
+      description: 'System fields (audit trail)',
+      field_group_type: 'C',
+      is_collapsed_by_default: true,
+      entity_type: 'D',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    },
+  ]).execute();
+
+  // ============================================================================
+  // Business Entities Dictionary Entries
+  // ============================================================================
+
+  {{#each entities}}
+  // --------------------------------------------------------------------------
+  // {{displayName}} ({{tableName}})
+  // --------------------------------------------------------------------------
+  const {{camelCase name}}TableId = uuidv4();
+  {{#unless parentEntity}}
+  const {{camelCase name}}WindowId = uuidv4();
+  {{/unless}}
+  const {{camelCase name}}TabId = uuidv4();
+
+  {{#unless parentEntity}}
+  // Create sys_window entry FIRST (sys_table references it)
+  await db.insertInto('sys_window').values({
+    sys_window_id: {{camelCase name}}WindowId,
+    name: '{{displayName}}',
+    description: 'Maintain {{displayName}} records',
+    help: windowHelpFor('{{tableName}}'),
+    window_type: 'M',
+    is_sales_transaction: false,
+    is_default: true,
+    // Which rows this window's lists show, and in what order. No filter to
+    // begin with; ordered by most recent change, which is the order a reader
+    // opening a list expects and the one a seeded table needs to be navigable
+    // at all. Both are editable from the Window screen — neither is SQL; see
+    // backend/src/modules/bus/window-list-defaults.ts for the grammars.
+    where_clause: null,
+    order_by_clause: 'updated_at DESC',
+    entity_type: 'U',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).execute();
+  {{/unless}}
+
+  // Create sys_table entry AFTER sys_window
+  await db.insertInto('sys_table').values({
+    sys_table_id: {{camelCase name}}TableId,
+    table_name: '{{tableName}}',
+    name: '{{displayName}}',
+    {{!-- tsString emits the whole literal, quotes included. The model's own
+          words land here, and `%%entity Opportunity help: … the opportunity's
+          amount …` used to close the string on its apostrophe and take the
+          generated application's compile with it. --}}
+    description: {{#if description}}{{tsString description}}{{else}}'Manage {{displayName}} records'{{/if}},
+    access_level: 'A',
+    is_view: false,
+    is_document: false,
+    is_high_volume: false,
+    is_changelog: true,
+    sys_window_id: {{camelCase windowOwner}}WindowId,
+    entity_type: 'U',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).execute();
+
+  // Create sys_tab entry
+  await db.insertInto('sys_tab').values({
+    sys_tab_id: {{camelCase name}}TabId,
+    sys_window_id: {{camelCase windowOwner}}WindowId,
+    sys_table_id: {{camelCase name}}TableId,
+    name: '{{displayName}}',
+    help: tabHelpFor('{{tableName}}'),
+    tab_level: {{#if parentEntity}}1{{else}}0{{/if}},
+    seq_no: {{#if parentEntity}}20{{else}}10{{/if}},
+    is_single_row: true,
+    has_tree: false,
+    is_info_tab: false,
+    is_translation_tab: false,
+    is_read_only: false,
+    is_insert_record: true,
+    is_advanced_tab: false,
+    entity_type: 'U',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).execute();
+
+  // Create sys_column entries
+  const {{camelCase name}}Columns: Array<{ id: string; name: string; displayName: string; isKey: boolean }> = [];
+
+  let {{camelCase name}}ColumnSeqNo = 10;
+  {{#each attributes}}
+  const {{camelCase ../name}}_{{camelCase name}}_columnId = uuidv4();
+  {{camelCase ../name}}Columns.push({
+    id: {{camelCase ../name}}_{{camelCase name}}_columnId,
+    name: '{{columnName}}',
+    displayName: '{{displayName}}',
+    isKey: {{#if (eq name ../primaryKey)}}true{{else}}false{{/if}},
+  });
+
+  await db.insertInto('sys_column').values({
+    sys_column_id: {{camelCase ../name}}_{{camelCase name}}_columnId,
+    sys_table_id: {{camelCase ../name}}TableId,
+    column_name: '{{columnName}}',
+    name: '{{displayName}}',
+    sys_reference_id: {{referenceId}}{{#if maxLength}},
+    field_length: {{maxLength}}{{/if}}{{#if default}},
+    default_value: {{tsString default}}{{/if}},
+    is_key: {{#if (eq name ../primaryKey)}}true{{else}}false{{/if}},
+    is_parent: false,
+    is_mandatory: {{#if (or (eq columnName 'created_at') (eq columnName 'updated_at') (eq columnName 'deleted_at'))}}false{{else}}{{required}}{{/if}},
+    is_updateable: {{#if (or (eq name ../primaryKey) (eq columnName 'created_at') (eq columnName 'updated_at') (eq columnName 'deleted_at'))}}false{{else}}true{{/if}},
+    {{!-- Which columns make up the display value is decided once, in
+          identifierColumnNames, and carried on the attribute. Deciding it here
+          meant a table with both `name` and `code` marked both, and the record
+          read "Acme ACME-01" wherever it was referenced. --}}
+    is_identifier: {{#if isIdentifier}}true{{else}}false{{/if}},
+    is_selection_column: {{#if (or (eq name 'name') unique)}}true{{else}}false{{/if}},
+    is_translated: false,
+    is_encrypted: false,
+    is_allow_logging: true,
+    is_allow_copy: {{#if (eq name ../primaryKey)}}false{{else}}true{{/if}},
+    seq_no: {{camelCase ../name}}ColumnSeqNo,
+    entity_type: 'U',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).execute();
+  {{camelCase ../name}}ColumnSeqNo += 10;
+  {{/each}}
+
+  {{#if parentLinkColumn}}
+  /* A line item links to its master on one column. Set after the columns
+     exist, because the tab was written before them, and marked `is_parent` the
+     way Compiere marks the column that ties a detail row to its master. */
+  {
+    const linkColumn = {{camelCase name}}Columns.find((c) => c.name === '{{parentLinkColumn}}');
+    if (linkColumn) {
+      await db.updateTable('sys_tab')
+        .set({ link_column_id: linkColumn.id })
+        .where('sys_tab_id', '=', {{camelCase name}}TabId)
+        .execute();
+      await db.updateTable('sys_column')
+        .set({ is_parent: true })
+        .where('sys_column_id', '=', linkColumn.id)
+        .execute();
+    }
+  }
+  {{/if}}
+
+  // Create sys_field entries with sequential seq_no
+  for (let i = 0; i < {{camelCase name}}Columns.length; i++) {
+    const col = {{camelCase name}}Columns[i];
+    await db.insertInto('sys_field').values({
+      sys_field_id: uuidv4(),
+      sys_tab_id: {{camelCase name}}TabId,
+      sys_column_id: col.id,
+      sys_field_group_id: i < 3 ? fieldGroupGeneral : fieldGroupDetails,
+      name: col.displayName,
+      help: fieldHelpFor('{{tableName}}', col.name),
+      seq_no: (i + 1) * 10,
+      seq_no_grid: (i + 1) * 10,
+      is_displayed: !col.isKey,
+      is_displayed_grid: !col.isKey && i < 8, // show first 8 non-pk columns in grid
+      is_read_only: ['created_at', 'updated_at', 'deleted_at'].includes(col.name),
+      is_encrypted: false,
+      is_same_line: false,
+      is_heading: false,
+      is_field_only: false,
+      entity_type: 'U',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    }).execute();
+  }
+
+  // Grant access to admin role
+  await db.insertInto('sys_access').values({
+    sys_access_id: uuidv4(),
+    sys_role_id: adminRoleId,
+    sys_table_id: {{camelCase name}}TableId,
+    sys_window_id: {{camelCase windowOwner}}WindowId,
+    access_type_table: 'W',
+    is_read_only: false,
+    is_exclude: false,
+    entity_type: 'U',
+    is_active: true,
+    created_by: createdBy,
+    updated_by: createdBy,
+    created_at: now,
+    updated_at: now,
+  }).execute();
+
+  // Grant read access.
+  //
+  // To the roles the model says own this entity, when it restricted `read` on
+  // it — that is what makes a functional role's application *its* application
+  // rather than the whole system with most of it refusing to open. To every
+  // role otherwise, which is the behaviour of every model that declares no read
+  // restriction, and therefore of every model written before this existed.
+  {{#if (lookup ../access.entityVisibility name)}}
+  const {{camelCase name}}RoleIds = roleIdsNamed([{{#each (lookup ../access.entityVisibility name)}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}]);
+  {{else}}
+  const {{camelCase name}}RoleIds = businessRoleIds;
+  {{/if}}
+  for (const roleId of {{camelCase name}}RoleIds) {
+    await db.insertInto('sys_access').values({
+      sys_access_id: uuidv4(),
+      sys_role_id: roleId,
+      sys_table_id: {{camelCase name}}TableId,
+      sys_window_id: {{camelCase windowOwner}}WindowId,
+      access_type_table: 'R',
+      is_read_only: true,
+      is_exclude: false,
+      entity_type: 'U',
+      is_active: true,
+      created_by: createdBy,
+      updated_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    }).execute();
+  }
+
+  console.log('✓ Created dictionary entries for {{displayName}}');
+
+  {{/each}}
+
+  // ============================================================================
+  // Admin Windows (entity_type = 'S') — Application Dictionary section on dashboard
+  // ============================================================================
+  // Every business window carries help generated from the model. These seven do
+  // not describe an entity, so nothing generated help for them and the Help
+  // button hid itself — the six screens that explain how the application is put
+  // together were the six with no explanation of their own. The text lives in
+  // the dictionary rather than in the pages so an administrator can rewrite it
+  // from Window, Tab and Field like any other help.
+  const adminWindowDefs = [
+    {
+      name: 'Business Rules',
+      route: '/admin/rules',
+      help:
+        'Every rule that runs when a record is written. A rule belongs to one entity and one ' +
+        'operation — CREATE, UPDATE or ALL — and is evaluated as a decision table: the inputs are ' +
+        'columns of the record being saved, and the outputs are what the rule decides.\n\n' +
+        'Rules declared in the model are seeded here on generation. A rule can also emit an action: ' +
+        'reject the write with a message, overwrite a field, or trigger a workflow by name, which is ' +
+        'how a condition on a record starts a multi-step process.\n\n' +
+        'Rules run inside the transaction that saved the record. If one fails the write is rolled ' +
+        'back, so a rule is a guarantee about the data rather than a reminder after the fact.',
+    },
+    {
+      name: 'Workflow Designer',
+      route: '/admin/workflow-definitions',
+      help:
+        'Everything that runs automatically on your records. Each workflow is bound to one entity ' +
+        'and lists its steps in the order they run: look up a decision table, create a record on ' +
+        'another entity, write a field back, delete related rows, call an external service.\n\n' +
+        'The Runs when column is the difference that matters. EVERY WRITE means the workflow runs on ' +
+        'each matching save. WHEN A RULE TRIGGERS IT means it runs only when a business rule names ' +
+        'it, so the rule decides.\n\n' +
+        'Workflows marked FROM THE MODEL are owned by the model and are rewritten on the next ' +
+        'generation; anything built here is yours and is never overwritten. A run that fails rolls ' +
+        'back everything it changed and records the reason against the record.',
+    },
+    {
+      name: 'Audit Log',
+      route: '/admin/audit',
+      help:
+        'The record of who changed what. One entry per insert, update and delete, holding the entity, ' +
+        'the row, the user, the time and the before and after values of every column that moved.\n\n' +
+        'Entries are written by the same transaction as the change, so the log cannot drift from the ' +
+        'data. It is append-only: nothing here can be edited or deleted from the application.\n\n' +
+        'Use it to answer who set this field, when did this record change state, and what did it look ' +
+        'like before. Filter by entity to follow one table, or open a record to see its whole history.',
+    },
+    {
+      name: 'Table and Column',
+      route: '/admin/tables',
+      help:
+        'The database as the application understands it. One row per table, with its columns, their ' +
+        'types, and the flags that decide behaviour everywhere else: mandatory, unique, and which ' +
+        'table a foreign key points at.\n\n' +
+        'This is the layer the rest of the dictionary builds on. A column marked mandatory here is ' +
+        'required in every form; a column with a reference is a lookup rather than a free-text box.\n\n' +
+        'Tables are created from the model on generation. Editing a definition here changes how the ' +
+        'application treats the column, not the database schema itself — a new column still needs a ' +
+        'migration.',
+    },
+    {
+      name: 'Window, Tab and Field',
+      route: '/admin/windows',
+      help:
+        'How each entity is presented. A window is one screen, a tab is one record view inside it, ' +
+        'and a field is one column shown on that tab, in the order and grouping given by its sequence ' +
+        'and field group.\n\n' +
+        'Every screen in the application is drawn from these rows, so this is where you change what a ' +
+        'form looks like without touching code: reorder fields, hide one, mark it read-only, or ' +
+        'rewrite its label and help.\n\n' +
+        'The help you are reading now lives here too. Window, tab and field help is what the Help ' +
+        'button shows on every screen, so improving it here improves it everywhere it is read.',
+    },
+    {
+      name: 'User',
+      route: '/admin/users',
+      help:
+        'The people who can sign in, and the role each of them holds. A user with no role can ' +
+        'authenticate but reach nothing, and deactivating a user ends their access without deleting ' +
+        'the records they created.\n\n' +
+        'Role assignment is what decides which windows a user sees and whether they can write in ' +
+        'them. Change the role here; change what the role allows under Role.',
+    },
+    {
+      name: 'Role',
+      route: '/admin/roles',
+      help:
+        'What each role is allowed to reach. Access is granted per window: a role either sees a ' +
+        'window or does not, and can be given it read-only.\n\n' +
+        'Roles are additive over users, not over each other — a user holds one role, and that role ' +
+        'is the whole of their access. A window with no grant is invisible rather than forbidden, so ' +
+        'removing access removes the screen from the dashboard as well.',
+    },
+    {
+      name: 'System Configuration',
+      route: '/admin/system-config',
+      help:
+        'Runtime configuration that can be changed without a redeploy. AI endpoints, feature toggles, ' +
+        'rate limits, logging, and CORS are managed here.\n\n' +
+        'Each setting falls back to its environment variable when deactivated or empty, so the .env ' +
+        'file remains the bootstrap mechanism. The application description at the top is a detailed ' +
+        'summary of what this application does — it appears in the manual and the dashboard header.',
+    },
+  ];
+
+  for (const wd of adminWindowDefs) {
+    const existing = await db.selectFrom('sys_window').select(['sys_window_id', 'help']).where('name', '=', wd.name).executeTakeFirst();
+    const windowId = existing?.sys_window_id ?? uuidv4();
+    if (!existing) {
+      await db.insertInto('sys_window').values({
+        sys_window_id: windowId,
+        name: wd.name,
+        description: wd.route,
+        help: wd.help,
+        entity_type: 'S',
+        is_active: true,
+        created_by: createdBy,
+        updated_by: createdBy,
+        created_at: now,
+        updated_at: now,
+      }).execute();
+    } else if (!existing.help) {
+      // Backfill only. An administrator who has rewritten this text keeps it —
+      // re-seeding is not a licence to overwrite what someone edited.
+      await db.updateTable('sys_window')
+        .set({ help: wd.help, updated_by: createdBy, updated_at: now })
+        .where('sys_window_id', '=', windowId)
+        .execute();
+    }
+    const existingAccess = await db.selectFrom('sys_access').select('sys_access_id').where('sys_role_id', '=', adminRoleId).where('sys_window_id', '=', windowId).executeTakeFirst();
+    if (!existingAccess) {
+      await db.insertInto('sys_access').values({
+        sys_access_id: uuidv4(),
+        sys_role_id: adminRoleId,
+        sys_window_id: windowId,
+        access_type_table: 'W',
+        is_read_only: false,
+        is_exclude: false,
+        entity_type: 'S',
+        is_active: true,
+        created_by: createdBy,
+        updated_by: createdBy,
+        created_at: now,
+        updated_at: now,
+      }).execute();
+    }
+  }
+
+  console.log('✓ Created admin windows (Business Rules, Workflow Designer, etc.)');
+
+  // ============================================================================
+  // Summary
+  // ============================================================================
+  console.log('');
+  console.log('Dictionary seed complete:');
+  console.log('  - {{entities.length}} business entities');
+  console.log(`  - ${businessRoleIds.length + 1} roles granted window access`);
+  console.log('  - 1 admin user (admin@localhost)');
+  console.log('  - 3 field groups');
+  console.log('  - 8 admin windows (Application Dictionary)');
+  console.log('');
+  console.log('NOTE: Field seq_no values are sequential. Administrators can');
+  console.log('      reorder fields via the admin interface.');
+}

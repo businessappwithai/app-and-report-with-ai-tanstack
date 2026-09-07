@@ -1,0 +1,110 @@
+/**
+ * Workflow Controller - Workflow Monitoring & Management
+ *
+ * Provides API endpoints for:
+ * - Checking workflow status
+ * - Viewing workflow history
+ * - Retrying failed workflows
+ * - Monitoring workflow execution
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Controller, Get, Post, Param, Query, UseGuards, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { EntityAccessGuard } from '../auth/guards/entity-access.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { WorkflowService } from './workflow.service';
+
+@ApiTags('workflows')
+@ApiBearerAuth()
+// EntityAccessGuard covers `entity/:entityName/:entityId`, which returns a
+// record's workflow history — the old and new values of every field a run
+// touched. Without it a caller denied `%%rbac ... on <E>.read` on /bus reads the
+// same data here by changing the URL, which is the restriction not holding.
+// Routes with no entity in the path fall straight through it.
+@UseGuards(SessionAuthGuard, RolesGuard, EntityAccessGuard)
+@Controller('workflows')
+export class WorkflowController {
+  private readonly logger = new Logger(WorkflowController.name);
+
+  constructor(private readonly workflowService: WorkflowService) {}
+
+  /**
+   * The state machine itself — the edges `%%workflow … kind: state` declared,
+   * as the guard reads them.
+   *
+   * Until this existed, the topology was enforced but unreadable: a client had
+   * no way to ask which states a record may move to next, so every screen
+   * offering a status change had to offer all of them and let the save be
+   * refused. Answering the question up front is what lets a form show only the
+   * transitions that exist.
+   *
+   * Declared before `runs/:runId` so the literal path is matched first; Fastify
+   * would otherwise read "transitions" as a run id.
+   */
+  @Get('transitions')
+  @ApiOperation({ summary: 'Valid state-machine transitions, optionally for one table' })
+  @ApiResponse({ status: 200, description: 'Transitions retrieved' })
+  async getTransitions(
+    @Query('table') table?: string,
+    @Query('from') from?: string,
+  ) {
+    return await this.workflowService.getTransitions({ table, from });
+  }
+
+  @Get('runs/:runId')
+  @ApiOperation({ summary: 'Get workflow status by run ID' })
+  @ApiResponse({ status: 200, description: 'Workflow status retrieved' })
+  @ApiResponse({ status: 404, description: 'Workflow not found' })
+  async getWorkflowStatus(@Param('runId') runId: string) {
+    return await this.workflowService.getStatus(runId);
+  }
+
+  @Get('entity/:entityName/:entityId')
+  @ApiOperation({ summary: 'Get workflow history for an entity' })
+  @ApiResponse({ status: 200, description: 'Workflow history retrieved' })
+  async getEntityWorkflows(
+    @Param('entityName') entityName: string,
+    @Param('entityId') entityId: string,
+    @Query('limit') limit?: string,
+  ) {
+    return await this.workflowService.getEntityWorkflows(
+      entityName,
+      entityId,
+      limit ? parseInt(limit, 10) : 10
+    );
+  }
+
+  @Get('runs')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get all workflow runs (admin only)' })
+  @ApiResponse({ status: 200, description: 'Workflow runs retrieved' })
+  async getAllWorkflows(
+    @Query('status') status?: 'draft' | 'success' | 'error',
+    @Query('entityName') entityName?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return await this.workflowService.getAllWorkflows({
+      status,
+      entityName,
+      limit: limit ? parseInt(limit, 10) : 100,
+    });
+  }
+
+  @Post('runs/:runId/retry')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Retry a failed workflow (admin only)' })
+  @ApiResponse({ status: 200, description: 'Workflow retry initiated' })
+  @ApiResponse({ status: 404, description: 'Workflow not found' })
+  async retryWorkflow(@Param('runId') runId: string) {
+    const newRunId = await this.workflowService.retry(runId);
+    return {
+      message: 'Workflow retry initiated',
+      newRunId,
+    };
+  }
+}

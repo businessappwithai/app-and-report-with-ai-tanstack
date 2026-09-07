@@ -1,0 +1,1529 @@
+# Enterprise Reporting TanStack — Application Context Specification
+
+> Machine-readable spec of the enterprise_reporting_tanstack application:
+> architecture, conventions, data layer, server functions, auth, NL query,
+> RBAC, and the EML modeling language used to describe and generate apps
+> that follow this architecture. Written for language models.
+
+- **Spec version**: 1.0.0 · **Project version**: current · **Updated**: 2026-08-24
+- **Repository**: `/Users/pramodkoshy/projects/dynamic/test/enterprise_reporting_tanstack`
+- **Runtime**: Bun ≥ 1.3.0 (required; `node` is not supported for dev)
+- **Dev server**: `bun --bun vite dev` → port 4050
+
+---
+
+## 0. The one idea
+
+Enterprise Reporting TanStack is a full-stack multi-datasource analytics
+platform built on TanStack Start. One application connects to many external
+databases (PostgreSQL, MySQL, MSSQL), runs natural-language SQL queries via a
+local LLM, enforces two-layer RBAC (system roles + per-datasource roles), and
+renders results in interactive charts and tables.
+
+```
+external DB (user's data)  →  data source config (MariaDB)
+                           →  NL Query (CopilotKit → llama.cpp → SQL)
+                           →  RBAC (system roles + ds_roles)
+                           →  Charts (Recharts) + Tables (TanStack Table)
+                           →  Export (CSV/Excel/PDF)
+```
+
+Two properties matter above all:
+
+1. **Two-database architecture.** The application has its own MariaDB config
+   database (`enterprise_config`) for users, roles, data sources, and app
+   settings. Each data source the user connects is a separate external database
+   (PostgreSQL/MySQL/MSSQL) queried at runtime via a per-datasource connection.
+2. **Server functions, not a REST API.** All backend logic is in TanStack Start
+   server functions (`.inputValidator()`, never `.validator()`). The client
+   calls them directly with a `{ data: input }` wrapper.
+
+---
+
+## 1. Repository topology
+
+```
+enterprise_reporting_tanstack/
+├── src/
+│   ├── routes/             # TanStack Start file-based routes
+│   │   ├── __root.tsx      # Root layout: ThemeProvider → TanStackDBWrapper → DuckDBProvider → QueryClientProvider
+│   │   ├── _authed.tsx     # Authenticated layout guard → AppShell
+│   │   ├── _authed/        # All authenticated routes
+│   │   │   ├── dashboard/  # Dashboard with charts and tables
+│   │   │   ├── data-sources/  # Data source management
+│   │   │   ├── nl-query/   # CopilotKit NL query interface with voice
+│   │   │   ├── query-builder/ # Visual SQL query builder
+│   │   │   ├── reports/    # Report management
+│   │   │   ├── users/      # User management
+│   │   │   └── settings/   # Application settings
+│   │   ├── api/
+│   │   │   └── copilotkit/ # CopilotKit API handler (POST /api/copilotkit)
+│   │   ├── login.tsx       # Login page
+│   │   └── index.tsx       # Root redirect
+│   ├── server-fns/         # TanStack Start server functions
+│   │   ├── auth.ts         # Authentication server functions
+│   │   ├── data-sources.ts # Data source CRUD
+│   │   ├── queries.ts      # Query execution server functions
+│   │   ├── reports.ts      # Report CRUD
+│   │   ├── users.ts        # User management
+│   │   ├── notifications.ts # Notifications
+│   │   └── settings.ts     # Settings
+│   ├── components/
+│   │   ├── layout/         # AppShell, Sidebar, Header
+│   │   ├── ui/             # shadcn/ui components (Button, Card, Dialog, etc.)
+│   │   ├── charts/         # Recharts wrappers
+│   │   ├── data-table/     # TanStack Table components
+│   │   └── nl-query/       # NL Query UI components
+│   ├── lib/
+│   │   ├── auth/           # JWT auth, session, middleware
+│   │   ├── db/             # Kysely (config DB + connection manager)
+│   │   ├── mastra/         # NL query pipeline, RAG, Mastra integration
+│   │   ├── rbac/           # Two-layer RBAC enforcement
+│   │   ├── voice/          # STT/TTS via llama.cpp
+│   │   ├── tanstack-db/    # TanStack DB local collections
+│   │   └── feature-flags.ts # Feature flags from env vars
+│   └── styles/             # Tailwind CSS
+├── language/               # EML modeling language (see §13)
+├── llmtext/                # This file
+├── public/                 # Static assets
+├── package.json            # bun workspace
+├── vite.config.ts          # TanStack Start Vite plugin config
+├── CLAUDE.md               # Claude Code instructions
+└── .env                    # Environment variables (never commit)
+```
+
+---
+
+## 2. System architecture
+
+```
+Browser                              Server (Bun + Vite + TanStack Start)
+───────                              ──────────────────────────────────────
+TanStack Router (client-side)   →   _authed.tsx beforeLoad → JWT verify
+TanStack Query (data fetching)  →   server functions (.inputValidator())
+CopilotKit sidebar              →   /api/copilotkit → Mastra agent
+shadcn/ui + Tailwind            →   TanStack Table, Recharts
+
+                                     Config DB (MariaDB :3302)
+                                     ├── users, roles, permissions
+                                     ├── data_sources (encrypted configs)
+                                     ├── reports, report_items
+                                     ├── nl_query_history
+                                     └── notifications
+
+                                     External DBs (per-datasource)
+                                     ├── PostgreSQL → pgvector NL embeddings
+                                     ├── MySQL → schema introspection
+                                     └── MSSQL → query execution
+```
+
+---
+
+## 3. Core technology stack
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Runtime | Bun ≥ 1.3.0 | Required; use `bun --bun vite dev` |
+| Framework | TanStack Start v1 (`@tanstack/react-start` ^1.167.65) | SSR + file-based routing |
+| Router | TanStack Router | File-based, typed routes |
+| UI | shadcn/ui + Tailwind CSS v4 | Radix UI primitives |
+| State | TanStack Query (server), TanStack DB (local) | |
+| Tables | TanStack Table v8 | |
+| Charts | Recharts | Feature-flagged ECharts alternative |
+| ORM | Kysely | Used for both config DB and user DBs |
+| Config DB | MariaDB (port 3302) | Database: `enterprise_config` |
+| Auth | JWT (`jose` library) in HttpOnly cookie | Cookie: `session_token` |
+| NL Query | CopilotKit → Mastra → llama.cpp | Local LLM inference |
+| Embeddings | llama.cpp `/v1/embeddings` | Dim 384, pgvector storage |
+| Voice | llama.cpp STT/TTS | Speech-to-text, text-to-speech |
+| Linting | Biome (not ESLint/Prettier) | `bun run lint` |
+| E2E tests | Playwright | `bun run test:e2e` |
+
+---
+
+## 4. Database layer
+
+### 4a. Config database (MariaDB)
+
+The application's own database. Accessed exclusively through `src/lib/db/kysely-db.ts`.
+
+```typescript
+import { getDb } from "@/lib/db/kysely-db";
+
+const db = getDb();  // synchronous; auto-bootstraps on first call
+const users = await db.selectFrom("users").selectAll().execute();
+```
+
+**Key tables** (all defined in `Database` interface in `kysely-db.ts`):
+
+| Table | Purpose |
+|-------|---------|
+| `users` | App users with hashed passwords |
+| `roles` | System roles (Admin, Analyst, Viewer, NLQueryUser) |
+| `permissions` | Fine-grained permission strings |
+| `role_permissions` | Role ↔ permission join |
+| `user_roles` | User ↔ role join |
+| `data_sources` | External DB connection configs (AES-256-GCM encrypted) |
+| `reports` | Saved report definitions |
+| `report_items` | Report chart/table elements |
+| `nl_query_history` | NL query log |
+| `query_cache` | SQL result cache |
+| `notifications` | User notifications |
+| `app_settings` | Key-value application settings |
+
+**Bootstrap**: `src/lib/db/bootstrap.ts` → `bootstrapSchema()` runs CREATE IF
+NOT EXISTS on all tables on first `getDb()` call. Seeds default users and roles.
+
+**Default credentials (dev only)**:
+- `admin@admin.com` / `admin` (Admin role)
+- `nlquery@nlquery.com` / `nlquery` (NLQueryUser role)
+- `analyst@example.com` / `analyst123` (Analyst role)
+
+### 4b. External databases (per-datasource)
+
+User's external databases are connected at runtime via `src/lib/db/connection-manager.ts`.
+
+```typescript
+import { getConnection } from "@/lib/db/connection-manager";
+
+const dataSource = await getDb().selectFrom("data_sources").where("id", "=", id).executeTakeFirst();
+const conn = await getConnection(dataSource);  // returns Kysely<any>
+const results = await conn.executeQuery(compiledQuery);
+```
+
+**Supported drivers**: `pg` (PostgreSQL), `mysql2` (MySQL), `mssql`.
+SQLite was removed. Connections are pooled and health-checked.
+Connection configs are stored AES-256-GCM encrypted in `data_sources.connection_config`.
+
+**IPv4 DNS resolution** forced for Neon-compatible PostgreSQL connections.
+
+**pgvector embeddings** (in the user's PostgreSQL DB):
+- `nl_query_embeddings` — NL query history embeddings (dim 384)
+- `nl_schema_embeddings` — Schema documentation embeddings (dim 384)
+
+---
+
+## 5. Server functions
+
+All backend logic lives in TanStack Start server functions in `src/server-fns/`.
+
+### Critical API convention
+
+```typescript
+// CORRECT — always use inputValidator, never validator
+export const myFn = createServerFn({ method: "GET" })
+  .inputValidator((input: MyInput) => input)
+  .handler(async ({ data }) => {
+    // handler receives { data: input }
+    const { field1, field2 } = data;
+    return result;
+  });
+
+// WRONG — .validator() is not preserved by the Vite plugin
+// and causes "createServerFn(...).validator is not a function" at runtime
+```
+
+**Client call convention** — always wrap in `{ data: ... }`:
+```typescript
+const result = await myFn({ data: { field1: "value" } });
+```
+
+The TanStack Start v1 Vite plugin preserves only `.inputValidator()` calls;
+unknown method names are copied verbatim into the client bundle, causing
+runtime crashes. This is the single most common source of bugs in this codebase.
+
+### Auth pattern in server functions
+
+```typescript
+import { requireAuth } from "@/lib/auth/middleware";
+
+export const protectedFn = createServerFn({ method: "GET" })
+  .inputValidator(...)
+  .handler(async ({ data }) => {
+    const session = await requireAuth();  // throws 401 if not authenticated
+    // session.user.id, session.user.email, session.user.roles
+    return result;
+  });
+```
+
+---
+
+## 6. Authentication
+
+**JWT in HttpOnly cookie** — `session_token` cookie, signed with `AUTH_SECRET`.
+
+```
+Login → POST /api/auth/login → verifyPassword → createJWT → set-cookie: session_token
+Request → cookie middleware → verifyJWT → inject session into context
+```
+
+Key files:
+- `src/lib/auth/jwt.ts` — `createJWT()`, `verifyJWT()`, `AUTH_SECRET`
+- `src/lib/auth/session.ts` — `createSession()`, `verifySession()`
+- `src/lib/auth/middleware.ts` — `requireAuth()`, `getServerSession()`
+- `src/server-fns/auth.ts` — `loginFn`, `logoutFn`, `getSessionFn`
+
+Route auth guard:
+- `src/routes/_authed.tsx` — `beforeLoad` calls `getSessionFn()`, redirects to `/login` if no session
+
+Session shape:
+```typescript
+interface Session {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    roles: string[];     // system role names
+    permissions: string[];
+  };
+  token: string;
+  expiresAt: Date;
+}
+```
+
+---
+
+## 7. Data source management
+
+Data sources are external databases the user connects. Each has:
+- `id` — UUID
+- `name` — display name
+- `type` — `postgresql` | `mysql` | `mssql`
+- `connection_config` — AES-256-GCM encrypted JSON with host/port/database/user/password
+- `status` — `active` | `inactive` | `error`
+
+**Encryption**: `ENCRYPTION_KEY` env var (32-byte hex). `src/lib/db/encrypt.ts` handles encryption/decryption.
+
+**Connection lifecycle**: `getConnection(ds)` in `connection-manager.ts` creates a
+Kysely instance, runs a health check (`SELECT 1`), caches it by `ds.id`, and
+updates `status` on failure.
+
+**Schema introspection**: `src/lib/db/schema-introspector.ts` → `introspectSchema(conn, type)` returns
+`{ tables: [{ name, columns: [{ name, type, nullable, isPrimaryKey, isForeignKey }] }] }`.
+
+---
+
+## 8. NL Query pipeline
+
+Natural language → SQL → results, via a local LLM (llama.cpp).
+
+```
+User types question
+  → CopilotKit sidebar (src/routes/_authed/nl-query/index.tsx)
+    → POST /api/copilotkit  (src/routes/api/copilotkit/index.ts)
+      → Mastra agent  (src/lib/mastra/nl-query-agent.ts)
+        → RAG: retrieve similar past queries + schema context
+          → src/lib/mastra/rag-store.ts (pgvector embeddings)
+        → LLM: generate SQL  (llama.cpp /v1/chat/completions)
+          → src/lib/mastra/nl-query-pipeline.ts
+        → Execute SQL  (getConnection → conn.executeQuery)
+        → Store in nl_query_history
+      → Return { sql, results, explanation }
+```
+
+**LLM endpoints** (all configurable via env vars):
+- Reasoning/chat: `AI_NL2SQL_BASE_URL` → `LLAMA_REASONING_URL` → `http://localhost:8080/v1`
+- Embeddings: `AI_EMBEDDING_BASE_URL` → `LLAMA_EMBEDDING_URL` → same
+- STT: `AI_STT_BASE_URL` → same
+- TTS: `AI_TTS_BASE_URL` → same
+
+**Embedding dimension**: 384 (pgvector column `vector(384)`).
+
+**RAG store** (`src/lib/mastra/rag-store.ts`):
+- `storeQueryEmbedding(text, metadata)` — stores in `nl_query_embeddings`
+- `storeSchemasEmbedding(text, metadata)` — stores in `nl_schema_embeddings`
+- `similarQueries(text, limit)` — cosine similarity search
+- Falls back to hash-based embeddings when LLM server unavailable
+
+**Voice** (`src/lib/voice/llama-client.ts`):
+- `transcribeAudio(blob)` → STT via llama.cpp `/v1/audio/transcriptions`
+- `synthesizeSpeech(text)` → TTS via llama.cpp `/v1/audio/speech`
+- `NL2SQL_BASE_URL`, `EMBEDDING_BASE_URL` constants (OpenAI-compatible endpoints)
+
+**CopilotKit route** (`/api/copilotkit`):
+- `runtimeUrl="/api/copilotkit"` — main NL query endpoint
+- `textToSpeechUrl="/api/copilotkit/tts"` — TTS endpoint
+
+**Mastra** (`MASTRA_URL` env var defaults to `http://localhost:4111`):
+- `src/lib/mastra/index.ts` — Mastra client setup
+- `src/lib/mastra/nl-query-agent.ts` — the SQL generation agent
+
+---
+
+## 9. RBAC (two-layer)
+
+### Layer 1: System RBAC
+
+System-level roles and permissions stored in the config DB.
+
+```typescript
+// Seeded roles:
+// Admin — all permissions (system:*, data-sources:*, reports:*, users:*, nl_query:*)
+// Analyst — reports:read, reports:write, nl_query:*, data-sources:read
+// Viewer — reports:read, data-sources:read
+// NLQueryUser — nl_query:*
+
+// Check permission in server function:
+import { requirePermission } from "@/lib/rbac/system-rbac";
+await requirePermission(session, "reports:write");
+```
+
+Permission strings: `<resource>:<action>` format.
+- `system:*` — full admin
+- `data-sources:read` | `data-sources:write` | `data-sources:delete`
+- `reports:read` | `reports:write` | `reports:delete`
+- `users:read` | `users:write` | `users:delete`
+- `nl_query:*` — access to NL query interface
+
+### Layer 2: Data-source RBAC
+
+Per-datasource roles and entity-level permissions.
+
+```typescript
+// ds_roles — roles scoped to a specific data source
+// ds_entity_permissions — entity (table)-level read/write/delete per ds_role
+// ds_user_roles — which system user → which ds_role
+```
+
+Tables: `ds_roles`, `ds_entity_permissions`, `ds_user_roles`.
+
+`src/lib/rbac/ds-rbac.ts` — `checkDsPermission(userId, dataSourceId, entity, action)`.
+
+---
+
+## 10. TanStack DB local collections
+
+TanStack DB (`@tanstack/db`) provides local in-memory reactive collections with
+no server sync. Used for UI state and query results that live only in the browser.
+
+```typescript
+// src/lib/tanstack-db/collections.ts
+export const queryResultsCollection = new Collection<QueryResult>(...);
+export const activeQueriesCollection = new Collection<ActiveQuery>(...);
+```
+
+Collections are wrapped in `TanStackDBWrapper` in `__root.tsx`. Components
+subscribe via `useQuery` from `@tanstack/db-react`.
+
+**No server sync**: TanStack DB collections in this app are purely local. All
+persistent data goes through server functions to the config DB.
+
+---
+
+## 11. Feature flags
+
+Controlled via environment variables (prefix `NEXT_PUBLIC_` for client exposure):
+
+| Flag | Env var | Default | Effect |
+|------|---------|---------|--------|
+| WASM | `NEXT_PUBLIC_ENABLE_WASM` | off | DuckDB WASM for in-browser analytics |
+| ECharts | `NEXT_PUBLIC_ENABLE_ECHARTS` | off | ECharts instead of Recharts |
+| CrossFilter | `NEXT_PUBLIC_ENABLE_CROSS_FILTER` | off | Crossfilter.js for linked charts |
+| Offline | `NEXT_PUBLIC_ENABLE_OFFLINE` | off | Service worker offline support |
+| Progressive | `NEXT_PUBLIC_ENABLE_PROGRESSIVE` | off | Progressive loading hints |
+
+Source: `src/lib/feature-flags.ts`
+
+DuckDB WASM (`src/components/providers/duckdb-provider.tsx`) is initialized in
+`__root.tsx` but only active when the WASM flag is on.
+
+---
+
+## 12. Environment variables
+
+### Required for production
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | MariaDB connection URL (`mysql://user:pass@host:3302/enterprise_config`). Falls back to SQLite if not set (dev only). |
+| `AUTH_SECRET` | 32+ char random secret for JWT signing |
+| `ENCRYPTION_KEY` | 32-byte hex string for AES-256-GCM encryption of data source configs |
+
+### NL Query (optional — features disabled if absent)
+
+| Variable | Description |
+|----------|-------------|
+| `MASTRA_URL` | Mastra AI server URL (default: `http://localhost:4111`) |
+| `LLAMA_REASONING_URL` | llama.cpp reasoning/chat completions URL (default: `http://localhost:8080`) |
+| `LLAMA_EMBEDDING_URL` | llama.cpp embeddings URL (default: same as reasoning) |
+| `AI_NL2SQL_BASE_URL` | Override for NL-to-SQL completions endpoint |
+| `AI_EMBEDDING_BASE_URL` | Override for embedding endpoint |
+| `AI_STT_BASE_URL` | Override for speech-to-text endpoint |
+| `AI_TTS_BASE_URL` | Override for text-to-speech endpoint |
+| `OPENAI_API_KEY` | Only needed if using OpenAI instead of local llama.cpp |
+
+### Feature flags
+
+All `NEXT_PUBLIC_ENABLE_*` variables (WASM, ECHARTS, CROSS_FILTER, OFFLINE, PROGRESSIVE).
+
+---
+
+## 13. EML Language System
+
+The `language/` folder contains EML (ERDwithAI Modeling Language) — a
+Mermaid-based language for describing application data models, business rules,
+and workflows that the `eml` CLI compiles into enterprise_reporting_tanstack-style
+applications.
+
+### What EML generates (enterprise-reporting stack)
+
+From a single `.eml.mmd` file describing entities, the CLI produces:
+
+```
+MyApp/
+├── src/
+│   ├── server-fns/        # TanStack Start server functions with .inputValidator()
+│   │   └── <entity>.ts    # CRUD server functions per entity
+│   ├── routes/
+│   │   └── _authed/
+│   │       └── <entity>/
+│   │           ├── index.tsx   # List page (TanStack Table)
+│   │           └── $id.tsx     # Detail/edit page (shadcn/ui form)
+│   └── lib/db/
+│       ├── kysely-db.ts   # Config DB + entity table types
+│       └── migrations/    # SQL CREATE TABLE statements
+├── package.json
+└── README.md
+```
+
+### EML syntax quick reference
+
+```mermaid
+%%meta name: Inventory System
+%%meta kind: erd
+%%enum ProductStatus: draft, active, discontinued
+erDiagram
+    Category {
+        string id PK
+        string name UK
+        string description OPTIONAL
+    }
+    Product {
+        string  id PK
+        string  category_id FK
+        string  sku UK
+        string  name
+        string  status
+        decimal price
+        integer stock_quantity
+        boolean is_active
+    }
+    Category ||--o{ Product : "contains"
+    %%field Product.status enum: ProductStatus
+    %%index Product(category_id, status)
+    %%entity Product audited: true
+```
+
+### CLI usage
+
+```bash
+bun language/cli/eml.ts validate -i language/examples/helpdesk.eml.mmd
+bun language/cli/eml.ts generate -i model.eml.mmd -o ./out --stack enterprise-reporting
+bun language/cli/eml.ts info
+```
+
+### Key files in language/
+
+```
+language/
+├── erdwithai-language.json   # Canonical language definition (types, directives, etc.)
+├── index.ts                  # Typed accessor (loadLanguageDefinition, normalizeType, etc.)
+├── checker.ts                # EML validator (bun language/checker.ts model.mmd)
+├── fixer.ts                  # Auto-repair (bun language/fixer.ts model.mmd.error)
+├── composer.ts               # EML document composer
+├── rag.ts                    # EML → retrieval chunks for RAG
+├── spec/                     # Language reference docs
+├── cli/src/generate/
+│   ├── app.ts                # node-rest generator (dependency-free)
+│   └── enterprise-reporting.ts  # TanStack Start + Kysely generator (this stack)
+└── examples/                 # .eml.mmd example models
+```
+
+---
+
+## 14. Code conventions
+
+### File structure conventions
+
+- Route files: `src/routes/_authed/<feature>/index.tsx` for list pages,
+  `_authed/<feature>/$id.tsx` for detail pages
+- Server functions: `src/server-fns/<feature>.ts`
+- Components: `src/components/<domain>/<ComponentName>.tsx`
+- Lib utilities: `src/lib/<domain>/<module>.ts`
+
+### TypeScript conventions
+
+- Strict mode enabled
+- Zod for input validation in server functions (via `inputValidator`)
+- Kysely for all DB access — never raw SQL strings
+- Path alias `@/` maps to `src/`
+
+### Import conventions
+
+```typescript
+// Server-side imports (in server functions and lib)
+import { getDb } from "@/lib/db/kysely-db";
+import { requireAuth } from "@/lib/auth/middleware";
+
+// Client-side imports (in route components)
+import { useQuery } from "@tanstack/react-query";
+
+// Server function call from client (always use { data: ... } wrapper)
+const result = await myServerFn({ data: { field: value } });
+```
+
+### Styling conventions
+
+- Tailwind CSS v4 via `@tailwindcss/vite`
+- shadcn/ui components in `src/components/ui/`
+- Dark mode via `.dark` class on `<html>` element
+- `ThemeProvider` in `__root.tsx` manages dark/light toggle
+
+---
+
+## 15. Worked example: adding a new data entity
+
+This example shows the complete pattern for adding a `Category` entity to the
+enterprise reporting system.
+
+### Step 1: Add table to config DB schema
+
+In `src/lib/db/kysely-db.ts`, add to the `Database` interface:
+```typescript
+categories: {
+  id: Generated<string>;
+  name: string;
+  description: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+};
+```
+
+In `src/lib/db/bootstrap.ts`, add to `bootstrapSchema()`:
+```sql
+CREATE TABLE IF NOT EXISTS categories (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### Step 2: Add server functions
+
+`src/server-fns/categories.ts`:
+```typescript
+import { createServerFn } from "@tanstack/react-start";
+import { getDb } from "@/lib/db/kysely-db";
+import { requireAuth } from "@/lib/auth/middleware";
+import { z } from "zod";
+
+const CategorySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+});
+
+export const fetchCategoriesFn = createServerFn({ method: "GET" })
+  .inputValidator((input: void) => input)
+  .handler(async () => {
+    await requireAuth();
+    return getDb().selectFrom("categories").selectAll().orderBy("name").execute();
+  });
+
+export const createCategoryFn = createServerFn({ method: "POST" })
+  .inputValidator((input: z.infer<typeof CategorySchema>) => CategorySchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireAuth();
+    const id = crypto.randomUUID();
+    await getDb().insertInto("categories").values({ id, ...data }).execute();
+    return { id };
+  });
+```
+
+### Step 3: Add route
+
+`src/routes/_authed/categories/index.tsx`:
+```tsx
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCategoriesFn } from "@/server-fns/categories";
+
+export const Route = createFileRoute("/_authed/categories/")({
+  component: CategoriesPage,
+});
+
+function CategoriesPage() {
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => fetchCategoriesFn({ data: undefined }),
+  });
+  // ... render table
+}
+```
+
+---
+
+## 16. Authoring protocol for LLMs
+
+When asked to build or extend features in this codebase:
+
+1. **Server functions first.** Every new data operation starts in `src/server-fns/`.
+   Always use `.inputValidator()`, never `.validator()`.
+
+2. **Always wrap client calls.** `serverFn({ data: input })` — the `data` wrapper
+   is required. A call without it silently passes `undefined`.
+
+3. **Use `getDb()` for config data.** For external user databases, use
+   `getConnection(dataSource)` from `connection-manager.ts`.
+
+4. **`requireAuth()` in every protected server function.** Never trust the route
+   guard alone — the server function is an independent endpoint.
+
+5. **Check permissions for sensitive operations.** `requirePermission(session, perm)`
+   for system perms; `checkDsPermission(userId, dsId, entity, action)` for DS perms.
+
+6. **Kysely, not raw SQL.** Use the query builder; never template strings.
+
+7. **TanStack Query for all client data.** `useQuery` with a `queryKey` array that
+   includes all dependency variables. Invalidate with `queryClient.invalidateQueries`.
+
+8. **shadcn/ui for all UI components.** Match existing patterns in `src/components/ui/`.
+
+9. **Biome for formatting.** `bun run lint` before committing. Biome replaces
+   ESLint and Prettier; do not install either.
+
+10. **EML for describing new data models.** When designing a new set of entities,
+    write a `.eml.mmd` model first, validate with the EML checker, then generate
+    the boilerplate with `bun language/cli/eml.ts generate --stack enterprise-reporting`.
+
+---
+
+## 17. Common pitfalls
+
+| Pitfall | Correct pattern |
+|---------|----------------|
+| `.validator()` on server function | Use `.inputValidator()` always |
+| Client call without `{ data: ... }` wrapper | `fn({ data: input })` |
+| `getDb()` for external user queries | `getConnection(ds)` for external DBs |
+| Raw `crypto.randomUUID()` on server | Fine on server; not available in all browsers |
+| Importing server-only code in route components | Routes run on client; use server functions |
+| `console.log(connectionConfig)` | Config is AES-256-GCM encrypted — log only after decrypt in trusted contexts |
+| Storing passwords in plain text | Always bcrypt (`import bcrypt from "bcryptjs"`) |
+| Missing `requireAuth()` in server fn | Every protected server fn must authenticate independently |
+| pgvector without PostgreSQL DS | pgvector requires user's DB to be PostgreSQL; gracefully skip if not |
+
+---
+
+## 18. Reports
+
+A **report** is a named, configurable tabular view over a saved SQL query. Reports
+are stored in `report_definitions` (config DB) and can be exported to CSV, XLSX,
+or PDF either on demand or on a schedule.
+
+### 18a. Data model
+
+```
+report_definitions
+  id                VARCHAR(36) PK
+  name              VARCHAR(255) NOT NULL
+  description       TEXT
+  saved_query_id    VARCHAR(36) FK → saved_queries.id (NULL = inline SQL)
+  column_config     JSON   -- array of ColumnConfig objects (visibility, order, label, width)
+  filter_config     JSON   -- FilterGroup tree (see §18c)
+  sort_config       JSON   -- array of { column, direction }
+  pagination_config JSON   -- { pageSize: number }
+  export_formats    JSON   -- array of "csv" | "xlsx" | "pdf"
+  color_theme       VARCHAR(50)  -- optional named theme
+  is_public         TINYINT(1)   -- public share link
+  public_share_id   VARCHAR(36)  -- UUID for the /share/report/:id route
+  created_by        VARCHAR(36) FK → users.id
+  created_at        DATETIME
+  updated_at        DATETIME
+
+saved_queries
+  id                VARCHAR(36) PK
+  name              VARCHAR(255) NOT NULL
+  description       TEXT
+  sql_content       TEXT         -- the actual SQL
+  data_source_id    VARCHAR(36) FK → data_sources.id
+  parameters        JSON         -- named parameter definitions
+  created_by        VARCHAR(36) FK → users.id
+  created_at        DATETIME
+  updated_at        DATETIME
+```
+
+### 18b. Server functions (`src/server-fns/reports.ts`)
+
+The reports server functions use **older-style validation** (Zod `.parseAsync` inside
+the handler, not `.inputValidator()`) — this is fine because the schemas live in
+`src/lib/schemas/reports.ts` and are applied manually:
+
+```typescript
+import { listReports, getReport, createReport, updateReport, deleteReport }
+  from "@/server-fns/reports";
+
+// List — returns { items, meta: { total, page, pageSize, totalPages } }
+await listReports({ page: 0, pageSize: 20 });
+
+// Get one
+await getReport({ id: "abc-123" });
+
+// Create — savedQueryId links the report to an existing saved query
+await createReport({
+  name: "Monthly Sales",
+  description: "Revenue by region",
+  savedQueryId: "query-uuid",
+  columnConfig: [
+    { field: "region", label: "Region", visible: true, order: 0 },
+    { field: "revenue", label: "Revenue", visible: true, order: 1 },
+  ],
+  exportFormats: ["csv", "xlsx", "pdf"],
+});
+
+// Update
+await updateReport({ id: "abc-123", name: "Updated name", columnConfig: [...] });
+
+// Delete
+await deleteReport({ id: "abc-123" });
+```
+
+### 18c. Filter config shape
+
+`filter_config` is a recursive `FilterGroup` tree:
+
+```typescript
+type FilterOperator =
+  | "eq" | "neq" | "gt" | "gte" | "lt" | "lte"
+  | "like" | "ilike" | "in" | "between" | "is_null" | "is_not_null";
+
+interface FilterCondition {
+  type: "condition";
+  field: string;      // column name
+  operator: FilterOperator;
+  value?: unknown;    // single value
+  value2?: unknown;   // for BETWEEN
+}
+
+interface FilterGroup {
+  type: "group";
+  combinator: "AND" | "OR";
+  conditions: (FilterCondition | FilterGroup)[];
+}
+```
+
+`src/lib/reports/filter-to-sql.ts` converts a `FilterGroup` to a Kysely WHERE
+clause. Call it from any server function that needs to apply report filters.
+
+### 18d. Column config shape
+
+```typescript
+interface ColumnConfig {
+  field: string;       // DB column name
+  label?: string;      // display header
+  visible?: boolean;   // default true
+  order?: number;      // sort order of columns in table
+  width?: number;      // pixel hint for table column width
+  format?: "number" | "currency" | "percent" | "date" | "datetime";
+  align?: "left" | "center" | "right";
+}
+```
+
+### 18e. Routes
+
+```
+/_authed/reports/              src/routes/_authed/reports/index.tsx
+  List of all reports, create dialog, delete
+
+/_authed/reports/$id/editor    src/routes/_authed/reports/$id/editor/
+  Report editor: column config, filter config, sort config, export format selection
+
+/_authed/reports/$id/viewer    src/routes/_authed/reports/$id/viewer/
+  Report viewer: renders the report table, export button, filter bar
+  Reads data via /api/reports/:id/data (REST) which executes the saved query
+
+/share/report/$id              public share URL (no auth, uses public_share_id)
+```
+
+### 18f. On-demand export
+
+To trigger an export from any server function or API handler:
+
+```typescript
+import { addJob } from "@/lib/jobs/queue";
+
+await addJob({
+  type: "report:generate",
+  reportId: "abc-123",
+  userId: session.user.id,
+  format: "xlsx",     // "csv" | "xlsx" | "pdf"
+});
+```
+
+This enqueues a Trigger.dev `reportGenerationTask`. The worker
+(`src/lib/jobs/workers/report-worker.ts`):
+1. Fetches `report_definitions` + `saved_queries` + `data_sources`
+2. Executes the SQL via `getConnection(dataSource)`
+3. Writes the file to `JOB_OUTPUT_PATH` (default `./job-outputs`)
+4. Writes an audit log entry
+
+### 18g. Dynamic (NL-driven) report generation
+
+The advanced pipeline in `src/lib/report-generation/report-generation-worker.ts`
+handles reports created via the NL Query interface. It runs 10 phases:
+
+```
+Phase 1  Load NLReportDefinition from nl_report_definitions
+Phase 2  RBAC re-validation — detects drift since report was created
+Phase 3  Execute SQL with row limit (REPORT_ROW_LIMIT, default 10 000)
+           and timeout (REPORT_QUERY_TIMEOUT_MS, default 30 s)
+Phase 4  Chart image rendering (ECharts SSR → SVG → sharp → PNG)
+Phase 5  Excel artifact (ExcelJS — header row, bold + grey fill, auto-fit columns)
+Phase 6  PDF artifact (jsPDF + autotable — title, timestamp, data table)
+Phase 7  CSV artifact (RFC-4180 escaping)
+Phase 8  Persist artifact records to report_artifacts table
+Phase 9  In-app notification (createNotification)
+Phase 10 Email dispatch with attachments (sendEmail) to recipient_config list
+```
+
+`NLReportDefinition` key fields:
+
+| Field | Purpose |
+|-------|---------|
+| `generated_sql` | The SQL generated by the NL pipeline; re-executed on each run |
+| `metric_columns` | Columns used as Y-axis / aggregation |
+| `dimension_columns` | Columns used as X-axis / grouping |
+| `filter_config` | Array of `FilterClause` applied to the query |
+| `chart_type` | `"bar" | "line" | "pie" | "area" | "none"` |
+| `output_formats` | `OutputFormat[]` — `"excel" | "pdf" | "csv"` |
+| `recipient_config` | `RecipientEntry[]` — `{ type: "email" | "userId", value }` |
+| `schedule_cron` | cron expression or null (null = manual-only) |
+| `schedule_enabled` | false = skip on scheduled runs |
+| `rbac_snapshot` | RBAC state at creation time; compared on each run for drift |
+
+Result statuses: `COMPLETE | FAILED | PERMISSION_REVOKED | NO_DATA | ROW_LIMIT_HIT`.
+
+---
+
+## 19. Charts
+
+A **chart** is a named visualization backed by a SQL query. Charts are stored in
+`chart_definitions` and rendered with **Recharts** (default) or **ECharts** (when
+`NEXT_PUBLIC_ENABLE_ECHARTS=true`).
+
+### 19a. Chart types
+
+```typescript
+type ChartType =
+  | "line" | "bar" | "pie" | "area"    // basic
+  | "scatter" | "heatmap"               // statistical
+  | "gauge" | "funnel" | "sankey"       // advanced
+  | "treemap";                          // hierarchical
+```
+
+ECharts enables the full list. Recharts only renders `line`, `bar`, `area`,
+`pie`, `scatter`. If an unsupported type is requested and ECharts is off, the
+renderer falls back to `bar`.
+
+### 19b. Data model
+
+```
+chart_definitions
+  id               VARCHAR(36) PK
+  name             VARCHAR(255) NOT NULL
+  description      TEXT
+  saved_query_id   VARCHAR(36) FK → saved_queries.id (nullable)
+  chart_type       VARCHAR(50)   -- ChartType string
+  chart_config     JSON          -- ChartConfig (see §19c)
+  data_mapping     JSON          -- { xAxis: { field }, yAxis: [{ field, label }] }
+  refresh_interval INT           -- seconds; NULL = no auto-refresh
+  color_theme      VARCHAR(50)
+  is_public        TINYINT(1)
+  is_deleted       TINYINT(1)    -- soft delete
+  deleted_at       DATETIME
+  created_by       VARCHAR(36) FK → users.id
+  created_at       DATETIME
+  updated_at       DATETIME
+```
+
+### 19c. `chart_config` shape
+
+```typescript
+interface ChartConfig {
+  xAxis?:   Record<string, unknown>;  // axis label, tick formatter, etc.
+  yAxis?:   Record<string, unknown>;
+  legend?:  Record<string, unknown>;
+  grid?:    Record<string, unknown>;
+  series?:  Record<string, unknown>[];
+  tooltip?: Record<string, unknown>;
+}
+```
+
+### 19d. Server functions (`src/server-fns/charts.ts`)
+
+Charts use the newer `withErrorHandler` + `.inputValidator()` pattern:
+
+```typescript
+import { listCharts, getChart, createChart, updateChart, deleteChart }
+  from "@/server-fns/charts";
+
+// List — permission-filtered by filterAccessibleResources()
+const { items, meta } = await listCharts({ data: { page: 0, pageSize: 20 } });
+
+// Create
+await createChart({ data: {
+  name: "Revenue Trend",
+  chartType: "line",
+  dataSourceId: "ds-uuid",
+  sqlQuery: "SELECT month, SUM(revenue) AS revenue FROM sales GROUP BY month",
+  chartConfig: {
+    xAxis: { dataKey: "month" },
+    series: [{ dataKey: "revenue", name: "Revenue" }],
+  },
+  colorScheme: "blue",
+  isPublic: false,
+}});
+
+// Update (any subset of fields)
+await updateChart({ data: { id: "chart-uuid", chartType: "bar" } });
+
+// Delete (hard delete)
+await deleteChart({ data: { id: "chart-uuid" } });
+```
+
+Permission gates:
+- `listCharts`: `filterAccessibleResources(userId, charts, "chart", "view")`
+- `getChart`: `hasResourceAccess(userId, "chart", id, "view")`
+- `createChart`: `canCreateResource(userId, "chart")`
+- `updateChart`: `hasResourceAccess(userId, "chart", id, "edit")`
+- `deleteChart`: `canDeleteResource(userId, "chart", id)`
+
+### 19e. Routes and rendering
+
+```
+/_authed/charts/               src/routes/_authed/charts/index.tsx
+  Chart gallery with type badges
+
+/_authed/charts/editor/        src/routes/_authed/charts/editor/
+  Multi-panel editor:
+    EditorPanel     — tab-based config (basic info, data source, chart type, axis, appearance)
+    PreviewPanel    — live Recharts/ECharts render from current config
+    chart-data-source.tsx  — data source + SQL query selection
+    chart-axis-config.tsx  — x-axis / y-axis field mapping
+    chart-appearance.tsx   — color scheme, legend, grid toggles
+
+/_authed/charts/viewer/        src/routes/_authed/charts/viewer/
+  Full-page chart view
+
+/share/chart/$id               public chart viewer (no auth)
+```
+
+**`ChartRenderer`** (`src/components/charts/chart-renderer.tsx`):
+- Executes the chart's SQL via the data source connection
+- Chooses Recharts or ECharts based on feature flag
+- Handles `refresh_interval` with `setInterval`
+- `data_mapping.xAxis.field` drives the Recharts `dataKey` for the X axis
+- `data_mapping.yAxis` is an array of `{ field, label }` for each series
+
+### 19f. Dashboards
+
+Dashboards compose multiple charts and tables into a grid layout. Each widget
+is one of `"chart" | "metric" | "table" | "text"`.
+
+```
+dashboard_layouts
+  id                VARCHAR(36) PK
+  name              VARCHAR(255) NOT NULL
+  description       TEXT
+  layout            VARCHAR(10)   -- "grid" | "flex"
+  refresh_interval  INT           -- seconds for all widgets
+  is_public         TINYINT(1)
+  created_by        VARCHAR(36) FK → users.id
+
+dashboard_widgets
+  id                VARCHAR(36) PK
+  dashboard_id      VARCHAR(36) FK → dashboard_layouts.id
+  type              VARCHAR(20)  -- "chart" | "metric" | "table" | "text"
+  title             VARCHAR(255)
+  config            JSON         -- widget-specific config
+  position          JSON         -- { x, y, w, h } grid coordinates
+  data_source_id    VARCHAR(36) FK → data_sources.id
+  sql_query         TEXT         -- inline SQL for this widget (overrides chart)
+  order_index       INT
+```
+
+Server functions in `src/server-fns/dashboards.ts`: `listDashboards`, `getDashboard`,
+`createDashboard`, `updateDashboard`, `deleteDashboard`, `addWidget`, `updateWidget`,
+`removeWidget`.
+
+Cross-widget filtering (when `NEXT_PUBLIC_ENABLE_CROSS_FILTER=true`):
+`src/components/dashboard/CrossFilterProvider.tsx` broadcasts a filter state that
+all widgets on the same dashboard react to via `useCrossFilter()`.
+
+---
+
+## 20. Scheduled reports and background jobs
+
+### 20a. Architecture overview
+
+```
+addJob(data)               →  Trigger.dev API  →  trigger-tasks.ts  →  worker function
+addScheduledJob(data, cron) →  stored in job_definitions (cron field)
+                             →  built-in cron runner polls every minute
+                             →  falls back when TRIGGER_API_URL not set
+```
+
+Two backends, same interface:
+- **Trigger.dev** (`TRIGGER_API_URL` + `TRIGGER_API_KEY` set): tasks defined in
+  `src/lib/jobs/trigger-tasks.ts`, enqueued via `task.trigger(payload)`.
+- **Built-in cron runner** (no Trigger.dev configured): `src/lib/jobs/worker-runner.ts`
+  uses a pure-Bun `setInterval` loop; reads `job_definitions` with a cron schedule,
+  dispatches to the same worker functions.
+
+### 20b. Job types
+
+| `type` | Trigger.dev task | Worker function |
+|--------|-----------------|----------------|
+| `report:generate` | `reportGenerationTask` | `generateReport()` in `report-worker.ts` |
+| `data:export` | `dataExportTask` | `exportQueryData()` in `export-worker.ts` |
+| `email:batch` | `emailBatchTask` | `sendEmailBatch()` in `email-batch-worker.ts` |
+| `scheduled:refresh` | `scheduledRefreshTask` | re-triggers `generateReport` / chart / dashboard refresh |
+| `monitoring:evaluate` | `monitoringEvaluateTask` | `executeMonitoringEvaluation()` in `monitoring-worker.ts` |
+
+### 20c. Database tables
+
+```
+job_definitions
+  id              VARCHAR(36) PK
+  name            VARCHAR(255) NOT NULL
+  job_type        VARCHAR(50)   -- one of the type strings above
+  job_config      JSON          -- payload template (e.g. { reportId, format })
+  schedule_cron   VARCHAR(100)  -- standard 5-field cron; NULL = manual-only
+  schedule_tz     VARCHAR(100)  -- IANA timezone (default "UTC")
+  is_active       TINYINT(1)    -- false = paused
+  last_run_at     DATETIME
+  last_run_status VARCHAR(20)   -- "success" | "failed" | "running"
+  next_run_at     DATETIME
+  created_by      VARCHAR(36) FK → users.id
+  created_at      DATETIME
+  updated_at      DATETIME
+
+job_executions
+  id                 VARCHAR(36) PK
+  job_definition_id  VARCHAR(36) FK → job_definitions.id
+  status             VARCHAR(20)  -- "pending" | "running" | "completed" | "failed" | "cancelled"
+  started_at         DATETIME
+  completed_at       DATETIME
+  result_location    TEXT         -- file path or URL to output artifact
+  error_message      TEXT
+  execution_metadata JSON         -- { duration, rowCount, format, ... }
+  created_at         DATETIME
+```
+
+### 20d. Enqueuing jobs from server functions
+
+```typescript
+import { addJob, addScheduledJob } from "@/lib/jobs/queue";
+
+// One-time job: generate and export a report
+await addJob({
+  type: "report:generate",
+  reportId: "abc-123",
+  userId: session.user.id,
+  format: "xlsx",
+});
+
+// One-time data export
+await addJob({
+  type: "data:export",
+  queryId: "query-uuid",
+  userId: session.user.id,
+  format: "csv",
+});
+
+// Email batch — sends a report as an attachment to a list of recipients
+await addJob({
+  type: "email:batch",
+  queryId: "query-uuid",
+  emailTemplateId: "tpl-uuid",
+  recipientQueryId: "query-uuid-for-recipients",
+  recipientEmailColumn: "email",
+  userId: session.user.id,
+  format: "pdf",
+});
+
+// Scheduled: run every day at 7 AM
+await addScheduledJob(
+  { type: "report:generate", reportId: "abc-123", userId: session.user.id, format: "pdf" },
+  "0 7 * * *",
+  { jobId: "daily-report-abc123" }
+);
+```
+
+### 20e. Scheduling a report via job_definitions
+
+To create a persistent scheduled job (survives restarts), insert into `job_definitions`:
+
+```typescript
+import { getDb } from "@/lib/db/config";
+
+await getDb().insertInto("job_definitions").values({
+  id: crypto.randomUUID(),
+  name: "Daily Sales Report",
+  job_type: "report:generate",
+  job_config: JSON.stringify({ reportId: "abc-123", format: "pdf" }),
+  schedule_cron: "0 7 * * 1-5",   // 7 AM, Mon–Fri
+  schedule_tz: "America/New_York",
+  is_active: true,
+  created_by: session.user.id,
+  created_at: mariadbNow(),
+  updated_at: mariadbNow(),
+}).execute();
+```
+
+The cron runner / Trigger.dev picks this up automatically on the next poll cycle.
+
+### 20f. NL-driven report scheduling
+
+When a report is created via the NL query pipeline, it stores a schedule
+directly on `nl_report_definitions`:
+
+```typescript
+// Enabling a schedule on an existing NL report
+await getDb()
+  .updateTable("nl_report_definitions")
+  .set({
+    schedule_cron: "0 8 * * *",      // 8 AM daily
+    schedule_timezone: "UTC",
+    schedule_enabled: true,
+    updated_at: mariadbNow(),
+  })
+  .where("id", "=", reportDefinitionId)
+  .execute();
+```
+
+On each scheduled run the 10-phase pipeline in
+`src/lib/report-generation/report-generation-worker.ts` runs. It re-validates
+RBAC on every execution (drift detection) and aborts with status
+`PERMISSION_REVOKED` if the user's permissions have changed since the report
+was created.
+
+### 20g. Export formats and artifacts
+
+Each completed job writes files to `JOB_OUTPUT_PATH` (env var, default `./job-outputs`):
+
+| Format | Library | Notes |
+|--------|---------|-------|
+| `csv` | built-in | RFC-4180 compliant; header row from column names |
+| `xlsx` | ExcelJS | Bold header row (grey fill), auto-fit column widths, max 50 chars |
+| `pdf` | jsPDF + jspdf-autotable | Title + timestamp on page 1; 8pt table font |
+
+Artifacts are tracked in the `report_artifacts` table (NL reports only):
+`format`, `file_path`, `file_size_bytes`, `row_count`, `status`, `triggered_by`
+(`"manual" | "scheduled"`).
+
+Row limit: `REPORT_ROW_LIMIT` (default 10 000). If exceeded, status is
+`ROW_LIMIT_HIT` — artifacts are still written with the first N rows.
+
+Max email attachment: `REPORT_EMAIL_MAX_ATTACHMENT_BYTES` (default 10 MB).
+
+### 20h. Job monitoring UI
+
+`/_authed/jobs/` (`src/routes/_authed/jobs/index.tsx`) shows:
+
+- **Summary cards**: Waiting / Active / Completed / Failed / Delayed counts
+  (polled from `/api/jobs/status` every 5 s)
+- **Recent Executions tab**: last 20 executions with status badge, duration,
+  download link for result artifact, and cancel button for pending/running jobs
+- **Scheduled Jobs tab**: all `job_definitions` with a `schedule_cron`, showing
+  name, type, cron expression, and active/paused status
+
+### 20i. Environment variables for jobs
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TRIGGER_API_URL` | (none) | Trigger.dev base URL; omit to use built-in runner |
+| `TRIGGER_API_KEY` | (none) | Trigger.dev auth key |
+| `WORKER_CONCURRENCY` | `5` | Parallel job workers |
+| `JOB_OUTPUT_PATH` | `./job-outputs` | Directory for export files |
+| `REPORT_ROW_LIMIT` | `10000` | Max rows exported per report run |
+| `REPORT_QUERY_TIMEOUT_MS` | `30000` | SQL execution timeout |
+| `REPORT_EMAIL_MAX_ATTACHMENT_BYTES` | `10485760` | Max attachment size (10 MB) |
+
+---
+
+## 21. AI-Assisted Admin: Reports, Charts, and Dashboard Configuration
+
+Every major content surface — reports, charts, dashboards, and the SQL editor —
+has an embedded CopilotKit AI sidebar that lets administrators configure the
+platform in plain English. No SQL knowledge required.
+
+### 21a. CopilotKit sidebar locations
+
+| Page | Route | Sidebar instructions | Key actions |
+|------|-------|---------------------|-------------|
+| Reports | `/_authed/reports/` | Report builder | `createReportFromNL`, `deleteReport` |
+| Charts | `/_authed/charts/` | Chart builder | `createChartFromNL`, `openChartEditor` |
+| SQL Editor | `/_authed/sql-editor` | SQL assistant | `applySQL`, `selectDataSource`, `executeQuery` |
+| NL Query | `/_authed/nl-query` | NL→SQL assistant | Direct CopilotKit pipeline via Mastra |
+| Report Generator | `/_authed/reports/generate` | End-user report generator | `buildReport`, `confirmReport`, `listReports`, `downloadReport` |
+
+All sidebars use `runtimeUrl="/api/copilotkit"` and default to closed
+(`defaultOpen={false}`) — click the star icon in the top-right to open.
+
+### 21b. Building a report via natural language (admin)
+
+Route: `/_authed/reports/`
+Server functions: `nlBuildPreview`, `nlSaveReport` from `src/server-fns/admin-builder.ts`
+
+**How it works:**
+1. Admin opens the Reports page and clicks the star icon to open the AI sidebar
+2. Admin types: "Create a report showing all users and their creation dates"
+3. AI calls `createReportFromNL(reportName, description, dataSourceId)`:
+   - Calls `nlBuildPreview({ nlDescription, dataSourceId })` — NL→SQL via Mastra/llama.cpp + 20-row preview
+   - Calls `nlSaveReport({ name, description, dataSourceId, sql })` — saves as `saved_queries` + `report_definitions`
+4. Toast confirms creation; report appears in the table immediately
+
+**`createReportFromNL` parameters:**
+```typescript
+{ reportName: string, description: string, dataSourceId: string }
+```
+
+The AI has `useCopilotReadable` context for:
+- Available data sources (`nlBuilderListDataSources()`)
+- Existing report definitions (id, name, description)
+
+### 21c. Building a chart via natural language (admin)
+
+Route: `/_authed/charts/`
+Server functions: `nlBuildPreview`, `nlSaveChart` from `src/server-fns/admin-builder.ts`
+
+**How it works:**
+1. Admin opens the Charts page and clicks the AI sidebar
+2. Admin types: "Bar chart of monthly signups by plan"
+3. AI calls `createChartFromNL(chartName, description, dataSourceId, chartType?)`:
+   - Calls `nlBuildPreview` — NL→SQL via backend LLM, 20-row preview
+   - Calls `nlSaveChart({ name, description, dataSourceId, sql, chartType })` — saves as `saved_queries` + `chart_definitions`
+   - After save, automatically navigates to `/charts/editor/$id` for axis/styling configuration
+4. Admin configures the axis mapping in the editor, then saves
+
+**`createChartFromNL` parameters:**
+```typescript
+{ chartName: string, description: string, dataSourceId: string, chartType?: "bar"|"line"|"area"|"pie"|"scatter"|"composed" }
+```
+
+**Chart type guidance for the AI:**
+- `bar` — category comparisons (sales by region, users by plan)
+- `line` — trends over time (revenue per month)
+- `area` — cumulative trends (total revenue over time)
+- `pie` — proportions/shares (<10 slices)
+- `scatter` — correlation between two numeric columns
+
+### 21d. NL→SQL pipeline for admin builder
+
+Both `createReportFromNL` and `createChartFromNL` call `nlBuildPreview` which:
+1. Calls `getSchemaMetadata(dataSource)` — fetches live schema from the external DB
+2. Calls `buildMastraContextPrompt()` — pgvector RAG context from `nl_query_embeddings`
+3. Calls `getGraphContext()` — Apache AGE graph RAG for entity relationships
+4. Tries `translateNLToSQLViaMastra()` first (Mastra at `MASTRA_URL`)
+5. Falls back to `translateNLToSQLViaLlama()` (llama.cpp at `LLAMA_REASONING_URL`)
+6. Executes `SELECT * FROM (<sql>) LIMIT 20` on the data source to get preview rows
+7. Returns `{ success, sql, confidence, columns, rows }`
+
+### 21e. SQL Editor AI (query assistance)
+
+Route: `/_authed/sql-editor`
+The SQL Editor AI sidebar has three CopilotKit actions:
+
+| Action | What it does |
+|--------|-------------|
+| `applySQL(sql)` | Sets the Monaco editor content to the provided SQL |
+| `selectDataSource(dataSourceId)` | Selects a data source from the dropdown |
+| `executeQuery()` | Triggers the "Run Query" button programmatically |
+
+**Typical workflow:**
+1. Admin types: "Show me all users who signed up in the last 7 days"
+2. AI calls `selectDataSource` if no source is selected
+3. AI calls `applySQL("SELECT id, email, created_at FROM users WHERE created_at >= NOW() - INTERVAL '7 days'")`
+4. AI offers to run it or waits for admin confirmation
+5. Admin clicks Run Query or asks AI to run with `executeQuery`
+
+The AI has access to the current SQL content and selected data source via `useCopilotReadable`.
+
+### 21f. Dashboard configuration
+
+Dashboards (`/_authed/dashboards/`) are composed of widgets. Currently no CopilotKit sidebar on the dashboard page — configuration is done manually via the widget UI.
+
+To add a CopilotKit sidebar to dashboards, the pattern would be:
+1. Wrap `DashboardsPage` in `<CopilotKit runtimeUrl="/api/copilotkit">`
+2. Add a `CopilotSidebar` with actions:
+   - `createDashboard(name, description)` — POST to `/api/dashboards`
+   - `addWidget(dashboardId, chartId, position)` — POST to `/api/dashboards/:id/widgets`
+   - `updateDashboardLayout(dashboardId, layout)` — PUT to `/api/dashboards/:id/layout`
+
+### 21g. Report Generator CopilotKit Flow (end-user)
+
+The `/reports/generate` page provides an AI-driven report builder. A user
+describes a report in plain English; the AI generates SQL, shows a 10-row
+preview, then (after confirmation) runs the full pipeline and produces
+downloadable files.
+
+### 21a. Architecture
+
+```
+User types in CopilotKit sidebar
+  → CopilotKit sends message to MASTRA_URL/v1/chat/completions
+  → AI calls useCopilotAction hooks in ReportBuilderPanel.tsx:
+       buildReport(query, dataSourceId)   → dry-run SQL preview
+       confirmReport(title, outputFormats) → full artifact generation
+       listReports(since?, titleLike?)    → browse history
+       downloadReport(reportId)           → fetch artifact URLs
+```
+
+The AI is instructed (via the `instructions` prop on `CopilotSidebar`) to
+**always call `buildReport` first**, then `confirmReport` only after the user
+confirms.
+
+### 21b. CopilotKit actions
+
+#### `buildReport`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | `string` | yes | Natural language report description |
+| `dataSourceId` | `string` | yes | UUID from available data sources (in useCopilotReadable) |
+
+Internally calls `POST /api/report-generation/definitions` with `{ dryRun: true, nlQuery, dataSourceId }`.
+
+The server:
+1. Fetches entity metadata from `metadata_entity_header` / `metadata_entity_field`
+2. Builds a rich `schemaText` with table descriptions, column types, FK relations, and join paths
+3. Calls `runReportBuilderAgent()` in `mastra/agents/supervisor-agent.ts`
+4. The agent sends the schema + NL query to the LLM at `AI_NL2SQL_BASE_URL`
+5. LLM returns `{ sql, metric_column, explanation, confidence, warnings }`
+6. Server executes `SELECT * FROM (<sql>) AS _preview LIMIT 10` against the user's DB
+7. Returns `{ generatedSQL, previewRows, previewColumns, intent }` to the client
+
+The client updates `ReportBuilderState` to `preview_ready` and renders the preview table.
+
+Return value to AI:
+```json
+{ "success": true, "message": "Preview ready — 10 sample rows returned.", "sql": "...", "columns": [...], "rowCount": 10 }
+```
+
+#### `confirmReport`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | `string` | yes | Short report name |
+| `outputFormats` | `string` | yes | Comma-separated: `excel`, `pdf`, `csv` |
+| `recipients` | `string` | no | Comma-separated email addresses |
+| `scheduleCron` | `string` | no | 5-field cron for recurring runs; empty = one-shot |
+
+Calls `POST /api/report-generation/definitions` with full fields (not dryRun).
+This inserts into `nl_report_definitions` and immediately runs `executeReportGeneration()`.
+
+The 10-phase worker runs:
+Phase 1 → load definition · Phase 2 → RBAC check · Phase 3 → execute SQL
+Phase 4 → render chart PNG · Phase 5 → Excel · Phase 6 → PDF · Phase 7 → CSV
+Phase 8 → persist artifacts · Phase 9 → in-app notification · Phase 10 → email
+
+Return value to AI:
+```json
+{ "success": true, "message": "Report 'My Report' generated.", "reportId": "uuid" }
+```
+
+#### `listReports` / `downloadReport`
+
+`listReports` calls `GET /api/report-generation/definitions?history=true`.
+`downloadReport` calls `GET /api/report-generation/artifacts/:reportId`.
+
+### 21c. LLM SQL generation (`runReportBuilderAgent`)
+
+File: `mastra/agents/supervisor-agent.ts`
+
+```typescript
+export async function runReportBuilderAgent(
+  metric: string,       // NL description of what to report
+  dataHint: string,     // PostgreSQL DB info + RBAC context
+  schemaText: string,   // rich schema with FK join paths
+  timeWindow?: string,  // "all time" | "last 7 days" | cron natural language
+): Promise<{ sql: string; metric_column: string; explanation: string; confidence: number; warnings: string[] }>
+```
+
+The LLM receives `REPORT_SYSTEM` instructions plus examples for:
+- **Aggregation queries** (COUNT/SUM/AVG): `metric_column` = the aggregated alias (e.g. `"total_admissions"`)
+- **Listing queries** (no aggregation): `metric_column` = the first column alias (e.g. `"user_id"`)
+
+`metric_column` is optional — empty string is valid for listing reports.
+
+**Critical rules the LLM is instructed to follow:**
+- Use ONLY tables/columns from the schema
+- Follow MULTI-HOP JOIN PATHS exactly (e.g., `tableA → tableC via tableB`)
+- Cast varchar `*_id` columns to `::uuid` when joining to uuid `id` columns
+- No date filters unless the query explicitly mentions a time period
+
+### 21d. Schema context fed to the LLM
+
+The `buildReport` dryRun handler builds schema context from `metadata_entity_header` + `metadata_entity_field`:
+
+```
+Table: users
+Description: System users
+Columns: id (uuid), email (text), created_at (timestamp) -- Account creation date
+
+DIRECT FK JOINS:
+user_roles JOIN roles ON user_roles.role_id::uuid = roles.id
+
+MULTI-HOP JOIN PATHS:
+users → roles (via user_roles): JOIN user_roles ON users.id::uuid = user_roles.user_id JOIN roles ON user_roles.role_id::uuid = roles.id
+```
+
+If the data source has no entity metadata (i.e., schema not imported), the
+schema context will be empty and the LLM will not generate useful SQL. **Always
+import schema first** via `POST /api/data-sources/:id/inspect`.
+
+### 21e. Generating a report — example flow
+
+**User says:** "Show me all users and their account creation dates, export as CSV"
+
+1. AI reads `useCopilotReadable` → finds data source `{ id: "...", name: "Enterprise Config DB" }`
+2. AI calls `buildReport({ query: "Show me all users and their account creation dates", dataSourceId: "..." })`
+3. Server generates SQL:
+   ```sql
+   SELECT u.id AS user_id, u.email, u.created_at AS account_creation_date
+   FROM users u
+   ORDER BY u.created_at DESC
+   ```
+4. Server runs 10-row preview → returns to client
+5. AI tells user: "Here's a preview — 2 rows found. What title would you like for this report?"
+6. User says "Users Report, CSV please"
+7. AI calls `confirmReport({ title: "Users Report", outputFormats: "csv" })`
+8. Server saves definition, runs pipeline, writes CSV to `./job-outputs/`
+9. AI responds: "Your report 'Users Report' has been generated. Check the History tab for the download link."
+
+### 21f. Generating a chart via report generator
+
+The `buildReport` API always sets `intent.chartType = "bar"` by default.
+After `confirmReport`, the 10-phase worker (Phase 4) renders a chart image via
+ECharts SSR if `metric_columns` and `dimension_columns` are populated.
+
+To generate a chart with a specific type, the user should ask:
+"Give me a line chart of monthly signups" — the AI passes this to `buildReport.query`
+and the intent returned in the dry-run will carry `chartType: "line"`.
+
+Chart output is embedded in the PDF artifact and stored as a PNG in `job-outputs/`.
+
+For standalone (non-report) charts, use the chart builder at `/_authed/charts/`
+which calls `createChart` from `src/server-fns/charts.ts`.
+
+### 21g. Error handling
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Dry-run failed: No JSON object found" | LLM returned prose instead of JSON | Retry; LLM is overloaded |
+| "Dry-run failed: validation" | `sql` is empty (LLM confused) | Schema may be incomplete — inspect the data source |
+| "500 on /api/report-generation/definitions" | `nl_report_definitions` table missing | Run `bun scripts/rebuild-db.ts` |
+| Preview has 0 rows | SQL is valid but no data matches | Check WHERE clauses; LLM may have added wrong date filters |
+| Phase 2 PERMISSION_REVOKED | User's roles changed since report creation | Re-create the report or update RBAC |
+

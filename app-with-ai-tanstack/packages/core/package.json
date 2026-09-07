@@ -1,0 +1,44 @@
+{
+  "name": "@appwithai/core",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types/index.js",
+    "./hooks": "./dist/hooks/index.js",
+    "./services": "./dist/services/index.js",
+    "./services/*": "./dist/services/*.js",
+    "./database.service": "./dist/services/database.service.js",
+    "./utils": "./dist/utils/index.js",
+    "./utils/*": "./dist/utils/*.js",
+    "./generators": "./dist/generators/index.js",
+    "./generators/hook-translator": "./dist/generators/hook-translator/index.js",
+    "./generators/hook-translator/*": "./dist/generators/hook-translator/*.js",
+    "./auth": "./dist/auth/index.js",
+    "./workflow": "./dist/workflow/index.js",
+    "./workflows": "./dist/workflows/index.js",
+    "./rules": "./dist/rules/index.js",
+    "./config": "./dist/config/index.js",
+    "./logging": "./dist/logging/index.js"
+  },
+  "scripts": {
+    "build": "mkdir -p dist/generators/hook-translator dist/auth dist/workflow dist/workflows dist/rules dist/config dist/logging && bun build src/index.ts src/types/index.ts src/hooks/index.ts src/services/index.ts src/utils/index.ts src/utils/table-naming.ts --outdir dist --target node --format esm --external zod --external kysely --external mysql2 --external better-auth --external @gorules/zen-engine && bun build src/generators/index.ts --outdir dist/generators --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/generators/hook-translator/index.ts src/generators/hook-translator/parser.ts src/generators/hook-translator/visitor.ts src/generators/hook-translator/utils.ts src/generators/hook-translator/types.ts --outdir dist/generators/hook-translator --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/auth/index.ts src/auth/auth.types.ts src/auth/auth.service.ts src/auth/better-auth.config.ts --outdir dist/auth --target node --format esm --external zod --external kysely --external mysql2 --external better-auth --external @gorules/zen-engine && bun build src/workflow/index.ts src/workflow/workflow.types.ts src/workflow/workflow.service.ts --outdir dist/workflow --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/workflows/index.ts src/workflows/workflow-polling.helper.ts --outdir dist/workflows --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/rules/index.ts src/rules/rules.types.ts src/rules/rules-engine.service.ts --outdir dist/rules --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/config/index.ts src/config/workflow.config.ts src/config/db.config.ts src/config/db.types.ts --outdir dist/config --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine && bun build src/logging/index.ts --outdir dist/logging --target node --format esm --external zod --external kysely --external mysql2 --external @gorules/zen-engine --external pino --external pino-pretty",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@gorules/zen-engine": "^0.54.0",
+    "better-auth": "^1.5.6",
+    "jsonata": "^2.1.0",
+    "kysely": "^0.28.0",
+    "lru-cache": "^11.3.0",
+    "pg": "^8.17.1",
+    "pino": "^9.13.1",
+    "pino-pretty": "^13.1.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

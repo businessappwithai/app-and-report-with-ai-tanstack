@@ -1,0 +1,131 @@
+/**
+ * Dictionary role scoping
+ *
+ * The Application Dictionary is synced to each client over ElectricSQL. An
+ * Electric shape filters with a single-table `where` clause and cannot join, so
+ * the role grants held in `sys_access` are denormalised onto every dictionary
+ * table as `allowed_roles TEXT[]`. A shape then narrows to one role with
+ * `allowed_roles @> ARRAY['<role>']`, which the GIN indexes below answer
+ * directly.
+ *
+ * `allowed_roles IS NULL` means "visible to every role". That is the correct
+ * reading for `sys_reference` and `sys_ref_list`: they are the shared type
+ * vocabulary, they carry no business data, and every window needs them to
+ * render a field at all.
+ *
+ * The denormalised column is derived state, never hand-edited. It is recomputed
+ * by `sys_refresh_dictionary_scope()`, which triggers on `sys_access` keep
+ * current, so granting a role a window immediately widens what that role syncs.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Kysely, sql } from 'kysely';
+
+const SCOPED_TABLES = [
+  'sys_window',
+  'sys_table',
+  'sys_tab',
+  'sys_column',
+  'sys_field',
+] as const;
+
+export async function up(db: Kysely<any>): Promise<void> {
+  for (const table of SCOPED_TABLES) {
+    await sql`
+      ALTER TABLE ${sql.raw(table)}
+      ADD COLUMN IF NOT EXISTS allowed_roles TEXT[]
+    `.execute(db);
+
+    // GIN is what makes `allowed_roles @> ARRAY[...]` an index lookup rather
+    // than a sequential scan of the whole dictionary on every shape request.
+    await sql`
+      CREATE INDEX IF NOT EXISTS ${sql.raw(`idx_${table}_allowed_roles`)}
+      ON ${sql.raw(table)} USING GIN (allowed_roles)
+    `.execute(db);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recompute the whole dictionary scope from sys_access.
+  //
+  // Grants flow down the dictionary the same way the UI reads it:
+  //   sys_access -> sys_window -> sys_tab -> sys_field
+  //   sys_access -> sys_table  -> sys_column
+  //
+  // `is_exclude` rows are grants withheld, so they are filtered out here rather
+  // than subtracted afterwards — a role excluded from a window simply never
+  // contributes to that window's array.
+  // ---------------------------------------------------------------------------
+  await sql`
+    CREATE OR REPLACE FUNCTION sys_refresh_dictionary_scope() RETURNS void AS $$
+    BEGIN
+      UPDATE sys_window w
+      SET allowed_roles = COALESCE((
+        SELECT array_agg(DISTINCT r.name)
+        FROM sys_access a
+        JOIN sys_role r ON r.sys_role_id = a.sys_role_id
+        WHERE a.sys_window_id = w.sys_window_id
+          AND a.is_active AND NOT a.is_exclude AND r.is_active
+      ), ARRAY[]::TEXT[]);
+
+      UPDATE sys_table t
+      SET allowed_roles = COALESCE((
+        SELECT array_agg(DISTINCT r.name)
+        FROM sys_access a
+        JOIN sys_role r ON r.sys_role_id = a.sys_role_id
+        WHERE a.sys_table_id = t.sys_table_id
+          AND a.is_active AND NOT a.is_exclude AND r.is_active
+      ), ARRAY[]::TEXT[]);
+
+      UPDATE sys_tab tb
+      SET allowed_roles = w.allowed_roles
+      FROM sys_window w
+      WHERE w.sys_window_id = tb.sys_window_id;
+
+      UPDATE sys_column c
+      SET allowed_roles = t.allowed_roles
+      FROM sys_table t
+      WHERE t.sys_table_id = c.sys_table_id;
+
+      UPDATE sys_field f
+      SET allowed_roles = tb.allowed_roles
+      FROM sys_tab tb
+      WHERE tb.sys_tab_id = f.sys_tab_id;
+    END;
+    $$ LANGUAGE plpgsql;
+  `.execute(db);
+
+  // A statement-level trigger: one recompute per statement, not per row, so
+  // seeding a few hundred grants does not run the refresh a few hundred times.
+  await sql`
+    CREATE OR REPLACE FUNCTION sys_access_scope_trigger() RETURNS trigger AS $$
+    BEGIN
+      PERFORM sys_refresh_dictionary_scope();
+      RETURN NULL;
+    END;
+    $$ LANGUAGE plpgsql;
+  `.execute(db);
+
+  await sql`DROP TRIGGER IF EXISTS trg_sys_access_scope ON sys_access`.execute(db);
+  await sql`
+    CREATE TRIGGER trg_sys_access_scope
+    AFTER INSERT OR UPDATE OR DELETE ON sys_access
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION sys_access_scope_trigger();
+  `.execute(db);
+
+  // Seed the column for rows that already exist.
+  await sql`SELECT sys_refresh_dictionary_scope()`.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP TRIGGER IF EXISTS trg_sys_access_scope ON sys_access`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS sys_access_scope_trigger()`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS sys_refresh_dictionary_scope()`.execute(db);
+
+  for (const table of SCOPED_TABLES) {
+    await sql`DROP INDEX IF EXISTS ${sql.raw(`idx_${table}_allowed_roles`)}`.execute(db);
+    await sql`ALTER TABLE ${sql.raw(table)} DROP COLUMN IF EXISTS allowed_roles`.execute(db);
+  }
+}

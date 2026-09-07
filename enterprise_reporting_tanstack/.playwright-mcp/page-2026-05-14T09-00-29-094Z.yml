@@ -1,0 +1,174 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Enterprise Reports" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Enterprise Reports
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Main" [level=2] [ref=e14]
+          - navigation [ref=e15]:
+            - link "Dashboard" [ref=e296] [cursor=pointer]:
+              - /url: /
+              - button "Dashboard" [ref=e297]:
+                - img [ref=e298]
+                - generic [ref=e301]: Dashboard
+            - link "SQL Editor" [ref=e302] [cursor=pointer]:
+              - /url: /sql-editor
+              - button "SQL Editor" [ref=e303]:
+                - img [ref=e304]
+                - generic [ref=e306]: SQL Editor
+            - link "Saved Queries" [ref=e307] [cursor=pointer]:
+              - /url: /queries
+              - button "Saved Queries" [ref=e308]:
+                - img [ref=e309]
+                - generic [ref=e313]: Saved Queries
+            - link "Reports" [ref=e314] [cursor=pointer]:
+              - /url: /reports
+              - button "Reports" [ref=e315]:
+                - img [ref=e316]
+                - generic [ref=e319]: Reports
+            - link "Charts" [ref=e320] [cursor=pointer]:
+              - /url: /charts
+              - button "Charts" [ref=e321]:
+                - img [ref=e322]
+                - generic [ref=e324]: Charts
+            - link "Dashboards" [ref=e325] [cursor=pointer]:
+              - /url: /dashboards
+              - button "Dashboards" [ref=e326]:
+                - img [ref=e327]
+                - generic [ref=e332]: Dashboards
+            - link "Filters" [ref=e333] [cursor=pointer]:
+              - /url: /filters
+              - button "Filters" [ref=e334]:
+                - img [ref=e335]
+                - generic [ref=e337]: Filters
+            - link "Jobs" [ref=e338] [cursor=pointer]:
+              - /url: /jobs
+              - button "Jobs" [ref=e339]:
+                - img [ref=e340]
+                - generic [ref=e342]: Jobs
+            - link "NL Query" [ref=e343] [cursor=pointer]:
+              - /url: /nl-query
+              - button "NL Query" [ref=e344]:
+                - img [ref=e345]
+                - generic [ref=e347]: NL Query
+        - generic [ref=e68]:
+          - heading "Administration" [level=2] [ref=e69]
+          - navigation [ref=e70]:
+            - link "Data Sources" [ref=e348] [cursor=pointer]:
+              - /url: /data-sources
+              - button "Data Sources" [ref=e349]:
+                - img [ref=e350]
+                - generic [ref=e354]: Data Sources
+            - link "Queue Management" [ref=e355] [cursor=pointer]:
+              - /url: /bull-board
+              - button "Queue Management" [ref=e356]:
+                - img [ref=e357]
+                - generic [ref=e361]: Queue Management
+            - link "Users" [ref=e362] [cursor=pointer]:
+              - /url: /admin/users
+              - button "Users" [ref=e363]:
+                - img [ref=e364]
+                - generic [ref=e369]: Users
+            - link "Roles" [ref=e370] [cursor=pointer]:
+              - /url: /admin/roles
+              - button "Roles" [ref=e371]:
+                - img [ref=e372]
+                - generic [ref=e374]: Roles
+            - link "Permissions" [ref=e375] [cursor=pointer]:
+              - /url: /admin/permissions
+              - button "Permissions" [ref=e376]:
+                - img [ref=e377]
+                - generic [ref=e379]: Permissions
+            - link "Settings" [ref=e380] [cursor=pointer]:
+              - /url: /settings
+              - button "Settings" [ref=e381]:
+                - img [ref=e382]
+                - generic [ref=e385]: Settings
+      - button [ref=e109] [cursor=pointer]:
+        - img [ref=e110]
+    - generic [ref=e112]:
+      - banner [ref=e113]:
+        - button "Sakila Demo DB sqlite3" [active] [ref=e266] [cursor=pointer]:
+          - img [ref=e267]
+          - generic [ref=e271]: Sakila Demo DB
+          - generic [ref=e272]: sqlite3
+        - generic [ref=e119]:
+          - button "Toggle theme" [ref=e120] [cursor=pointer]:
+            - img [ref=e121]
+            - img
+            - generic [ref=e127]: Toggle theme
+          - button "Notifications" [ref=e128] [cursor=pointer]:
+            - img [ref=e129]
+            - generic [ref=e132]: Notifications
+          - button "SA" [ref=e133] [cursor=pointer]:
+            - generic [ref=e135]: SA
+      - main [ref=e136]:
+        - generic [ref=e386]:
+          - generic [ref=e387]:
+            - generic [ref=e388]:
+              - heading "Data Sources" [level=1] [ref=e389]
+              - paragraph [ref=e390]: Manage database connections for reports and queries
+            - button "New Data Source" [ref=e391] [cursor=pointer]:
+              - img [ref=e392]
+              - text: New Data Source
+          - generic [ref=e393]:
+            - heading "All Data Sources" [level=3] [ref=e395]:
+              - img [ref=e396]
+              - text: All Data Sources
+            - table [ref=e402]:
+              - rowgroup [ref=e403]:
+                - row "Name Type Description Status Created Actions" [ref=e404]:
+                  - columnheader "Name" [ref=e405]
+                  - columnheader "Type" [ref=e406]
+                  - columnheader "Description" [ref=e407]
+                  - columnheader "Status" [ref=e408]
+                  - columnheader "Created" [ref=e409]
+                  - columnheader "Actions" [ref=e410]
+              - rowgroup [ref=e411]:
+                - row "HMS pg - Connected May 14, 2026, 02:26 PM" [ref=e412]:
+                  - cell "HMS" [ref=e413]
+                  - cell "pg" [ref=e414]:
+                    - generic [ref=e415]: pg
+                  - cell "-" [ref=e416]
+                  - cell "Connected" [ref=e417]:
+                    - generic [ref=e419]: Connected
+                  - cell "May 14, 2026, 02:26 PM" [ref=e420]
+                  - cell [ref=e421]:
+                    - generic [ref=e422]:
+                      - button "Import schema to enable entity metadata" [ref=e423] [cursor=pointer]:
+                        - img [ref=e424]
+                      - link [ref=e429] [cursor=pointer]:
+                        - /url: /metadata/entities?data_source_id=be3aff5e-2df9-4cff-ac9a-31a694b598f6
+                        - button "Manage Entity Metadata" [ref=e430]:
+                          - img [ref=e431]
+                      - button "Edit data source" [ref=e434] [cursor=pointer]:
+                        - img [ref=e435]
+                      - button "Delete data source" [ref=e438] [cursor=pointer]:
+                        - img [ref=e439]
+                - row "Sakila Demo DB sqlite3 Sample Sakila database for testing Connected May 14, 2026, 02:09 PM" [ref=e442]:
+                  - cell "Sakila Demo DB" [ref=e443]
+                  - cell "sqlite3" [ref=e444]:
+                    - generic [ref=e445]: sqlite3
+                  - cell "Sample Sakila database for testing" [ref=e446]
+                  - cell "Connected" [ref=e447]:
+                    - generic [ref=e449]: Connected
+                  - cell "May 14, 2026, 02:09 PM" [ref=e450]
+                  - cell [ref=e451]:
+                    - generic [ref=e452]:
+                      - button "Import schema to enable entity metadata" [ref=e453] [cursor=pointer]:
+                        - img [ref=e454]
+                      - link [ref=e459] [cursor=pointer]:
+                        - /url: /metadata/entities?data_source_id=105fae77-a832-4953-8465-30ccb341d5bf
+                        - button "Manage Entity Metadata" [ref=e460]:
+                          - img [ref=e461]
+                      - button "Edit data source" [ref=e464] [cursor=pointer]:
+                        - img [ref=e465]
+                      - button "Delete data source" [ref=e468] [cursor=pointer]:
+                        - img [ref=e469]
+  - region "Notifications alt+T"
+  - generic [ref=e295]:
+    - alert
+    - alert

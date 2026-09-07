@@ -1,0 +1,32 @@
+Ticket ID,Title,Priority,File,Estimate (hours),Week,Status,Dependencies
+DATABASE-001,Create sys_error_codes table migration,P0,database/migrations/008_add_error_codes_table.ts,2,1,OPEN,
+DATABASE-002,Add composite index to sys_rule_definitions,P1,database/migrations/009_optimize_rule_lookup_index.ts,0.5,1,OPEN,
+CORE-001,Install @gorules/zen-engine dependency,P0,packages/core/package.json,1,1,OPEN,
+CORE-002,Create ZenEngine singleton,P1,packages/core/src/rules/zen-engine.singleton.ts,0.3,1,OPEN,CORE-001
+CORE-003,Add WORKFLOW_CONFIG constants,P2,packages/core/src/config/workflow.config.ts,0.5,1,OPEN,
+CORE-004,Integrate zen-engine into RulesEngineService,P0,packages/core/src/rules/rules-engine.service.ts,3,2,OPEN,CORE-001;CORE-002
+CORE-005,Implement loadActiveRule() shared function,P1,packages/core/src/rules/rules-engine.service.ts,1,2,OPEN,
+CORE-006,Add JDM Zod schema validation,P1,packages/core/src/rules/jdm.schema.ts,2,2,OPEN,
+WEB-001,Add auth middleware to /api/rules routes,P0,packages/web/src/app/api/rules/[ruleId]/route.ts,1,2,OPEN,
+WORKFLOW-001,Update entity-lifecycle-workflow.task.ts,P0,generated-projects/hospital-swiss-clean-new/backend/src/trigger/entity-lifecycle-workflow.task.ts,4,3,OPEN,CORE-002;OBS-001
+WORKFLOW-002,Add workflow polling helper,P1,packages/core/src/workflow/workflow-polling.helper.ts,1,3,OPEN,WEB-002
+WEB-002,Create workflow status API endpoint,P1,packages/web/src/app/api/workflows/[runId]/status/route.ts,1,3,OPEN,
+CORE-007,Implement LRU cache for rules,P1,packages/core/src/rules/rule-cache.service.ts,2,4,OPEN,
+CORE-008,Add pagination to getAllRules(),P2,packages/core/src/rules/rules-engine.service.ts,1,4,OPEN,
+DATABASE-003,Optimize trigger auto-version function,P2,database/migrations/010_optimize_rule_trigger.ts,0.5,4,OPEN,
+TEST-001,Zen engine integration tests,P0,packages/core/src/rules/__tests__/zen-engine.integration.test.ts,2,5,OPEN,CORE-004
+TEST-002,Auth middleware tests,P0,packages/web/src/app/api/rules/__tests__/auth.middleware.test.ts,1.5,5,OPEN,WEB-001
+TEST-003,RulesEngineService unit tests,P1,packages/core/src/rules/__tests__/rules-engine.service.test.ts,2,5,OPEN,CORE-004;CORE-005;CORE-006
+TEST-004,JDM validation tests,P1,packages/core/src/rules/__tests__/jdm.validation.test.ts,1.5,5,OPEN,CORE-006
+TEST-005,API route tests,P0,packages/web/src/app/api/rules/__tests__/routes.test.ts,2,6,OPEN,WEB-001;WEB-002
+TEST-006,E2E workflow tests,P1,tests/e2e/rules-engine.e2e.test.ts,3,6,OPEN,"All prior tickets"
+OBS-001,Winston structured logging,P1,packages/core/src/observability/winston.config.ts,1.5,7,OPEN,
+OBS-002,Prometheus metrics,P1,packages/core/src/observability/metrics.ts,2,7,OPEN,
+OBS-003,OpenTelemetry tracing,P2,packages/core/src/observability/tracing.ts,1.5,7,OPEN,
+OBS-004,AlertManager alerts,P2,packages/core/src/observability/alerts.ts,1,7,OPEN,OBS-002
+OBS-005,Grafana dashboard,P2,monitoring/grafana-dashboards/rules-engine.json,1,7,OPEN,OBS-002
+DEPLOY-001,Docker Rust build setup,P1,Dockerfile.build,2,8,OPEN,
+DEPLOY-002,Migration rollback test,P1,database/migrations/__tests__/008_rollback.test.ts,1,8,OPEN,"All migrations"
+DOCS-001,Operations runbook,P2,docs/runbooks/rules-engine-incidents.md,3,8,OPEN,OBS-001;OBS-005
+DOCS-002,Architecture diagrams,P2,docs/architecture/rules-engine.md,2,8,OPEN,
+DOCS-003,On-call rotation setup,P2,docs/operations/on-call-rotation.md,1,8,OPEN,DOCS-001

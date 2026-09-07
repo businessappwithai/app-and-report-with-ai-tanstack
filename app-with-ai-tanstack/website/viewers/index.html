@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Model viewer — APPWITHAI</title>
+    <meta
+      name="description"
+      content="See an EML model as it is written: the entities and their links, the state machines, the sagas and the business rules, drawn by the generator's own reading of the document."
+    />
+    <!-- The page draws its own picture; a tab icon request that 404s is noise
+         in the console of anyone debugging the viewer. -->
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="viewers.css" />
+    <style>
+      /* The host page's chrome. Deliberately small: everything below the header
+         is the viewer's own, and `viewers.css` is the file both this page and
+         the published site load. */
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        color: #0f172a;
+        background: #fff;
+      }
+
+      .page {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 24px 20px 64px;
+      }
+
+      .page-head {
+        margin-bottom: 20px;
+      }
+
+      .page-head h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+      }
+
+      .page-head p {
+        margin: 0;
+        max-width: 76ch;
+        color: #475569;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-head">
+        <h1>Model viewer</h1>
+        <p>
+          A model is a Mermaid document, and Mermaid draws only the ERD half of it. The rules, the
+          workflows, the enums and the access control live in <code>%%</code> directives it treats
+          as comments — which is the half worth checking while the model is still being written.
+          This page draws all of it, using the parser and compilers this repository generates
+          applications with, so what you see is what the generator read.
+        </p>
+      </header>
+
+      <div class="awv-root" id="viewer">
+        <div class="awv-shell">
+          <div class="awv-bar">
+            <button type="button" class="awv-button is-primary" data-role="watch" hidden>
+              Watch a file
+            </button>
+            <button type="button" class="awv-button" data-role="open">Open a file</button>
+            <input
+              type="file"
+              accept=".mmd,.md,.txt"
+              data-role="file-input"
+              hidden
+            />
+            <span class="awv-watch-state" data-role="watch-state" hidden></span>
+            <p class="awv-status" data-role="status"></p>
+            <span class="awv-verdict" data-role="verdict" data-needs-model></span>
+            <button type="button" class="awv-button" data-role="copy-report" data-needs-model>
+              Copy the checker's report
+            </button>
+          </div>
+
+          <ul class="awv-diagnostics" data-role="diagnostics" data-needs-model></ul>
+          <div class="awv-stats" data-role="stats" data-needs-model></div>
+
+          <nav class="awv-tabs" aria-label="What to look at">
+            <button type="button" class="awv-tab is-active" data-tab="entities">Entities</button>
+            <button type="button" class="awv-tab" data-tab="workflows">Workflows</button>
+            <button type="button" class="awv-tab" data-tab="rules">Business rules</button>
+            <button type="button" class="awv-tab" data-tab="access">Access</button>
+            <button type="button" class="awv-tab" data-tab="source">Source</button>
+          </nav>
+
+          <section class="awv-panel" data-panel="entities">
+            <div class="awv-bar">
+              <label for="erd-filter">Filter</label>
+              <input
+                id="erd-filter"
+                type="search"
+                class="awv-button"
+                data-role="erd-filter"
+                placeholder="entity, table, category or column"
+              />
+            </div>
+            <div class="awv-split is-canvas-first">
+              <div data-role="erd-canvas"></div>
+              <aside class="awv-inspector" data-role="inspector"></aside>
+            </div>
+          </section>
+
+          <section class="awv-panel" data-panel="workflows" hidden>
+            <div class="awv-split">
+              <div class="awv-list" data-role="workflow-list"></div>
+              <div data-role="workflow-detail"></div>
+            </div>
+          </section>
+
+          <section class="awv-panel" data-panel="rules" hidden>
+            <div class="awv-split">
+              <div class="awv-list" data-role="rule-list"></div>
+              <div data-role="rule-detail"></div>
+            </div>
+          </section>
+
+          <section class="awv-panel" data-panel="access" hidden>
+            <div data-role="access"></div>
+          </section>
+
+          <section class="awv-panel" data-panel="source" hidden>
+            <pre class="awv-source" data-role="source-view"></pre>
+          </section>
+
+          <section>
+            <h2 style="font-size: 15px; margin: 20px 0 8px">Paste a model</h2>
+            <textarea
+              class="awv-paste"
+              data-role="paste"
+              spellcheck="false"
+              placeholder="%%meta name: ..."
+              aria-label="Paste an EML model"
+            ></textarea>
+            <div class="awv-drop" data-role="drop">…or drop a <code>.eml.mmd</code> file anywhere on this page.</div>
+            <div class="awv-examples">
+              <button
+                type="button"
+                class="awv-button"
+                data-example="../../language/examples/crm.eml.mmd"
+              >
+                CRM
+              </button>
+              <button
+                type="button"
+                class="awv-button"
+                data-example="../../language/examples/dance-studio.eml.mmd"
+              >
+                Dance studio
+              </button>
+              <button
+                type="button"
+                class="awv-button"
+                data-example="../../html/models/drug-discovery.eml.mmd"
+              >
+                Drug discovery
+              </button>
+              <button
+                type="button"
+                class="awv-button"
+                data-example="../../html/models/investment-planning-wealth-management-system.eml.mmd"
+              >
+                Wealth management
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script type="module">
+      import { ModelViewer } from "./model-viewer.js";
+
+      new ModelViewer(document.getElementById("viewer"));
+    </script>
+  </body>
+</html>

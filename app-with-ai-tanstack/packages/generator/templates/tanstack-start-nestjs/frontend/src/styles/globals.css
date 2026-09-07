@@ -1,0 +1,247 @@
+/**
+ * Swiss Clean Design System
+ *
+ * Editorial elegance with Newsreader serif headlines
+ * Technical precision with JetBrains Mono metrics
+ * Clean body text with Inter
+ * Refined borders instead of shadows
+ *
+ * Color Palette:
+ * - Primary: Teal (#0D6E6E)
+ * - Destructive: Orange (#E07B54)
+ * - Backgrounds: Light (#FAFAFA, #FFFFFF)
+ * - Borders: Refined (#E5E5E5)
+ * - Text: Dark (#1A1A1A, #666666, #888888)
+ *
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Swiss Clean Color Palette */
+    --background: 0 0% 98%; /* #FAFAFA */
+    --foreground: 0 0% 10%; /* #1A1A1A */
+
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 10%; /* #1A1A1A */
+
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 0 0% 10%; /* #1A1A1A */
+
+    --primary: 180 79% 24%; /* #0D6E6E - Teal */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+
+    --secondary: 0 0% 96%; /* #F5F5F5 */
+    --secondary-foreground: 0 0% 10%; /* #1A1A1A */
+
+    --muted: 0 0% 96%; /* #F5F5F5 */
+    --muted-foreground: 0 0% 53%; /* #888888 */
+
+    --accent: 180 79% 24%; /* #0D6E6E - Teal */
+    --accent-foreground: 0 0% 100%; /* #FFFFFF */
+
+    --destructive: 17 69% 60%; /* #E07B54 - Orange */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+
+    --border: 0 0% 90%; /* #E5E5E5 */
+    --input: 0 0% 90%; /* #E5E5E5 */
+    --ring: 180 79% 24%; /* #0D6E6E - Teal */
+
+    --radius: 0.75rem; /* Slightly more refined than default */
+  }
+
+  .dark {
+    --background: 0 0% 10%; /* #1A1A1A */
+    --foreground: 0 0% 98%; /* #FAFAFA */
+
+    --card: 0 0% 12%; /* #1F1F1F */
+    --card-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --popover: 0 0% 12%; /* #1F1F1F */
+    --popover-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --primary: 182 78% 47%; /* Lighter teal for dark mode */
+    --primary-foreground: 0 0% 10%; /* #1A1A1A */
+
+    --secondary: 0 0% 18%; /* #2E2E2E */
+    --secondary-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --muted: 0 0% 18%; /* #2E2E2E */
+    --muted-foreground: 0 0% 60%; /* #999999 */
+
+    --accent: 182 78% 47%; /* Lighter teal for dark mode */
+    --accent-foreground: 0 0% 10%; /* #1A1A1A */
+
+    --destructive: 17 76% 55%; /* Adjusted orange for dark mode */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --border: 0 0% 20%; /* #333333 */
+    --input: 0 0% 20%; /* #333333 */
+    --ring: 182 78% 47%; /* Lighter teal for dark mode */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  /* Swiss Clean Typography Classes */
+
+  /* Display font - Newsreader for headlines */
+  .font-display {
+    font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  /* Mono display font - JetBrains Mono for metrics */
+  .font-mono-display {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    font-weight: 600;
+  }
+
+  /* Swiss Clean Container - centered layout with max-width and padding */
+  .container-swiss {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Swiss Clean Cards - refined borders, no shadows */
+  .swiss-card {
+    @apply rounded-xl border border-border bg-card text-card-foreground;
+  }
+
+  /* Swiss Clean Input - refined borders
+   *
+   * No vertical padding on purpose. Browsers centre the text of a single-line
+   * input or select inside its content box, so the height alone positions it.
+   * A py-* here survives every height override (`swiss-input h-8`) and clips
+   * the text to a band too short to hold it — which is what happened to the
+   * category selects on /admin/categories: only descenders rendered. Multi-line
+   * controls that need padding set their own (see the textarea on that page). */
+  .swiss-input {
+    @apply h-12 w-full rounded-lg border border-border bg-background px-4 text-sm ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Swiss Clean Button - refined borders */
+  .swiss-button {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* Metric Card - Swiss Clean dashboard component */
+  .metric-card {
+    @apply swiss-card p-5 flex flex-col gap-3 h-[146px];
+  }
+
+  .metric-label {
+    @apply font-mono-display text-[11px] font-semibold tracking-wider uppercase text-muted-foreground;
+  }
+
+  .metric-value {
+    @apply font-display text-4xl font-semibold text-foreground;
+  }
+
+  .metric-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Section Header - Swiss Clean dashboard component */
+  .section-header {
+    @apply font-mono-display text-[11px] font-semibold tracking-wider uppercase text-muted-foreground mb-4;
+  }
+
+  /* Entity Card - Swiss Clean dashboard component */
+  .entity-card {
+    @apply swiss-card p-4 hover:border-primary/50 transition-colors cursor-pointer;
+  }
+
+  .entity-title {
+    @apply font-semibold text-foreground;
+  }
+
+  .entity-count {
+    @apply font-mono-display text-sm text-muted-foreground;
+  }
+
+  /* Swiss Clean Table */
+  .swiss-table {
+    @apply w-full caption-bottom text-sm;
+  }
+
+  .swiss-table th {
+    @apply h-12 px-4 text-left align-middle font-mono-display text-[11px] font-semibold tracking-wider uppercase text-muted-foreground;
+  }
+
+  .swiss-table td {
+    @apply p-4 align-middle border-b border-border;
+  }
+
+  .swiss-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* Swiss Clean Badge */
+  .swiss-badge {
+    @apply inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold font-mono uppercase transition-colors;
+  }
+
+  .swiss-badge-success {
+    @apply swiss-badge bg-[#F0FDF4] text-[#0D6E6E];
+  }
+
+  .swiss-badge-warning {
+    @apply swiss-badge bg-[#FEF3F2] text-[#E07B54];
+  }
+
+  .swiss-badge-muted {
+    @apply swiss-badge bg-[#FAFAFA] text-[#888888];
+  }
+
+  /* Swiss Clean Link */
+  .swiss-link {
+    @apply text-primary underline-offset-4 hover:underline transition-colors;
+  }
+
+  /* Swiss Clean Separator */
+  .swiss-separator {
+    @apply border-t border-border;
+  }
+
+  /* Swiss Clean Skeleton */
+  .swiss-skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+
+  /* Swiss Clean Alert */
+  .swiss-alert {
+    @apply swiss-card p-4;
+  }
+
+  .swiss-alert-success {
+    @apply swiss-alert border-[#0D6E6E]/20 bg-[#F0FDF4];
+  }
+
+  .swiss-alert-warning {
+    @apply swiss-alert border-[#E07B54]/20 bg-[#FEF3F2];
+  }
+
+  .swiss-alert-error {
+    @apply swiss-alert border-red-500/20 bg-red-50;
+  }
+
+  .swiss-alert-info {
+    @apply swiss-alert border-blue-500/20 bg-blue-50;
+  }
+}

@@ -1,0 +1,137 @@
+/**
+ * Business Rules Seed
+ * Loads the generated GoRules JDM decision models into sys_rule_definitions
+ * so business rules are enforced on entity create/update/delete out of the box.
+ *
+ * Generated: {{now}}
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { Kysely } from 'kysely';
+import { v4 as uuidv4 } from 'uuid';
+
+const JDM_DIR = path.join(__dirname, '..', 'src', 'modules', 'rules', 'jdm');
+
+const RULES = [
+  {{#each entities}}
+  { file: '{{tableName}}.jdm.json', entityName: '{{tableName}}', ruleName: '{{tableName}}_validation', operation: 'ALL' },
+  {{/each}}
+];
+
+// Business rules authored in the model's `%%rule` sections, compiled from their
+// decision flowcharts to GoRules JDM. These are the rules a designer drew; they
+// are seeded alongside the generated validation rules and are editable in the
+// admin rules editor afterwards.
+const AUTHORED_RULES = [
+  {{#each compiledRules}}
+  {
+    entityName: '{{tableName}}',
+    ruleName: '{{name}}',
+    operation: '{{operation}}',
+    priority: {{priority}},
+    jdmContent: '{{{jdmContentEscaped}}}',
+  },
+  {{/each}}
+];
+
+// Workflows are not triggered by seeded rules.
+//
+// The generator seeds a workflow definition per entity per operation (see
+// 05_workflow_definitions.ts), and the promotion pipeline runs the matching
+// definition automatically on every write. A seeded `trigger-workflow` rule
+// naming the same definition ran it a second time, so one create produced
+// duplicate workflow runs and duplicate side effects.
+//
+// `trigger-workflow` remains available as a rule action for rules you author
+// yourself, where choosing a workflow by name is the point.
+
+export async function seed(db: Kysely<any>): Promise<void> {
+  const now = new Date();
+
+  for (const rule of RULES) {
+    const jdmPath = path.join(JDM_DIR, rule.file);
+    if (!fs.existsSync(jdmPath)) {
+      console.warn(`  ⚠ JDM file not found, skipping rule seed: ${jdmPath}`);
+      continue;
+    }
+
+    const jdmContent = fs.readFileSync(jdmPath, 'utf-8');
+    // Fail fast on malformed JDM rather than seeding a broken rule
+    JSON.parse(jdmContent);
+
+    const existing = await db
+      .selectFrom('sys_rule_definitions')
+      .select('id')
+      .where('entity_name', '=', rule.entityName)
+      .where('operation', '=', rule.operation)
+      .where('rule_name', '=', rule.ruleName)
+      .executeTakeFirst();
+
+    if (existing) {
+      await db
+        .updateTable('sys_rule_definitions')
+        .set({ jdm_content: jdmContent, is_active: true, updated_by: 'seed', updated_at: now })
+        .where('id', '=', (existing as any).id)
+        .execute();
+      console.log(`  ↻ Updated business rule: ${rule.entityName} (${rule.operation})`);
+    } else {
+      await db
+        .insertInto('sys_rule_definitions')
+        .values({
+          id: uuidv4(),
+          entity_name: rule.entityName,
+          rule_name: rule.ruleName,
+          operation: rule.operation,
+          jdm_content: jdmContent,
+          version: 1,
+          is_active: true,
+          created_by: 'seed',
+          created_at: now,
+          updated_at: now,
+        } as any)
+        .execute();
+      console.log(`  ✓ Seeded business rule: ${rule.entityName} (${rule.operation})`);
+    }
+  }
+  await seedAuthoredRules(db);
+}
+
+export async function seedAuthoredRules(db: Kysely<any>): Promise<void> {
+  const now = new Date();
+
+  for (const rule of AUTHORED_RULES) {
+    const existing = await db
+      .selectFrom('sys_rule_definitions')
+      .select('id')
+      .where('entity_name', '=', rule.entityName)
+      .where('rule_name', '=', rule.ruleName)
+      .executeTakeFirst();
+
+    if (existing) {
+      await db
+        .updateTable('sys_rule_definitions')
+        .set({ jdm_content: rule.jdmContent, operation: rule.operation as any, is_active: true, updated_by: 'seed', updated_at: now })
+        .where('id', '=', (existing as any).id)
+        .execute();
+      console.log(`  \u21bb Updated authored rule: ${rule.ruleName} (${rule.entityName} ${rule.operation})`);
+    } else {
+      await db
+        .insertInto('sys_rule_definitions')
+        .values({
+          id: uuidv4(),
+          entity_name: rule.entityName,
+          rule_name: rule.ruleName,
+          operation: rule.operation as any,
+          jdm_content: rule.jdmContent,
+          version: 1,
+          is_active: true,
+          created_by: 'seed',
+          created_at: now,
+          updated_at: now,
+        } as any)
+        .execute();
+      console.log(`  \u2713 Seeded authored rule: ${rule.ruleName} (${rule.entityName} ${rule.operation})`);
+    }
+  }
+}

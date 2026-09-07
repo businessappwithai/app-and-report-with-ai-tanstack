@@ -1,0 +1,11 @@
+{
+  "name": "pg",
+  "version": "8.99.0",
+  "description": "PostgreSQL compiled to WebAssembly, installed under the name `pg` so the generated backend needs no database server. Not the network driver: see index.js.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "peerDependencies": {
+    "@electric-sql/pglite": ">=0.5.0"
+  }
+}

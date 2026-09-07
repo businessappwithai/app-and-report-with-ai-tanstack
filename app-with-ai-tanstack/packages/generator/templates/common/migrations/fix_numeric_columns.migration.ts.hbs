@@ -1,0 +1,32 @@
+/**
+ * Fix Numeric Column Types Migration
+ * Ensures DECIMAL/FLOAT columns are correctly typed and user-reference
+ * VARCHAR columns use the right SQL type. Safe to re-run (uses TRY blocks).
+ *
+ * Generated: {{now}}
+ */
+
+import { Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+{{#each entities}}
+{{#each attributes}}
+{{#if (eq (typeToReferenceId type) 12)}}
+{{#unless isForeignKey}}
+{{#unless isPrimaryKey}}
+  // Fix {{../tableName}}.{{name}} → DECIMAL
+  await sql`
+    ALTER TABLE {{../tableName}}
+      ALTER COLUMN {{name}} TYPE DECIMAL(18,6)
+        USING NULLIF({{name}}::text, '')::DECIMAL
+  `.execute(db).catch(() => { /* column already correct type */ });
+{{/unless}}
+{{/unless}}
+{{/if}}
+{{/each}}
+{{/each}}
+}
+
+export async function down(_db: Kysely<any>): Promise<void> {
+  // Intentionally empty — column type fixes are not reversible without data loss
+}

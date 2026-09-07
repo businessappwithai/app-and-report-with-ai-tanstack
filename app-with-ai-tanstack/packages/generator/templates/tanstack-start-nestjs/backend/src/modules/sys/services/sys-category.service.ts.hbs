@@ -1,0 +1,357 @@
+/**
+ * SysCategory Service
+ *
+ * Entity categories for the Application Dictionary. A category groups business
+ * entities into a named section; the dashboard renders one block per category,
+ * ordered by name.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+import { DatabaseService } from '../../../database/database.service';
+
+export interface SysCategoryRecord {
+  sys_category_id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  seq_no: number;
+  is_default: boolean;
+  is_active: boolean;
+}
+
+export interface CreateCategoryDto {
+  name: string;
+  code?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  seq_no?: number;
+  is_default?: boolean;
+  is_active?: boolean;
+}
+
+export type UpdateCategoryDto = Partial<CreateCategoryDto>;
+
+/** Derive a stable code from a display name when the caller does not supply one. */
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+}
+
+@Injectable()
+export class SysCategoryService {
+  constructor(private readonly db: DatabaseService) {}
+
+  /**
+   * All categories, ordered by name — the order the dashboard renders them in.
+   */
+  async findAll(options: { includeInactive?: boolean; search?: string } = {}) {
+    const { includeInactive = false, search } = options;
+
+    const data = await this.db.kysely
+      .selectFrom('sys_category')
+      .selectAll()
+      .$if(!includeInactive, (qb) => qb.where('is_active', '=', true))
+      .$if(!!search, (qb) =>
+        qb.where((eb) =>
+          eb.or([
+            eb('name', 'ilike', `%${search}%`),
+            eb('code', 'ilike', `%${search}%`),
+            eb('description', 'ilike', `%${search}%`),
+          ]),
+        ),
+      )
+      .orderBy('name', 'asc')
+      .execute();
+
+    return { data, meta: { total: data.length } };
+  }
+
+  async findById(id: string) {
+    const category = await this.db.kysely
+      .selectFrom('sys_category')
+      .selectAll()
+      .where('sys_category_id', '=', id)
+      .executeTakeFirst();
+
+    if (!category) throw new NotFoundException(`Category ${id} not found`);
+    return category;
+  }
+
+  /**
+   * Categories with their entities attached, ordered by category name then
+   * entity name. This is the single call the dashboard needs to render its
+   * grouped layout.
+   *
+   * Entities with no category are returned under a synthetic "Uncategorized"
+   * group so nothing silently disappears from the dashboard.
+   */
+  /**
+   * The set of `bus_` tables a caller may read, or `null` for "everything".
+   *
+   * `%%rbac … .read` is what decides which entities a role's application is
+   * made of. `EntityAccessGuard` already refuses a read the caller's roles do
+   * not permit — but a dashboard that offers every entity and then answers 403
+   * on nine of them is a worse application than a shorter one: the reader
+   * cannot tell a permission from a bug. This is that same rule, applied one
+   * screen earlier.
+   *
+   * A failed lookup means "no rules", matching the guard's own fail-open on a
+   * database that predates the migration.
+   */
+  private async readableTables(user?: { isMaster?: boolean; roles?: string[]; sysRoles?: string[]; role?: string }) {
+    if (!user) return null;
+    if (user.isMaster === true) return null;
+
+    /* Case and separators both — `sys_operation_access` holds the model's
+       spelling (`computational_chemist`) and `sys_role` the displayed one
+       (`Computational Chemist`). Folding case alone makes every multi-word role
+       unequal to itself; see the same rule in EntityAccessGuard. */
+    const foldRole = (role: string) => role.trim().toLowerCase().replace(/[\s\-_]+/g, '');
+    const held = new Set<string>();
+    for (const value of [...(user.sysRoles ?? []), ...(user.roles ?? [])]) {
+      if (typeof value === 'string' && value) held.add(foldRole(value));
+    }
+    if (typeof user.role === 'string' && user.role) held.add(foldRole(user.role));
+
+    let rows: Array<{ table_name: string; role_name: string }>;
+    try {
+      rows = await this.db.kysely
+        .selectFrom('sys_operation_access')
+        .select(['table_name', 'role_name'])
+        .where('operation', '=', 'read')
+        .where('is_active', '=', true)
+        .execute() as Array<{ table_name: string; role_name: string }>;
+    } catch {
+      return null;
+    }
+
+    if (rows.length === 0) return null;
+
+    const restricted = new Set(rows.map((row) => row.table_name));
+    const allowed = new Set(
+      rows.filter((row) => held.has(foldRole(String(row.role_name)))).map((row) => row.table_name),
+    );
+
+    // A table no directive names is unrestricted, so it stays visible.
+    return { restricted, allowed };
+  }
+
+  async findAllWithEntities(user?: { isMaster?: boolean; roles?: string[]; sysRoles?: string[]; role?: string }) {
+    const [categories, tables] = await Promise.all([
+      this.db.kysely
+        .selectFrom('sys_category')
+        .selectAll()
+        .where('is_active', '=', true)
+        .orderBy('name', 'asc')
+        .execute(),
+      this.db.kysely
+        .selectFrom('sys_table')
+        .select([
+          'sys_table_id',
+          'table_name',
+          'name',
+          'description',
+          'sys_category_id',
+          'entity_type',
+          'is_active',
+        ])
+        .where('is_active', '=', true)
+        .orderBy('name', 'asc')
+        .execute(),
+    ]);
+
+    // Only business entities belong on the dashboard's grouped view.
+    const scope = await this.readableTables(user);
+    const businessTables = tables
+      .filter((t: any) => String(t.table_name).startsWith('bus_') || t.entity_type === 'U')
+      .filter(
+        (t: any) =>
+          !scope || !scope.restricted.has(String(t.table_name)) || scope.allowed.has(String(t.table_name)),
+      );
+
+    const byCategory = new Map<string, any[]>();
+    for (const table of businessTables) {
+      const key = table.sys_category_id ?? '__uncategorized__';
+      const bucket = byCategory.get(key) ?? [];
+      bucket.push(table);
+      byCategory.set(key, bucket);
+    }
+
+    const groups = categories
+      .map((category: any) => ({
+        ...category,
+        entities: byCategory.get(category.sys_category_id) ?? [],
+      }))
+      // A group whose every entity belongs to another role is not an empty
+      // group, it is somebody else's. A card reading "0 entities" tells the
+      // reader nothing they can act on.
+      .filter((group: any) => !scope || group.entities.length > 0);
+
+    const orphans = byCategory.get('__uncategorized__') ?? [];
+    if (orphans.length > 0) {
+      groups.push({
+        sys_category_id: null,
+        name: 'Uncategorized',
+        code: 'uncategorized',
+        description: 'Entities not yet assigned to a category',
+        icon: 'HelpCircle',
+        color: null,
+        seq_no: 9999,
+        is_default: false,
+        is_active: true,
+        entities: orphans,
+      });
+    }
+
+    // Alphabetical by name, with Uncategorized last regardless of spelling.
+    groups.sort((a: any, b: any) => {
+      if (a.sys_category_id === null) return 1;
+      if (b.sys_category_id === null) return -1;
+      return String(a.name).localeCompare(String(b.name));
+    });
+
+    return { data: groups, meta: { total: groups.length } };
+  }
+
+  async create(dto: CreateCategoryDto) {
+    if (!dto.name?.trim()) throw new BadRequestException('name is required');
+
+    const code = (dto.code?.trim() || slugify(dto.name));
+    if (!code) throw new BadRequestException('code could not be derived from name');
+
+    const clash = await this.db.kysely
+      .selectFrom('sys_category')
+      .select('sys_category_id')
+      .where((eb) => eb.or([eb('name', '=', dto.name.trim()), eb('code', '=', code)]))
+      .executeTakeFirst();
+
+    if (clash) throw new ConflictException(`A category with that name or code already exists`);
+
+    if (dto.is_default) await this.clearDefault();
+
+    const id = uuidv4();
+    await this.db.kysely
+      .insertInto('sys_category')
+      .values({
+        sys_category_id: id,
+        name: dto.name.trim(),
+        code,
+        description: dto.description ?? null,
+        icon: dto.icon ?? null,
+        color: dto.color ?? null,
+        seq_no: dto.seq_no ?? 0,
+        is_default: dto.is_default ?? false,
+        is_active: dto.is_active ?? true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as any)
+      .execute();
+
+    return this.findById(id);
+  }
+
+  async update(id: string, dto: UpdateCategoryDto) {
+    await this.findById(id);
+
+    if (dto.name !== undefined && !dto.name.trim()) {
+      throw new BadRequestException('name cannot be empty');
+    }
+
+    if (dto.name || dto.code) {
+      const clash = await this.db.kysely
+        .selectFrom('sys_category')
+        .select('sys_category_id')
+        .where('sys_category_id', '!=', id)
+        .where((eb) => {
+          const conditions = [] as any[];
+          if (dto.name) conditions.push(eb('name', '=', dto.name.trim()));
+          if (dto.code) conditions.push(eb('code', '=', dto.code.trim()));
+          return eb.or(conditions);
+        })
+        .executeTakeFirst();
+
+      if (clash) throw new ConflictException('A category with that name or code already exists');
+    }
+
+    if (dto.is_default) await this.clearDefault(id);
+
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    for (const key of ['name', 'code', 'description', 'icon', 'color', 'seq_no', 'is_default', 'is_active'] as const) {
+      if (dto[key] !== undefined) patch[key] = typeof dto[key] === 'string' ? (dto[key] as string).trim() : dto[key];
+    }
+
+    await this.db.kysely
+      .updateTable('sys_category')
+      .set(patch as any)
+      .where('sys_category_id', '=', id)
+      .execute();
+
+    return this.findById(id);
+  }
+
+  /**
+   * Deactivate a category. Entities pointing at it are detached rather than
+   * deleted — losing an entity because its grouping was removed would be a
+   * surprising amount of collateral damage.
+   */
+  async remove(id: string) {
+    await this.findById(id);
+
+    await this.db.kysely
+      .updateTable('sys_table')
+      .set({ sys_category_id: null } as any)
+      .where('sys_category_id', '=', id)
+      .execute();
+
+    await this.db.kysely
+      .updateTable('sys_category')
+      .set({ is_active: false, updated_at: new Date() } as any)
+      .where('sys_category_id', '=', id)
+      .execute();
+
+    return { message: 'Category deactivated and its entities detached' };
+  }
+
+  /** Assign a set of entities to a category (or to none, when categoryId is null). */
+  async assignEntities(categoryId: string | null, tableIds: string[]) {
+    if (categoryId) await this.findById(categoryId);
+    if (tableIds.length === 0) return { updated: 0 };
+
+    await this.db.kysely
+      .updateTable('sys_table')
+      .set({ sys_category_id: categoryId } as any)
+      .where('sys_table_id', 'in', tableIds)
+      .execute();
+
+    return { updated: tableIds.length };
+  }
+
+  /** Entities belonging to one category. */
+  async entitiesFor(id: string) {
+    await this.findById(id);
+    return this.db.kysely
+      .selectFrom('sys_table')
+      .select(['sys_table_id', 'table_name', 'name', 'description', 'entity_type'])
+      .where('sys_category_id', '=', id)
+      .where('is_active', '=', true)
+      .orderBy('name', 'asc')
+      .execute();
+  }
+
+  private async clearDefault(exceptId?: string) {
+    let query = this.db.kysely.updateTable('sys_category').set({ is_default: false } as any);
+    if (exceptId) query = query.where('sys_category_id', '!=', exceptId);
+    await query.execute();
+  }
+}

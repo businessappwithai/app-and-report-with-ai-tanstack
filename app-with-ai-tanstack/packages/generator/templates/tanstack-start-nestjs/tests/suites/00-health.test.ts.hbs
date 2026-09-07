@@ -1,0 +1,40 @@
+/**
+ * Health & reachability.
+ *
+ * Runs first. If this suite fails nothing else can pass, and the failure
+ * message should say why the app is unreachable rather than surfacing as a
+ * cascade of auth errors.
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { describe, expect, it } from "../harness/testing.ts";
+import { config, HttpClient, isServerUp, waitForServer } from "../harness/index.ts";
+
+describe("health", () => {
+  it("answers the health endpoint", async () => {
+    await waitForServer();
+    expect(await isServerUp()).toBe(true);
+  });
+
+  it("reports ok from /api/me/health", async () => {
+    const client = new HttpClient();
+    const response = await client.get<{ status: string }>("/me/health");
+
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe("ok");
+  });
+
+  it("rejects unauthenticated access to a protected route", async () => {
+    const client = new HttpClient();
+    const response = await client.get("/me", { allowFailure: true });
+
+    expect(response.ok).toBe(false);
+    expect([401, 403]).toContain(response.status);
+  });
+
+  it("serves under the configured base url", () => {
+    expect(config.baseUrl).toMatch(/^https?:\/\//);
+  });
+});

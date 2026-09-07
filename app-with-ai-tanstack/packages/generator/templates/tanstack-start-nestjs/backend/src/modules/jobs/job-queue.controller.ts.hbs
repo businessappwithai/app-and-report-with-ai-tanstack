@@ -1,0 +1,75 @@
+/**
+ * Job Queue Controller
+ *
+ * REST API for managing background jobs
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { JobQueueService } from './job-queue.service';
+import type { EmailJobData, ReportJobData, SyncJobData } from './job-queue.service';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+
+/**
+ * Guarded: enqueueing email, report and sync jobs is not something an
+ * anonymous caller should be able to do.
+ */
+@ApiTags('jobs')
+@UseGuards(SessionAuthGuard)
+@Controller('jobs')
+export class JobQueueController {
+  constructor(private readonly jobQueueService: JobQueueService) {}
+
+  @Post('email')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Queue an email job' })
+  @ApiResponse({ status: 202, description: 'Email job queued successfully' })
+  async queueEmail(@Body() data: EmailJobData) {
+    const jobId = await this.jobQueueService.addEmailJob(data);
+    return {
+      message: 'Email job queued',
+      jobId,
+    };
+  }
+
+  @Post('reports')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Queue a report generation job' })
+  @ApiResponse({ status: 202, description: 'Report job queued successfully' })
+  async queueReport(@Body() data: ReportJobData) {
+    const jobId = await this.jobQueueService.addReportJob(data);
+    return {
+      message: 'Report job queued',
+      jobId,
+    };
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Queue a data sync job' })
+  @ApiResponse({ status: 202, description: 'Sync job queued successfully' })
+  async queueSync(@Body() data: SyncJobData) {
+    const jobId = await this.jobQueueService.addSyncJob(data);
+    return {
+      message: 'Sync job queued',
+      jobId,
+    };
+  }
+
+  @Get(':queueName/:jobId')
+  @ApiOperation({ summary: 'Get job status' })
+  @ApiResponse({ status: 200, description: 'Job status retrieved' })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  async getJobStatus(@Param('queueName') queueName: string, @Param('jobId') jobId: string) {
+    const status = await this.jobQueueService.getJobStatus(queueName, jobId);
+    if (!status) {
+      return {
+        error: 'Job not found',
+      };
+    }
+    return status;
+  }
+}

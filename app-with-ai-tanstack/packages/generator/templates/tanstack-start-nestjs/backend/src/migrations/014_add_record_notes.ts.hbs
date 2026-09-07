@@ -1,0 +1,42 @@
+/**
+ * `sys_note` — what a person wanted to say about a record.
+ *
+ * Kept apart from `sys_audit_log` deliberately. The trail records what the
+ * system observed and must not be editable; a note is somebody's sentence
+ * about the same record. Storing them in one table would make the history
+ * writable, which is the one thing an audit trail may not be.
+ *
+ * Notes are append-only: there is no update path and no delete path. A note
+ * that can be quietly rewritten is worth about as much as a conversation
+ * nobody remembers.
+ */
+
+import { type Kysely, sql } from 'kysely';
+
+export async function up(db: Kysely<any>): Promise<void> {
+  await sql`
+    CREATE TABLE IF NOT EXISTS sys_note (
+      sys_note_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      table_name VARCHAR(100) NOT NULL,
+      record_id VARCHAR(100) NOT NULL,
+      note TEXT NOT NULL,
+      -- VARCHAR, not UUID: Better Auth mints its own ids and they are not
+      -- uuids, so a UUID column rejects every insert with 22P02. The audit_log
+      -- table already stores the same id as VARCHAR(200) for the same reason.
+      user_id VARCHAR(200),
+      user_name VARCHAR(200),
+      user_email VARCHAR(255),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `.execute(db);
+
+  // Every read is "the notes on this record", so the index matches it exactly.
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sys_note_record
+      ON sys_note (table_name, record_id, created_at DESC)
+  `.execute(db);
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await sql`DROP TABLE IF EXISTS sys_note`.execute(db);
+}

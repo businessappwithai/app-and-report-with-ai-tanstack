@@ -1,0 +1,651 @@
+%% ============================================================================
+%% QA FIXTURE — Acme Dance Studio, extended for workflow and business-rule QA
+%%
+%% The shipped language/examples/dance-studio.eml.mmd, unchanged, plus 25
+%% further behaviour constructs (numbered 01-25) that between them exercise
+%% every workflow and rule surface EML declares: both %%rule shapes, all three
+%% %%action types, four state machines, transition-level %%rbac, all three
+%% %%trigger sources, every %%hook lifecycle event, every saga %%step type and
+%% row-targeting mode, and a bounded %%loop.
+%%
+%% Written for /qa. Kept out of language/examples/ so the curated worked example
+%% stays exactly as llmtext/llmdetailed.txt S10 describes it.
+%% ============================================================================
+
+%% ============================================================================
+%% EML Example — Acme Dance Studio / Class Booking
+%%
+%% A booking business, modelled end to end: nine entities, both state machines
+%% a booking business actually has, the cancellation cutoff that decides whether
+%% a credit comes back, and the saga that promotes a waitlisted member when a
+%% place is released.
+%%
+%% Written as the worked example for the interactive authoring protocol in
+%% llmtext/llmdetailed.txt §10, so it holds that section's standard: help text
+%% on every entity and every column, one %%rbac read rule per entity, and every
+%% state backed by a declared %%enum. 0 errors, 0 warnings, clean under
+%% --strict. Every diagram is valid, renderable Mermaid.
+%% ============================================================================
+
+%%meta name: Acme Dance Studio
+%%meta kind: erd
+%%meta version: 1.0.0
+%%category name: Scheduling; icon: calendar; entities: ClassOffering, ClassSession, Room
+%%category name: Membership; icon: users; entities: Member, ClassPack, Booking
+%%category name: Teaching; icon: user-check; entities: Instructor
+%%category name: Finance; icon: credit-card; entities: Payment
+%%enum MemberStatus: active, lapsed, suspended
+%%enum ClassLevel: beginner, improver, intermediate, advanced
+%%enum SessionStatus: scheduled, running, completed, cancelled
+%%enum BookingStatus: held, attended, cancelled, forfeited, no_show
+%%enum WaitlistStatus: waiting, promoted, expired
+%%enum PackStatus: active, exhausted, expired
+%%enum PaymentMethod: card, cash, bank_transfer
+erDiagram
+    Member {
+        string   id PK
+        string   email UK
+        string   full_name
+        string   phone OPTIONAL
+        string   status
+        date     joined_on
+        boolean  marketing_opt_in
+    }
+
+    Instructor {
+        string   id PK
+        string   email UK
+        string   full_name
+        string   bio OPTIONAL
+        boolean  is_active
+    }
+
+    Room {
+        string   id PK
+        string   code UK
+        string   name
+        integer  capacity
+        boolean  is_active
+    }
+
+    ClassOffering {
+        string   id PK
+        string   code UK
+        string   name
+        string   level
+        integer  duration_minutes
+        integer  credit_cost
+        boolean  is_active
+    }
+
+    ClassSession {
+        string   id PK
+        string   class_offering_id FK
+        string   room_id FK
+        string   instructor_id FK
+        datetime starts_at
+        datetime ends_at
+        integer  capacity
+        string   status
+        text     cancellation_reason OPTIONAL
+    }
+
+    Booking {
+        string   id PK
+        string   class_session_id FK
+        string   member_id FK
+        string   class_pack_id FK OPTIONAL
+        string   status
+        datetime booked_at
+        datetime cancelled_at OPTIONAL
+        boolean  fee_waived
+        text     waiver_reason OPTIONAL
+    }
+
+    WaitlistEntry {
+        string   id PK
+        string   class_session_id FK
+        string   member_id FK
+        integer  queue_position
+        string   status
+        datetime joined_at
+    }
+
+    ClassPack {
+        string   id PK
+        string   member_id FK
+        integer  credits_purchased
+        integer  credits_remaining
+        date     purchased_on
+        date     expires_on
+        string   status
+    }
+
+    Payment {
+        string   id PK
+        string   class_pack_id FK
+        decimal  amount
+        string   method
+        datetime received_at
+        string   reference OPTIONAL
+    }
+
+    ClassOffering ||--o{ ClassSession  : "scheduled as"
+    Room          ||--o{ ClassSession  : "hosts"
+    Instructor    ||--o{ ClassSession  : "teaches"
+    ClassSession  ||--o{ Booking       : "holds"
+    ClassSession  ||--o{ WaitlistEntry : "queues"
+    Member        ||--o{ Booking       : "makes"
+    Member        ||--o{ WaitlistEntry : "joins"
+    Member        ||--o{ ClassPack     : "buys"
+    ClassPack     ||--o{ Booking       : "pays for"
+    ClassPack     ||--o{ Payment       : "settled by"
+
+    %%entity Member help: A person who buys class packs and books places in sessions. Created at first sign-up and kept after their last booking so attendance history survives.
+    %%entity Instructor help: A teacher the studio schedules against sessions. Kept separate from Member because an instructor may also attend classes as a member.
+    %%entity Room help: A physical studio space with a capacity. The capacity is the ceiling a session's bookable places are set from.
+    %%entity ClassOffering help: A class the studio sells — a name, a level and a duration. Distinct from the individual sessions it is scheduled as.
+    %%entity ClassSession help: One dated, timed occurrence of an offering, in a room, taught by an instructor. This is the thing a member actually books.
+    %%entity Booking help: One member's place in one session. Created when the place is taken; terminal once attended, cancelled, forfeited or marked a no-show.
+    %%entity WaitlistEntry help: A member's position in the queue for a full session. Promoted to a Booking in join order when a place is released.
+    %%entity ClassPack help: A block of prepaid class credits bought by a member. Credits are drawn down by bookings and expire on a fixed date.
+    %%entity Payment help: Money received against a class pack. Recorded once and never edited; a correction is a second, offsetting record.
+    %%entity WaitlistEntry parent: ClassSession
+
+    %%field Member.email help: The address all booking confirmations and cancellation notices go to. Unique — a second sign-up with the same address updates the existing member rather than creating a rival record.
+    %%field Member.full_name help: The name shown on the instructor's attendance sheet. Stored as one field because the studio prints it, never sorts by surname.
+    %%field Member.phone help: Used only for same-day cancellations, where email is too slow to be worth sending. Optional; most members never supply one.
+    %%field Member.status help: active — may book; lapsed — no active pack, still visible for re-engagement; suspended — barred from booking after repeated no-shows, cleared by a manager.
+    %%field Member.joined_on help: The date of first sign-up. Drives the loyalty reporting and never changes, even if the member lapses and returns.
+    %%field Member.marketing_opt_in help: Consent to receive class announcements. Must be set by the member, never by staff; cleared on request and the clearing is audited.
+    %%field Instructor.email help: The address the weekly teaching rota is sent to. Unique per instructor.
+    %%field Instructor.full_name help: The name shown on the public timetable beside each session.
+    %%field Instructor.bio help: The short paragraph shown on the timetable when a member taps the instructor's name. Optional; blank hides the panel entirely.
+    %%field Instructor.is_active help: Cleared when an instructor stops teaching. Inactive instructors keep their session history but cannot be assigned to a new session.
+    %%field Room.code help: The short label staff use on the printed timetable, e.g. STU1. Unique, and stable — it is written on the door.
+    %%field Room.name help: The full room name shown to members, e.g. "Main Studio".
+    %%field Room.capacity help: The maximum number of people the room legally holds. A session's own capacity may be lower but is never allowed above this.
+    %%field Room.is_active help: Cleared while a room is out of use for refurbishment. Inactive rooms keep their past sessions but cannot take new ones.
+    %%field ClassOffering.code help: The short code used on the timetable and in reporting, e.g. BALLET-1. Unique and stable across terms.
+    %%field ClassOffering.name help: The class name members see when browsing the timetable.
+    %%field ClassOffering.level help: beginner — no experience assumed; improver — one term completed; intermediate — assessed by an instructor; advanced — invitation only. The booking rule reads this against the member's history.
+    %%field ClassOffering.duration_minutes help: How long a session of this class runs. Used to compute a session's end time when it is scheduled, so a change here does not move sessions already booked.
+    %%field ClassOffering.credit_cost help: How many pack credits one place in this class costs. Advanced classes cost more than one; the booking rule refuses when the pack cannot cover it.
+    %%field ClassOffering.is_active help: Cleared when a class is retired from the timetable. Past sessions survive; no new session can be scheduled against it.
+    %%field ClassSession.class_offering_id help: The class being taught. Fixed at scheduling — moving a session to a different class is a cancellation and a new session, because the members who booked chose the class.
+    %%field ClassSession.room_id help: Where the session runs. Changing it after bookings exist notifies every booked member, because the room is on the door they walk to.
+    %%field ClassSession.instructor_id help: Who teaches it. A substitution is an edit here and is deliberately not a cancellation — the class still runs.
+    %%field ClassSession.starts_at help: When the class begins, in studio local time. The cancellation cutoff is measured back from this, so it is the field the forfeit rule reads.
+    %%field ClassSession.ends_at help: When the class finishes. Derived from the offering's duration at scheduling time and held rather than recomputed, so a later change to the offering cannot move a session already sold.
+    %%field ClassSession.capacity help: Places available in this session. Seeded from the room's capacity and lowered for classes that need floor space; never raised above the room's.
+    %%field ClassSession.status help: scheduled — open for booking; running — started, no longer bookable; completed — attendance taken; cancelled — the studio pulled it, which credits every held booking back.
+    %%field ClassSession.cancellation_reason help: Why the studio cancelled. Shown to every affected member in the cancellation notice, so it is written for them, not for staff.
+    %%field Booking.class_session_id help: The session the place is held in. Never changed — moving to another session is a cancellation and a new booking, so the credit accounting stays honest.
+    %%field Booking.member_id help: Who holds the place. A booking may not be transferred between members; the studio's insurance names the attendee.
+    %%field Booking.class_pack_id help: The pack the credit was drawn from. Blank for a drop-in place paid at the door, which is why it is optional.
+    %%field Booking.status help: held — the place is reserved; attended — the member came; cancelled — released before the cutoff, credit returned; forfeited — released after the cutoff, credit kept; no_show — never cancelled and never attended, credit kept and counted toward suspension.
+    %%field Booking.booked_at help: When the place was taken. Sets the member's position if the booking is later cancelled and the waitlist promotes in join order.
+    %%field Booking.cancelled_at help: When the member released the place. Compared against the session's start to decide cancelled versus forfeited, so it is the field the cutoff rule reads.
+    %%field Booking.fee_waived help: Set when a manager returns a credit that the cutoff rule had forfeited. Every waiver appears on the monthly exceptions report.
+    %%field Booking.waiver_reason help: Why the forfeit was waived. Required whenever fee_waived is set — an unexplained waiver is the one the auditor asks about.
+    %%field WaitlistEntry.class_session_id help: The full session being waited for. This is the link back to the parent record, so the entry appears as a tab on the session rather than a screen of its own.
+    %%field WaitlistEntry.member_id help: Who is waiting. A member may hold only one entry per session.
+    %%field WaitlistEntry.queue_position help: Place in the queue, lowest first. Assigned on joining and never renumbered, so a promotion cannot quietly reorder the people behind it.
+    %%field WaitlistEntry.status help: waiting — still queued; promoted — a place was released and a Booking now exists; expired — the session started before a place came free.
+    %%field WaitlistEntry.joined_at help: When the member joined the queue. The tiebreaker when two entries somehow share a position.
+    %%field ClassPack.member_id help: Who owns the credits. Packs are not transferable between members, including within a household.
+    %%field ClassPack.credits_purchased help: How many credits were bought. Never changes — a top-up is a second pack, which keeps each pack's expiry independent.
+    %%field ClassPack.credits_remaining help: Credits still available. Decremented when a booking is held and returned when a booking is cancelled before the cutoff, but not when it is forfeited.
+    %%field ClassPack.purchased_on help: The date of purchase. The expiry is measured from here, so a backdated purchase shortens the pack.
+    %%field ClassPack.expires_on help: The last date a credit may be spent. Booking a session that starts after this date is refused even when credits remain.
+    %%field ClassPack.status help: active — credits available and unexpired; exhausted — every credit spent; expired — the date passed with credits unspent, which the studio does not refund.
+    %%field Payment.class_pack_id help: The pack this money bought. One pack may be settled by more than one payment where the studio allowed a split.
+    %%field Payment.amount help: The sum received, gross, in studio currency. Never edited — a correction is a second, negative record so the trail stays intact.
+    %%field Payment.method help: card — taken at the desk or online; cash — counted into the till and reconciled nightly; bank_transfer — matched against the statement, so it may be recorded days after the pack was issued.
+    %%field Payment.received_at help: When the money actually arrived, not when it was keyed in. Bank transfers are commonly recorded late and the reconciliation depends on this distinction.
+    %%field Payment.reference help: The card authorisation code or bank reference used to match the payment against the statement. Optional for cash, where there is nothing to match.
+
+    %%field Member.status enum: MemberStatus
+    %%field ClassOffering.level enum: ClassLevel
+    %%field ClassSession.status enum: SessionStatus
+    %%field Booking.status enum: BookingStatus
+    %%field WaitlistEntry.status enum: WaitlistStatus
+    %%field ClassPack.status enum: PackStatus
+    %%field Payment.method enum: PaymentMethod
+
+    %%index ClassSession(starts_at, status)
+    %%index Booking(class_session_id, status)
+    %%index Booking(member_id, status)
+    %%index WaitlistEntry(class_session_id, queue_position)
+    %%index ClassPack(member_id, status)
+
+    %%rbac role:member|receptionist|manager on Member.read
+    %%rbac role:receptionist|manager on Member.update
+    %%rbac role:manager on Member.delete
+    %%rbac role:member|receptionist|instructor|manager on Instructor.read
+    %%rbac role:manager on Instructor.update
+    %%rbac role:receptionist|manager on Room.read
+    %%rbac role:manager on Room.update
+    %%rbac role:member|receptionist|instructor|manager on ClassOffering.read
+    %%rbac role:manager on ClassOffering.update
+    %%rbac role:member|receptionist|instructor|manager on ClassSession.read
+    %%rbac role:receptionist|manager on ClassSession.update
+    %%rbac role:manager on ClassSession.cancel
+    %%rbac role:member|receptionist|instructor|manager on Booking.read
+    %%rbac role:member|receptionist|manager on Booking.create
+    %%rbac role:instructor|receptionist|manager on Booking.attend
+    %%rbac role:manager on Booking.waive
+    %%rbac role:member|receptionist|manager on WaitlistEntry.read
+    %%rbac role:member|receptionist|manager on ClassPack.read
+    %%rbac role:receptionist|manager on ClassPack.create
+    %%rbac role:receptionist|manager on Payment.read
+    %%rbac role:receptionist|manager on Payment.create
+
+    %% -- 11 access — who may cross the edges the new state machines draw ------
+    %%rbac role:receptionist|manager on Member.lapse
+    %%rbac role:receptionist|manager on Member.renew
+    %%rbac role:manager on Member.suspend
+    %%rbac role:manager on Member.reinstate
+    %%rbac role:receptionist|manager on ClassPack.expire
+    %%rbac role:receptionist|manager on ClassPack.spend_last_credit
+    %%rbac role:receptionist|manager on WaitlistEntry.promote
+    %%rbac role:manager on WaitlistEntry.expire
+
+%% ---- Business rules — booking eligibility and the cancellation cutoff -------
+%%meta name: Booking Eligibility
+%%meta kind: rules
+%%rule bookingGate on Booking event: beforeCreate priority: 10
+flowchart TD
+    A([Start: place requested]) --> B{Pack covers the credit cost?}
+    B -->|No| R1[Refuse: insufficient credits]
+    B -->|Yes| C{Session still scheduled and not full?}
+    C -->|No| R2[Refuse: session unavailable]
+    C -->|Yes| P(Hold the place)
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action requirePackOrDropIn validation-error when: class_pack_id == null and status == "held" message: A place needs either an active class pack or a drop-in payment recorded at the desk.
+    %%action requireWaiverReason validation-error when: fee_waived == true and waiver_reason == null message: A waived forfeit needs a reason — it appears on the monthly exceptions report.
+    %%action stampBookingHeld transform when: true field: status value: held
+
+%% ---- Business rules — cancellation cutoff ---------------------------------
+%%meta name: Cancellation Cutoff
+%%meta kind: rules
+%%rule cancellationCutoff on Booking event: beforeUpdate priority: 20
+flowchart TD
+    A([Start: cancellation requested]) --> B{More than 12 hours before start?}
+    B -->|Yes| C[Return the credit]
+    B -->|No| D[Forfeit the credit]
+    C --> E([End])
+    D --> E
+
+    %%action promoteFromWaitlist trigger-workflow when: status == "cancelled" workflow: WaitlistPromotion
+    %%action forfeitLateCancellation transform when: status == "forfeited" field: fee_waived value: false
+
+%% ---- Workflow — the session lifecycle -------------------------------------
+%%meta name: Session Lifecycle
+%%meta kind: workflow
+%%workflow SessionLifecycle entity: ClassSession kind: state
+stateDiagram-v2
+    [*] --> scheduled
+    scheduled --> running   : start
+    scheduled --> cancelled : cancel
+    running   --> completed : complete
+    completed --> [*]
+    cancelled --> [*]
+
+%% ---- Workflow — the booking lifecycle -------------------------------------
+%%meta name: Booking Lifecycle
+%%meta kind: workflow
+%%workflow BookingLifecycle entity: Booking kind: state
+stateDiagram-v2
+    [*] --> held
+    held --> attended  : attend
+    held --> cancelled : cancel
+    held --> forfeited : forfeit
+    held --> no_show   : mark_no_show
+    forfeited --> cancelled : waive
+    attended  --> [*]
+    cancelled --> [*]
+    forfeited --> [*]
+    no_show   --> [*]
+
+%% ---- Workflow — waitlist promotion (saga) ---------------------------------
+%%meta name: Waitlist Promotion
+%%meta kind: workflow
+%%workflow WaitlistPromotion entity: WaitlistEntry kind: saga trigger: rule
+flowchart TD
+    A([Place released]) --> B[Mark the entry promoted]
+    B --> C[Create the booking] --> D([Promoted])
+
+    %%step B UpdateEntity field: status value: promoted
+    %%step C CreateEntity entity: Booking as: promotedBookingId fields: {"class_session_id":"class_session_id","member_id":"member_id","status":"held"}
+
+%% ---- Workflow — lifecycle hooks -------------------------------------------
+%%meta name: Booking Hooks
+%%meta kind: workflow
+%%workflow BookingHooks entity: Booking kind: hook
+flowchart TD
+    A[Client Request] --> B[Validate Request]
+    B --> C[beforeCreate: drawCredit]
+    C --> D[Process Booking]
+    D --> E[afterCreate: sendConfirmation]
+    E --> F[afterUpdate: returnCreditOnCancel]
+    F --> G[Response]
+
+    %%hook beforeCreate drawCredit on Booking
+    %%hook afterCreate sendConfirmation on Booking
+    %%hook afterUpdate returnCreditOnCancel on Booking
+
+%% ============================================================================
+%% QA EXTENSION — twenty-five further behaviour constructs
+%%
+%% Everything below is added on top of the shipped Acme Dance Studio model to
+%% exercise one distinct workflow or business-rule construct each. Numbered
+%% 01-25 so a finding can name the construct that produced it.
+%% ============================================================================
+
+%% ---- 01 rules — validation-error plus transform on beforeUpdate ------------
+%%meta name: Member Suspension Gate
+%%meta kind: rules
+%%rule memberSuspensionGate on Member event: beforeUpdate priority: 10
+flowchart TD
+    A([Start: member record changed]) --> B{Moving to suspended?}
+    B -->|No| E([End])
+    B -->|Yes| C{Phone number on file?}
+    C -->|No| R1[Refuse: no way to tell them]
+    C -->|Yes| D[Suspend and stop the mailings]
+    R1 --> E
+    D --> E
+
+    %%action requireSuspensionContact validation-error when: status == "suspended" and phone == null message: A suspended member needs a phone number on file. The suspension notice is a call, not an email.
+    %%action clearMarketingOnSuspend transform when: status == "suspended" field: marketing_opt_in value: false
+
+%% ---- 02 rules — refuse-then-stamp on beforeCreate --------------------------
+%%meta name: Pack Opening Balance
+%%meta kind: rules
+%%rule packOpeningBalance on ClassPack event: beforeCreate priority: 10
+flowchart TD
+    A([Start: pack purchased]) --> B{Credits above zero?}
+    B -->|No| R1[Refuse: an empty pack is not a sale]
+    B -->|Yes| C[Open the pack active]
+    R1 --> E([End])
+    C --> E
+
+    %%action rejectEmptyPack validation-error when: credits_purchased <= 0 message: A pack must carry at least one credit. Record a zero-value sale as a payment, not as a pack.
+    %%action openPackActive transform when: credits_purchased > 0 field: status value: active
+
+%% ---- 03 rules — trigger-workflow action gating a rule-triggered saga -------
+%%meta name: Session Cancellation Fanout
+%%meta kind: rules
+%%rule sessionCancellationFanout on ClassSession event: beforeUpdate priority: 20
+flowchart TD
+    A([Start: session edited]) --> B{Moving to cancelled?}
+    B -->|No| E([End])
+    B -->|Yes| C{Reason supplied?}
+    C -->|No| R1[Refuse: members are owed an explanation]
+    C -->|Yes| D[Run the credit-return process]
+    R1 --> E
+    D --> E
+
+    %%action requireCancellationReason validation-error when: status == "cancelled" and cancellation_reason == null message: A cancelled session needs a reason. Every booked member is sent it verbatim.
+    %%action returnCreditsOnCancel trigger-workflow when: status == "cancelled" workflow: SessionCancellationRefund
+
+%% ---- 04 rules — several conditions over one entity in one table ------------
+%%meta name: Payment Recording Rules
+%%meta kind: rules
+%%rule paymentRecording on Payment event: beforeCreate priority: 10
+flowchart TD
+    A([Start: money recorded]) --> B{Does the method leave a trail?}
+    B -->|Yes| C{Reference supplied?}
+    B -->|No| D[Stamp it counted into the till]
+    C -->|No| R1[Refuse: nothing to reconcile against]
+    C -->|Yes| F[Record it]
+    R1 --> E([End])
+    D --> E
+    F --> E
+
+    %%action requireCardReference validation-error when: method == "card" and reference == null message: A card payment needs its authorisation code. The nightly reconciliation matches on it.
+    %%action requireTransferReference validation-error when: method == "bank_transfer" and reference == null message: A bank transfer needs its bank reference. Without it the statement line cannot be matched.
+    %%action stampCashReference transform when: method == "cash" field: reference value: counted-into-till
+
+%% ---- 05 rules — the node-graph form, no %%action directives ----------------
+%%meta name: Waitlist Admission Priority
+%%meta kind: rules
+%%rule waitlistAdmissionPriority on WaitlistEntry event: beforeCreate priority: 10
+flowchart TD
+    A([Start: member asks to wait]) --> B{Member active?}
+    B -->|No| R1[Refuse: lapsed and suspended members do not queue]
+    B -->|Yes| C{Already in this queue?}
+    C -->|Yes| R2[Refuse: one place per member per session]
+    C -->|No| D((Compute the next queue position))
+    D --> F[Join the queue waiting]
+    R1 --> E([End])
+    R2 --> E
+    F --> E
+
+%% ---- 06 rules — beforeDelete guard -----------------------------------------
+%%meta name: Booking Deletion Guard
+%%meta kind: rules
+%%rule bookingDeletionGuard on Booking event: beforeDelete priority: 10
+flowchart TD
+    A([Start: deletion requested]) --> B{Terminal and evidential?}
+    B -->|Yes| R1[Refuse: history is not a draft]
+    B -->|No| C[Allow the delete]
+    R1 --> E([End])
+    C --> E
+
+    %%action blockAttendedDelete validation-error when: status == "attended" message: An attended booking cannot be deleted. The attendance sheet is what the insurer asks for, so cancel it instead.
+    %%action blockNoShowDelete validation-error when: status == "no_show" message: A no-show cannot be deleted. It counts toward suspension, so removing it rewrites the member's history.
+
+%% ---- 07 rules — an unconditional transform ---------------------------------
+%%meta name: Instructor Onboarding Defaults
+%%meta kind: rules
+%%rule instructorOnboarding on Instructor event: beforeCreate priority: 5
+flowchart TD
+    A([Start: instructor added]) --> B[Activate on creation]
+    B --> E([End])
+
+    %%action activateNewInstructor transform when: true field: is_active value: true
+
+%% ---- 08 workflow — the member lifecycle ------------------------------------
+%%meta name: Member Lifecycle
+%%meta kind: workflow
+%%workflow MemberLifecycle entity: Member kind: state
+stateDiagram-v2
+    [*] --> active
+    active    --> lapsed    : lapse
+    active    --> suspended : suspend
+    lapsed    --> active    : renew
+    suspended --> active    : reinstate
+    lapsed    --> [*]
+    suspended --> [*]
+
+%% ---- 09 workflow — the class pack lifecycle, with a cron source ------------
+%%meta name: Pack Lifecycle
+%%meta kind: workflow
+%%workflow PackLifecycle entity: ClassPack kind: state
+stateDiagram-v2
+    [*] --> active
+    active    --> exhausted : spend_last_credit
+    active    --> expired   : expire
+    exhausted --> [*]
+    expired   --> [*]
+
+    %%trigger cron:0 2 * * * -> expirePacks on ClassPack
+
+%% ---- 10 workflow — the waitlist lifecycle, with a message source -----------
+%%meta name: Waitlist Lifecycle
+%%meta kind: workflow
+%%workflow WaitlistLifecycle entity: WaitlistEntry kind: state
+stateDiagram-v2
+    [*] --> waiting
+    waiting  --> promoted : promote
+    waiting  --> expired  : expire
+    promoted --> [*]
+    expired  --> [*]
+
+    %%trigger message:waitlist.place-released -> promoteNextInQueue on WaitlistEntry
+    %%trigger webhook:payment-received -> markPackPaid on Payment
+
+%% ---- 15 workflow — the delete half of the lifecycle ------------------------
+%%meta name: Pack Hooks
+%%meta kind: workflow
+%%workflow PackHooks entity: ClassPack kind: hook
+flowchart TD
+    A[Client Request] --> B[beforeDelete: blockPackWithBookings]
+    B --> C[Delete Pack]
+    C --> D[afterDelete: archivePackPayments]
+    D --> F[Response]
+
+    %%hook beforeDelete blockPackWithBookings on ClassPack
+    %%hook afterDelete archivePackPayments on ClassPack
+
+%% ---- 16 workflow — the query and list hooks --------------------------------
+%%meta name: Member Visibility Hooks
+%%meta kind: workflow
+%%workflow MemberVisibilityHooks entity: Member kind: hook
+flowchart TD
+    A[Client Request] --> B[beforeQuery: scopeToStudio]
+    B --> C[beforeList: hideSuspended]
+    C --> D[Run Query]
+    D --> F[afterQuery: attachPackBalance]
+    F --> G[afterList: sortByJoinedOn]
+    G --> H[Response]
+
+    %%hook beforeQuery scopeToStudio on Member
+    %%hook beforeList hideSuspended on Member
+    %%hook afterQuery attachPackBalance on Member
+    %%hook afterList sortByJoinedOn on Member
+
+%% ---- 17 workflow — the read hooks and a cross-field validation -------------
+%%meta name: Session Read Hooks
+%%meta kind: workflow
+%%workflow SessionReadHooks entity: ClassSession kind: hook
+flowchart TD
+    A[Client Request] --> B[beforeRead: checkSessionVisible]
+    B --> C[Load Session]
+    C --> D[afterRead: attachRemainingPlaces]
+    D --> F[customValidate: capacityWithinRoom]
+    F --> G[Response]
+
+    %%hook beforeRead checkSessionVisible on ClassSession
+    %%hook afterRead attachRemainingPlaces on ClassSession
+    %%hook customValidate capacityWithinRoom on ClassSession
+
+%% ---- 18 workflow — rule-triggered saga: Formula set, copy, both targets ----
+%%meta name: Session Cancellation Refund
+%%meta kind: workflow
+%%workflow SessionCancellationRefund entity: ClassSession kind: saga trigger: rule
+flowchart TD
+    A([Session cancelled]) --> B(Name the closure note)
+    B --> C(Carry the studio's reason across)
+    C --> D[Close the session to further booking]
+    D --> F[Cancel every held place]
+    F --> G([Refunded])
+
+    %%step B Formula target: closureNote operation: set value: Cancelled by the studio, every held place credited back.
+    %%step C Formula target: keptReason operation: copy source: cancellation_reason
+    %%step D UpdateEntity field: capacity value: 0
+    %%step F UpdateEntity entity: Booking targetField: class_session_id field: status value: cancelled
+
+%% ---- 19 workflow — every Formula arithmetic operation ----------------------
+%%meta name: Pack Credit Drawdown
+%%meta kind: workflow
+%%workflow PackCreditDrawdown entity: Booking kind: saga trigger: automatic operation: CREATE
+flowchart TD
+    A([Place held]) --> B(Start from one credit)
+    B --> C(Advanced classes cost double)
+    C --> D(Add the studio booking fee)
+    D --> F(Take back the introductory rebate)
+    F --> G(Split the cost across the term)
+    G --> H[Write the drawdown onto the pack]
+    H --> I([Drawn down])
+
+    %%step B Formula target: baseCredits operation: set value: 1
+    %%step C Formula target: levelCredits source: baseCredits operation: multiply operand: 2
+    %%step D Formula target: withFee source: levelCredits operation: add operand: 1
+    %%step F Formula target: netCredits source: withFee operation: subtract operand: 1
+    %%step G Formula target: perTermCredits source: netCredits operation: divide operand: 2
+    %%step H UpdateEntity entity: ClassPack targetSource: class_pack_id field: credits_remaining source: perTermCredits
+
+%% ---- 20 workflow — CreateEntity publishing a row the next step writes ------
+%%meta name: Pack Payment Provisioning
+%%meta kind: workflow
+%%workflow PackPaymentProvisioning entity: ClassPack kind: saga trigger: automatic operation: CREATE
+flowchart TD
+    A([Pack sold]) --> B(Name the desk reference)
+    B --> C[Raise the payment record]
+    C --> D[Stamp the reference onto it]
+    D --> F([Provisioned])
+
+    %%step B Formula target: deskReference operation: set value: DESK-PENDING
+    %%step C CreateEntity entity: Payment as: provisionedPaymentId fields: {"class_pack_id":"id","amount":0,"method":"cash","received_at":"purchased_on"}
+    %%step D UpdateEntity entity: Payment targetSource: provisionedPaymentId field: reference source: deskReference
+
+%% ---- 21 workflow — DeleteEntity, soft and hard, on a DELETE trigger --------
+%%meta name: Session Teardown
+%%meta kind: workflow
+%%workflow SessionTeardown entity: ClassSession kind: saga trigger: automatic operation: DELETE
+flowchart TD
+    A([Session removed]) --> B[Retire the queue softly]
+    B --> C[Remove the held places outright]
+    C --> D([Torn down])
+
+    %%step B DeleteEntity entity: WaitlistEntry targetField: class_session_id
+    %%step C DeleteEntity entity: Booking targetField: class_session_id hard: true
+
+%% ---- 22 workflow — a Decision step carrying its table inline ---------------
+%%meta name: Member Standing Review
+%%meta kind: workflow
+%%workflow MemberStandingReview entity: Member kind: saga trigger: automatic operation: UPDATE
+flowchart TD
+    A([Member changed]) --> B(Grade the standing)
+    B --> C[Record the grade against the member]
+    C --> D([Reviewed])
+
+    %%step C UpdateEntity field: status source: standing
+    %%step B Decision publish: standing decisionTable: {"hitPolicy":"first","inputs":[{"id":"i1","name":"status","field":"status"}],"outputs":[{"id":"o1","name":"standing","field":"standing"}],"rules":[{"_id":"r1","i1":"\"suspended\"","o1":"\"suspended\""},{"_id":"r2","i1":"\"lapsed\"","o1":"\"lapsed\""},{"_id":"r3","i1":"","o1":"\"active\""}]}
+
+%% ---- 23 workflow — a Decision step naming a rule declared in this model ----
+%%meta name: Waitlist Admission Check
+%%meta kind: workflow
+%%workflow WaitlistAdmissionCheck entity: WaitlistEntry kind: saga trigger: automatic operation: CREATE
+flowchart TD
+    A([Member joins the queue]) --> B(Run the admission rule)
+    B --> C(Note what the rule decided)
+    C --> D([Checked])
+
+    %%step B Decision rule: waitlistAdmissionPriority publish: admitted
+    %%step C Formula target: admissionNote operation: copy source: admitted
+
+%% ---- 24 workflow — a REST call out to the receipts service -----------------
+%%meta name: Payment Receipt Dispatch
+%%meta kind: workflow
+%%workflow PaymentReceiptDispatch entity: Payment kind: saga trigger: automatic operation: CREATE
+flowchart TD
+    A([Payment recorded]) --> B(Name the receipt channel)
+    B --> C[Post the receipt]
+    C --> D([Dispatched])
+
+    %%step B Formula target: receiptChannel operation: set value: email
+    %%step C REST url: https://receipts.example.com/hooks/dance-studio method: POST bodyTemplate: {"channel":"{{receiptChannel}}","amount":"{{amount}}","reference":"{{reference}}"}
+
+%% ---- 25 workflow — a bounded repeat-while loop ----------------------------
+%%meta name: Pack Credit Reconciliation
+%%meta kind: workflow
+%%workflow PackCreditReconciliation entity: ClassPack kind: saga trigger: automatic operation: UPDATE
+flowchart TD
+    A([Pack changed]) --> L1
+    subgraph L1[Repeat while credits remain]
+      B(Take one credit off the running total)
+      C[Write the reduced total back]
+    end
+    L1 --> D[Close the pack once it is spent]
+    D --> F([Reconciled])
+
+    %%loop L1 while: credits_remaining gt 0 max: 25
+    %%step B Formula target: nextCredits source: credits_remaining operation: subtract operand: 1 in: L1
+    %%step C UpdateEntity field: credits_remaining source: nextCredits in: L1
+    %%step D UpdateEntity field: status value: exhausted

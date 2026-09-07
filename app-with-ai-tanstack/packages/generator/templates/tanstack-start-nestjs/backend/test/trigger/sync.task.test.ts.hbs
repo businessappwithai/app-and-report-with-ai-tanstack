@@ -1,0 +1,50 @@
+/**
+ * Unit tests for syncEntityTask (Trigger.dev v3)
+ *
+ * Generated: {{now}}
+ * Project: {{project.name}}
+ */
+
+import { describe, it, expect } from 'bun:test';
+import { syncEntityTask, type SyncTaskPayload } from '../../src/trigger/sync.task';
+
+describe('syncEntityTask', () => {
+  it('is defined and exported', () => {
+    expect(syncEntityTask).toBeDefined();
+  });
+
+  it('has an id property', () => {
+    expect((syncEntityTask as any).id).toBe('sync-entity');
+  });
+
+  it('accepts valid sync payloads for create action', () => {
+    const payload: SyncTaskPayload = {
+      entityType: 'bus_entity',
+      entityId: 'entity-001',
+      action: 'create',
+    };
+
+    expect(payload.action).toBe('create');
+    expect(payload.entityType).toBe('bus_entity');
+  });
+
+  it('accepts valid sync payloads for update action', () => {
+    const payload: SyncTaskPayload = {
+      entityType: 'bus_entity',
+      entityId: 'entity-456',
+      action: 'update',
+    };
+
+    expect(payload.action).toBe('update');
+  });
+
+  it('accepts valid sync payloads for delete action', () => {
+    const payload: SyncTaskPayload = {
+      entityType: 'bus_entity',
+      entityId: 'entity-789',
+      action: 'delete',
+    };
+
+    expect(payload.action).toBe('delete');
+  });
+});

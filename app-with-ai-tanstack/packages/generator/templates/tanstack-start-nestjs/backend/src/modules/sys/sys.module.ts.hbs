@@ -1,0 +1,26 @@
+/**
+ * System Module (Application Dictionary)
+ *
+ * Handles all sys_ prefixed tables:
+ * - sys_table, sys_column, sys_field
+ * - sys_category (entity grouping for the dashboard)
+ *
+ * Generated: {{now}}
+ */
+
+import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../../database/database.module';
+import { BusModule } from '../bus/bus.module';
+import { SysCategoryController } from './controllers/sys-category.controller';
+import { SysController } from './sys.controller';
+import { SysCategoryService } from './services/sys-category.service';
+import { SystemConfigService } from './services/system-config.service';
+import { SysService } from './sys.service';
+
+@Module({
+  imports: [DatabaseModule, BusModule],
+  controllers: [SysController, SysCategoryController],
+  providers: [SysService, SysCategoryService, SystemConfigService],
+  exports: [SysService, SysCategoryService, SystemConfigService],
+})
+export class SysModule {}
