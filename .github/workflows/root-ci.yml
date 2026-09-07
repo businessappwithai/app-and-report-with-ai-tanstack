@@ -14,7 +14,8 @@
 #            the shared examples — language/examples and html/models — are still
 #            byte-identical. One set is what the CLI reads, the other is what
 #            the published guide serves.
-#   types    `common/{language,build,scripts}/**` under the strict config. Worth knowing before you
+#   types    `common/{language,build,scripts}/**` under the strict config. Needs
+#            app-with-ai-tanstack checked out beside it — see the step. Worth knowing before you
 #            read a failure here: without @types/node and @types/bun installed,
 #            tsc reports thousands of phantom errors instead — every `node:`
 #            builtin and every `process` unresolvable. The root manifest carries
@@ -114,6 +115,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # `type-check` needs it, which is not obvious from the job's name.
+      # `language/cli/src/generate/jdm.ts` imports the shipped JDM converter and
+      # the mermaid flowchart parser out of that repository by relative path, on
+      # purpose, so the CLI and the modelling tool cannot disagree about what a
+      # rule flow compiles to. With the folder absent, tsc reports the two
+      # imports unresolvable and then two implicit-any parameters downstream of
+      # them — four errors that look like a broken file and are really a missing
+      # directory.
+      #
+      # It lands on an ignored path, so the "No uncommitted changes" step at the
+      # end of this job does not see it.
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: businessappwithai/app-with-ai-tanstack
+          ref: main
+          path: app-with-ai-tanstack
 
       - uses: oven-sh/setup-bun@v2
         with:
