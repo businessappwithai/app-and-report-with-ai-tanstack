@@ -3,6 +3,14 @@
 
 node_modules/
 
+# The two product repositories this one orchestrates. They are separate
+# repositories with their own CI, their own release cadence and their own
+# lockfiles — not vendored code, and not submodules. `./deps.sh` places them
+# here at the commits deps.json pins, and CI checks them out to these same paths
+# with actions/checkout, reading the same pins.
+/app-with-ai-tanstack/
+/enterprise_reporting_tanstack/
+
 # Everything ./start.sh writes: the generated application, the reporting pack
 # derived from the model, and the secrets it generates on first run. All of it
 # is reproducible from a model plus ./start.sh, and none of it belongs in git —

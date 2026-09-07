@@ -63,6 +63,17 @@ command -v docker >/dev/null 2>&1 || die "docker is not installed."
 docker compose version >/dev/null 2>&1 || die "docker compose (v2) is not available."
 [[ -f "$MODEL" ]] || die "Model not found: $MODEL"
 
+# The two products are separate repositories, placed by ./deps.sh at the commits
+# deps.json pins. Without them the generate fails on a module it cannot resolve
+# and compose fails on a build context that does not exist — both a long way in,
+# and neither error says what is actually missing.
+for dep in app-with-ai-tanstack enterprise_reporting_tanstack; do
+  [[ -d "$dep" ]] || die "$dep is not checked out. Run ./deps.sh first — it places both product repositories at the commits deps.json pins."
+done
+# The tanstack-nestjs target drives the orchestrator in app-with-ai-tanstack,
+# which resolves its own dependencies from its own node_modules.
+[[ -d "app-with-ai-tanstack/node_modules" ]] || die "app-with-ai-tanstack has no node_modules. Run ./deps.sh --install, or install it yourself — generating with --stack tanstack-nestjs drives its orchestrator, which fails on 'Cannot find package' without it."
+
 APP_NAME="$(basename "$MODEL" | sed 's/\.eml\.mmd$//;s/\.mmd$//')"
 # A Postgres database name, from a model file name.
 APP_DB_NAME="$(printf '%s' "$APP_NAME" | tr '[:upper:]-' '[:lower:]_' | tr -cd 'a-z0-9_')"
