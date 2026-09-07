@@ -1254,7 +1254,11 @@
           "generator": "language/cli/src/generate/enterprise-reporting.ts",
           "standalone": false,
           "standaloneNote": "It generates less on purpose. That repository already holds auth, two-layer RBAC, the encrypted data-source connection manager, the NL-query pipeline, the Trigger.dev job runner and the UI shell; a generated copy of any of them would be a fork of a moving part. The target emits only what a new entity needs, and its README names the integration steps.",
-          "compiles": ["core", "rules (as GoRules JDM under rules/, not wired up)", "help (as field labels)"],
+          "compiles": [
+            "core",
+            "rules (as GoRules JDM under rules/, not wired up)",
+            "help (as field labels)"
+          ],
           "doesNotCompile": ["workflows", "access"],
           "accessNote": "Every generated handler calls requireAuth(), which establishes who is calling. It does not call requirePermission(), because %%rbac is not compiled here - deciding what a role may do is an explicit integration step, and a generated guess at it would be an access-control decision nobody made.",
           "conventions": {

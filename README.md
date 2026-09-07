@@ -61,9 +61,36 @@ writes beside its output for the integration steps.
 Each subfolder keeps its own `CLAUDE.md`, and those are the authority on that
 project's commands, conventions and CI.
 
+## Checks
+
+The root-level folders have their own manifest and their own checks, separate
+from either subfolder's:
+
+```bash
+bun install
+bun run check            # models, types, lint, and every stack generating
+```
+
+| | |
+|---|---|
+| `check:models` | Every model in `language/examples/` and `examples/` checks clean, and `html/models/` is still byte-identical to its counterpart |
+| `type-check:language` | `language/**` under the strict config |
+| `lint` | Biome over `language/` and `scripts/` |
+| `check:stacks` | All three `--stack` targets actually generate |
+
+`check:stacks` is the one that needs `cd app-with-ai-tanstack && bun install`
+first: `tanstack-nestjs` drives the shipped orchestrator, which needs that
+workspace's dependencies. Pass `--skip-heavy` to run only the two
+self-contained targets:
+
+```bash
+bun scripts/check-stacks.ts --skip-heavy
+```
+
 ## CI
 
-`.github/workflows/` holds one workflow per subfolder, each `paths:`-filtered so
-a change to one project does not run the other's jobs. GitHub only executes
-workflows found in the repository root, which is why the subfolders' own
-`.github/workflows/` files no longer run.
+`.github/workflows/` holds three workflows, each `paths:`-filtered so a change
+to one area does not run the others' jobs: one per subfolder, and
+`root-language-ci.yml` for everything above them — which is what runs
+`bun run check`. GitHub only executes workflows found in the repository root,
+which is why the subfolders' own `.github/workflows/` files no longer run.
