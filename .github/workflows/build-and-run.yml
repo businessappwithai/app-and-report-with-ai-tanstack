@@ -1,0 +1,294 @@
+# Build a whole application from one model, and run it.
+#
+# This is the orchestrator. It takes three inputs that live in three different
+# places — the modelling language and build pieces in this repository, the
+# generator in app-with-ai-tanstack, the reporting platform in
+# enterprise_reporting_tanstack — composes them into one running system, and
+# proves it answers.
+#
+#   check the model            common/language/checker.ts
+#         ↓
+#   generate the application   --stack tanstack-nestjs, driving the shipped
+#         ↓                    orchestrator in app-with-ai-tanstack
+#   put it on /app             common/build/subpath-overlay.ts
+#         ↓
+#   derive the reporting pack  common/build/reporting-pack.ts
+#         ↓
+#   inject configuration       secrets and per-run values into .runtime/.env
+#         ↓
+#   build and start            docker compose: postgres, the generated backend
+#         ↓                    and front end, the reporting platform, the
+#         ↓                    seeder that loads one into the other, nginx
+#   smoke-test                 /app and /report actually answer, and the
+#                              seeder finished its work
+#
+# `./start.sh` already does the first five steps in that order, and it is what a
+# developer runs, so this workflow calls it rather than restating it. Anything
+# that has to be true in CI and not locally is arranged around it, not inside
+# it.
+#
+# ── Reproducibility ─────────────────────────────────────────────────────────
+#
+# `deps.json` pins a commit of each product repository. A run with no inputs
+# builds exactly those two commits; the `app_ref` and `report_ref` inputs
+# override one or both for a one-off — testing a branch of the generator
+# against the pinned platform, say — without committing anything. Every run
+# prints the three commits it actually used in its summary, so a red run names
+# the versions that produced it.
+
+name: Build and run an application
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Model to build, relative to the repository root"
+        type: string
+        default: "common/language/examples/crm.eml.mmd"
+      profile:
+        description: "demo = one PostgreSQL holding three databases; prod = two servers"
+        type: choice
+        options: [demo, prod]
+        default: demo
+      app_ref:
+        description: "Override the app-with-ai-tanstack commit from deps.json"
+        type: string
+        default: ""
+      report_ref:
+        description: "Override the enterprise_reporting_tanstack commit from deps.json"
+        type: string
+        default: ""
+  # Kept green on the branch that everything else is cut from. The full build is
+  # slow and needs no secrets, so a nightly is the right cadence: it catches a
+  # product repository moving under the pins without waiting for someone to ask.
+  schedule:
+    - cron: "0 4 * * *"
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.3.11"
+  # Where start.sh writes everything, relative to the repository root.
+  RUNTIME: common/.runtime
+
+concurrency:
+  group: build-and-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Resolve pinned dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app_repository: ${{ steps.read.outputs.app_repository }}
+      app_ref: ${{ steps.read.outputs.app_ref }}
+      report_repository: ${{ steps.read.outputs.report_repository }}
+      report_ref: ${{ steps.read.outputs.report_ref }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # An empty input means "use the pin". Overriding is per-repository, so a
+      # branch of the generator can be tried against the pinned platform.
+      - id: read
+        name: Read deps.json, applying any overrides
+        env:
+          APP_REF_INPUT: ${{ inputs.app_ref }}
+          REPORT_REF_INPUT: ${{ inputs.report_ref }}
+        run: |
+          set -euo pipefail
+          read_dep() {
+            jq -er --arg name "$1" --arg key "$2" \
+              '.dependencies[] | select(.name == $name) | .[$key]' deps.json
+          }
+          {
+            echo "app_repository=$(read_dep app-with-ai-tanstack repository)"
+            echo "app_ref=${APP_REF_INPUT:-$(read_dep app-with-ai-tanstack ref)}"
+            echo "report_repository=$(read_dep enterprise_reporting_tanstack repository)"
+            echo "report_ref=${REPORT_REF_INPUT:-$(read_dep enterprise_reporting_tanstack ref)}"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  build-and-run:
+    name: Build ${{ inputs.model || 'the CRM model' }} and run it
+    runs-on: ubuntu-latest
+    needs: resolve
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the orchestrator
+        uses: actions/checkout@v4
+
+      # Both land at the paths deps.json names, which are the paths start.sh and
+      # docker-compose.yml expect and the paths ./deps.sh uses locally. Nothing
+      # in the build knows whether a checkout came from here or from deps.sh.
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.resolve.outputs.app_repository }}
+          ref: ${{ needs.resolve.outputs.app_ref }}
+          path: app-with-ai-tanstack
+
+      - name: Check out enterprise_reporting_tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.resolve.outputs.report_repository }}
+          ref: ${{ needs.resolve.outputs.report_ref }}
+          path: enterprise_reporting_tanstack
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install root tooling
+        working-directory: common
+        run: bun install --frozen-lockfile
+
+      # The tanstack-nestjs target drives the orchestrator in this workspace,
+      # which needs its own dependencies present.
+      - name: Install app-with-ai-tanstack
+        working-directory: app-with-ai-tanstack
+        run: bun install --frozen-lockfile
+
+      - name: Say what is being built
+        run: |
+          {
+            echo "### Build inputs"
+            echo ""
+            echo "| Part | Commit |"
+            echo "|---|---|"
+            echo "| orchestrator | \`${GITHUB_SHA}\` |"
+            echo "| app-with-ai-tanstack | \`${{ needs.resolve.outputs.app_ref }}\` |"
+            echo "| enterprise_reporting_tanstack | \`${{ needs.resolve.outputs.report_ref }}\` |"
+            echo ""
+            echo "Model: \`${{ inputs.model || 'common/language/examples/crm.eml.mmd' }}\` · profile: \`${{ inputs.profile || 'demo' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Injected configuration ──────────────────────────────────────────
+      #
+      # start.sh generates these secrets on first run and then leaves them
+      # alone — regenerating ENCRYPTION_KEY would leave every stored data-source
+      # password undecryptable, and the failure looks like a broken data source
+      # rather than a rotated key. Writing the file first is therefore the
+      # supported way to inject: start.sh finds it and keeps what is in it,
+      # rewriting only the block it derives from the run.
+      #
+      # These are throwaway values for a runner that is destroyed at the end of
+      # the job. A deployment would take them from `secrets` instead — the shape
+      # of the file is the same either way.
+      - name: Inject configuration
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNTIME"
+          gen() { head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          {
+            echo "# Written by .github/workflows/build-and-run.yml"
+            echo "AUTH_SECRET=$(gen)"
+            echo "ENCRYPTION_KEY=$(gen)"
+            echo "JWT_SECRET=$(gen)"
+            echo "SESSION_SECRET=$(gen)"
+            echo "BETTER_AUTH_SECRET=$(gen)"
+          } > "$RUNTIME/.env"
+          chmod 600 "$RUNTIME/.env"
+
+      # Checks the model, generates the application, puts it on /app, derives
+      # the reporting pack, keeps the secrets just written, and brings the whole
+      # stack up. Everything it writes stays under common/.runtime/.
+      - name: Check, generate, configure and start
+        run: ./start.sh "${{ inputs.model || 'common/language/examples/crm.eml.mmd' }}" --profile "${{ inputs.profile || 'demo' }}"
+
+      # nginx is the front door and answers as soon as it is up, so its health
+      # endpoint says nothing about either application behind it. Both are
+      # polled on their own URL instead.
+      - name: Wait for both applications to answer
+        run: |
+          set -euo pipefail
+          wait_for() {
+            local name="$1" url="$2" deadline=$((SECONDS + 600))
+            echo "waiting for ${name} at ${url}"
+            while [ "$SECONDS" -lt "$deadline" ]; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' -L "$url" || echo 000)
+              case "$code" in
+                2*|3*) echo "  ${name} answered ${code}"; return 0 ;;
+              esac
+              sleep 5
+            done
+            echo "::error::${name} never answered at ${url} (last status ${code})"
+            return 1
+          }
+          wait_for "the front door" http://localhost/healthz
+          wait_for "the generated application" http://localhost/app/
+          wait_for "the reporting platform" http://localhost/report/
+
+      # The seeder is one shot: it registers the generated application's
+      # database as a data source, caches its introspected schema, and writes
+      # every saved query, report, chart and dashboard in the pack. Until it
+      # exits 0, /report is up but empty — so a smoke test that only checked the
+      # two URLs would pass on an empty platform.
+      - name: Wait for the seeder to finish, and check it succeeded
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 900))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            state=$(docker inspect -f '{{.State.Status}}:{{.State.ExitCode}}' \
+              "$(docker compose --env-file "$RUNTIME/.env" ps -aq seeder)" 2>/dev/null || echo "missing:")
+            case "$state" in
+              exited:0) echo "the seeder finished cleanly"; exit 0 ;;
+              exited:*) echo "::error::the seeder exited ${state#exited:}"; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "::error::the seeder never finished"
+          exit 1
+
+      - name: What the platform was loaded with
+        run: |
+          set -euo pipefail
+          count() {
+            docker compose --env-file "$RUNTIME/.env" exec -T \
+              "$(docker compose --env-file "$RUNTIME/.env" ps --services | grep -E '^postgres' | head -1)" \
+              psql -U "${REPORT_DB_USER:-app}" -d enterprise_config -tAc "select count(*) from $1" 2>/dev/null || echo "?"
+          }
+          {
+            echo ""
+            echo "### Loaded into the reporting platform"
+            echo ""
+            echo "| Table | Rows |"
+            echo "|---|---|"
+            for t in data_sources saved_queries report_definitions chart_definitions dashboard_layouts dashboard_widgets; do
+              echo "| \`$t\` | $(count "$t") |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Every container's log, not just the failing one: the interesting
+      # failures here are one service reacting to another (the backend not
+      # migrating, so the seeder finds no bus_ tables and waits it out).
+      - name: Logs
+        if: always()
+        run: |
+          mkdir -p logs
+          docker compose --env-file "$RUNTIME/.env" ps -a > logs/ps.txt 2>&1 || true
+          for s in $(docker compose --env-file "$RUNTIME/.env" ps --services 2>/dev/null); do
+            docker compose --env-file "$RUNTIME/.env" logs --no-color --tail 2000 "$s" > "logs/$s.log" 2>&1 || true
+          done
+
+      - name: Keep the logs and the generated application
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-run-${{ github.run_id }}
+          retention-days: 7
+          # The generated source, not its node_modules or build output — the
+          # point is to be able to read what the generator wrote.
+          path: |
+            logs/
+            common/.runtime/pack/reporting-pack.json
+            common/.runtime/app/**
+            !common/.runtime/app/**/node_modules/**
+            !common/.runtime/app/**/dist/**
+            !common/.runtime/app/**/.output/**
+
+      - name: Stop everything
+        if: always()
+        run: ./stop.sh --volumes
