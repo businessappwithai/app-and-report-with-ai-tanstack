@@ -163,14 +163,16 @@ const PATCHES: Patch[] = [
  * The other application keeps the root, and the proxy routes `/api/` there —
  * see common/docker/nginx/default.conf.
  */
-function rewriteApiCalls(dir: string, base: string): number {
+/**
+ * Apply one source-level rewrite across `src/**`, returning the file count.
+ *
+ * Shared by the two rewrites below because they differ only in their pattern:
+ * both walk the same tree, skip the same directories, and count files rather
+ * than call sites.
+ */
+function rewriteSources(dir: string, rewrite: (src: string) => string): number {
   const root = path.join(dir, "src");
   if (!existsSync(root)) return 0;
-
-  // `fetch(` then optional space, then a quote or backtick, then /api.
-  // Anchored on `fetch(` so a route definition, a comment or a doc string
-  // mentioning the same path is left alone.
-  const pattern = /(fetch\(\s*)(["'`])\/api\b/g;
   let changed = 0;
 
   const walk = (d: string): void => {
@@ -183,9 +185,7 @@ function rewriteApiCalls(dir: string, base: string): number {
       }
       if (!/\.(ts|tsx)$/.test(entry)) continue;
       const src = readFileSync(full, "utf8");
-      if (!pattern.test(src)) continue;
-      pattern.lastIndex = 0;
-      const next = src.replace(pattern, `$1$2${base}/api`);
+      const next = rewrite(src);
       if (next !== src) {
         writeFileSync(full, next);
         changed++;
@@ -195,6 +195,52 @@ function rewriteApiCalls(dir: string, base: string): number {
 
   walk(root);
   return changed;
+}
+
+function rewriteApiCalls(dir: string, base: string): number {
+  // `fetch(` then optional space, then a quote or backtick, then /api.
+  // Anchored on `fetch(` so a route definition, a comment or a doc string
+  // mentioning the same path is left alone.
+  const pattern = /(fetch\(\s*)(["'`])\/api\b/g;
+  return rewriteSources(dir, (src) => src.replace(pattern, `$1$2${base}/api`));
+}
+
+/**
+ * Rewrite `window.location.href = "/…"` and friends to sit under the prefix.
+ *
+ * The router's `basepath` rewrites every navigation that goes *through the
+ * router*. These do not: assigning `location.href` is a full browser
+ * navigation, and the string is taken literally. Under a prefix that makes the
+ * path wrong, and the proxy has nothing to match — the browser leaves the
+ * application entirely and gets the front door's 404.
+ *
+ * Two call sites in the generated application make this fatal rather than
+ * cosmetic, and neither is reachable by clicking:
+ *
+ *   - the 401 handler in `contexts/auth-context.tsx` sends every unauthenticated
+ *     visitor to `/auth/login`. That is the *first* thing that happens to a
+ *     first-time visitor, so the whole application is unreachable: `/app/`
+ *     answers 200, then the page navigates itself off the prefix and 404s.
+ *   - `routes/auth/login.tsx` sends a *successful* sign-in to `/dashboard`,
+ *     so even reaching the login form by hand ends the same way.
+ *
+ * A path that already starts with the base is left alone, so the rewrite is
+ * idempotent; `//host/…` is a protocol-relative URL to another origin, not a
+ * path, and is skipped too.
+ */
+function rewriteHardNavigations(dir: string, base: string): number {
+  // The leading slash is consumed by the `\/` in the pattern, so the guard
+  // that stops a second run double-prefixing has to compare against the base
+  // *without* it — "app", not "/app". With the slash the lookahead can never
+  // match, and the rewrite silently produces /app/app/… on every re-run.
+  const esc = base.replace(/^\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    // location.href = "/…"  |  location.replace("/…")  |  location.assign("/…")
+    `((?:window\\s*\\.\\s*)?location\\s*\\.\\s*(?:href\\s*=|replace\\(|assign\\()\\s*)` +
+      `(["'\`])\\/(?!\\/|${esc}(?:[/"'\`?#]|$))`,
+    "g"
+  );
+  return rewriteSources(dir, (src) => src.replace(pattern, `$1$2${base}/`));
 }
 
 function main(): number {
@@ -254,6 +300,14 @@ function main(): number {
       console.log(`  base ${base}  ${rewritten} file(s) with fetch("/api…") call sites`);
       applied += rewritten;
     }
+  }
+
+  // Both applications get this one. A hard navigation bypasses the router
+  // whichever application writes it, so `basepath` cannot save either.
+  const navs = rewriteHardNavigations(dir, base);
+  if (navs > 0) {
+    console.log(`  base ${base}  ${navs} file(s) with window.location navigations`);
+    applied += navs;
   }
 
   // A run that patched nothing at all is the failure this reports: it means
