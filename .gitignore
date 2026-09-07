@@ -1,12 +1,16 @@
-# Root-level only. Each subfolder keeps its own .gitignore for its own build
-# output; this covers the root manifest's install and what the root checks
-# leave behind.
+# Root-level only. Each product keeps its own .gitignore; this covers what runs
+# the two together.
+
 node_modules/
 
+# Everything ./start.sh writes: the generated application, the reporting pack
+# derived from the model, and the secrets it generates on first run. All of it
+# is reproducible from a model plus ./start.sh, and none of it belongs in git —
+# least of all common/.runtime/.env.
+common/.runtime/
+
 # The checker writes a `.error` file beside every model it reads — that is its
-# interface, not an accident — so a local run of `bun run check:models` would
-# otherwise leave one per model. The script deletes the ones it created, and
-# this is the belt to that braces. `examples/hospital-management-system.mmd.error`
-# is checked in on purpose and does not match: it is a `.mmd.error`, not an
+# interface, not an accident. `examples/hospital-management-system.mmd.error` is
+# checked in on purpose and does not match: it is a `.mmd.error`, not an
 # `.eml.mmd.error`.
 *.eml.mmd.error
