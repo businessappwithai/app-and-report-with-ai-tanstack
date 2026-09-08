@@ -273,16 +273,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: resolve
     timeout-minutes: 20
+    # Every `run` here belongs in common/, the same as the other jobs: there is
+    # no manifest, lockfile or node_modules at the repository root, so a bare
+    # `bun install` fails with "Bun could not find a package.json file to
+    # install from" — which reads like a broken checkout rather than a missing
+    # working directory. A step that names its own `working-directory` is
+    # relative to the workspace, not to this default, so the dependency install
+    # below still says `app-with-ai-tanstack`.
+    defaults:
+      run:
+        working-directory: common
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION_WASM }}
-
-      - name: Install root tooling
-        run: bun install --frozen-lockfile
 
       - name: Check out app-with-ai-tanstack
         uses: actions/checkout@v4
@@ -290,6 +293,13 @@ jobs:
           repository: ${{ needs.resolve.outputs.app_repository }}
           ref: ${{ needs.resolve.outputs.app_ref }}
           path: app-with-ai-tanstack
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION_WASM }}
+
+      - name: Install root tooling
+        run: bun install --frozen-lockfile
 
       - name: Install app-with-ai-tanstack
         working-directory: app-with-ai-tanstack
