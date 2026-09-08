@@ -38,9 +38,9 @@
       "repository": "businessappwithai/enterprise_reporting_tanstack",
       "path": "enterprise_reporting_tanstack",
       "branch": "main",
-      "ref": "7a229d8a851a44d8e1df431bc21be523069f02aa",
+      "ref": "d5dd3006cf2c0afa34cdbfe2b4b10aaca60aa8c4",
       "install": false,
-      "install_note": "Nothing local reads this checkout's node_modules — it is a Docker build context, and the image build runs its own install inside the image. `./deps.sh --install` therefore skips it, which is also why its bun.lock being out of sync with its package.json at this commit (a `bun install --frozen-lockfile` there fails) does not block anything here.",
+      "install_note": "Nothing local reads this checkout's node_modules — it is a Docker build context, and the image build runs its own install inside the image, so `./deps.sh --install` skips it. Its bun.lock and package.json are back in sync as of this pin (`bun install --frozen-lockfile` succeeds there again, which it did not at the previous one), but nothing here depends on that either way.",
       "needed_for": [
         "docker-compose.yml builds the `report` and `seeder` services from this checkout as their build context, with common/ passed as an additional context",
         "common/seed/seed-reporting.ts is copied into this project's tree at image build time and imports through its `@/` alias — it uses that project's real getDb, encrypt and introspectAndCacheSchema rather than a second implementation of any of them"
