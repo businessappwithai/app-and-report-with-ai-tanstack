@@ -425,11 +425,35 @@ async function upsertDashboards(
   let widgetCount = 0;
 
   for (const d of pack.dashboards) {
+    // Every widget's id is minted here, before anything is written, because
+    // two rows have to agree on it.
+    //
+    // react-grid-layout matches a layout entry to a rendered tile by the
+    // tile's React key, and the dashboard renders `key={widget.id}` — the
+    // widget's UUID. A layout keyed by the array index ("0", "1", …) matches
+    // no tile at all, and the grid then falls back to its own default of one
+    // column by one row for every child: eleven tiles 65px wide stacked in a
+    // single column, each title clipped to a few letters. It looks like a CSS
+    // problem and is a key mismatch.
+    //
+    // Widgets whose chart or report did not survive are dropped *before* the
+    // layout is built, too. Leaving them in left the layout referring to tiles
+    // that are never rendered — harmless to look at, and a gap in the grid
+    // where a reader expects a tile.
+    const placed = d.widgets
+      .map((w) => ({
+        w,
+        id: randomUUID(),
+        chartId: w.chartKey ? (chartIds.get(w.chartKey) ?? null) : null,
+        reportId: w.reportKey ? (reportIds.get(w.reportKey) ?? null) : null,
+      }))
+      .filter((e) => e.chartId !== null || e.reportId !== null);
+
     const layout = {
       cols: { lg: 12, md: 10, sm: 6, xs: 4 },
       rowHeight: 100,
       layouts: {
-        lg: d.widgets.map((w, i) => ({ i: String(i), x: w.x, y: w.y, w: w.w, h: w.h })),
+        lg: placed.map((e) => ({ i: e.id, x: e.w.x, y: e.w.y, w: e.w.w, h: e.w.h })),
       },
     };
 
@@ -477,20 +501,25 @@ async function upsertDashboards(
         .execute();
     }
 
-    for (const [i, w] of d.widgets.entries()) {
-      const chartId = w.chartKey ? chartIds.get(w.chartKey) : null;
-      const reportId = w.reportKey ? reportIds.get(w.reportKey) : null;
-      if (!chartId && !reportId) continue;
+    for (const e of placed) {
       await db
         .insertInto("dashboard_widgets")
         .values({
-          id: randomUUID(),
+          id: e.id,
           dashboard_id: dashboardId,
-          widget_type: chartId ? "chart" : "report",
-          report_id: reportId ?? null,
-          chart_id: chartId ?? null,
-          position_config: JSON.stringify({ i: String(i), x: w.x, y: w.y, w: w.w, h: w.h }),
-          widget_config: JSON.stringify({ title: w.title }),
+          widget_type: e.chartId ? "chart" : "report",
+          report_id: e.reportId,
+          chart_id: e.chartId,
+          // The same id the layout entry carries. A widget that disagrees with
+          // its own layout entry is the bug this pairing exists to prevent.
+          position_config: JSON.stringify({
+            i: e.id,
+            x: e.w.x,
+            y: e.w.y,
+            w: e.w.w,
+            h: e.w.h,
+          }),
+          widget_config: JSON.stringify({ title: e.w.title }),
           created_at: stamp,
           updated_at: stamp,
         })

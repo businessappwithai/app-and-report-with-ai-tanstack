@@ -20,15 +20,24 @@
 # the CLI and the modelling tool cannot disagree about what a rule flow compiles
 # to. `jdm.ts` imports the converter unconditionally and sits on every
 # generation path, so *every* --stack target needs that checkout, not only the
-# heavy one, and `tsc` needs it to resolve the import at all. That is why the
-# `language` job checks it out even though it only type-checks and lints.
+# heavy one, and `tsc` needs it to resolve the import at all: with the folder
+# absent, tsc reports the two imports unresolvable and then two implicit-any
+# parameters downstream of them — four errors that look like a broken file and
+# are really a missing directory. That is why the `language` job checks it out
+# even though it only type-checks and lints.
 #
 # `tanstack-nestjs` additionally drives the orchestrator, which needs that
 # repository's own dependencies installed: with a node_modules under common/ and
 # none there, resolution stops here and the generate fails on
 # `Cannot find package 'zod'`.
 #
-# ── The four checks ─────────────────────────────────────────────────────────
+# Those files live in another repository, so `paths:` cannot watch them: a
+# change to app-with-ai-tanstack does not trigger a run here. `build-and-run.yml`
+# is what notices instead — it builds both repositories nightly, so a move that
+# breaks generation surfaces within the day rather than on whichever pull
+# request next happens to touch common/.
+#
+# ── The five checks ─────────────────────────────────────────────────────────
 #
 #   models   Every model checks clean, and the two copies of the shared examples
 #            — language/examples and html/models — are still byte-identical. One
@@ -41,9 +50,16 @@
 #            why it exists.
 #   lint     Biome over `common/language/` and `common/scripts/`, at
 #            --diagnostic-level=error. The config is `language/biome.json`
-#            rather than one at the repository root, and `bun run lint` is two
-#            commands — see the note in common/package.json for why.
-#   stacks   Every `--stack` the CLI offers actually generates.
+#            rather than one at the repository root: a root config makes each
+#            product's own config a "nested root" and Biome then refuses to run
+#            at all. That is also why `bun run lint` is two commands — pointing
+#            Biome at `language` and `scripts` in one invocation makes it find
+#            that same file twice and fail the same way.
+#   stacks   Every `--stack` the CLI offers actually generates, and so does the
+#            shipped `appwithai` binary — a different entry point.
+#   wasm-cli The shipped `appwithai-wasm` binary, on bun 1.3 rather than 1.4.
+#            Its overlay (WebAssembly PostgreSQL in place of `pg`, node in place
+#            of bun) is a stage no other check reaches.
 #
 # A path-filtered run that is skipped reports no status at all, so if these jobs
 # are ever made required checks they need a skip-path fallback too.
@@ -80,12 +96,25 @@ on:
 permissions:
   contents: read
 
-# Pinned to the version these steps were verified against, including the
-# `--frozen-lockfile` install of the app-with-ai-tanstack workspace that the
-# tanstack-nestjs target needs. Moving it forward is a deliberate step, taken by
-# running the checks.
+# Two pins, because the two command-line interfaces do not share a runtime.
+#
+#   BUN_VERSION       1.4 — what app-with-ai-tanstack itself pins, and what the
+#                     Dockerfiles the `appwithai` CLI generates run on. Every
+#                     job here uses it unless it is named below. It is also the
+#                     version the `--frozen-lockfile` install of that workspace
+#                     was verified against.
+#   BUN_VERSION_WASM  1.3 — the `appwithai-wasm` path. The one job that runs
+#                     that CLI takes this instead.
+#
+# Running the WASM CLI on the other pin would go green and prove nothing about
+# the runtime it actually ships on, which is why it gets a job rather than a
+# step. `check-clis.ts` prints the bun each result came from, so a job wired to
+# the wrong pin says so in its own output.
+#
+# Moving either forward is a deliberate step, taken by running the checks.
 env:
-  BUN_VERSION: "1.3.11"
+  BUN_VERSION: "1.4.0"
+  BUN_VERSION_WASM: "1.3.11"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -138,6 +167,9 @@ jobs:
       # Source only — nothing is installed in it. `tsc` needs these files on
       # disk to resolve the two cross-repository imports in jdm.ts; without the
       # checkout the type-check fails with TS2307 rather than anything useful.
+      #
+      # It lands on an ignored path, so the "No uncommitted changes" step at the
+      # end of this job does not see it.
       - name: Check out app-with-ai-tanstack
         uses: actions/checkout@v4
         with:
@@ -185,7 +217,7 @@ jobs:
           fi
 
   stacks:
-    name: Generate with every stack
+    name: Generate with every stack and the appwithai CLI
     runs-on: ubuntu-latest
     needs: resolve
     timeout-minutes: 20
@@ -213,13 +245,58 @@ jobs:
       # node-rest and enterprise-reporting are self-contained once the checkout
       # is present — they write files and need nothing installed there.
       # tanstack-nestjs drives the shipped orchestrator, which needs that
-      # workspace's dependencies.
+      # workspace's dependencies present: with a node_modules at the repository
+      # root and none there, resolution stops at the root and the generate fails
+      # on `Cannot find package 'zod'`.
       - name: Install app-with-ai-tanstack
         working-directory: app-with-ai-tanstack
         run: bun install --frozen-lockfile
 
       - name: Generate with every stack
         run: bun run check:stacks
+
+      # The shipped `appwithai` binary, which check:stacks does not touch — that
+      # one drives this repository's own CLI, which loads the generator as a
+      # library. Different entry point, different argument parsing, different
+      # defaults. On BUN_VERSION (1.4), the runtime this CLI ships on.
+      - name: Generate with the appwithai CLI
+        run: bun run check:cli
+
+  # The WASM CLI, in its own job for one reason: bun 1.3 rather than 1.4. It is
+  # not a variant of the job above — `appwithai-wasm` runs the same pipeline and
+  # then applies an overlay that replaces `pg` with WebAssembly PostgreSQL and
+  # bun with node. The overlay is the part worth checking: it is where a rename
+  # in the generator turns into an application that generates cleanly and then
+  # cannot start, and running the other CLI proves nothing about it.
+  wasm-cli:
+    name: Generate with the appwithai-wasm CLI
+    runs-on: ubuntu-latest
+    needs: resolve
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION_WASM }}
+
+      - name: Install root tooling
+        run: bun install --frozen-lockfile
+
+      - name: Check out app-with-ai-tanstack
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.resolve.outputs.app_repository }}
+          ref: ${{ needs.resolve.outputs.app_ref }}
+          path: app-with-ai-tanstack
+
+      - name: Install app-with-ai-tanstack
+        working-directory: app-with-ai-tanstack
+        run: bun install --frozen-lockfile
+
+      - name: Generate with the appwithai-wasm CLI
+        run: bun run check:cli:wasm
 
   # The only check that runs the derived reporting SQL against the schema the
   # generator actually emits. The pack is built from a parsed model while the

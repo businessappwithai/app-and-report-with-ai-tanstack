@@ -221,6 +221,15 @@ jobs:
           wait_for "the generated application" http://localhost/app/
           wait_for "the reporting platform" http://localhost/report/
 
+      # Status codes alone do not settle it. An application served under a URL
+      # prefix it was not built for answers a stylesheet request with its own
+      # HTML fallback — 200 and all — and the page renders unstyled and inert
+      # while every check above stays green. smoke.sh asserts the content type
+      # of each asset the two pages actually reference, which is what catches
+      # that.
+      - name: Smoke-test both applications, content types included
+        run: ORIGIN=http://localhost bash common/build/smoke.sh
+
       # The seeder is one shot: it registers the generated application's
       # database as a data source, caches its introspected schema, and writes
       # every saved query, report, chart and dashboard in the pack. Until it

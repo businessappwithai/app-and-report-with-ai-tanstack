@@ -30,7 +30,7 @@
  * says so, because the image build and the local generate both run it.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 interface Patch {
@@ -58,16 +58,25 @@ const PATCHES: Patch[] = [
   },
 
   // --- TanStack Start's own config, as the generated application uses it -----
-  {
-    file: "app.config.ts",
-    optional: true,
-    done: (s) => s.includes(MARKER),
-    apply: (s, base) => {
-      const anchor = "  vite: {";
-      if (!s.includes(anchor)) throw new Error("app.config.ts: no `vite: {` block to anchor on");
-      return s.replace(anchor, `${anchor}\n    ${MARKER} base: ${JSON.stringify(`${base}/`)},`);
-    },
-  },
+  //
+  // Deliberately NOT patched with a `base`, and the reason is worth keeping.
+  //
+  // That version of TanStack Start is Vinxi-based: it writes the client bundle
+  // to `public/_build/` and the rest to `public/assets/`, and serves `public/`
+  // at the server root through Nitro. Setting Vite's `base` rewrote *some*
+  // emitted URLs and moved no files and did not touch the `_build` router at
+  // all, so a build came out half-prefixed:
+  //
+  //   /app/assets/globals-*.css   200, and `text/html` — the SPA fallback,
+  //                               because nothing is on disk at that path
+  //   /_build/assets/client-*.js  emitted un-prefixed, 404 behind the proxy
+  //
+  // A stylesheet request answered with a page is worse than a 404: the browser
+  // reports nothing and the application renders unstyled and inert. So this
+  // application keeps its root-absolute asset URLs and the proxy in front routes
+  // those namespaces to it — see common/docker/nginx/default.conf. The router
+  // basepath below is the half that does work, and is what makes every *link*
+  // the application writes carry the prefix.
 
   // --- The router ------------------------------------------------------------
   {
@@ -133,6 +142,133 @@ const PATCHES: Patch[] = [
   },
 ];
 
+/**
+ * Rewrite the application's own root-absolute `"/api/…"` literals to sit
+ * under the prefix.
+ *
+ * This is the step that only running the two applications together revealed,
+ * and the one without which path-based co-hosting cannot work at all.
+ *
+ * Vite's `base` rewrites asset URLs. The router's `basepath` rewrites links and
+ * route matching. Neither touches a request URL written as a string literal in
+ * source — and both applications here call their API that way, root-absolute:
+ * 174 call sites in the reporting application, 7 in the generated one. Served
+ * side by side they both ask for `/api/...` on the same origin, and no proxy
+ * can send one path to two upstreams.
+ *
+ * So the application that *can* be moved is moved.
+ *
+ * The rule is "every root-absolute `/api/` literal except a route definition",
+ * and it is stated that way round after the narrower one failed. Anchoring on
+ * `fetch(` looked safe and missed most of them, because a request URL is very
+ * often not written inside the `fetch(` call:
+ *
+ *     const url = chartId === "new" ? "/api/charts" : `/api/charts/${chartId}`
+ *     const url = new URL(`/api/charts/${chartId}/data`, location.origin)
+ *     ...createSyncOptions("/api/sync/reports")
+ *     downloadUrl: `/api/report-generation/artifacts/${id}?download=true`
+ *     <CopilotKit runtimeUrl="/api/copilotkit">
+ *
+ * Every one of those is a request that leaves the browser for `/api/…` on a
+ * shared origin, which the proxy hands to the *other* application. The
+ * CopilotKit ones are how this was found: the reporting platform's assistant
+ * was asking the generated application's NestJS backend for a completion.
+ *
+ * `createFileRoute("/api/…")` and `createAPIFileRoute("/api/…")` are the
+ * exception, and the only one: those are route *definitions*, which the router
+ * already prefixes with its basepath when it matches a request. Rewriting them
+ * too would double the prefix.
+ *
+ * The other application keeps the root, and the proxy routes `/api/` there —
+ * see common/docker/nginx/default.conf.
+ */
+/**
+ * Apply one source-level rewrite across `src/**`, returning the file count.
+ *
+ * Shared by the two rewrites below because they differ only in their pattern:
+ * both walk the same tree, skip the same directories, and count files rather
+ * than call sites.
+ */
+function rewriteSources(dir: string, rewrite: (src: string) => string): number {
+  const root = path.join(dir, "src");
+  if (!existsSync(root)) return 0;
+  let changed = 0;
+
+  const walk = (d: string): void => {
+    for (const entry of readdirSync(d)) {
+      const full = path.join(d, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry === "node_modules" || entry.startsWith(".")) continue;
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(entry)) continue;
+      const src = readFileSync(full, "utf8");
+      const next = rewrite(src);
+      if (next !== src) {
+        writeFileSync(full, next);
+        changed++;
+      }
+    }
+  };
+
+  walk(root);
+  return changed;
+}
+
+function rewriteApiCalls(dir: string, base: string): number {
+  // A quote or backtick, then /api at a path boundary. The capture keeps
+  // whatever preceded it so the negative lookbehind below can be checked
+  // against real text rather than guessed at.
+  const pattern = /(.{0,24})(["'`])\/api(?=[/"'`?#])/g;
+  // A route definition, and nothing else, is left alone.
+  const routeDef = /create(?:API)?FileRoute\(\s*$/;
+
+  return rewriteSources(dir, (src) =>
+    src.replace(pattern, (whole, before: string, quote: string) =>
+      routeDef.test(before) ? whole : `${before}${quote}${base}/api`
+    )
+  );
+}
+
+/**
+ * Rewrite `window.location.href = "/…"` and friends to sit under the prefix.
+ *
+ * The router's `basepath` rewrites every navigation that goes *through the
+ * router*. These do not: assigning `location.href` is a full browser
+ * navigation, and the string is taken literally. Under a prefix that makes the
+ * path wrong, and the proxy has nothing to match — the browser leaves the
+ * application entirely and gets the front door's 404.
+ *
+ * Two call sites in the generated application make this fatal rather than
+ * cosmetic, and neither is reachable by clicking:
+ *
+ *   - the 401 handler in `contexts/auth-context.tsx` sends every unauthenticated
+ *     visitor to `/auth/login`. That is the *first* thing that happens to a
+ *     first-time visitor, so the whole application is unreachable: `/app/`
+ *     answers 200, then the page navigates itself off the prefix and 404s.
+ *   - `routes/auth/login.tsx` sends a *successful* sign-in to `/dashboard`,
+ *     so even reaching the login form by hand ends the same way.
+ *
+ * A path that already starts with the base is left alone, so the rewrite is
+ * idempotent; `//host/…` is a protocol-relative URL to another origin, not a
+ * path, and is skipped too.
+ */
+function rewriteHardNavigations(dir: string, base: string): number {
+  // The leading slash is consumed by the `\/` in the pattern, so the guard
+  // that stops a second run double-prefixing has to compare against the base
+  // *without* it — "app", not "/app". With the slash the lookahead can never
+  // match, and the rewrite silently produces /app/app/… on every re-run.
+  const esc = base.replace(/^\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    // location.href = "/…"  |  location.replace("/…")  |  location.assign("/…")
+    `((?:window\\s*\\.\\s*)?location\\s*\\.\\s*(?:href\\s*=|replace\\(|assign\\()\\s*)` +
+      `(["'\`])\\/(?!\\/|${esc}(?:[/"'\`?#]|$))`,
+    "g"
+  );
+  return rewriteSources(dir, (src) => src.replace(pattern, `$1$2${base}/`));
+}
+
 function main(): number {
   const argv = process.argv.slice(2);
   const flag = (n: string): string | undefined => {
@@ -178,6 +314,26 @@ function main(): number {
       console.error(`  FAIL  ${patch.file}: ${err instanceof Error ? err.message : err}`);
       return 1;
     }
+  }
+
+  // Only the application that carries a real Vite `base` gets its API calls
+  // moved. The generated application keeps the root `/api` — its framework
+  // cannot be prefixed (see the note on app.config.ts above), so it is the one
+  // the proxy leaves at the root.
+  if (existsSync(path.join(dir, "vite.config.ts"))) {
+    const rewritten = rewriteApiCalls(dir, base);
+    if (rewritten > 0) {
+      console.log(`  base ${base}  ${rewritten} file(s) with "/api…" request URLs`);
+      applied += rewritten;
+    }
+  }
+
+  // Both applications get this one. A hard navigation bypasses the router
+  // whichever application writes it, so `basepath` cannot save either.
+  const navs = rewriteHardNavigations(dir, base);
+  if (navs > 0) {
+    console.log(`  base ${base}  ${navs} file(s) with window.location navigations`);
+    applied += navs;
   }
 
   // A run that patched nothing at all is the failure this reports: it means

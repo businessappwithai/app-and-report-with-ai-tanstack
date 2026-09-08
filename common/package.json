@@ -7,9 +7,13 @@
     "bun": ">=1.3.11"
   },
   "scripts": {
-    "check": "bun run check:models && bun run type-check && bun run lint && bun run check:stacks && bun run check:pack",
+    "check": "bun run check:models && bun run type-check && bun run lint && bun run check:stacks && bun run check:clis && bun run check:pack",
     "check:models": "bun scripts/check-models.ts",
     "check:stacks": "bun scripts/check-stacks.ts",
+    "_comment:clis": "Two CLIs, two runtimes, and they are not interchangeable: `appwithai` is run on bun 1.4 (what app-with-ai-tanstack pins, and what the Dockerfiles it generates run on), `appwithai-wasm` on bun 1.3. `check:clis` runs both under whichever bun is on PATH, which is right for a local sanity run; CI splits them into two jobs so each gets its own \u2014 see .github/workflows/root-ci.yml.",
+    "check:clis": "bun scripts/check-clis.ts",
+    "check:cli": "bun scripts/check-clis.ts --only appwithai",
+    "check:cli:wasm": "bun scripts/check-clis.ts --only appwithai-wasm",
     "check:pack": "bun scripts/check-reporting-pack.ts",
     "type-check": "tsc --project tsconfig.language.json",
     "lint": "bun run lint:language && bun run lint:scripts",
