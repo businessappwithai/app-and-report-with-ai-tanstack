@@ -24,7 +24,7 @@
       "repository": "businessappwithai/app-with-ai-tanstack",
       "path": "app-with-ai-tanstack",
       "branch": "main",
-      "ref": "34e5f17346dfc77550c7bf38cef5e550c2d12dd4",
+      "ref": "1bc45de743e9303591a28bff134de1a1a49c995d",
       "install": true,
       "needed_for": [
         "language/cli/src/generate/jdm.ts imports packages/web/src/lib/jdm-converter.ts and mermaid-flowchart-parser.ts across the repository boundary, on every generation path — so every --stack target needs this checkout, not just the heavy one",
@@ -38,7 +38,7 @@
       "repository": "businessappwithai/enterprise_reporting_tanstack",
       "path": "enterprise_reporting_tanstack",
       "branch": "main",
-      "ref": "92f743f3bbb2c4f7988792e467a45b2add568542",
+      "ref": "0bd165e919c9113cd97ee4105ee221cac86ff8e5",
       "install": false,
       "install_note": "Nothing local reads this checkout's node_modules — it is a Docker build context, and the image build runs its own install inside the image. `./deps.sh --install` therefore skips it, which is also why its bun.lock being out of sync with its package.json at this commit (a `bun install --frozen-lockfile` there fails) does not block anything here.",
       "needed_for": [
