@@ -208,8 +208,16 @@ semantics, directives, grammar and the generator contract. Everything else in
 Each product repository carries its own copy for its own CI —
 `app-with-ai-tanstack/language/` and, under the older name
 `erdwithai-language.json`, `enterprise_reporting_tanstack/language/`. All three
-have drifted from each other. **When any of them disagrees with the copy here,
-the copy here is the language.**
+have drifted from each other — at the pinned commits, 90 normalized JSON lines
+against app-with-ai-tanstack's and 200 against the reporting platform's.
+**When any of them disagrees with the copy here, the copy here is the language.**
+
+**All three declare `"version": "1.2.0"`.** The version cannot tell you which
+copy you are holding, and nothing checks one against another, so drift is silent
+in both directions: a change made here does not reach either product, and a
+change made in one does not reach here. `check:models` compares
+`language/examples/` against `html/models/` — a different pair, and the likeliest
+reason to believe a cross-repository check exists when none does.
 
 Every EML document is valid, renderable Mermaid. EML is a *semantic superset*:
 it assigns generator meaning to `erDiagram`, `flowchart` and `stateDiagram-v2`,
