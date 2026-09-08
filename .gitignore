@@ -22,3 +22,14 @@ common/.runtime/
 # checked in on purpose and does not match: it is a `.mmd.error`, not an
 # `.eml.mmd.error`.
 *.eml.mmd.error
+
+# gstack's `./setup` writes one shim directory per skill beside the vendored
+# copy — a `.gstack-owned` marker plus symlinks into
+# .claude/skills/gstack/<skill>/, by absolute path. They are machine-local
+# scaffolding: the paths are only valid in the tree that generated them, and
+# every developer who runs ./setup gets all 55 of them as untracked files. CI's
+# "No uncommitted changes" step reads `git status --porcelain`, which counts
+# untracked, so leaving them unignored fails the language job for anyone who has
+# run setup.
+/.claude/skills/*/
+!/.claude/skills/gstack/
