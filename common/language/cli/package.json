@@ -6,19 +6,13 @@
   "bin": {
     "eml": "./eml.ts"
   },
+  "_comment:tooling": "No devDependencies and no lockfile here on purpose. This directory is part of common/, not a separately installed package: its type-check is common/'s `bun run type-check` (tsconfig.language.json includes language/**) and its lint is `bun run lint:language`. The three devDependencies that used to sit here — typescript 5.6.3, @types/node 22 and bun-types — were never installed by anything: `bun run typecheck` here resolved tsc and its types out of common/node_modules, so the pins were decoration that disagreed with the versions actually used (typescript ^7.0.2, @types/bun). bun-types was doubly dead: @types/bun already depends on it.",
   "scripts": {
     "start": "bun eml.ts",
-    "validate:examples": "bun eml.ts validate -i ../examples/crm.eml.mmd",
-    "typecheck": "tsc --noEmit",
-    "lint": "biome check ."
+    "validate:examples": "bun eml.ts validate -i ../examples/crm.eml.mmd"
   },
   "engines": {
     "bun": ">=1.0",
     "node": ">=18"
-  },
-  "devDependencies": {
-    "@types/node": "22",
-    "bun-types": "^1.4.0",
-    "typescript": "5.6.3"
   }
 }

@@ -7,8 +7,12 @@ repositories, checked out on demand at the commits `../deps.json` pins.
 
 | | What it is | Repository |
 |---|---|---|
-| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | `businessappwithai/app-with-ai-tanstack` |
-| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | `businessappwithai/enterprise_reporting_tanstack` |
+| **APPWITHAI** | An AI-assisted ERD designer and full-stack code generator. One Mermaid document describes the data, the decisions and the processes; the generator compiles all three into a running NestJS + TanStack Start application | [businessappwithai/app-with-ai-tanstack](https://github.com/businessappwithai/app-with-ai-tanstack) |
+| **Enterprise Reporting** | A multi-datasource analytics platform: connect external databases, ask questions in natural language, and publish the answers as reports, charts, dashboards and scheduled deliveries | [businessappwithai/enterprise_reporting_tanstack](https://github.com/businessappwithai/enterprise_reporting_tanstack) |
+
+**Neither product is vendored here.** This repository is the orchestrator: it
+holds the language, the glue and nothing else. Both are checked out on demand at
+the commits `../deps.json` pins:
 
 ```bash
 ../deps.sh --install     # place both beside common/, at their pinned commits
@@ -78,11 +82,15 @@ their URL prefix, derives the reporting pack from the model, and brings the stac
 up. `stop.sh` takes it down; `stop.sh --volumes` discards the databases too.
 Everything it writes goes under `common/.runtime/`, which is not checked in.
 
-**The two profiles.** `demo` (the default) runs one Apache AGE PostgreSQL 16
+**The two profiles.** `demo` (the default) runs one pgvector PostgreSQL 16
 holding three databases — the application's, `enterprise_config`, and
 `ers_knowledge`. `prod` runs two servers, each the image its application actually
 asks for: pgvector on PostgreSQL 18 for the generated application, Apache AGE on
-16 for the reporting platform. Under both, the reporting platform's configuration
+16 for the reporting platform. pgvector rather than Apache AGE in the demo is a
+forced choice, not a preference: no published image carries both extensions, and
+pgvector is the one that is not optional — AGE serves only the reporting
+platform's knowledge-graph feature, which is lazy. Under both profiles, the
+reporting platform's configuration
 never shares a database with the application it reports on — regenerating the
 application drops and recreates its tables, and the reports have to survive that.
 
@@ -119,6 +127,57 @@ entity needs. It does **not** compile workflows or `%%rbac` — see
 `language/README.md` for the coverage table, and the `README.md` the target
 writes beside its output for the integration steps.
 
+## The two shipped CLIs
+
+`eml.ts` above is this repository's CLI. APPWITHAI publishes two binaries of its
+own, and they are not the same entry point — different argument parsing,
+different defaults, and in the WASM case a whole stage afterwards:
+
+```bash
+# The full stack: NestJS on a PostgreSQL server, TanStack Start in front of it
+bun app-with-ai-tanstack/packages/generator/src/cli/generate.ts \
+    generate -i <model> -o ./out --force
+
+# The same pipeline, then an overlay: WebAssembly PostgreSQL in place of `pg`,
+# node in place of bun. No database server at all.
+bun app-with-ai-tanstack/packages/generator/src/cli-wasm/generate.ts \
+    generate -i <model> -o ./out --force
+```
+
+`bun run check:clis` runs both and checks what each produced rather than only
+that it exited 0 — the WASM run has to have written `backend/pg-wasm/`, which is
+the overlay's own footprint and the difference between the overlay running and
+silently doing nothing.
+
+**They do not share a runtime.** `appwithai` runs on bun 1.4 — what
+app-with-ai-tanstack pins, and what the Dockerfiles it generates run on — and
+`appwithai-wasm` on bun 1.3. CI gives each its own job for that reason: a step
+would inherit the other job's bun and go green having proved nothing about the
+runtime it ships on. `check:cli` and `check:cli:wasm` run one each; the check
+always prints the bun a result came from.
+
+Add `--no-setup` to the full-stack CLI to stop after writing files. Without it
+the CLI goes on to install, migrate and seed against a PostgreSQL server on
+127.0.0.1, which is the right default for someone generating an application to
+run and not what a check wants.
+
+## One docker, or two
+
+Both applications run under one `docker-compose.yml`, and the profile decides
+how far apart they sit:
+
+| | |
+|---|---|
+| `demo` (default) | One PostgreSQL 16 holding three databases — the generated application's, the platform's `enterprise_config`, and its `ers_knowledge`. One container, one image to pull |
+| `prod` | A server per application, each the image it actually asks for: pgvector on PostgreSQL 18 for the generated application, Apache AGE on 16 for the reporting platform |
+
+The application containers are separate under both — the generated backend, its
+front end, and the reporting platform are three services either way, behind one
+nginx on port 80. What the profile changes is the databases. And under both, the
+reporting platform's configuration never shares a database with the application
+it reports on: regenerating the application drops and recreates its tables, and
+the reports have to survive that.
+
 ## Reading further
 
 | | |
@@ -141,7 +200,7 @@ product's:
 
 ```bash
 bun install
-bun run check            # models, types, lint, every stack, and the reporting SQL
+bun run check            # models, types, lint, every stack, both CLIs, and the reporting SQL
 ```
 
 | | |
@@ -150,6 +209,7 @@ bun run check            # models, types, lint, every stack, and the reporting S
 | `type-check` | `language/**`, `build/**` and `scripts/**` under the strict config (`tsconfig.language.json`) |
 | `lint` | Biome over `language/` and `scripts/` |
 | `check:stacks` | All three `--stack` targets actually generate |
+| `check:clis` | Both shipped binaries generate, and wrote what each stage should. `check:cli` / `check:cli:wasm` run one each — CI uses those, so each gets its own bun |
 | `check:pack` | Every query in every model's reporting pack runs against a **real** generated schema. Skips itself with a message when no PostgreSQL is reachable |
 
 **Every one of these needs `../deps.sh` to have run.** Two modules under
@@ -158,10 +218,10 @@ and the flowchart parser — and `jdm.ts` does it unconditionally, on every
 generation path. Without that checkout `type-check` reports TS2307 and *all
 three* stack targets fail at module resolution, not just the heavy one.
 
-`check:stacks` additionally needs that workspace's own dependencies installed
-(`../deps.sh --install`): `tanstack-nestjs` drives the shipped orchestrator,
-which resolves `zod` and the rest from there. Pass `--skip-heavy` to run only
-the two self-contained targets:
+`check:stacks` and `check:clis` additionally need that workspace's own
+dependencies installed (`../deps.sh --install`): `tanstack-nestjs` and both
+shipped binaries drive the orchestrator, which resolves `zod` and the rest from
+there. Pass `--skip-heavy` to run only the two self-contained targets:
 
 ```bash
 bun scripts/check-stacks.ts --skip-heavy
@@ -173,9 +233,15 @@ bun scripts/check-stacks.ts --skip-heavy
 
 | | |
 |---|---|
-| `root-ci.yml` | `paths:`-filtered to `common/**`, `deps.json` and the scripts that run the two together. A `resolve` job reads `deps.json`, then three jobs check out `app-with-ai-tanstack` against it and run models/types/lint, every stack, and the reporting pack against a real PostgreSQL |
-| `build-and-run.yml` | The orchestrator, on `workflow_dispatch` and nightly. Checks out both products at their pins, generates an application, injects configuration, brings the stack up, and proves `/app` and `/report` answer and the seeder exited 0 |
+| `root-ci.yml` | `paths:`-filtered to `common/**`, `deps.json` and the scripts that run the two together. A `resolve` job reads `deps.json`, then four jobs check out `app-with-ai-tanstack` against it and run models/types/lint, every `--stack` target plus the `appwithai` CLI, the `appwithai-wasm` CLI on its own bun, and the reporting pack against a real PostgreSQL |
+| `build-and-run.yml` | The orchestrator, on `workflow_dispatch` and nightly. Checks out both products at their pins, generates an application, injects configuration, brings the stack up, and proves `/app` and `/report` answer — content types included, via `common/build/smoke.sh` — and that the seeder exited 0 |
 
-Both read the pins from `deps.json` and nowhere else — no workflow restates a
-ref in a `with:` block, which is how pins drift. Each product's own CI now lives
-in its own repository, where the code is.
+`wasm-cli` is a job of its own rather than a step because a step would inherit
+the other's bun: `appwithai` runs on 1.4, `appwithai-wasm` on 1.3, and running
+either on the other's pin goes green while proving nothing.
+
+Both workflows read the pins from `deps.json` and nowhere else — no workflow
+restates a ref in a `with:` block, which is how pins drift. Each product's own CI
+lives in its own repository, where the code is. That also means `paths:` cannot
+watch them: a change to `app-with-ai-tanstack` does not trigger a run here, and
+the nightly `build-and-run` is what notices instead.
