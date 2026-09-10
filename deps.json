@@ -24,8 +24,7 @@
       "repository": "businessappwithai/app-with-ai-tanstack",
       "path": "app-with-ai-tanstack",
       "branch": "main",
-      "ref": "704427c13395578fb94935917ed1bf08542cc58a",
-      "ref_note": "TEMPORARY — this is the head of claude/gstack-qa-ems-skill-de3uui, not of main. The reporting-pack check cannot pass on main's head: it generates an application and runs the derived SQL against it, and main's parser gives an entity whose name begins with an acronym a table nothing else can name (SIPInstruction -> bus_s_i_p_instruction). Re-point this at the merge commit of businessappwithai/app-with-ai-tanstack#125 before merging.",
+      "ref": "666fbe8aed30bdbf988a6bd8149cd49323451e09",
       "install": true,
       "needed_for": [
         "language/cli/src/generate/jdm.ts imports packages/web/src/lib/jdm-converter.ts and mermaid-flowchart-parser.ts across the repository boundary, on every generation path — so every --stack target needs this checkout, not just the heavy one",
