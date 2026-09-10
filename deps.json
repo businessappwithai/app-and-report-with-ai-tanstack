@@ -38,7 +38,7 @@
       "repository": "businessappwithai/enterprise_reporting_tanstack",
       "path": "enterprise_reporting_tanstack",
       "branch": "main",
-      "ref": "cc4a8b52d46545161864d756bbdaeb1970dfa3a2",
+      "ref": "60418658e9131d261cddcd84cf9fc8855b62712d",
       "install": false,
       "install_note": "Nothing local reads this checkout's node_modules — it is a Docker build context, and the image build runs its own install inside the image, so `./deps.sh --install` skips it. Its bun.lock and package.json are back in sync as of this pin (`bun install --frozen-lockfile` succeeds there again, which it did not at the previous one), but nothing here depends on that either way.",
       "needed_for": [
