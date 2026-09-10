@@ -471,11 +471,30 @@ function deriveRelationships(ctx: Ctx): void {
 
     const parentDisplay = displayColumn(parent);
     const key = `${child.tableName}__per_${parent.tableName}`;
+
+    /*
+     * Whether the two sides of the join are the same SQL type.
+     *
+     * The generator gives a column `uuid` when the Application Dictionary makes
+     * it a Table Direct reference, which needs both the `FK` modifier and a
+     * name ending `_id` or `_by`; anything else falls through to `varchar`.
+     * A primary key is always `uuid`. So the join is `uuid = uuid` for a column
+     * the model marked properly and `uuid = varchar` for one it did not —
+     * and PostgreSQL has no implicit cast between them, so the wrong guess is
+     * not a slow report but `operator does not exist` on every run.
+     *
+     * This used to cast the parent's key to text unconditionally, which was
+     * right only while a bug elsewhere left every foreign key a `varchar`. The
+     * cast is emitted now when the model says it is needed, and the parent's
+     * primary-key index is used when it is not.
+     */
+    const sameType = fk.isForeignKey && (fk.name.endsWith("_id") || fk.name.endsWith("_by"));
+    const parentKey = sameType ? `p.${parent.primaryKey}` : `p.${parent.primaryKey}::text`;
     const q = addQuery(ctx, {
       key,
       name: `${pluralTitle(child)} per ${titleOf(parent).toLowerCase()}`,
       description: `How many ${pluralTitle(child).toLowerCase()} each ${titleOf(parent).toLowerCase()} has, most first. Derived from the ${rel.name.replace(/_/g, " ")} relationship the model draws.`,
-      sql: `SELECT p.${parentDisplay} AS ${parent.tableName}, COUNT(c.${child.primaryKey}) AS records\nFROM ${tableOf(parent)} p\nLEFT JOIN ${tableOf(child)} c\n  ON c.${fk.name} = p.${parent.primaryKey}::text AND c.deleted_at IS NULL\nWHERE p.deleted_at IS NULL\nGROUP BY 1\nORDER BY records DESC\nLIMIT 50`,
+      sql: `SELECT p.${parentDisplay} AS ${parent.tableName}, COUNT(c.${child.primaryKey}) AS records\nFROM ${tableOf(parent)} p\nLEFT JOIN ${tableOf(child)} c\n  ON c.${fk.name} = ${parentKey} AND c.deleted_at IS NULL\nWHERE p.deleted_at IS NULL\nGROUP BY 1\nORDER BY records DESC\nLIMIT 50`,
     });
     ctx.reports.push({
       key,
