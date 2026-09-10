@@ -76,7 +76,7 @@ rule flow compiles to:
 | Reaches for | From | Consequence when absent |
 |---|---|---|
 | `packages/web/src/lib/jdm-converter.ts`, `mermaid-flowchart-parser.ts` | `language/cli/src/generate/jdm.ts`, as a static import | **Every** `--stack` target fails at module resolution, and `tsc` reports TS2307. `jdm.ts` sits on every generation path — this is not just the heavy target |
-| `packages/generator/src/generators/orchestrator.ts` | `language/cli/src/generate/tanstack.ts`, resolved at runtime | `--stack tanstack-nestjs` cannot generate |
+| `packages/generator/src/pipeline/generate-application.ts` | `language/cli/src/generate/tanstack.ts`, resolved at runtime | `--stack tanstack-nestjs` cannot generate |
 
 Nothing type-checks either path — one imports across a repository boundary, the
 other resolves from a non-literal specifier — so moving either file breaks
