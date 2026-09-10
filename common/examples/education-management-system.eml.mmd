@@ -1,0 +1,1187 @@
+%% ============================================================================
+%% EML Model — Education Management System
+%%
+%% A fee-charging secondary school, modelled end to end: nineteen entities, the
+%% five lifecycles the school actually runs on, the admission decision it takes
+%% by judgement today, the capacity and overpayment refusals that must act, and
+%% the two sagas that turn an accepted application into an enrolled, invoiced
+%% student and a payment into a settled invoice.
+%%
+%% Built through the interactive authoring protocol in llmdetailed.txt §10, so
+%% it holds that section's standard: help text on every entity and every column,
+%% one %%rbac read rule per entity, every state backed by a declared %%enum, and
+%% reports for every role on the matrix. Every diagram is valid, renderable
+%% Mermaid.
+%% ============================================================================
+
+%%meta name: Education Management System
+%%meta kind: erd
+%%meta version: 1.0.0
+%%category name: Admissions; icon: file-text; entities: AdmissionApplication
+%%category name: People; icon: users; entities: Student, Guardian, Staff
+%%category name: Academics; icon: book-open; entities: Department, Course, AcademicTerm, Room, ClassSection, ClassSession
+%%category name: Enrolment; icon: clipboard-list; entities: Enrollment
+%%category name: Assessment; icon: graduation-cap; entities: Assessment
+%%category name: Finance; icon: credit-card; entities: FeeInvoice, Payment
+%%category name: Conduct; icon: shield-alert; entities: DisciplineIncident
+%%enum TermStatus: planned, current, closed
+%%enum StaffType: teaching, administrative, pastoral, leadership
+%%enum EmploymentStatus: active, on_leave, left
+%%enum CourseLevel: foundation, core, higher, advanced
+%%enum ContactMethod: email, phone, post
+%%enum StudentStatus: enrolled, on_leave, suspended, graduated, withdrawn
+%%enum GuardianRelationship: mother, father, step_parent, grandparent, carer, local_authority, other
+%%enum ApplicationStatus: submitted, under_review, offer_made, accepted, declined, rejected, withdrawn
+%%enum AdmissionBand: priority, standard, review
+%%enum DayOfWeek: monday, tuesday, wednesday, thursday, friday
+%%enum SectionStatus: planned, open, in_progress, completed, cancelled
+%%enum SessionStatus: scheduled, held, cancelled
+%%enum EnrollmentStatus: pending, enrolled, completed, withdrawn, failed
+%%enum FinalGrade: distinction, merit, pass, borderline, fail, incomplete
+%%enum AttendanceMark: present, late, absent, excused
+%%enum AssessmentType: quiz, essay, project, practical, mock_exam, final_exam
+%%enum AssessmentStatus: draft, published, marking, marked, cancelled
+%%enum ResultStatus: pending, submitted, marked, missing, excused
+%%enum InvoiceStatus: draft, issued, part_paid, paid, overdue, cancelled
+%%enum ChargeType: tuition, transport, examination_entry, materials, activity, late_fee
+%%enum PaymentMethod: card, bank_transfer, cash, cheque, bursary
+%%enum IncidentCategory: disruption, absence_without_leave, bullying, damage, academic_misconduct, safeguarding
+%%enum IncidentSeverity: minor, moderate, serious, critical
+%%enum IncidentStatus: reported, under_review, action_taken, closed, dismissed
+%%enum Sanction: none, warning, detention, parental_meeting, suspension, exclusion
+erDiagram
+    Department {
+        string   id PK
+        string   code UK
+        string   name
+        string   staff_id FK OPTIONAL
+        boolean  is_active
+    }
+
+    Room {
+        string   id PK
+        string   code UK
+        string   name
+        string   building
+        integer  capacity
+        boolean  is_active
+    }
+
+    AcademicTerm {
+        string   id PK
+        string   code UK
+        string   name
+        string   academic_year
+        date     starts_on
+        date     ends_on
+        date     census_on
+        string   status
+    }
+
+    Staff {
+        string   id PK
+        string   staff_number UK
+        email    email UK
+        string   first_name
+        string   last_name
+        string   department_id FK OPTIONAL
+        string   job_title
+        string   staff_type
+        string   status
+        date     started_on
+        phone    phone OPTIONAL
+    }
+
+    Course {
+        string   id PK
+        string   code UK
+        string   name
+        string   department_id FK
+        string   level
+        integer  credit_hours
+        boolean  is_active
+    }
+
+    Guardian {
+        string   id PK
+        email    email UK
+        string   first_name
+        string   last_name
+        phone    phone
+        string   address_line
+        string   city
+        string   postcode
+        string   preferred_contact_method
+    }
+
+    Student {
+        string   id PK
+        string   student_number UK
+        string   first_name
+        string   last_name
+        date     date_of_birth
+        integer  year_group
+        string   status
+        date     enrolled_on
+        date     withdrawn_on OPTIONAL
+        text     withdrawal_reason OPTIONAL
+        email    school_email OPTIONAL
+        boolean  has_support_plan
+    }
+
+    StudentGuardian {
+        string   id PK
+        string   student_id FK
+        string   guardian_id FK
+        string   relationship
+        boolean  is_primary_contact
+        boolean  may_collect
+        integer  contact_order
+    }
+
+    AdmissionApplication {
+        string   id PK
+        string   reference UK
+        string   guardian_id FK
+        string   student_id FK OPTIONAL
+        string   academic_term_id FK
+        string   decided_by_id FK OPTIONAL
+        string   applicant_first_name
+        string   applicant_last_name
+        date     applicant_date_of_birth
+        integer  year_group_applied_for
+        string   status
+        date     submitted_on
+        date     decided_on OPTIONAL
+        integer  prior_attainment_score OPTIONAL
+        boolean  has_sibling_enrolled
+        string   admission_band OPTIONAL
+        text     decision_notes OPTIONAL
+    }
+
+    ClassSection {
+        string   id PK
+        string   code UK
+        string   course_id FK
+        string   academic_term_id FK
+        string   staff_id FK
+        string   room_id FK OPTIONAL
+        integer  capacity
+        integer  enrolled_count
+        string   day_of_week
+        integer  period
+        string   status
+        text     cancellation_reason OPTIONAL
+    }
+
+    ClassSession {
+        string   id PK
+        string   class_section_id FK
+        string   room_id FK OPTIONAL
+        string   staff_id FK OPTIONAL
+        datetime starts_at
+        datetime ends_at
+        string   status
+        boolean  register_taken
+        string   topic OPTIONAL
+        text     cancellation_reason OPTIONAL
+    }
+
+    Enrollment {
+        string   id PK
+        string   student_id FK
+        string   class_section_id FK
+        string   status
+        date     enrolled_on
+        date     withdrawn_on OPTIONAL
+        text     withdrawal_reason OPTIONAL
+        string   final_grade OPTIONAL
+        decimal  attendance_rate
+    }
+
+    AttendanceRecord {
+        string   id PK
+        string   class_session_id FK
+        string   student_id FK
+        string   marked_by_id FK
+        string   status
+        integer  minutes_late OPTIONAL
+        boolean  is_authorised
+        text     absence_reason OPTIONAL
+        datetime marked_at
+    }
+
+    Assessment {
+        string   id PK
+        string   class_section_id FK
+        string   title
+        string   assessment_type
+        decimal  max_score
+        decimal  weight_percent
+        date     due_on
+        string   status
+        text     instructions OPTIONAL
+    }
+
+    AssessmentResult {
+        string   id PK
+        string   assessment_id FK
+        string   student_id FK
+        string   marked_by_id FK OPTIONAL
+        decimal  score OPTIONAL
+        decimal  max_score
+        string   status
+        datetime marked_at OPTIONAL
+        text     feedback OPTIONAL
+    }
+
+    FeeInvoice {
+        string   id PK
+        string   invoice_number UK
+        string   student_id FK
+        string   academic_term_id FK
+        string   status
+        date     issued_on OPTIONAL
+        date     due_on OPTIONAL
+        decimal  total_amount
+        decimal  amount_paid
+        decimal  balance_due
+        text     cancellation_reason OPTIONAL
+    }
+
+    FeeInvoiceLine {
+        string   id PK
+        string   fee_invoice_id FK
+        string   charge_type
+        string   description
+        integer  quantity
+        decimal  unit_amount
+        decimal  line_total
+    }
+
+    Payment {
+        string   id PK
+        string   fee_invoice_id FK
+        string   received_by_id FK OPTIONAL
+        decimal  amount
+        decimal  balance_before
+        string   method
+        datetime received_at
+        string   reference OPTIONAL
+    }
+
+    DisciplineIncident {
+        string   id PK
+        string   reference UK
+        string   student_id FK
+        string   reported_by_id FK
+        datetime occurred_at
+        string   category
+        string   severity
+        string   status
+        text     summary
+        string   sanction OPTIONAL
+        text     sanction_notes OPTIONAL
+        date     closed_on OPTIONAL
+    }
+
+    Department   ||--o{ Course               : "offers"
+    Department   ||--o{ Staff                : "employs"
+    Course       ||--o{ ClassSection         : "taught as"
+    AcademicTerm ||--o{ ClassSection         : "scheduled in"
+    Staff        ||--o{ ClassSection         : "teaches"
+    Room         ||--o{ ClassSection         : "hosts"
+    ClassSection ||--o{ ClassSession         : "meets as"
+    ClassSection ||--o{ Enrollment           : "enrols"
+    ClassSection ||--o{ Assessment           : "sets"
+    Room         ||--o{ ClassSession         : "hosts"
+    Staff        ||--o{ ClassSession         : "covers"
+    Student      ||--o{ Enrollment           : "takes"
+    Student      ||--o{ StudentGuardian      : "linked by"
+    Guardian     ||--o{ StudentGuardian      : "linked by"
+    Student      ||--o{ AttendanceRecord     : "marked in"
+    ClassSession ||--o{ AttendanceRecord     : "registers"
+    Staff        ||--o{ AttendanceRecord     : "marked by"
+    Assessment   ||--o{ AssessmentResult     : "marked as"
+    Student      ||--o{ AssessmentResult     : "scores"
+    Staff        ||--o{ AssessmentResult     : "marks"
+    Student      ||--o{ AdmissionApplication : "results from"
+    Guardian     ||--o{ AdmissionApplication : "submitted by"
+    AcademicTerm ||--o{ AdmissionApplication : "starts in"
+    Staff        ||--o{ AdmissionApplication : "decides"
+    Student      ||--o{ FeeInvoice           : "billed to"
+    AcademicTerm ||--o{ FeeInvoice           : "covers"
+    FeeInvoice   ||--o{ FeeInvoiceLine       : "itemised as"
+    FeeInvoice   ||--o{ Payment              : "settled by"
+    Staff        ||--o{ Payment              : "received by"
+    Student      ||--o{ DisciplineIncident   : "subject of"
+    Staff        ||--o{ DisciplineIncident   : "reported by"
+
+    %%entity Department help: A teaching department that owns a group of courses and employs the staff who teach them. Reference data, created once when the school's structure is set up.
+    %%entity Room help: A teaching space with a legal capacity. A section's own capacity may be lower but is never allowed above the room's.
+    %%entity AcademicTerm help: A named teaching period inside an academic year. Every enrolment, invoice and result in the school is bounded by exactly one term.
+    %%entity Staff help: An employee of the school, teaching or administrative. This is the model's person entity, so every _by_id column in the model resolves to a member of staff.
+    %%entity Course help: A subject as it is offered and examined. Distinct from the taught groups it is scheduled as, which are sections.
+    %%entity Guardian help: The adult legally responsible for one or more students. Not a parent field on the student, because step-parents, carers and local authorities all appear here and only one of them is the primary contact.
+    %%entity Student help: The child. Created when an offer is accepted, never at enquiry, and never deleted — a leaver is a status, because safeguarding and alumni obligations both need the record to survive.
+    %%entity StudentGuardian help: One guardian's relationship to one student — the kind of relationship, the contact order and whether they may collect. This is where the duty of care is recorded.
+    %%entity AdmissionApplication help: A request for a place, with an outcome. Terminal once accepted, declined, rejected or withdrawn; the student record is created at acceptance.
+    %%entity ClassSection help: One taught group of a course in one term, with a teacher, a room and a capacity. The thing a student is actually enrolled in.
+    %%entity ClassSession help: One dated, timed meeting of a section. The register is taken against this and nothing else.
+    %%entity Enrollment help: One student's place in one section for one term. Created when the registrar places the student; terminal once completed, withdrawn or failed.
+    %%entity AttendanceRecord help: One student's mark for one session. The statutory attendance return is built from these, which is why an absence must say whether it was authorised.
+    %%entity Assessment help: A marked piece of work set on a section — a quiz, an essay, a mock exam — with a maximum score, a weight and a due date.
+    %%entity AssessmentResult help: One student's mark for one assessment. Created when the assessment is published to the group and scored when it is marked.
+    %%entity FeeInvoice help: What a student's guardians owe for one term. Raised at the census date, so a student enrolled that day is billed whether or not they attend.
+    %%entity FeeInvoiceLine help: One charge on an invoice — tuition, transport, examination entry or materials. Priced when the line is written and never repriced afterwards.
+    %%entity Payment help: Money received against an invoice. Recorded once and never edited; a correction is a second, offsetting record.
+    %%entity DisciplineIncident help: A recorded conduct event, its investigation and its outcome. Readable by pastoral staff and the principal only.
+
+    %%entity StudentGuardian parent: Student
+    %%entity AttendanceRecord parent: ClassSession
+    %%entity AssessmentResult parent: Assessment
+    %%entity FeeInvoiceLine parent: FeeInvoice
+
+    %%field Department.code help: The short label used on the timetable and in reporting, e.g. SCI. Unique and stable — it is printed on every report card, so it is not renamed lightly.
+    %%field Department.name help: The department as staff and families say it, e.g. "Science". Shown wherever a course is listed.
+    %%field Department.staff_id help: The head of department — the member of staff accountable for its courses and its marking trail. Named staff_id rather than head_teacher_id so the reference resolves to the Staff table and renders as a person picker.
+    %%field Department.is_active help: Cleared when a department is merged or dissolved. Its courses and history survive; no new course can be created against it.
+    %%field Room.code help: The label on the door, e.g. S12. Unique, and what appears on the printed timetable a student follows.
+    %%field Room.name help: The room's full name where it has one, e.g. "Physics Laboratory 2". Blank rooms are shown by code alone.
+    %%field Room.building help: Which building the room is in. Used to catch timetables that move a class across the site in a five-minute gap.
+    %%field Room.capacity help: The maximum number of people the room legally holds. A section's own capacity is seeded from this and may be lower, never higher.
+    %%field Room.is_active help: Cleared while a room is out of use for refurbishment. Past sessions survive; the timetable will not schedule into it.
+    %%field AcademicTerm.code help: The short key used in every reference number, e.g. 2026-AUT. Unique, and stable once the calendar is published.
+    %%field AcademicTerm.name help: The term as the school says it, e.g. "Autumn 2026".
+    %%field AcademicTerm.academic_year help: The year the term belongs to, e.g. "2026/2027". A label rather than a table: the school reports by year but never manages one as a record.
+    %%field AcademicTerm.starts_on help: First teaching day. Sessions may not be scheduled before it.
+    %%field AcademicTerm.ends_on help: Last teaching day. Results for the term are expected within ten working days of it.
+    %%field AcademicTerm.census_on help: The date enrolment is counted for billing. A student enrolled on this date is invoiced for the whole term whether or not they attend, so it is the date the finance office plans around.
+    %%field AcademicTerm.status help: planned — timetabling in progress, nothing billed; current — teaching, registers open; closed — results published and invoices final, no further writes expected.
+    %%field Staff.staff_number help: The payroll identifier, unique and unchanging. It is how a member of staff is matched against the HR system this application deliberately does not hold.
+    %%field Staff.email help: The school address used for the teaching rota, marking reminders and password recovery. Unique — a second appointment reuses the existing record rather than creating a rival one.
+    %%field Staff.first_name help: Given name, as shown on the staff list and in every person picker in the application.
+    %%field Staff.last_name help: Family name. The staff list sorts by it, which is why the name is stored in two fields rather than one.
+    %%field Staff.department_id help: The department a teacher belongs to. Optional because administrative and leadership staff belong to none, and a blank here is what keeps them out of departmental marking reports.
+    %%field Staff.job_title help: The title as it appears in the school's own directory, e.g. "Teacher of Physics". Free text — it is written on letters, not reported on.
+    %%field Staff.staff_type help: teaching — takes sections and marks work; administrative — office and finance; pastoral — counselling and conduct; leadership — the senior team. This decides which reports a person is offered, so it is not a job description.
+    %%field Staff.status help: active — may be timetabled; on_leave — keeps their sections but cannot be assigned new ones; left — retained for the marking and conduct trail, never assignable.
+    %%field Staff.started_on help: The date the appointment began. Used for length-of-service reporting and never changed by a change of role.
+    %%field Staff.phone help: A direct number, used only for same-day cover arrangements where email is too slow. Optional.
+    %%field Course.code help: The examination code the subject is known by, e.g. MATH-H. Unique and stable across terms, because results are reported against it for years afterwards.
+    %%field Course.name help: The subject as families see it on a report card, e.g. "Mathematics (Higher)".
+    %%field Course.department_id help: The department that owns the course, sets its marking policy and is accountable for its results.
+    %%field Course.level help: foundation — supported entry; core — the standard offer; higher — extended content; advanced — final-year specialism with an entry requirement. The level decides which year groups may be enrolled and appears on the transcript.
+    %%field Course.credit_hours help: Taught hours per week. The timetable is built from this, and a change here does not move sections already scheduled.
+    %%field Course.is_active help: Cleared when a subject is withdrawn from the curriculum. Past sections and results survive; no new section can be scheduled against it.
+    %%field Guardian.email help: The address invoices, offers and absence notifications are sent to. Unique — two students sharing a guardian share this record, which is the whole point of guardians being their own entity.
+    %%field Guardian.first_name help: Given name, as it should appear on correspondence.
+    %%field Guardian.last_name help: Family name. Often differs from the student's, which is exactly why it is held here rather than assumed.
+    %%field Guardian.phone help: The number the school calls when a child is ill or has not arrived. The single most important field in a safeguarding emergency.
+    %%field Guardian.address_line help: The billing and correspondence address. A student's home address is the primary contact's, which is why it lives here.
+    %%field Guardian.city help: Town or city, used for transport route planning and catchment reporting.
+    %%field Guardian.postcode help: Postal code — the field the catchment and transport reports actually group by.
+    %%field Guardian.preferred_contact_method help: email — the default and the only one that scales; phone — reserved for guardians who ask, and used for every emergency regardless; post — required where a guardian has no email, and it slows every notice by three days.
+    %%field Student.student_number help: The school's own identifier, unique and unchanging for the child's whole time here. Printed on every report, invoice and examination entry.
+    %%field Student.first_name help: Given name as it should appear on a certificate. A preferred name is not held separately — the school records the legal name and staff use it.
+    %%field Student.last_name help: Family name. Registers and result lists sort by it.
+    %%field Student.date_of_birth help: Used to derive the year group at admission and to check examination-board age rules. Never changed after admission except to correct a keying error.
+    %%field Student.year_group help: The teaching year the student is in, 7 to 13. Advanced once a year at rollover; a repeated year is an explicit edit, and the reason belongs in a conduct or pastoral record rather than here.
+    %%field Student.status help: enrolled — attending and fee-liable; on_leave — place held for a term abroad or extended illness; suspended — a conduct outcome, still enrolled and still fee-liable but barred from sessions; graduated — completed year 13; withdrawn — left before completing, and the reason is required.
+    %%field Student.enrolled_on help: The date the offer was accepted and the record created. The fee position, the year group and the alumni record are all measured from it.
+    %%field Student.withdrawn_on help: The date the student left. Set with the status; the term's invoice is not cancelled by it, which is what makes the leavers report a finance report as well as a registry one.
+    %%field Student.withdrawal_reason help: Why the student left, in the family's terms — relocation, transfer, financial, exclusion. Required on withdrawal, because the retention report is built from it and an unexplained leaver is the one the governors ask about.
+    %%field Student.school_email help: The account the student signs in with. Optional: it is issued at year 7 and some transfers arrive without one.
+    %%field Student.has_support_plan help: Set when the student has a formal learning-support plan. It is a flag, not the plan: the plan itself is held outside this system, and this field exists so a teacher opening the register knows to ask for it.
+    %%field StudentGuardian.student_id help: The child. This is the link back to the parent record, so guardians appear as a tab on the student rather than as a screen of their own.
+    %%field StudentGuardian.guardian_id help: The adult. One guardian may be linked to several students, which is why this is a link record rather than a column on the student.
+    %%field StudentGuardian.relationship help: mother, father, step_parent, grandparent, carer — the relationship as the family states it; local_authority — a corporate parent, which changes who may consent; other — anything else, and the detail belongs in the student's pastoral record.
+    %%field StudentGuardian.is_primary_contact help: Exactly one guardian per student carries this. They receive the invoice, the reports and the first phone call, and setting it on a second guardian is what the primary-contact exception report exists to catch.
+    %%field StudentGuardian.may_collect help: Whether this adult may take the child from the premises. Cleared where a court order says otherwise, and the reception screen reads nothing else.
+    %%field StudentGuardian.contact_order help: The order the school works down in an emergency, lowest first. The primary contact is normally 1, but a guardian who works away may deliberately not be.
+    %%field AdmissionApplication.reference help: The reference quoted in every letter to the family, e.g. APP-2026-0142. Unique, and the only identifier a family has before a student number exists.
+    %%field AdmissionApplication.guardian_id help: The adult who applied and who every decision letter goes to. Created before the application where the guardian is new to the school.
+    %%field AdmissionApplication.student_id help: The student record created when the offer was accepted. Blank until then — this is the field that links an admission to the child it produced, and it is what makes the conversion report possible.
+    %%field AdmissionApplication.academic_term_id help: The term the place is applied for. An application for a term that has already started is a mid-year admission and is handled by the registrar rather than the intake process.
+    %%field AdmissionApplication.decided_by_id help: The member of staff who made the decision and is accountable for it. Blank while the application is still open.
+    %%field AdmissionApplication.applicant_first_name help: The child's given name as the family wrote it. Held on the application rather than taken from a student record, because no student record exists until the offer is accepted.
+    %%field AdmissionApplication.applicant_last_name help: The child's family name, as written on the application.
+    %%field AdmissionApplication.applicant_date_of_birth help: Used to check the child is of age for the year group applied for. A mismatch here is the most common reason an application goes to review rather than straight to an offer.
+    %%field AdmissionApplication.year_group_applied_for help: The teaching year the place is wanted in, 7 to 13. Entry to 12 and 13 carries subject requirements the interview checks.
+    %%field AdmissionApplication.status help: submitted — received, nothing looked at; under_review — with an admissions officer; offer_made — the family has a letter and a deadline; accepted — the place is taken and the student record now exists; declined — the family said no; rejected — the school said no; withdrawn — the family pulled the application before a decision.
+    %%field AdmissionApplication.submitted_on help: When the family applied. Intakes are worked in submission order where the band is equal, so this is a fairness field, not a timestamp.
+    %%field AdmissionApplication.decided_on help: When the decision was recorded. The offer deadline is measured from it, and the gap between this and submitted_on is the response time the intake report is judged on.
+    %%field AdmissionApplication.prior_attainment_score help: The score from the previous school's report or the entrance paper, 0 to 100. Optional — an in-year transfer often arrives without one, and its absence sends the application to review rather than refusing it.
+    %%field AdmissionApplication.has_sibling_enrolled help: Set where a brother or sister is already enrolled. Sibling priority is school policy, and this is the field the admission banding rule reads.
+    %%field AdmissionApplication.admission_band help: priority — meets the attainment bar or carries sibling priority; standard — the ordinary offer queue; review — needs a person to look, because something is missing or borderline. Set by the admission banding rule on submission; an admissions officer may overwrite it, and the override is what the banding-override report shows.
+    %%field AdmissionApplication.decision_notes help: Why the decision went the way it did, written for the family's file rather than for the assessor. Required in practice for a rejection, because it is what the appeal is answered from.
+    %%field ClassSection.code help: The timetable code, e.g. MATH-H-A-2026AUT. Unique — it is how a teacher, a room and a group are matched on a printed timetable.
+    %%field ClassSection.course_id help: The subject being taught. Fixed at timetabling: moving a section to a different course is a cancellation and a new section, because the students enrolled chose the subject.
+    %%field ClassSection.academic_term_id help: The term this group runs in. A section belongs to exactly one term, which is what makes a term's results a closed set.
+    %%field ClassSection.staff_id help: The teacher who takes the group and marks its work. Named staff_id rather than teacher_id so it resolves to the Staff table and renders as a person picker rather than a raw id.
+    %%field ClassSection.room_id help: The room the group normally meets in. Optional for a section taught off-site or online, and a session may override it for one meeting.
+    %%field ClassSection.capacity help: Places in this group. Seeded from the room's capacity and lowered where the subject needs bench space; never raised above the room's, and the enrolment handler refuses a place past it.
+    %%field ClassSection.enrolled_count help: How many students currently hold a place. Maintained by the enrolment hooks rather than counted on every screen, because the timetable shows fill on every row and the count would otherwise be a query per row.
+    %%field ClassSection.day_of_week help: The teaching day the group meets. One day and one period per section keeps the timetable a grid a person can read; a subject needing two slots is two sections of the same course.
+    %%field ClassSection.period help: The numbered teaching period within the day, 1 to 8. With day_of_week it is the clash key: a student may not hold two enrolments in the same day and period.
+    %%field ClassSection.status help: planned — being timetabled, not yet open for enrolment; open — accepting students; in_progress — teaching, enrolment closed to newcomers; completed — the term ended and final grades are in; cancelled — the group will not run, which withdraws every enrolment on it.
+    %%field ClassSection.cancellation_reason help: Why the group was pulled — under-recruitment, no teacher, room lost. Shown to every affected family in the notice, so it is written for them rather than for the office.
+    %%field ClassSession.class_section_id help: The group meeting. A session belongs to exactly one section, which is what makes attendance attributable to a teacher.
+    %%field ClassSession.room_id help: Where this one meeting happens. Blank means the section's usual room; set only for a one-off move, which is why the register prints it.
+    %%field ClassSession.staff_id help: Who is actually taking this meeting. Blank means the section's own teacher; set for cover, and the cover report is built from exactly this field being non-blank.
+    %%field ClassSession.starts_at help: When the meeting begins, in school local time. The register is expected within the first fifteen minutes of it, and the late-register report measures from here.
+    %%field ClassSession.ends_at help: When the meeting finishes. Derived from the course's taught hours at scheduling time and held rather than recomputed, so a later curriculum change cannot move a session already taught.
+    %%field ClassSession.status help: scheduled — will run, register not yet taken; held — it happened and the register is closed; cancelled — it did not run, and no attendance marks are expected against it.
+    %%field ClassSession.register_taken help: Set when the teacher closes the register. It is the field the statutory return counts against, because a session with no register is a hole in the return rather than a day nobody was absent.
+    %%field ClassSession.topic help: What was taught, in a line. Optional, and the only place a family looking at a missed session can see what their child missed.
+    %%field ClassSession.cancellation_reason help: Why the meeting did not run — snow, cover unavailable, examination clash. Read by the attendance officer when explaining a gap in a student's record.
+    %%field Enrollment.student_id help: The student holding the place. An enrolment is never transferred between students; a change of group is a withdrawal and a new enrolment, so the attendance and marking trail stays attached to the right child.
+    %%field Enrollment.class_section_id help: The taught group the place is in. With the section's day and period this is what a timetable clash is detected on.
+    %%field Enrollment.status help: pending — requested, not yet placed by the registrar; enrolled — holding a place and expected at every session; completed — the term ended with a final grade; withdrawn — left the group during the term, and the reason is required; failed — completed without meeting the pass standard.
+    %%field Enrollment.enrolled_on help: When the place was taken. Compared against the term's census date to decide whether the term is billable, which is why it is a date the registrar may not backdate freely.
+    %%field Enrollment.withdrawn_on help: When the student left the group. The fee is not automatically adjusted — a withdrawal after census is still billed, and this date is the evidence in that conversation.
+    %%field Enrollment.withdrawal_reason help: Why the student left the group — timetable clash, subject change, medical, exclusion. Required on withdrawal, and the subject-change reports are built entirely from it.
+    %%field Enrollment.final_grade help: distinction, merit, pass, borderline, fail — the outcome recorded when the section completes; incomplete — the student left or missed too much of the course to be graded. Written once at term end and never edited afterwards; a correction is a documented re-grade.
+    %%field Enrollment.attendance_rate help: The percentage of held sessions this student was present for, maintained by the attendance hook as marks are entered. Held on the enrolment rather than computed because it is the number the pastoral team sorts by every week, and the statutory floor is measured against it.
+    %%field AttendanceRecord.class_session_id help: The meeting being registered. This is the link back to the parent record, so the register appears as a tab on the session rather than a screen of its own.
+    %%field AttendanceRecord.student_id help: The student being marked. One mark per student per session; a second is a correction and replaces the first.
+    %%field AttendanceRecord.marked_by_id help: The member of staff who took the register and is accountable for the mark. Named marked_by_id so it resolves to the Staff table; a cover teacher's name here is how a disputed mark is traced.
+    %%field AttendanceRecord.status help: present — in the room; late — arrived after the register, and minutes_late says how late; absent — not there, and is_authorised decides whether it counts against the statutory return; excused — off site on school business, which is not an absence at all.
+    %%field AttendanceRecord.minutes_late help: How late the student arrived. Only meaningful with a late mark, and the persistent-lateness report is built from the sum of it rather than the count of marks.
+    %%field AttendanceRecord.is_authorised help: Whether the school accepted the reason for the absence. This single boolean is the statutory distinction the whole return turns on, and it is deliberately separate from the mark so that an absence can be re-authorised later without rewriting the register.
+    %%field AttendanceRecord.absence_reason help: Why the student was not there, in the guardian's words where they gave them. Required for an authorised absence and for an excused mark — an unexplained authorisation is the one the inspector asks about.
+    %%field AttendanceRecord.marked_at help: When the mark was entered, not when the session ran. A register closed two days late is a compliance finding, and this is the field that shows it.
+    %%field Assessment.class_section_id help: The taught group the work is set on. Every student enrolled in the section gets a result row when the assessment is published.
+    %%field Assessment.title help: What the work is called, as it appears in the student's list, e.g. "Unit 3 test — forces".
+    %%field Assessment.assessment_type help: quiz — short, low weight; essay — extended writing; project — coursework over weeks; practical — laboratory or performance; mock_exam — full paper under examination conditions; final_exam — the summative paper the term's grade rests on.
+    %%field Assessment.max_score help: The maximum mark available on the paper. Copied onto each result when marking opens, so a later correction to the paper cannot silently rescale marks already given.
+    %%field Assessment.weight_percent help: How much of the section's final grade this piece carries, as a percentage. The weights of a section's published assessments are expected to total 100, and the weighting report is what shows when they do not.
+    %%field Assessment.due_on help: When the work is due in. The overdue-marking report measures from here, not from the date the assessment was set.
+    %%field Assessment.status help: draft — being written, invisible to students; published — visible, result rows created for the group; marking — work is in and being marked; marked — every result is in and the grade contributes; cancelled — the piece will not count, and its results are ignored by the weighting.
+    %%field Assessment.instructions help: What the students were told to do. Optional, and the only record of the task when a mark is queried a term later.
+    %%field AssessmentResult.assessment_id help: The piece of work being marked. This is the link back to the parent record, so results appear as a tab on the assessment.
+    %%field AssessmentResult.student_id help: Whose work it is. One result per student per assessment.
+    %%field AssessmentResult.marked_by_id help: Who marked it. Usually the section's teacher, but a moderated or second-marked paper carries the moderator, and that is what makes the moderation trail auditable.
+    %%field AssessmentResult.score help: The mark awarded, on the scale max_score sets. Blank until marked — a blank is not a zero, and the reports keep the two apart deliberately.
+    %%field AssessmentResult.max_score help: The paper's maximum as it stood when this result was created, copied from the assessment. Held here for the same reason an invoice line keeps its price: a paper rescaled next year must not rewrite marks already awarded, and the score rule compares against this rather than against the assessment.
+    %%field AssessmentResult.status help: pending — published, nothing submitted yet; submitted — work is in, not marked; marked — a score is recorded; missing — nothing was submitted and the deadline passed, which counts as zero in the weighting; excused — the student was authorised not to sit it, and it is removed from the weighting rather than counted as zero.
+    %%field AssessmentResult.marked_at help: When the mark was recorded. The turnaround report is the gap between this and the assessment's due date, and it is the number departments are held to.
+    %%field AssessmentResult.feedback help: What the student is told about the work. The one field in the model written to be read by a child, so it is never a grade restated as a sentence.
+    %%field FeeInvoice.invoice_number help: The number quoted on every statement and payment, e.g. INV-2026-AUT-0331. Unique, sequential within a term, and never reused even when an invoice is cancelled.
+    %%field FeeInvoice.student_id help: The student the fees are for. The invoice goes to their primary contact guardian, which is why that flag on the guardian link is a finance field as much as a safeguarding one.
+    %%field FeeInvoice.academic_term_id help: The term being billed. One invoice per student per term; an extra charge later in the term is a line on the same invoice, not a second invoice.
+    %%field FeeInvoice.status help: draft — being assembled, nothing sent; issued — sent to the guardian and payable; part_paid — some money received, a balance outstanding; paid — settled in full; overdue — past the due date with a balance, which starts the finance office's chase; cancelled — written off or raised in error, and the reason is required.
+    %%field FeeInvoice.issued_on help: When the invoice was sent. Blank while in draft; the due date and every reminder are measured from it.
+    %%field FeeInvoice.due_on help: When payment is expected. Thirty days from issue by school policy, and the overdue report reads nothing else.
+    %%field FeeInvoice.total_amount help: The sum of the invoice's lines, gross, in school currency. Recalculated by the invoice hooks whenever a line changes, and frozen once the invoice is issued.
+    %%field FeeInvoice.amount_paid help: How much has been received against this invoice so far. Maintained by the payment hooks, never keyed by hand — a manual adjustment here is how an invoice comes to disagree with its own payments.
+    %%field FeeInvoice.balance_due help: What is still owed: total less payments. The payment rule reads this to refuse an overpayment, and the finance dashboard sorts by it.
+    %%field FeeInvoice.cancellation_reason help: Why the invoice was cancelled — bursary awarded, raised in error, place never taken. Required on cancellation, because a cancelled invoice is money the school chose not to collect and every one of them is looked at.
+    %%field FeeInvoiceLine.fee_invoice_id help: The invoice this charge belongs to. This is the link back to the parent record, so lines appear as a tab on the invoice.
+    %%field FeeInvoiceLine.charge_type help: tuition — the termly fee for the place; transport — the school bus; examination_entry — board fees, which are not refundable once entered; materials — laboratory and art consumables; activity — trips and clubs; late_fee — added by the finance office and always explained in the description.
+    %%field FeeInvoiceLine.description help: What the charge is for, in the words the guardian will read on the statement. "Chemistry practical materials — Autumn" rather than "materials".
+    %%field FeeInvoiceLine.quantity help: How many of the charge. One for a termly fee; several for trips or repeated items, and the line total is checked against it.
+    %%field FeeInvoiceLine.unit_amount help: The price of one, gross, as it stood when the line was written. Never repriced afterwards — a fee increase applies to the next term's invoice, not to a line already raised.
+    %%field FeeInvoiceLine.line_total help: Quantity times unit amount, held rather than computed so that a rounding decision made once is the number the guardian sees on every statement.
+    %%field Payment.fee_invoice_id help: The invoice this money settles. A payment always names an invoice; money received with no invoice is held by the finance office outside this system until one exists.
+    %%field Payment.received_by_id help: The member of staff who took the payment. Blank for an automated bank feed, and its blankness is what separates counter takings from transfers in the daily reconciliation.
+    %%field Payment.amount help: The sum received, gross, in school currency. Never edited — a correction is a second, offsetting record, so the audit trail survives.
+    %%field Payment.balance_before help: What the invoice still owed immediately before this payment was applied, stamped by the payment hook. It is on the receipt for the guardian's benefit, and it is what the overpayment rule compares against — the rule can only read the record being written, so the balance has to be on it.
+    %%field Payment.method help: card — taken at the office or online; bank_transfer — matched against the statement, so it may be recorded days after it arrived; cash — counted into the safe and reconciled the same day; cheque — cleared before the invoice is credited; bursary — an internal award rather than money, and it settles the invoice without any cash moving.
+    %%field Payment.received_at help: When the money actually arrived, not when it was keyed in. Transfers are routinely recorded late, and the reconciliation depends on the distinction.
+    %%field Payment.reference help: The bank reference, card authorisation or cheque number used to match this payment against the statement. Optional for cash, where there is nothing to match.
+    %%field DisciplineIncident.reference help: The reference the incident is known by in pastoral meetings and in any correspondence with the family, e.g. INC-2026-0087. Unique.
+    %%field DisciplineIncident.student_id help: The student the incident concerns. One record per student per incident — an incident involving three students is three records, so that each family's correspondence stays separate.
+    %%field DisciplineIncident.reported_by_id help: The member of staff who reported it. Named reported_by_id so it resolves to the Staff table, and it is never blank: an anonymous conduct record cannot be investigated.
+    %%field DisciplineIncident.occurred_at help: When the incident happened, not when it was written up. The gap between the two is what the reporting-delay report measures, and a long one is a safeguarding finding in itself.
+    %%field DisciplineIncident.category help: disruption — classroom behaviour; absence_without_leave — off site without permission; bullying — treated as safeguarding-adjacent and never closed without a recorded outcome; damage — property, and a fee line may follow; academic_misconduct — plagiarism or examination irregularity, which the examination board may need to be told about; safeguarding — child protection, which restricts who may read the record further.
+    %%field DisciplineIncident.severity help: minor — dealt with in the room; moderate — a sanction and a note home; serious — a meeting with the family; critical — exclusion is on the table and the principal is involved from the start.
+    %%field DisciplineIncident.status help: reported — written up, nobody assigned; under_review — being investigated by pastoral staff; action_taken — a sanction has been decided and applied; closed — the matter is finished and the outcome recorded; dismissed — investigated and found not to have happened, which is a finding and not a deletion.
+    %%field DisciplineIncident.summary help: What happened, factually, in the words of the person who saw it. Written knowing the family may read it, because in a serious case they will.
+    %%field DisciplineIncident.sanction help: none — recorded, no sanction; warning — spoken or written; detention — supervised time; parental_meeting — the family is asked in; suspension — the student is barred from sessions and their status changes; exclusion — permanent, and the governors are involved. Required before an incident can move to action_taken.
+    %%field DisciplineIncident.sanction_notes help: The detail of the sanction — how long, when, who supervised. The field the appeal is answered from, and the reason a bare enum was not enough.
+    %%field DisciplineIncident.closed_on help: When the matter was finished. The open-incidents report is everything with no date here, and the ageing on that list is the pastoral team's real workload.
+
+    %%field AcademicTerm.status enum: TermStatus
+    %%field Staff.staff_type enum: StaffType
+    %%field Staff.status enum: EmploymentStatus
+    %%field Course.level enum: CourseLevel
+    %%field Guardian.preferred_contact_method enum: ContactMethod
+    %%field Student.status enum: StudentStatus
+    %%field StudentGuardian.relationship enum: GuardianRelationship
+    %%field AdmissionApplication.status enum: ApplicationStatus
+    %%field AdmissionApplication.admission_band enum: AdmissionBand
+    %%field ClassSection.day_of_week enum: DayOfWeek
+    %%field ClassSection.status enum: SectionStatus
+    %%field ClassSession.status enum: SessionStatus
+    %%field Enrollment.status enum: EnrollmentStatus
+    %%field Enrollment.final_grade enum: FinalGrade
+    %%field AttendanceRecord.status enum: AttendanceMark
+    %%field Assessment.assessment_type enum: AssessmentType
+    %%field Assessment.status enum: AssessmentStatus
+    %%field AssessmentResult.status enum: ResultStatus
+    %%field FeeInvoice.status enum: InvoiceStatus
+    %%field FeeInvoiceLine.charge_type enum: ChargeType
+    %%field Payment.method enum: PaymentMethod
+    %%field DisciplineIncident.category enum: IncidentCategory
+    %%field DisciplineIncident.severity enum: IncidentSeverity
+    %%field DisciplineIncident.status enum: IncidentStatus
+    %%field DisciplineIncident.sanction enum: Sanction
+
+    %%index Student(status, year_group)
+    %%index Enrollment(class_section_id, status)
+    %%index Enrollment(student_id, status)
+    %%index ClassSession(starts_at, status)
+    %%index ClassSection(academic_term_id, status)
+    %%index AttendanceRecord(class_session_id, status)
+    %%index AttendanceRecord(student_id, status)
+    %%index AssessmentResult(assessment_id, status)
+    %%index FeeInvoice(status, due_on)
+    %%index FeeInvoice(student_id, academic_term_id)
+    %%index Payment(fee_invoice_id, received_at)
+    %%index AdmissionApplication(status, submitted_on)
+    %%index DisciplineIncident(status, occurred_at)
+    %%index StudentGuardian(student_id, contact_order)
+
+    %%rbac role:principal|registrar|head_of_department|teacher on Department.read
+    %%rbac role:principal on Department.update
+    %%rbac role:principal|registrar|head_of_department|teacher on Room.read
+    %%rbac role:principal|registrar on Room.update
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on AcademicTerm.read
+    %%rbac role:principal|registrar on AcademicTerm.update
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor on Staff.read
+    %%rbac role:principal on Staff.create
+    %%rbac role:principal on Staff.update
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on Course.read
+    %%rbac role:principal|head_of_department on Course.create
+    %%rbac role:principal|head_of_department on Course.update
+    %%rbac role:principal|registrar|admissions_officer|finance_officer|counsellor on Guardian.read
+    %%rbac role:registrar|admissions_officer on Guardian.create
+    %%rbac role:registrar|admissions_officer|finance_officer on Guardian.update
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on Student.read
+    %%rbac role:registrar|admissions_officer on Student.create
+    %%rbac role:registrar|principal on Student.update
+    %%rbac role:principal on Student.delete
+    %%rbac role:counsellor|principal on Student.suspend
+    %%rbac role:counsellor|principal on Student.reinstate
+    %%rbac role:registrar|principal on Student.withdraw
+    %%rbac role:principal on Student.graduate
+    %%rbac role:principal|registrar|admissions_officer|counsellor|finance_officer on StudentGuardian.read
+    %%rbac role:registrar|admissions_officer on StudentGuardian.create
+    %%rbac role:registrar|counsellor on StudentGuardian.update
+    %%rbac role:principal|admissions_officer|registrar on AdmissionApplication.read
+    %%rbac role:admissions_officer on AdmissionApplication.create
+    %%rbac role:admissions_officer|principal on AdmissionApplication.update
+    %%rbac role:admissions_officer|principal on AdmissionApplication.make_offer
+    %%rbac role:principal on AdmissionApplication.reject
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on ClassSection.read
+    %%rbac role:registrar on ClassSection.create
+    %%rbac role:registrar|head_of_department on ClassSection.update
+    %%rbac role:principal|registrar on ClassSection.cancel
+    %%rbac role:principal|registrar|head_of_department|teacher|counsellor on ClassSession.read
+    %%rbac role:registrar on ClassSession.create
+    %%rbac role:registrar|teacher on ClassSession.update
+    %%rbac role:registrar|head_of_department on ClassSession.cancel
+    %%rbac role:principal|registrar|head_of_department|teacher|finance_officer|guardian on Enrollment.read
+    %%rbac role:registrar on Enrollment.create
+    %%rbac role:registrar|head_of_department on Enrollment.update
+    %%rbac role:registrar|principal on Enrollment.withdraw
+    %%rbac role:principal|registrar|head_of_department|teacher|counsellor|guardian on AttendanceRecord.read
+    %%rbac role:teacher|registrar on AttendanceRecord.create
+    %%rbac role:teacher|registrar on AttendanceRecord.update
+    %%rbac role:principal|registrar|head_of_department|teacher|guardian on Assessment.read
+    %%rbac role:teacher|head_of_department on Assessment.create
+    %%rbac role:teacher|head_of_department on Assessment.update
+    %%rbac role:head_of_department|principal on Assessment.cancel
+    %%rbac role:principal|registrar|head_of_department|teacher|guardian on AssessmentResult.read
+    %%rbac role:teacher|head_of_department on AssessmentResult.create
+    %%rbac role:teacher|head_of_department on AssessmentResult.update
+    %%rbac role:teacher|head_of_department on AssessmentResult.mark
+    %%rbac role:principal|finance_officer|registrar|guardian on FeeInvoice.read
+    %%rbac role:finance_officer on FeeInvoice.create
+    %%rbac role:finance_officer on FeeInvoice.update
+    %%rbac role:finance_officer on FeeInvoice.issue
+    %%rbac role:principal|finance_officer on FeeInvoice.cancel_issued
+    %%rbac role:principal|finance_officer|registrar|guardian on FeeInvoiceLine.read
+    %%rbac role:finance_officer on FeeInvoiceLine.create
+    %%rbac role:principal|finance_officer|guardian on Payment.read
+    %%rbac role:finance_officer on Payment.create
+    %%rbac role:principal|counsellor on DisciplineIncident.read
+    %%rbac role:counsellor|principal on DisciplineIncident.create
+    %%rbac role:counsellor|principal on DisciplineIncident.update
+    %%rbac role:counsellor|principal on DisciplineIncident.apply_sanction
+    %%rbac role:principal on DisciplineIncident.dismiss
+
+%% ---- The reporting pass (llmdetailed §10.5.1) ------------------------------
+%%
+%% What the derived pack already gives this model without being asked: a
+%% register per entity, a breakdown per %%enum-bound column, created-per-month,
+%% a lifecycle report over all eleven state machines in the diagram's own order,
+%% totals over the numeric columns, and children-per-parent for all 31
+%% relationships. None of that needed anyone who understands how a school runs.
+%%
+%% These do. Each of the eight roles on the %%rbac matrix above is walked through
+%% the four questions — what they open first, what tells them something is wrong
+%% today, what they are asked for weekly, and what rots silently if nobody
+%% looks — so each can do its whole job from what it can see.
+
+%% -- principal: whether the school is working --------------------------------
+    %%report principal-roll-by-year title: The roll, by year group entity: Student chart: bar x: year_group y: students help: The first number the head is asked for by governors and by the local authority, and the one every capacity decision starts from. Enrolled only — on leave and suspended students hold a place but are not in a classroom. sql: SELECT s.year_group, COUNT(*) AS students FROM bus_student s WHERE s.deleted_at IS NULL AND s.status = 'enrolled' GROUP BY s.year_group ORDER BY s.year_group
+    %%report principal-attendance-by-year title: Attendance against the statutory floor entity: Enrollment chart: bar x: year_group y: attendance_pct help: The number an inspection opens with. Below ninety-five percent a year group is a conversation with the local authority, and the head would rather have it before they do. sql: SELECT s.year_group, ROUND(AVG(e.attendance_rate), 1) AS attendance_pct, COUNT(DISTINCT s.id) AS students FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id WHERE e.deleted_at IS NULL AND s.deleted_at IS NULL AND e.status = 'enrolled' GROUP BY s.year_group ORDER BY s.year_group
+    %%report principal-open-serious-incidents title: Serious conduct still open entity: DisciplineIncident help: What would make the head say someone needs to fix this today. A serious or critical incident with no outcome recorded is a family waiting for an answer and a governing body that will ask for the file. sql: SELECT i.reference, s.first_name || ' ' || s.last_name AS student, i.category, i.severity, i.status, i.occurred_at, EXTRACT(DAY FROM now() - i.occurred_at)::int AS days_open FROM bus_discipline_incident i JOIN bus_student s ON s.id = i.student_id WHERE i.deleted_at IS NULL AND i.severity IN ('serious', 'critical') AND i.status NOT IN ('closed', 'dismissed') ORDER BY i.occurred_at
+    %%report principal-fee-collection-by-term title: Billed against collected, by term entity: FeeInvoice chart: bar x: term y: collected help: The weekly question from the bursar in one row per term. Billed is what the school committed to teach for; collected is what actually arrived, and the gap is the working-capital conversation. sql: SELECT t.name AS term, SUM(f.total_amount) AS billed, SUM(f.amount_paid) AS collected, SUM(f.balance_due) AS outstanding FROM bus_fee_invoice f JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status <> 'cancelled' GROUP BY t.id, t.name, t.starts_on ORDER BY t.starts_on DESC
+    %%report principal-oversubscribed-sections title: Groups holding more students than places entity: ClassSection help: A group over its capacity is a health-and-safety exposure and a teaching problem, and neither is visible from the timetable. Counted from the enrolments themselves rather than from the maintained counter, so a broken counter cannot hide it. sql: SELECT sec.code AS section, c.name AS course, st.first_name || ' ' || st.last_name AS teacher, sec.capacity, COUNT(e.id) AS enrolled FROM bus_class_section sec JOIN bus_course c ON c.id = sec.course_id LEFT JOIN bus_staff st ON st.id = sec.staff_id LEFT JOIN bus_enrollment e ON e.class_section_id = sec.id AND e.deleted_at IS NULL AND e.status = 'enrolled' WHERE sec.deleted_at IS NULL AND sec.status IN ('open', 'in_progress') GROUP BY sec.id, sec.code, c.name, st.first_name, st.last_name, sec.capacity HAVING COUNT(e.id) > sec.capacity ORDER BY COUNT(e.id) - sec.capacity DESC
+    %%report principal-teaching-cover-gap title: Groups whose teacher has left or is on leave entity: ClassSection help: The report that rots silently. A teacher leaves, their sections keep their name on them, and nobody notices until a class turns up to an empty room. sql: SELECT sec.code AS section, c.name AS course, st.first_name || ' ' || st.last_name AS teacher, st.status AS teacher_status, t.name AS term FROM bus_class_section sec JOIN bus_staff st ON st.id = sec.staff_id JOIN bus_course c ON c.id = sec.course_id JOIN bus_academic_term t ON t.id = sec.academic_term_id WHERE sec.deleted_at IS NULL AND st.deleted_at IS NULL AND sec.status IN ('planned', 'open', 'in_progress') AND st.status <> 'active' ORDER BY t.starts_on, sec.code
+
+%% -- registrar: every student in a group that exists -------------------------
+    %%report registrar-unplaced-enrolments title: Enrolment requests not yet placed entity: Enrollment help: The registrar's queue, and the first screen of the day. A request left pending is a student with a free period and a family who thinks the subject was chosen. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, c.name AS course, sec.code AS section, e.created_at FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE e.deleted_at IS NULL AND e.status = 'pending' ORDER BY e.created_at
+    %%report registrar-timetable-clashes title: Students booked into two groups at once entity: Enrollment help: What makes a registrar say that is wrong, someone needs to fix it today. Two enrolments in the same term on the same day and period means a child cannot attend one of them, and the first anyone hears of it is usually a missing mark. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, a.code AS section_one, b.code AS section_two, a.day_of_week, a.period FROM bus_enrollment ea JOIN bus_enrollment eb ON eb.student_id = ea.student_id AND eb.id > ea.id AND eb.deleted_at IS NULL AND eb.status = 'enrolled' JOIN bus_class_section a ON a.id = ea.class_section_id JOIN bus_class_section b ON b.id = eb.class_section_id AND b.academic_term_id = a.academic_term_id AND b.day_of_week = a.day_of_week AND b.period = a.period JOIN bus_student s ON s.id = ea.student_id WHERE ea.deleted_at IS NULL AND ea.status = 'enrolled' AND a.deleted_at IS NULL AND b.deleted_at IS NULL ORDER BY s.last_name, a.day_of_week, a.period
+    %%report registrar-section-fill title: How full each group is entity: ClassSection chart: bar x: section y: fill_pct help: What to open before agreeing to another enrolment, and what tells a head of department that a group is not viable. Places taken against places built, for the groups currently teaching. sql: SELECT sec.code AS section, c.name AS course, sec.capacity, COUNT(e.id) AS enrolled, ROUND(100.0 * COUNT(e.id) / NULLIF(sec.capacity, 0)) AS fill_pct FROM bus_class_section sec JOIN bus_course c ON c.id = sec.course_id LEFT JOIN bus_enrollment e ON e.class_section_id = sec.id AND e.deleted_at IS NULL AND e.status = 'enrolled' WHERE sec.deleted_at IS NULL AND sec.status IN ('open', 'in_progress') GROUP BY sec.id, sec.code, c.name, sec.capacity ORDER BY fill_pct
+    %%report registrar-students-without-a-timetable title: Enrolled students in no group at all entity: Student help: A student on the roll with no enrolment anywhere is either a registration that never finished or a leaver nobody recorded. Both are invisible from every other screen and both cost the school money. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, s.year_group, s.enrolled_on FROM bus_student s LEFT JOIN bus_enrollment e ON e.student_id = s.id AND e.deleted_at IS NULL AND e.status IN ('pending', 'enrolled') WHERE s.deleted_at IS NULL AND s.status = 'enrolled' GROUP BY s.id, s.student_number, s.first_name, s.last_name, s.year_group, s.enrolled_on HAVING COUNT(e.id) = 0 ORDER BY s.year_group, s.last_name
+    %%report registrar-counter-disagrees title: Groups whose enrolled counter is wrong entity: ClassSection help: The maintained counter on a section is what every timetable row shows; when it disagrees with the enrolments themselves a hook has failed silently, and every screen has been lying since. Nothing else in the application notices. sql: SELECT sec.code AS section, sec.enrolled_count AS counter, COUNT(e.id) AS actual FROM bus_class_section sec LEFT JOIN bus_enrollment e ON e.class_section_id = sec.id AND e.deleted_at IS NULL AND e.status = 'enrolled' WHERE sec.deleted_at IS NULL GROUP BY sec.id, sec.code, sec.enrolled_count HAVING sec.enrolled_count <> COUNT(e.id) ORDER BY ABS(sec.enrolled_count - COUNT(e.id)) DESC
+    %%report registrar-withdrawals-this-term title: Students who left a group, and why entity: Enrollment help: What the registrar is asked for at every curriculum meeting. Read together the reasons say whether a subject is losing students to a clash, to difficulty, or to a teacher. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, c.name AS course, e.withdrawn_on, e.withdrawal_reason FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE e.deleted_at IS NULL AND e.status = 'withdrawn' AND e.withdrawn_on > now()::date - 120 ORDER BY e.withdrawn_on DESC
+
+%% -- teacher: the room they are about to walk into ---------------------------
+    %%report teacher-today title: Today's sessions, by teacher entity: ClassSession help: The first screen of a teaching day: what is on, where, and how many are expected. The room comes from the session where a one-off move was made and from the section otherwise, which is exactly the case a teacher needs told. sql: SELECT COALESCE(cover.first_name || ' ' || cover.last_name, st.first_name || ' ' || st.last_name) AS teacher, c.name AS course, sec.code AS section, COALESCE(sr.code, r.code) AS room, ses.starts_at, COUNT(e.id) AS expected FROM bus_class_session ses JOIN bus_class_section sec ON sec.id = ses.class_section_id JOIN bus_course c ON c.id = sec.course_id JOIN bus_staff st ON st.id = sec.staff_id LEFT JOIN bus_staff cover ON cover.id = ses.staff_id LEFT JOIN bus_room r ON r.id = sec.room_id LEFT JOIN bus_room sr ON sr.id = ses.room_id LEFT JOIN bus_enrollment e ON e.class_section_id = sec.id AND e.deleted_at IS NULL AND e.status = 'enrolled' WHERE ses.deleted_at IS NULL AND ses.status = 'scheduled' AND ses.starts_at >= date_trunc('day', now()) AND ses.starts_at < date_trunc('day', now()) + interval '1 day' GROUP BY cover.first_name, cover.last_name, st.first_name, st.last_name, c.name, sec.code, sr.code, r.code, ses.starts_at ORDER BY ses.starts_at
+    %%report teacher-registers-not-taken title: Sessions that ran with no register entity: ClassSession help: A missing register is a hole in the statutory return, and it is invisible the moment the day ends. Chased the same week it is a reminder; chased at the end of term it is a compliance finding nobody can now fix. sql: SELECT st.first_name || ' ' || st.last_name AS teacher, c.name AS course, sec.code AS section, ses.starts_at FROM bus_class_session ses JOIN bus_class_section sec ON sec.id = ses.class_section_id JOIN bus_course c ON c.id = sec.course_id LEFT JOIN bus_staff st ON st.id = COALESCE(ses.staff_id, sec.staff_id) WHERE ses.deleted_at IS NULL AND ses.status <> 'cancelled' AND ses.register_taken = false AND ses.ends_at < now() ORDER BY ses.starts_at
+    %%report teacher-marking-outstanding title: Work handed in and not yet marked entity: Assessment help: What a teacher opens to plan an evening. Submitted results with no mark, oldest paper first, because a class waiting three weeks for a grade has stopped acting on the feedback. sql: SELECT c.name AS course, sec.code AS section, a.title, a.due_on, COUNT(*) FILTER (WHERE ar.status = 'submitted') AS unmarked, COUNT(*) AS results FROM bus_assessment a JOIN bus_class_section sec ON sec.id = a.class_section_id JOIN bus_course c ON c.id = sec.course_id JOIN bus_assessment_result ar ON ar.assessment_id = a.id AND ar.deleted_at IS NULL WHERE a.deleted_at IS NULL AND a.status IN ('published', 'marking') GROUP BY a.id, c.name, sec.code, a.title, a.due_on HAVING COUNT(*) FILTER (WHERE ar.status = 'submitted') > 0 ORDER BY a.due_on
+    %%report teacher-students-below-floor title: Students in my groups below the attendance floor entity: Enrollment help: The pastoral conversation a teacher is expected to have first, and the evidence for it. Below ninety percent a student is missing one lesson in ten, which is a grade, and the teacher sees it before the year head does. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, c.name AS course, sec.code AS section, e.attendance_rate FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE e.deleted_at IS NULL AND e.status = 'enrolled' AND e.attendance_rate < 90 ORDER BY e.attendance_rate
+    %%report teacher-upcoming-assessments title: Work due in the next fortnight entity: Assessment help: What a teacher checks before setting anything else, and what a head of department reads to see whether a group has four papers in one week. sql: SELECT c.name AS course, sec.code AS section, a.title, a.assessment_type, a.due_on, a.weight_percent FROM bus_assessment a JOIN bus_class_section sec ON sec.id = a.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE a.deleted_at IS NULL AND a.status IN ('draft', 'published') AND a.due_on BETWEEN now()::date AND now()::date + 14 ORDER BY a.due_on
+
+%% -- head of department: the subject, and the people teaching it -------------
+    %%report hod-results-by-course title: Average score by course entity: Course chart: bar x: course y: average_pct help: What the head of department is asked for at every review. Marks as a percentage of each paper's own maximum, so a course marked out of 40 and one marked out of 100 can sit in the same chart. sql: SELECT c.name AS course, COUNT(ar.id) AS marks, ROUND(AVG(100.0 * ar.score / NULLIF(ar.max_score, 0)), 1) AS average_pct FROM bus_assessment_result ar JOIN bus_assessment a ON a.id = ar.assessment_id JOIN bus_class_section sec ON sec.id = a.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE ar.deleted_at IS NULL AND a.deleted_at IS NULL AND ar.status = 'marked' AND ar.score IS NOT NULL GROUP BY c.id, c.name ORDER BY average_pct
+    %%report hod-marking-turnaround title: How long marking takes, by teacher entity: Staff chart: bar x: teacher y: median_days help: The number a department is actually held to. Days from the due date to the mark being recorded; a teacher consistently at three weeks is not lazy, they are teaching too many groups, and this is the evidence for saying so. sql: SELECT st.first_name || ' ' || st.last_name AS teacher, COUNT(*) AS marked, ROUND(AVG(EXTRACT(EPOCH FROM ar.marked_at - a.due_on::timestamp) / 86400)::numeric, 1) AS median_days FROM bus_assessment_result ar JOIN bus_assessment a ON a.id = ar.assessment_id JOIN bus_staff st ON st.id = ar.marked_by_id WHERE ar.deleted_at IS NULL AND a.deleted_at IS NULL AND ar.status = 'marked' AND ar.marked_at IS NOT NULL GROUP BY st.id, st.first_name, st.last_name ORDER BY median_days DESC
+    %%report hod-weights-not-adding-up title: Groups whose assessment weights do not total 100 entity: ClassSection help: A section whose published papers add to eighty percent has a grade that means nothing, and no diagnostic anywhere reports it. Found at term end it is a re-grade; found in week three it is one edit. sql: SELECT sec.code AS section, c.name AS course, COUNT(a.id) AS papers, SUM(a.weight_percent) AS total_weight FROM bus_class_section sec JOIN bus_course c ON c.id = sec.course_id JOIN bus_assessment a ON a.class_section_id = sec.id AND a.deleted_at IS NULL AND a.status <> 'cancelled' WHERE sec.deleted_at IS NULL AND sec.status IN ('open', 'in_progress') GROUP BY sec.id, sec.code, c.name HAVING SUM(a.weight_percent) <> 100 ORDER BY ABS(SUM(a.weight_percent) - 100) DESC
+    %%report hod-teaching-load title: Teaching load, by teacher entity: Staff chart: bar x: teacher y: students help: What a head of department takes into a timetabling meeting. Groups and students carried, because two teachers with four sections each are not carrying the same load if one of them has forty more children. sql: SELECT st.first_name || ' ' || st.last_name AS teacher, d.name AS department, COUNT(DISTINCT sec.id) AS sections, COUNT(e.id) AS students FROM bus_staff st LEFT JOIN bus_department d ON d.id = st.department_id LEFT JOIN bus_class_section sec ON sec.staff_id = st.id AND sec.deleted_at IS NULL AND sec.status IN ('open', 'in_progress') LEFT JOIN bus_enrollment e ON e.class_section_id = sec.id AND e.deleted_at IS NULL AND e.status = 'enrolled' WHERE st.deleted_at IS NULL AND st.staff_type = 'teaching' AND st.status = 'active' GROUP BY st.id, st.first_name, st.last_name, d.name ORDER BY students DESC
+
+%% -- admissions officer: turning enquiries into students ---------------------
+    %%report admissions-open-applications title: Applications waiting on us entity: AdmissionApplication help: The admissions queue, oldest first, because families judge a school by how long it took to answer. Anything past ten working days is a complaint waiting to be made. sql: SELECT ap.reference, ap.applicant_first_name || ' ' || ap.applicant_last_name AS applicant, ap.year_group_applied_for AS year_group, ap.admission_band, ap.status, ap.submitted_on, (now()::date - ap.submitted_on) AS days_waiting FROM bus_admission_application ap WHERE ap.deleted_at IS NULL AND ap.status IN ('submitted', 'under_review') ORDER BY ap.submitted_on
+    %%report admissions-offers-unanswered title: Offers the family has not answered entity: AdmissionApplication help: An offer nobody chased is a place held for a family who has already accepted somewhere else, and it is held out of the queue for everyone behind them. Two weeks is the point at which a phone call is worth more than a letter. sql: SELECT ap.reference, ap.applicant_first_name || ' ' || ap.applicant_last_name AS applicant, g.first_name || ' ' || g.last_name AS guardian, g.email, g.phone, ap.decided_on, (now()::date - ap.decided_on) AS days_since_offer FROM bus_admission_application ap JOIN bus_guardian g ON g.id = ap.guardian_id WHERE ap.deleted_at IS NULL AND ap.status = 'offer_made' AND ap.decided_on < now()::date - 14 ORDER BY ap.decided_on
+    %%report admissions-conversion-by-band title: What each band actually converts at entity: AdmissionApplication chart: bar x: band y: accepted help: The weekly question from the head, and the only evidence that the banding rule is doing anything useful. If review converts as well as priority, the bar is in the wrong place. sql: SELECT ap.admission_band AS band, COUNT(*) AS applications, COUNT(*) FILTER (WHERE ap.status = 'accepted') AS accepted, ROUND(100.0 * COUNT(*) FILTER (WHERE ap.status = 'accepted') / NULLIF(COUNT(*), 0)) AS conversion_pct FROM bus_admission_application ap WHERE ap.deleted_at IS NULL AND ap.admission_band IS NOT NULL GROUP BY ap.admission_band ORDER BY accepted DESC
+    %%report admissions-needing-a-person title: Applications the rule could not band entity: AdmissionApplication help: The band the automation deliberately does not decide: something is missing or borderline and a person has to look. Left alone they sit behind every banded application and age quietly. sql: SELECT ap.reference, ap.applicant_first_name || ' ' || ap.applicant_last_name AS applicant, ap.year_group_applied_for AS year_group, ap.prior_attainment_score, ap.has_sibling_enrolled, ap.submitted_on FROM bus_admission_application ap WHERE ap.deleted_at IS NULL AND ap.admission_band = 'review' AND ap.status IN ('submitted', 'under_review') ORDER BY ap.submitted_on
+
+%% -- finance officer: the money -----------------------------------------------
+    %%report finance-overdue-invoices title: Invoices past their due date entity: FeeInvoice help: The chase list, and the first screen of the finance day. Sorted by what is owed rather than by age, because one large balance is worth more than ten small ones and the day is not long enough for both. sql: SELECT f.invoice_number, s.first_name || ' ' || s.last_name AS student, t.name AS term, f.due_on, f.total_amount, f.amount_paid, f.balance_due FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status IN ('issued', 'part_paid', 'overdue') AND f.due_on < now()::date AND f.balance_due > 0 ORDER BY f.balance_due DESC
+    %%report finance-debt-ageing title: Outstanding fees by age entity: FeeInvoice chart: bar x: bucket y: outstanding help: What the bursar takes to the governors. Anything past ninety days is a provision decision rather than a chase, and the shape of this chart is what says whether the school has a collection problem or a calendar problem. sql: SELECT CASE WHEN now()::date - f.due_on <= 30 THEN '0-30 days' WHEN now()::date - f.due_on <= 60 THEN '31-60 days' WHEN now()::date - f.due_on <= 90 THEN '61-90 days' ELSE 'over 90 days' END AS bucket, COUNT(*) AS invoices, SUM(f.balance_due) AS outstanding FROM bus_fee_invoice f WHERE f.deleted_at IS NULL AND f.status IN ('issued', 'part_paid', 'overdue') AND f.balance_due > 0 AND f.due_on < now()::date GROUP BY 1 ORDER BY 1
+    %%report finance-issued-without-payment title: Issued invoices with no payment at all entity: FeeInvoice help: Not a late payer but a family who has paid nothing since the invoice went out, which is usually a statement that never arrived or a bursary that was agreed and never applied. Both are fixed with one phone call and neither is visible from the ageing report. sql: SELECT f.invoice_number, s.first_name || ' ' || s.last_name AS student, g.email AS billing_email, f.issued_on, f.total_amount FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id LEFT JOIN bus_student_guardian sg ON sg.student_id = s.id AND sg.deleted_at IS NULL AND sg.is_primary_contact = true LEFT JOIN bus_guardian g ON g.id = sg.guardian_id LEFT JOIN bus_payment p ON p.fee_invoice_id = f.id AND p.deleted_at IS NULL WHERE f.deleted_at IS NULL AND f.status IN ('issued', 'overdue') GROUP BY f.id, f.invoice_number, s.first_name, s.last_name, g.email, f.issued_on, f.total_amount HAVING COUNT(p.id) = 0 ORDER BY f.issued_on
+    %%report finance-daily-takings title: Money received, by month and method entity: Payment chart: line x: month y: received help: The reconciliation the office runs against the bank statement, and the only report here a bank would recognise. Taken from payments received rather than invoices raised, so an unpaid invoice never counts as income. sql: SELECT to_char(date_trunc('month', p.received_at), 'YYYY-MM') AS month, SUM(p.amount) AS received, COUNT(*) AS payments FROM bus_payment p WHERE p.deleted_at IS NULL AND p.received_at > now() - interval '12 months' GROUP BY 1 ORDER BY 1
+    %%report finance-cancelled-invoices title: Fees written off, and why entity: FeeInvoice help: Every cancelled invoice is money the school chose not to collect, and the reason is free text because the judgement is human. Read together they show whether write-offs are policy or habit. sql: SELECT f.invoice_number, s.first_name || ' ' || s.last_name AS student, t.name AS term, f.total_amount, f.cancellation_reason, f.updated_at FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status = 'cancelled' ORDER BY f.updated_at DESC
+    %%report finance-drafts-past-census title: Draft invoices for a term already counted entity: FeeInvoice help: The report that rots silently, and the most expensive one here. The census date passed, the student is being taught, and the invoice was never issued — so nobody is chasing a bill that does not exist. sql: SELECT f.invoice_number, s.first_name || ' ' || s.last_name AS student, t.name AS term, t.census_on, f.total_amount FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status = 'draft' AND t.census_on < now()::date ORDER BY t.census_on
+    %%report finance-unapplied-payments title: Payments that did not move the invoice entity: Payment help: A payment recorded against an invoice that is still showing the same balance means the settlement workflow did not run. The money is in the bank and the family is still on the chase list, which is the worst of both. sql: SELECT p.reference, s.first_name || ' ' || s.last_name AS student, f.invoice_number, p.amount, p.balance_before, f.balance_due, p.received_at FROM bus_payment p JOIN bus_fee_invoice f ON f.id = p.fee_invoice_id JOIN bus_student s ON s.id = f.student_id WHERE p.deleted_at IS NULL AND f.deleted_at IS NULL AND f.status IN ('issued', 'overdue') AND f.balance_due = p.balance_before ORDER BY p.received_at DESC
+
+%% -- counsellor: the children who need somebody to notice --------------------
+    %%report counsellor-open-incidents title: Conduct records still open entity: DisciplineIncident help: The pastoral workload, and the list the team works down every morning. Ageing rather than severity, because a minor incident nobody closed for a month is its own kind of failure. sql: SELECT i.reference, s.first_name || ' ' || s.last_name AS student, s.year_group, i.category, i.severity, i.status, i.occurred_at, EXTRACT(DAY FROM now() - i.occurred_at)::int AS days_open FROM bus_discipline_incident i JOIN bus_student s ON s.id = i.student_id WHERE i.deleted_at IS NULL AND i.status NOT IN ('closed', 'dismissed') ORDER BY i.occurred_at
+    %%report counsellor-repeat-incidents title: Students with a pattern, not an incident entity: Student chart: bar x: student y: incidents help: Three records in a term is a child in trouble rather than a child misbehaving, and it is the point at which the response should change. Nobody sees the pattern from the individual records, which is why this report exists. sql: SELECT s.first_name || ' ' || s.last_name AS student, s.year_group, COUNT(*) AS incidents, MAX(i.occurred_at) AS most_recent FROM bus_discipline_incident i JOIN bus_student s ON s.id = i.student_id WHERE i.deleted_at IS NULL AND i.occurred_at > now() - interval '90 days' GROUP BY s.id, s.first_name, s.last_name, s.year_group HAVING COUNT(*) >= 3 ORDER BY incidents DESC
+    %%report counsellor-current-suspensions title: Students currently suspended entity: Student help: Who is out of lessons today, and on what authority. A suspension with no incident carrying a suspension sanction is either a keying error or a decision taken outside the process, and both need finding. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, s.year_group, i.reference AS incident, i.sanction_notes, i.occurred_at FROM bus_student s LEFT JOIN bus_discipline_incident i ON i.student_id = s.id AND i.deleted_at IS NULL AND i.sanction = 'suspension' WHERE s.deleted_at IS NULL AND s.status = 'suspended' ORDER BY i.occurred_at DESC NULLS FIRST
+    %%report counsellor-unauthorised-absence title: Unauthorised absence, worst first entity: AttendanceRecord chart: bar x: student y: sessions_missed help: The statutory conversation, and the one that reaches a family fastest. An unauthorised absence is the school saying it did not accept the reason, so a run of them is a safeguarding question rather than an attendance one. sql: SELECT s.first_name || ' ' || s.last_name AS student, s.year_group, COUNT(*) AS sessions_missed FROM bus_attendance_record ar JOIN bus_student s ON s.id = ar.student_id JOIN bus_class_session ses ON ses.id = ar.class_session_id WHERE ar.deleted_at IS NULL AND ses.deleted_at IS NULL AND ar.status = 'absent' AND ar.is_authorised = false AND ses.starts_at > now() - interval '60 days' GROUP BY s.id, s.first_name, s.last_name, s.year_group ORDER BY sessions_missed DESC
+
+%% -- guardian: their own child ------------------------------------------------
+    %%report guardian-child-timetable title: My child's groups this term entity: Enrollment help: What a guardian opens the application for, and what stops the phone call to the office. Subject, teacher, day and period, in the order the week runs. sql: SELECT s.first_name || ' ' || s.last_name AS student, c.name AS course, st.first_name || ' ' || st.last_name AS teacher, sec.day_of_week, sec.period, r.code AS room FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id LEFT JOIN bus_staff st ON st.id = sec.staff_id LEFT JOIN bus_room r ON r.id = sec.room_id WHERE e.deleted_at IS NULL AND e.status = 'enrolled' AND sec.status IN ('open', 'in_progress') ORDER BY s.last_name, sec.day_of_week, sec.period
+    %%report guardian-child-attendance title: My child's attendance, by subject entity: Enrollment help: The number the school will quote in any conversation about progress, shown before that conversation rather than during it. A subject twenty points below the others is a timetable problem or a teacher problem, and either is worth asking about. sql: SELECT s.first_name || ' ' || s.last_name AS student, c.name AS course, e.attendance_rate FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE e.deleted_at IS NULL AND e.status = 'enrolled' ORDER BY s.last_name, e.attendance_rate
+    %%report guardian-child-results title: My child's marked work entity: AssessmentResult help: Marks as they were given, with the paper's own maximum beside them, because a 34 means nothing until you know it was out of 40. Newest first, which is the order a family reads them in. sql: SELECT s.first_name || ' ' || s.last_name AS student, c.name AS course, a.title, ar.score, ar.max_score, ROUND(100.0 * ar.score / NULLIF(ar.max_score, 0)) AS percent, ar.marked_at FROM bus_assessment_result ar JOIN bus_assessment a ON a.id = ar.assessment_id JOIN bus_class_section sec ON sec.id = a.class_section_id JOIN bus_course c ON c.id = sec.course_id JOIN bus_student s ON s.id = ar.student_id WHERE ar.deleted_at IS NULL AND a.deleted_at IS NULL AND ar.status = 'marked' ORDER BY ar.marked_at DESC
+    %%report guardian-outstanding-fees title: What I still owe, and by when entity: FeeInvoice help: One row per unpaid invoice with the balance and the due date, so a family can see what is outstanding without ringing the office — which is most of what the office is rung about. sql: SELECT s.first_name || ' ' || s.last_name AS student, f.invoice_number, t.name AS term, f.due_on, f.total_amount, f.amount_paid, f.balance_due, f.status FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status IN ('issued', 'part_paid', 'overdue') AND f.balance_due > 0 ORDER BY f.due_on
+
+%% ---- Business rules — admission assessment (decides only, cannot act) -------
+%% This section carries a node graph and no %%action directives, deliberately.
+%% It is the judgement an admissions officer exercises today, written down so it
+%% is visible in the application's rule screen and in the viewers — and per §3.4
+%% a node-graph rule carries no outputs, so it decides and never writes. The
+%% banding it describes is applied by the decision table in the next section.
+%%meta name: Admission Assessment
+%%meta kind: rules
+%%rule admissionAssessment on AdmissionApplication event: beforeCreate priority: 5
+flowchart TD
+    A([Application received]) --> B{Prior attainment recorded?}
+    B -->|No| R1[Send to review: nothing to assess on]
+    B -->|Yes| C{Sibling already enrolled?}
+    C -->|Yes| P1[Priority: sibling policy]
+    C -->|No| D{Attainment at or above the bar?}
+    D -->|Yes| P2[Priority: meets the academic bar]
+    D -->|No| S1[Standard offer queue]
+    R1 --> E([Assessed])
+    P1 --> E
+    P2 --> E
+    S1 --> E
+
+%% ---- Business rules — admission banding (acts: stamps the band) ------------
+%%meta name: Admission Banding
+%%meta kind: rules
+%%rule admissionBanding on AdmissionApplication event: beforeCreate priority: 10
+flowchart TD
+    A([Application received]) --> B{Attainment recorded?}
+    B -->|No| R[Band: review]
+    B -->|Yes| C{Sibling enrolled, or at the bar?}
+    C -->|Yes| P[Band: priority]
+    C -->|No| S[Band: standard]
+    R --> E([Banded])
+    P --> E
+    S --> E
+
+    %%action bandOnSibling transform when: has_sibling_enrolled == true field: admission_band value: priority
+    %%action bandOnAttainment transform when: has_sibling_enrolled == false and prior_attainment_score >= 70 field: admission_band value: priority
+    %%action bandStandard transform when: has_sibling_enrolled == false and prior_attainment_score < 70 field: admission_band value: standard
+    %%action bandForReview transform when: prior_attainment_score == null field: admission_band value: review
+    %%action requireDecisionNotesOnRejection validation-error when: status == "rejected" and decision_notes == null message: A rejected application needs a note — it is what the appeal is answered from.
+    %%action enrolOnAcceptance trigger-workflow when: status == "accepted" workflow: AdmissionToEnrolment
+
+%% ---- Business rules — the student record ----------------------------------
+%%meta name: Student Record Control
+%%meta kind: rules
+%%rule studentRecordControl on Student event: beforeUpdate priority: 10
+flowchart TD
+    A([Student record written]) --> B{Leaving?}
+    B -->|Yes| C{Date and reason recorded?}
+    C -->|No| R1[Refuse: an unexplained leaver cannot be reported]
+    C -->|Yes| P[Accept]
+    B -->|No| P
+    R1 --> E([End])
+    P --> E
+
+    %%action requireWithdrawalReason validation-error when: status == "withdrawn" and withdrawal_reason == null message: A withdrawal needs a reason — the retention report is built from it.
+    %%action requireWithdrawalDate validation-error when: status == "withdrawn" and withdrawn_on == null message: A withdrawal needs the date the student left.
+
+%% ---- Business rules — enrolment -------------------------------------------
+%%meta name: Enrolment Control
+%%meta kind: rules
+%%rule enrolmentControl on Enrollment event: beforeUpdate priority: 10
+flowchart TD
+    A([Enrolment written]) --> B{Withdrawing?}
+    B -->|Yes| C{Reason given?}
+    C -->|No| R1[Refuse]
+    C -->|Yes| P[Accept]
+    B -->|No| D{Grade recorded before completion?}
+    D -->|Yes| R2[Refuse]
+    D -->|No| P
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action requireEnrolmentWithdrawalReason validation-error when: status == "withdrawn" and withdrawal_reason == null message: A student leaving a group needs a reason — the subject-change reports are built from it.
+    %%action refuseGradeBeforeCompletion validation-error when: status == "pending" and final_grade != null message: A final grade cannot be recorded on an enrolment that has not been placed yet.
+    %%action requireGradeOnCompletion validation-error when: status == "completed" and final_grade == null message: A completed enrolment needs a final grade.
+
+%% ---- Business rules — the register ----------------------------------------
+%%meta name: Attendance Marking
+%%meta kind: rules
+%%rule attendanceMarking on AttendanceRecord event: beforeCreate priority: 10
+flowchart TD
+    A([Mark entered]) --> B{Absent or excused?}
+    B -->|Yes| C{Reason recorded?}
+    C -->|No| R1[Refuse: the statutory return needs it]
+    C -->|Yes| P[Accept]
+    B -->|No| D{Late?}
+    D -->|Yes| F{Minutes recorded?}
+    F -->|No| R2[Refuse]
+    F -->|Yes| P
+    D -->|No| P
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action requireAuthorisedAbsenceReason validation-error when: status == "absent" and is_authorised == true and absence_reason == null message: An authorised absence needs the reason the school accepted — it is what the inspector asks about.
+    %%action requireExcusedReason validation-error when: status == "excused" and absence_reason == null message: An excused mark needs to say what the student was doing instead.
+    %%action requireMinutesLate validation-error when: status == "late" and minutes_late == null message: A late mark needs the minutes — the persistent-lateness report sums them.
+    %%action clearAuthorisationWhenPresent transform when: status == "present" field: is_authorised value: false
+
+%% ---- Business rules — marking ---------------------------------------------
+%%meta name: Marking Control
+%%meta kind: rules
+%%rule markingControl on AssessmentResult event: beforeUpdate priority: 10
+flowchart TD
+    A([Mark recorded]) --> B{Score within the paper's maximum?}
+    B -->|No| R1[Refuse: a keying error, always]
+    B -->|Yes| C{Marked without a score?}
+    C -->|Yes| R2[Refuse]
+    C -->|No| P[Accept]
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action refuseScoreAboveMaximum validation-error when: score > max_score message: A score cannot exceed the paper's maximum as it stood when the result was created.
+    %%action refuseNegativeScore validation-error when: score < 0 message: A score cannot be negative. A missing piece of work is the missing status, not a negative mark.
+    %%action requireScoreWhenMarked validation-error when: status == "marked" and score == null message: A marked result needs a score. A blank is not a zero and the reports keep the two apart.
+
+%% ---- Business rules — invoicing -------------------------------------------
+%%meta name: Invoice Control
+%%meta kind: rules
+%%rule invoiceControl on FeeInvoice event: beforeUpdate priority: 10
+flowchart TD
+    A([Invoice written]) --> B{Cancelling?}
+    B -->|Yes| C{Reason recorded?}
+    C -->|No| R1[Refuse: every write-off is looked at]
+    C -->|Yes| P[Accept]
+    B -->|No| D{Issuing?}
+    D -->|Yes| F{Issue date set?}
+    F -->|No| R2[Refuse]
+    F -->|Yes| P
+    D -->|No| P
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action requireInvoiceCancellationReason validation-error when: status == "cancelled" and cancellation_reason == null message: A cancelled invoice is money the school chose not to collect — every one of them needs a reason.
+    %%action requireIssueDate validation-error when: status == "issued" and issued_on == null message: An issued invoice needs its issue date — the due date and every reminder are measured from it.
+
+%% ---- Business rules — taking money ----------------------------------------
+%%meta name: Payment Acceptance
+%%meta kind: rules
+%%rule paymentAcceptance on Payment event: beforeCreate priority: 10
+flowchart TD
+    A([Payment offered]) --> B{More than the invoice owes?}
+    B -->|Yes| R1[Refuse: a keying error or a credit decision]
+    B -->|No| C{Settles the balance?}
+    C -->|Yes| S[Settle the invoice]
+    C -->|No| T[Post a part payment]
+    R1 --> E([End])
+    S --> E
+    T --> E
+
+    %%action refuseOverpayment validation-error when: amount > balance_before message: A payment cannot exceed what the invoice still owes. A credit is a decision for the finance office, not a keying accident.
+    %%action refuseNonPositivePayment validation-error when: amount <= 0 message: A payment must be a positive sum. A correction is a second, offsetting record.
+    %%action settleInvoice trigger-workflow when: amount >= balance_before workflow: InvoiceSettlement
+    %%action postPartPayment trigger-workflow when: amount < balance_before workflow: PartPaymentPosting
+
+%% ---- Business rules — the timetable ---------------------------------------
+%%meta name: Section Control
+%%meta kind: rules
+%%rule sectionControl on ClassSection event: beforeUpdate priority: 10
+flowchart TD
+    A([Section written]) --> B{Cancelling?}
+    B -->|Yes| C{Reason recorded?}
+    C -->|No| R1[Refuse]
+    C -->|Yes| W[Withdraw every enrolment on it]
+    B -->|No| P[Accept]
+    R1 --> E([End])
+    W --> E
+    P --> E
+
+    %%action requireSectionCancellationReason validation-error when: status == "cancelled" and cancellation_reason == null message: Families are told why a group was pulled, so the reason is written for them and it is required.
+    %%action withdrawEnrolmentsOnCancellation trigger-workflow when: status == "cancelled" workflow: SectionCancellation
+
+%% ---- Business rules — conduct ---------------------------------------------
+%%meta name: Conduct Outcome
+%%meta kind: rules
+%%rule conductOutcome on DisciplineIncident event: beforeUpdate priority: 10
+flowchart TD
+    A([Incident updated]) --> B{Applying a sanction?}
+    B -->|Yes| C{Sanction recorded?}
+    C -->|No| R1[Refuse: an incident closed with no outcome disappears]
+    C -->|Yes| P[Accept]
+    B -->|No| D{Closing?}
+    D -->|Yes| F{Closure date set?}
+    F -->|No| R2[Refuse]
+    F -->|Yes| P
+    D -->|No| P
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action requireSanction validation-error when: status == "action_taken" and sanction == null message: An incident cannot move to action taken with no sanction recorded — including a sanction of none, which is itself a decision.
+    %%action requireSanctionNotes validation-error when: sanction == "suspension" and sanction_notes == null message: A suspension needs its detail — how long, from when, and who agreed it. The appeal is answered from this field.
+    %%action requireClosureDate validation-error when: status == "closed" and closed_on == null message: A closed incident needs the date it was closed; the ageing on the open list is measured from it.
+    %%action suspendOnSuspension trigger-workflow when: sanction == "suspension" workflow: SuspensionEscalation
+
+%% ---- Workflow — the student lifecycle -------------------------------------
+%%meta name: Student Lifecycle
+%%meta kind: workflow
+%%workflow StudentLifecycle entity: Student kind: state
+stateDiagram-v2
+    [*] --> enrolled
+    enrolled  --> on_leave  : take_leave
+    on_leave  --> enrolled  : return_from_leave
+    enrolled  --> suspended : suspend
+    on_leave  --> suspended : suspend
+    suspended --> enrolled  : reinstate
+    enrolled  --> graduated : graduate
+    enrolled  --> withdrawn : withdraw
+    on_leave  --> withdrawn : withdraw
+    suspended --> withdrawn : withdraw
+    graduated --> [*]
+    withdrawn --> [*]
+
+%% ---- Workflow — the admission lifecycle -----------------------------------
+%%meta name: Admission Lifecycle
+%%meta kind: workflow
+%%workflow AdmissionLifecycle entity: AdmissionApplication kind: state
+stateDiagram-v2
+    [*] --> submitted
+    submitted    --> under_review : begin_review
+    under_review --> offer_made   : make_offer
+    under_review --> rejected     : reject
+    offer_made   --> accepted     : accept_offer
+    offer_made   --> declined     : decline_offer
+    submitted    --> withdrawn    : withdraw_application
+    under_review --> withdrawn    : withdraw_application
+    offer_made   --> withdrawn    : withdraw_application
+    accepted  --> [*]
+    declined  --> [*]
+    rejected  --> [*]
+    withdrawn --> [*]
+
+%% ---- Workflow — the section lifecycle -------------------------------------
+%%meta name: Section Lifecycle
+%%meta kind: workflow
+%%workflow SectionLifecycle entity: ClassSection kind: state
+stateDiagram-v2
+    [*] --> planned
+    planned     --> open        : open_enrolment
+    open        --> in_progress : start_teaching
+    in_progress --> completed   : complete
+    planned     --> cancelled   : cancel
+    open        --> cancelled   : cancel
+    completed --> [*]
+    cancelled --> [*]
+
+%% ---- Workflow — the session lifecycle -------------------------------------
+%%meta name: Session Lifecycle
+%%meta kind: workflow
+%%workflow SessionLifecycle entity: ClassSession kind: state
+stateDiagram-v2
+    [*] --> scheduled
+    scheduled --> held      : hold
+    scheduled --> cancelled : cancel
+    held      --> [*]
+    cancelled --> [*]
+
+%% ---- Workflow — the enrolment lifecycle -----------------------------------
+%%meta name: Enrolment Lifecycle
+%%meta kind: workflow
+%%workflow EnrolmentLifecycle entity: Enrollment kind: state
+stateDiagram-v2
+    [*] --> pending
+    pending  --> enrolled  : place
+    pending  --> withdrawn : cancel_request
+    enrolled --> completed : complete
+    enrolled --> failed    : fail
+    enrolled --> withdrawn : withdraw
+    completed --> [*]
+    failed    --> [*]
+    withdrawn --> [*]
+
+%% ---- Workflow — the assessment lifecycle ----------------------------------
+%%meta name: Assessment Lifecycle
+%%meta kind: workflow
+%%workflow AssessmentLifecycle entity: Assessment kind: state
+stateDiagram-v2
+    [*] --> draft
+    draft     --> published : publish
+    published --> marking   : open_marking
+    marking   --> marked    : publish_marks
+    draft     --> cancelled : cancel
+    published --> cancelled : cancel
+    marked    --> [*]
+    cancelled --> [*]
+
+%% ---- Workflow — the result lifecycle --------------------------------------
+%%meta name: Result Lifecycle
+%%meta kind: workflow
+%%workflow ResultLifecycle entity: AssessmentResult kind: state
+stateDiagram-v2
+    [*] --> pending
+    pending   --> submitted : submit
+    pending   --> missing   : mark_missing
+    pending   --> excused   : excuse
+    submitted --> marked    : mark
+    missing   --> submitted : accept_late
+    marked  --> [*]
+    excused --> [*]
+
+%% ---- Workflow — the invoice lifecycle -------------------------------------
+%%meta name: Invoice Lifecycle
+%%meta kind: workflow
+%%workflow InvoiceLifecycle entity: FeeInvoice kind: state
+stateDiagram-v2
+    [*] --> draft
+    draft     --> issued    : issue
+    draft     --> cancelled : cancel_draft
+    issued    --> part_paid : record_part_payment
+    issued    --> paid      : settle
+    issued    --> overdue   : mark_overdue
+    issued    --> cancelled : cancel_issued
+    part_paid --> part_paid : record_further_part_payment
+    part_paid --> paid      : settle
+    part_paid --> overdue   : mark_overdue
+    overdue   --> part_paid : record_part_payment
+    overdue   --> paid      : settle
+    paid      --> [*]
+    cancelled --> [*]
+
+%% ---- Workflow — the conduct lifecycle -------------------------------------
+%%meta name: Conduct Lifecycle
+%%meta kind: workflow
+%%workflow ConductLifecycle entity: DisciplineIncident kind: state
+stateDiagram-v2
+    [*] --> reported
+    reported     --> under_review : begin_review
+    reported     --> dismissed    : dismiss
+    under_review --> action_taken : apply_sanction
+    under_review --> dismissed    : dismiss
+    action_taken --> closed       : close
+    closed    --> [*]
+    dismissed --> [*]
+
+%% ---- Workflow — the term lifecycle ----------------------------------------
+%%meta name: Term Lifecycle
+%%meta kind: workflow
+%%workflow TermLifecycle entity: AcademicTerm kind: state
+stateDiagram-v2
+    [*] --> planned
+    planned --> current : open_term
+    current --> closed  : close_term
+    closed --> [*]
+
+%% ---- Workflow — the staff lifecycle ---------------------------------------
+%%meta name: Staff Lifecycle
+%%meta kind: workflow
+%%workflow StaffLifecycle entity: Staff kind: state
+stateDiagram-v2
+    [*] --> active
+    active   --> on_leave : start_leave
+    on_leave --> active   : return_to_work
+    active   --> left     : leave_school
+    on_leave --> left     : leave_school
+    left --> [*]
+
+%% ---- Workflow — admission to enrolment (saga) -----------------------------
+%%meta name: Admission To Enrolment
+%%meta kind: workflow
+%%workflow AdmissionToEnrolment entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Offer accepted]) --> B[Create the student record]
+    B --> C[Link the student to the application]
+    C --> D[Raise the term's fee invoice]
+    D --> F([Enrolled and billed])
+
+    %%step B CreateEntity entity: Student as: newStudentId fields: {"first_name":"applicant_first_name","last_name":"applicant_last_name","date_of_birth":"applicant_date_of_birth","year_group":"year_group_applied_for","status":"enrolled","has_support_plan":false}
+    %%step C UpdateEntity field: student_id source: newStudentId
+    %%step D CreateEntity entity: FeeInvoice as: newInvoiceId fields: {"student_id":"newStudentId","academic_term_id":"academic_term_id","status":"draft","total_amount":0,"amount_paid":0,"balance_due":0}
+
+%% ---- Workflow — settling an invoice (saga) --------------------------------
+%%meta name: Invoice Settlement
+%%meta kind: workflow
+%%workflow InvoiceSettlement entity: Payment kind: saga trigger: rule
+flowchart TD
+    A([Payment covers the balance]) --> B[Mark the invoice paid]
+    B --> C([Settled])
+
+    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: paid
+
+%% ---- Workflow — posting a part payment (saga) -----------------------------
+%%meta name: Part Payment Posting
+%%meta kind: workflow
+%%workflow PartPaymentPosting entity: Payment kind: saga trigger: rule
+flowchart TD
+    A([Payment is less than the balance]) --> B[Mark the invoice part paid]
+    B --> C([Posted])
+
+    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: part_paid
+
+%% ---- Workflow — cancelling a section (saga) -------------------------------
+%%meta name: Section Cancellation
+%%meta kind: workflow
+%%workflow SectionCancellation entity: ClassSection kind: saga trigger: rule
+flowchart TD
+    A([Group pulled]) --> B[Withdraw every enrolment on it]
+    B --> C([Students released])
+
+    %%step B UpdateEntity entity: Enrollment targetField: class_section_id field: status value: withdrawn
+
+%% ---- Workflow — suspension (saga) -----------------------------------------
+%%meta name: Suspension Escalation
+%%meta kind: workflow
+%%workflow SuspensionEscalation entity: DisciplineIncident kind: saga trigger: rule
+flowchart TD
+    A([Suspension decided]) --> B[Suspend the student]
+    B --> C([Suspended])
+
+    %%step B UpdateEntity entity: Student targetField: student_id field: status value: suspended
+
+%% ---- Workflow — lifecycle hooks -------------------------------------------
+%%meta name: Enrolment Hooks
+%%meta kind: workflow
+%%workflow EnrolmentHooks entity: Enrollment kind: hook
+flowchart TD
+    A[Client Request] --> B[Validate Request]
+    B --> C[beforeCreate: checkSectionCapacity]
+    C --> D[Process Enrolment]
+    D --> E[afterCreate: incrementSectionEnrolment]
+    E --> F[afterUpdate: maintainSectionEnrolment]
+    F --> G[Response]
+
+    %%hook beforeCreate checkSectionCapacity on Enrollment
+    %%hook afterCreate incrementSectionEnrolment on Enrollment
+    %%hook afterUpdate maintainSectionEnrolment on Enrollment
+
+%% ---- Workflow — attendance hooks ------------------------------------------
+%%meta name: Attendance Hooks
+%%meta kind: workflow
+%%workflow AttendanceHooks entity: AttendanceRecord kind: hook
+flowchart TD
+    A[Register entered] --> B[beforeCreate: stampMarkedAt]
+    B --> C[Store the mark]
+    C --> D[afterCreate: updateEnrolmentAttendanceRate]
+    D --> E[afterUpdate: correctEnrolmentAttendanceRate]
+    E --> F[Response]
+
+    %%hook beforeCreate stampMarkedAt on AttendanceRecord
+    %%hook afterCreate updateEnrolmentAttendanceRate on AttendanceRecord
+    %%hook afterUpdate correctEnrolmentAttendanceRate on AttendanceRecord
+
+%% ---- Workflow — marking hooks ---------------------------------------------
+%%meta name: Marking Hooks
+%%meta kind: workflow
+%%workflow MarkingHooks entity: AssessmentResult kind: hook
+flowchart TD
+    A[Result created] --> B[beforeCreate: copyAssessmentMaximum]
+    B --> C[Store the result]
+    C --> D[afterUpdate: stampMarkedAt]
+    D --> E[Response]
+
+    %%hook beforeCreate copyAssessmentMaximum on AssessmentResult
+    %%hook afterUpdate stampMarkedAt on AssessmentResult
+
+%% ---- Workflow — money hooks ------------------------------------------------
+%%meta name: Finance Hooks
+%%meta kind: workflow
+%%workflow FinanceHooks entity: Payment kind: hook
+flowchart TD
+    A[Payment offered] --> B[beforeCreate: resolveInvoiceBalance]
+    B --> C[Store the payment]
+    C --> D[afterCreate: applyPaymentToInvoice]
+    D --> E[Response]
+
+    %%hook beforeCreate resolveInvoiceBalance on Payment
+    %%hook afterCreate applyPaymentToInvoice on Payment
+
+%% ---- Workflow — invoice line hooks -----------------------------------------
+%%meta name: Invoice Line Hooks
+%%meta kind: workflow
+%%workflow InvoiceLineHooks entity: FeeInvoiceLine kind: hook
+flowchart TD
+    A[Line written] --> B[beforeCreate: priceLine]
+    B --> C[Store the line]
+    C --> D[afterCreate: addLineToInvoiceTotal]
+    D --> E[afterUpdate: recalculateInvoiceTotal]
+    E --> F[afterDelete: removeLineFromInvoiceTotal]
+    F --> G[Response]
+
+    %%hook beforeCreate priceLine on FeeInvoiceLine
+    %%hook afterCreate addLineToInvoiceTotal on FeeInvoiceLine
+    %%hook afterUpdate recalculateInvoiceTotal on FeeInvoiceLine
+    %%hook afterDelete removeLineFromInvoiceTotal on FeeInvoiceLine
+
+%% ---- Workflow — identity hooks ---------------------------------------------
+%%meta name: Reference Hooks
+%%meta kind: workflow
+%%workflow ReferenceHooks entity: Student kind: hook
+flowchart TD
+    A[Record created] --> B[beforeCreate: assignStudentNumber]
+    B --> C[Store the record]
+    C --> D[afterUpdate: notifyGuardiansOfStatusChange]
+    D --> E[Response]
+
+    %%hook beforeCreate assignStudentNumber on Student
+    %%hook afterUpdate notifyGuardiansOfStatusChange on Student
+    %%hook beforeCreate assignApplicationReference on AdmissionApplication
+    %%hook beforeCreate assignIncidentReference on DisciplineIncident
+    %%hook beforeCreate deriveSessionEndTime on ClassSession
