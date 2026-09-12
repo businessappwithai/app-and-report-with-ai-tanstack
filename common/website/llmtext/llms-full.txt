@@ -458,6 +458,16 @@ erDiagram
     Campaign ||--o{ Lead : "generates"
 %%field Lead.status enum: LeadStatus
 %%index Lead(campaign_id, status)
+
+%%entity Campaign help: A marketing activity run to produce leads — an event, a mailing, a paid placement. The campaign is what a lead's cost of acquisition is attributed to, so it exists before the leads it generates.
+%%field Campaign.name help: What the campaign is called in the marketing plan and on every report of what it produced. Name it so somebody reading the results next year still knows what was run.
+
+%%entity Lead help: A prospective customer captured from a campaign or direct outreach. A lead becomes an opportunity once a salesperson qualifies it, and until then nothing is sold against it.
+%%field Lead.email help: The address the enquiry arrived from and where the first outreach goes. Unique, so two enquiries from one person do not become two leads to work in parallel.
+%%field Lead.status help: new — not yet picked up; working — being pursued; qualified — accepted by sales; converted — an account now exists. Only the moves the lifecycle draws are allowed.
+%%field Lead.campaign_id help: The activity that produced this lead. It is what a campaign's cost per lead is computed from, so an unattributed lead makes the whole campaign look worse than it was.
+%%field Lead.score help: 0-100, from the scoring rule. Anything over 70 routes straight to a salesperson rather than into a nurture sequence.
+%%field Lead.created_at help: When the enquiry arrived. Time-to-first-contact is measured from here, and it is the single number most predictive of whether a lead converts.
 ```
 
 - **Modifiers**: `PK` `FK` `UK` `UNIQUE` `OPTIONAL` `NULL`. Anything else is
