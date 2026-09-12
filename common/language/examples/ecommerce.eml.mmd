@@ -82,6 +82,51 @@ erDiagram
     %%index Order(customer_id, status)
     %%index Product(sku) unique
     %%entity Order audited: true
+    %%entity OrderItem parent: Order
+
+    %%entity Customer help: A shopper with an account on the store. The account is what carries an order history, a saved address book and a verified contact address, so a customer exists before an order does and outlives every order they place.
+    %%field Customer.email help: The address the customer signs in with and where order confirmations, dispatch notices and refunds are sent. Unique across the store — a second account on the same address splits one shopper's history in two.
+    %%field Customer.password_hash help: The stored hash of the customer's password, never the password. Written only by the sign-up and password-reset flows; nothing else reads or displays it.
+    %%field Customer.first_name help: How the customer is greeted in email and on the account page. Kept apart from the surname because most correspondence uses only this half.
+    %%field Customer.last_name help: The family name, used together with the first name on invoices and delivery labels where a full name is required.
+    %%field Customer.phone help: A number the courier can call on the day of delivery. Optional at sign-up, but an order without one is the usual reason a failed delivery cannot be rescued.
+    %%field Customer.is_verified help: Whether the customer has confirmed their email address by following the link sent at sign-up. An unverified account can browse but should not be trusted with order notifications, because the address may belong to somebody else.
+
+    %%entity Product help: Something the store sells, priced and counted. A product carries the list price an order line copies at the moment of sale and the stock figure fulfilment works from, which is why it is never deleted once it has been ordered — deactivating it takes it off the storefront and leaves the order history intact.
+    %%field Product.name help: The product as it appears on the storefront, in search results and on the invoice line. Write it the way a shopper would recognise it, not the way the warehouse labels it.
+    %%field Product.sku help: The stock-keeping unit — the warehouse's own code for this item, and the identifier the store shares with suppliers and couriers. Unique, and it does not change: a reused SKU makes two products indistinguishable in every stock report ever run.
+    %%field Product.description help: What the shopper needs to know before buying — what it is, what is in the box, what it does not include. Optional, though a product without one converts noticeably worse.
+    %%field Product.unit_price help: The current list price, before any discount. An order line copies this figure when the line is created rather than referring to it, so a later price change never rewrites what somebody already agreed to pay.
+    %%field Product.stock_qty help: Units physically available to promise. Fulfilment decrements it when an order is packed, so a figure that drifts from the shelf is what causes an order to be accepted and then cancelled.
+    %%field Product.is_active help: Whether the product is offered for sale. Cleared instead of deleting a discontinued line, which would break every historical order that contains it.
+
+    %%entity Category help: A branch of the storefront's navigation. Categories nest — a category may name another as its parent — so the tree is what a shopper walks down and what the merchandising team reorganises without touching a single product.
+    %%field Category.name help: The heading shoppers see in navigation and breadcrumbs. Keep it short: it is read in a menu, not in a sentence.
+    %%field Category.parent_id help: The category this one sits under, empty for a top-level branch. This is what makes the navigation a tree rather than a flat list; a category pointing at its own descendant would make it a loop, so it is checked before it is saved.
+
+    %%entity Order help: One purchase, from the basket a shopper is still filling to a delivered or refunded transaction. The order carries the money — subtotal, discount, shipping and total — and its status is the single answer to "where is this". It is audited, because the question after any billing dispute is who changed what and when.
+    %%field Order.customer_id help: The shopper this order belongs to. It decides where confirmations are sent and which account the order appears under, and it is fixed once the order is placed.
+    %%field Order.order_number help: The human-readable reference quoted in email, on the invoice and by anyone phoning about the order. Unique, and deliberately not the record's key: it is a number people read out.
+    %%field Order.status help: cart — still being filled and freely editable; placed — submitted and awaiting payment; paid, packed, shipped, delivered — the fulfilment path; cancelled and refunded — the two ways it ends early. Only the moves the fulfilment diagram draws are allowed, so an order cannot ship before it is paid.
+    %%field Order.subtotal help: The order's lines added up at the prices agreed when each was added, before discount and shipping. Recalculated by the pricing rule whenever a line changes.
+    %%field Order.discount_amount help: What has been taken off the subtotal — a promotion, a voucher or an agreed goodwill reduction. Held separately from the line prices so a discount is always visible as a decision rather than hidden in the arithmetic.
+    %%field Order.shipping_amount help: What the shopper is charged to have the order delivered, from the shipping band the basket qualifies for. Added after the discount, so a discount never reduces the carriage charge.
+    %%field Order.total_amount help: What the customer actually owes: subtotal less discount, plus shipping. This is the figure payment is taken against, so a payment that does not match it is the first thing reconciliation looks for.
+    %%field Order.placed_at help: When the shopper submitted the order. Empty while it is still a cart, and it is the clock every delivery promise is measured from.
+
+    %%entity OrderItem help: One product on one order, at the quantity and price agreed. A line has no meaning away from its order — line 2 of order 4417, not line 2 — which is why it is a line item of the order rather than a screen of its own.
+    %%field OrderItem.order_id help: The order this line belongs to. It is what the order's own screen lists the lines by, and the reason a line is never opened on its own.
+    %%field OrderItem.product_id help: What was bought. It is the reference the warehouse picks against, and the only link back from a sale to the product's stock and description.
+    %%field OrderItem.quantity help: How many units of the product this line covers. Multiplied by the unit price to give the line total, and the figure stock is decremented by when the order is packed.
+    %%field OrderItem.unit_price help: The price per unit **as agreed when the line was added**, copied from the product rather than referenced. This is what makes an old order still show the price the customer actually paid after the product's list price has moved.
+    %%field OrderItem.line_total help: Quantity multiplied by unit price, stored rather than recomputed so the order's arithmetic can be audited line by line without re-deriving prices that have since changed.
+
+    %%entity Payment help: One attempt to collect money against an order. An order can carry several — a failed card followed by a successful one, a gift card topped up by a card, a refund — so payments are a list rather than a field, and the order is settled only when the captured amounts cover its total.
+    %%field Payment.order_id help: The order this money is for. Everything about reconciliation starts here: a payment whose order is missing or already refunded is the exception a finance team chases.
+    %%field Payment.method help: card, paypal, bank_transfer or gift_card. It decides how a refund has to be returned — money goes back the way it came — and how long settlement takes.
+    %%field Payment.status help: pending — submitted, no answer yet; authorized — funds reserved, not taken; captured — money actually collected; failed — declined, and the order stays unpaid; refunded — returned to the customer. Only a captured payment counts towards the order's total.
+    %%field Payment.amount help: The sum this payment moves. It need not equal the order total: part payments, gift-card balances and partial refunds are all normal, which is why settlement is the sum of captured payments rather than a single figure.
+    %%field Payment.captured_at help: When the money was actually taken, as opposed to reserved. Empty until capture, and it is the date that appears on the customer's statement and in the day's takings.
 
 %% ---- Section 2: Business rule — pricing & discount -------------------------
 %%meta name: Order Pricing

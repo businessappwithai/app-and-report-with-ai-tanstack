@@ -30,6 +30,19 @@ erDiagram
     %%field Post.status enum: PostStatus
     %%index Post(slug) unique
 
+    %%entity Author help: Somebody who writes for this blog. An author account is created when an editor invites a contributor, and it survives their posts — deactivating an author keeps everything they wrote readable and only stops them signing in and publishing again.
+    %%field Author.email help: The address the author signs in with and where editorial notifications are sent. Unique across the blog, because it is the identity, not a contact detail — changing it changes who the account belongs to.
+    %%field Author.name help: The by-line, exactly as it should appear above a published post. This is the name readers see, so it is a display name rather than a legal one.
+    %%field Author.is_active help: Whether this author may still sign in and publish. Cleared instead of deleting the account, which would orphan every post they wrote; the publish rule refuses a post whose author is inactive.
+
+    %%entity Post help: One article, from first draft to archive. A post carries its own text and its own lifecycle, and the publish rule is what stands between a draft and a live URL: a post shorter than 100 characters, or written by an author who has been deactivated, cannot be published.
+    %%field Post.author_id help: The author whose by-line the post carries. It decides whose name appears above the article and whether the publish rule will let it go live, so it is set at creation and rarely changed afterwards.
+    %%field Post.title help: The headline, as readers and search engines see it. Write it for a reader who has not opened the article yet — it is the whole of what most people will ever read of the post.
+    %%field Post.slug help: The URL segment the post is served at, generated from the title before the record is first saved. It is unique across the blog and should not change once a post is published: an edited slug breaks every link anyone has shared.
+    %%field Post.body help: The article itself, in Markdown. The publish rule requires at least 100 characters, so a placeholder cannot reach a reader by accident.
+    %%field Post.status help: draft — visible only to its author; published — live and indexed; archived — kept for the record but taken off the site. Only the publish rule moves a post out of draft.
+    %%field Post.published_at help: When the post first went live. Left empty while a post is a draft and set once on the first publish, so it stays the article's original date through later edits.
+
 %% ---- Section 2: Business rule (declarative decision flow) ------------------
 %%meta name: Publish Eligibility
 %%meta kind: rules

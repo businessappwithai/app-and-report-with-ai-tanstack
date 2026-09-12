@@ -273,6 +273,8 @@ it. **reserved** = documented, renderer-safe, inert.
 | `%%field` | `%%field <E>.<attr> <k>: <v>` | compiled *(`enum:` and `help:`)* | `generator/src/parsers/mermaid.parser.ts` |
 | `%%enum` | `%%enum <Name>: a, b, c` | compiled | `mermaid.parser.ts` |
 | `%%category` | `%%category name: X; icon: Y; entities: A, B` | compiled | `generator/src/parsers/category.parser.ts` |
+
+The `name:` key on `%%category` is **required** — a directive without one is skipped entirely and declares no group at all (`EML154`).
 | `%%index` | `%%index <E>(<a>[, <b>]) [unique]` | compiled | `mermaid.parser.ts` → real DDL |
 | `%%guard` | `%%guard <field> <operator> <jsonValue>` | compiled | `web/src/lib/automation/model.ts` |
 | `%%loop` | `%%loop <id> while: <f> <op> <v> max: <n>` | compiled | `workflows/steps.ts` |
@@ -336,8 +338,11 @@ and business consequences. Examples:
   Bad:  `%%field Customer.name help: The name of the customer.`
   Good: `%%field Customer.name help: Full legal name as it appears on invoicing documents — required for tax reporting.`
 
-The checklist in §10 asks for both, and a delivery missing them is incomplete
-even though the checker returns zero errors.
+The checklist in §10 asks for both, and **the checker now reports the three ways
+a model falls short**: `EML152` for an entity with no help, `EML153` for columns
+with none, and `EML151` for help that merely restates its own name. All three are
+warnings, so they do not fail a run — and all three have to be cleared before a
+model is delivered.
 
 **`%%meta description:` is mandatory and substantive.** Every model must include
 a `%%meta description:` line that is a multi-sentence summary of what the
@@ -468,6 +473,16 @@ erDiagram
     Campaign ||--o{ Lead : "generates"
 %%field Lead.status enum: LeadStatus
 %%index Lead(campaign_id, status)
+
+%%entity Campaign help: A marketing activity run to produce leads — an event, a mailing, a paid placement. The campaign is what a lead's cost of acquisition is attributed to, so it exists before the leads it generates.
+%%field Campaign.name help: What the campaign is called in the marketing plan and on every report of what it produced. Name it so somebody reading the results next year still knows what was run.
+
+%%entity Lead help: A prospective customer captured from a campaign or direct outreach. A lead becomes an opportunity once a salesperson qualifies it, and until then nothing is sold against it.
+%%field Lead.email help: The address the enquiry arrived from and where the first outreach goes. Unique, so two enquiries from one person do not become two leads to work in parallel.
+%%field Lead.status help: new — not yet picked up; working — being pursued; qualified — accepted by sales; converted — an account now exists. Only the moves the lifecycle draws are allowed.
+%%field Lead.campaign_id help: The activity that produced this lead. It is what a campaign's cost per lead is computed from, so an unattributed lead makes the whole campaign look worse than it was.
+%%field Lead.score help: 0-100, from the scoring rule. Anything over 70 routes straight to a salesperson rather than into a nurture sequence.
+%%field Lead.created_at help: When the enquiry arrived. Time-to-first-contact is measured from here, and it is the single number most predictive of whether a lead converts.
 ```
 
 - **Modifiers**: `PK` `FK` `UK` `UNIQUE` `OPTIONAL` `NULL`. Anything else is
@@ -524,10 +539,51 @@ already in the ERD, marked `sys_column.is_parent` and stored as
 drop the relationship line: the directive names the parent, the ERD still draws
 the edge.
 
-Two errors police it: `EML147` when the parent is not declared (or an entity
-names itself), `EML148` when the child has no foreign key back — a line item
-with nothing to link on would lose its own window and gain no tab, which is an
-entity that has quietly left the application.
+Four codes police it:
+
+| Code | Severity | Fires when |
+|---|---|---|
+| `EML147` | error | the parent is not declared, or an entity names itself |
+| `EML148` | error | the child has no foreign key back — nothing for the tab to link on |
+| `EML149` | info | an entity is *shaped* like a line item and declares no `parent:` |
+| `EML150` | warning | a declared child is still named in a `%%category` |
+
+`EML147` and `EML148` are errors because a line item with nothing to link on
+loses its own window and gains no tab, which is an entity that has quietly left
+the application.
+
+`EML149` is an **info and never an error**, because the three questions above are
+about the business and not about the document: only you know whether a list of
+these records away from their owner is a screen anyone opens. The checker can
+only say that the shape is there, and it names both the candidate parent and the
+column a tab would link on. It fires on two shapes, each of which also requires
+that foreign key: an entity whose name **begins** with a declared entity's name
+(`InvoiceLine`/`Invoice`, `TeamMember`/`Team`,
+`FinancialPlanAssumption`/`FinancialPlan`), and an entity whose name **ends** in a
+line-item noun — `Line`, `LineItem`, `Item`, `Detail`, `Entry`, `Row` — whose
+foreign key resolves to a declared entity (`RecommendationItem` under
+`InvestmentRecommendation`).
+
+**Answer every `EML149` before you deliver.** Either declare the parent, or
+satisfy yourself that the entity is a thing in its own right and leave it — an
+`EML149` you have walked and rejected is not a fault, and the run still reports
+`OK`. What is not acceptable is not having looked: if nobody decides, the default
+is a dashboard card listing every line ever written and a parent record that does
+not show its own lines.
+
+`EML150` is a warning rather than an error because nothing breaks — but the two
+directives contradict each other. `parent:` takes the child's dashboard card
+away and the category asks for one, so the group counts an entity the reader can
+never open from it. Take the child out of the `entities:` list.
+
+**What the running application does with it.** Both stacks read the same three
+rows and nothing else. Opening a parent record shows one tab per line item below
+the form, each listing only the rows whose `is_parent` column holds that
+record's key, with a live count on the tab and a row click that opens the child.
+The dashboard and the navigation are built from the entities that have a window,
+so the child appears in neither. None of that is decided by a screen — it is
+`sys_tab.tab_level`, `sys_tab.link_column_id` and `sys_column.is_parent`, which
+is why the model's answer and the application's arrangement cannot drift apart.
 
 A child is still a real table with real rules, access control and a form. It is
 only its *placement* that changes. Leave it out of `%%category` — a category
@@ -809,6 +865,16 @@ Full detail, including that platform's own architecture, is in
 | `%%rbac` | `rbac/index.ts` | `sys_operation_access` + `sys_transition_access`, enforced by `EntityAccessGuard` |
 | whole document | `language/rag.ts` | retrieval chunks → pgvector `model_context` |
 
+**`%%category` has no shorthand, and `name:` is required.** `%%category Sources:
+DataSource, SchemaEntity` reads perfectly well and declares *nothing*:
+`category.parser.ts` requires a `name:` key and skips the line without one, so
+the grouping is lost and every entity in it falls into the default `General`
+category. The model still checks clean — the directive is a comment Mermaid
+ignores and a directive the generator ignores too. `EML154` is a warning that
+reports it, and it is worth knowing about because the failure looks like a
+dashboard that simply was not grouped.
+
+
 ### 4.3 Templates — 171 Handlebars files, plus two verbatim trees
 
 ```
@@ -1067,6 +1133,12 @@ play, and when does a record of this type come into existence?*
 %%entity Invoice help: A formal payment request issued to a customer account. Created on order dispatch; marked paid when settlement is confirmed.
 ```
 
+**Two sentences is a floor, not a target.** The first says what the record is;
+the second says something a reader could not have guessed — when one comes into
+existence, what distinguishes it from the entity it sounds like, what breaks if
+it is wrong. An entity help that would read the same for any business is one
+nobody needed.
+
 Every entity should have one. An entity without `help:` signals to a reader that
 the manual was generated from a model that did not invest in documentation — the
 rest of the manual is still correct, but the opening paragraph is absent.
@@ -1092,6 +1164,64 @@ Rules of thumb:
 
 `%%field help:` has two consumers: the form (printed as hint text beneath the
 control) and the manual (the Purpose column). Writing it once covers both.
+
+**Help is where the domain knowledge goes, and nothing else in the model carries
+it.** The ERD says an entity has a `household_id`; only help says that a
+membership belongs to a family and that the family's screen is where it is read.
+Everything else in a model is structural — types, keys, cardinalities, states,
+roles — and structure is the half a reader can already see. Help is the half
+that has to be *known*: what the business calls this, why it keeps it, what
+depends on it, what goes wrong when it is wrong. Write it from the research and
+the brief, in the business's own vocabulary, at the level of detail somebody
+joining the company would need.
+
+This is the test to apply to every line before delivering: **could this sentence
+have been written without knowing anything about the business?** If yes, it is
+not help.
+
+```
+Bad:   %%field HouseholdMember.household_id help: Household id for HouseholdMember.
+Good:  %%field HouseholdMember.household_id help: The family this membership is in. Listed inside the household's own screen — a membership away from its household is not something anybody looks up.
+
+Bad:   %%entity Address help: Address is a business record in the platform.
+Good:  %%entity Address help: A postal address belonging to a party, kept as its own record because a party has several — registered, correspondence, often an overseas one — and because a change of address is a KYC event that has to be evidenced rather than typed over the old one.
+
+Bad:   %%field Holding.average_cost help: Average cost for Holding.
+Good:  %%field Holding.average_cost help: The weighted average price paid per unit across the lots making up this position. It is what an unrealised gain is computed against when lots are not being tracked individually.
+```
+
+The first of each pair would pass any coverage check and leaves the reader
+exactly where they started. **Three codes report the three ways a model fails
+here, all warnings:**
+
+| Code | Fires when |
+|---|---|
+| `EML152` | an entity carries no `%%entity … help:` at all |
+| `EML153` | an entity has columns with no `%%field … help:` — reported once per entity, naming them |
+| `EML151` | help that restates its own subject instead of describing it |
+
+`EML151` catches three shapes: `Unique identifier for X`, the column name in
+prose (`Status for Client`), and a template sentence (`X is a business record in
+…`). It is deliberately narrow, so real help that happens to be short — *The day
+this offer expires.* — does not fire. It exists because coverage can be complete
+and the help still worthless: a published model once carried help on all 91
+entities and all 551 columns, of which 699 lines were of exactly these shapes.
+
+**The primary key needs no help, and `EML153` does not ask for any.** It is a
+generated uuid, read-only on every form, and the only sentence anybody could
+write about it restates its name — which is what `EML151` then reports. Leave it
+out.
+
+**What to say, per kind of column:**
+
+| Column | Say |
+|---|---|
+| A reference (`_id`) | what the reference is *for* — "the ward this bed stands in", never "the ward id" |
+| An enum-bound column | what each value means to the business, because the dictionary lists the values and nothing says what choosing one *does* |
+| A lifecycle column | which moves are possible from which state — the state machine enforces a topology no form can show |
+| A money column | gross or net, which currency, and what it is compared against |
+| A date | which business event it records, and what is true before it is set |
+| A flag | what turning it on permits or prevents, and who may do so |
 
 ### 5.7 Document reports (AnkaReport)
 
@@ -1874,10 +2004,19 @@ explicitly of every entity and answered in the document:
    "line 1"?
 3. Would deleting the owner make the row meaningless?
 
-Any *yes* to 2 or 3, or *no* to 1, is a child: `%%entity <Child> parent: <Parent>`.
-The noun is usually the tell — a *line*, an *item*, a *detail*, an *entry*.
-Getting this wrong is not cosmetic: a missed child puts a screen on the dashboard
-listing every line ever written, which is a screen nobody opens.
+Any *yes* to 2 or 3, or *no* to 1, is a child: `%%entity <Child> parent: <Parent>`,
+and that child is left out of `%%category` — a category is the dashboard's
+grouping and a child has no card there (`EML150`). The noun is usually the tell —
+a *line*, an *item*, a *detail*, an *entry*. Getting this wrong is not cosmetic:
+a missed child puts a screen on the dashboard listing every line ever written,
+which is a screen nobody opens, and leaves the parent record showing no sign of
+its own lines.
+
+The checker will not decide it for you, but it will not let you skip the
+question either: `EML149` names every entity whose shape says line item and
+whose model says nothing, together with the parent it would link to. Bring that
+list to **Gate B** — it is the cheapest moment to settle it, and the roster is
+where the user's own answer belongs.
 
 Close the document with a **relationship sketch** — every pair that relates, the
 cardinality, and which side carries the foreign key. It does not need to be
@@ -2072,6 +2211,26 @@ customer" is not help; "Full legal name as it appears on invoicing documents —
 required for tax reporting" is. This text populates the generated manual (§5.6)
 and in-app tooltips — it is not optional filler.
 
+**The dossier is where the domain knowledge is captured, and help is the only
+field that carries it.** Everything else in the dossier is structure — types,
+modifiers, enums, relationships, states, roles — and the user can check
+structure by reading it. They cannot check help by reading it; they can only
+tell you it is wrong, which is exactly what this gate is for. So write each line
+from the research and from what the user has told you in Phases 1 and 2, in their
+own vocabulary, and apply one test before presenting it: **could this sentence
+have been written without knowing anything about this business?** If it could,
+rewrite it before the user sees it. `Household id for HouseholdMember.` could.
+`The family this membership is in — listed inside the household's own screen,
+since a membership away from its household is not something anybody looks up.`
+could not.
+
+The checker reports the three failures here as warnings — `EML151` for a line
+that restates its own name, `EML152` for an entity with no help, `EML153` for
+columns with none — and `EML151` is the one that survives a coverage sweep, so
+read the help back at Gate C rather than counting it. **The primary key needs
+none**: it is a generated uuid and the only sentence available restates it.
+
+
 **Check every column name against the reference convention (§3.3, §5.3) before
 moving on, because a name silently decides a control type.** The generator resolves a
 reference from the column name alone (`foreignKeys` in
@@ -2244,10 +2403,17 @@ that appeared in the lifecycle and saga steps, not a guess.
 **The coverage sweep — a hard check, not a review.** Go through it as a
 checklist and fix what it finds:
 
-- [ ] every entity has `%%entity <Name> help:`;
-- [ ] **every column** has `%%field <E>.<col> help:` — including `status`, the
-      foreign keys and the enums, including the obvious ones;
-- [ ] every child has a parent and a foreign key back to it (`EML148`);
+- [ ] every entity has `%%entity <Name> help:` (`EML152`);
+- [ ] **every column except the primary key** has `%%field <E>.<col> help:` —
+      including `status`, the foreign keys and the enums, including the obvious
+      ones (`EML153`);
+- [ ] **no help line merely restates its own name** (`EML151`). Read them back
+      and ask of each: could this sentence have been written without knowing
+      anything about this business? `Household id for HouseholdMember.` could.
+      This is the check a coverage sweep passes and a reader fails;
+- [ ] every child has a parent and a foreign key back to it (`EML148`), no child
+      is named in a `%%category` (`EML150`), and every `EML149` candidate has
+      been walked and either declared or deliberately left;
 - [ ] every state in every `stateDiagram-v2` is backed by a declared `%%enum`;
 - [ ] every cross-entity effect from every dossier landed somewhere real — a
       hook, a rule action, or a saga step;
@@ -2825,7 +2991,9 @@ Most entities are one of six shapes, and the shape predicts most of the dossier:
 | **Ledger / balance** | AccountBalance, CreditWallet | No | No | owner FK, balance, as_of, last_movement FK |
 
 The useful reading: an **artefact** without a state machine is nearly always an
-oversight, and a **line item** without `parent:` is nearly always a bug.
+oversight, and a **line item** without `parent:` is nearly always a bug — which
+is what `EML149` is for: it names the candidates it can see, and leaves the
+decision to you.
 
 #### Question banks
 
