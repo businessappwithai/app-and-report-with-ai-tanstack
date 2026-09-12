@@ -148,6 +148,23 @@ User    ||--|| Team      : "managed_by"
 Student }o--o{ Course    : "enrolls"
 ```
 
+### A relationship does not say whether the many side is a line item
+
+`Quote ||--o{ QuoteItem` and `Company ||--o{ Contact` are the same edge, and a
+renderer cannot tell them apart — yet a quote item has no life away from its
+quote and a contact has a great deal. That distinction decides where the
+Application Dictionary puts the entity: its own window and dashboard card, or a
+tab inside its owner's window. The ERD cannot carry it, so one directive does:
+
+```
+%%entity QuoteItem parent: Quote
+```
+
+See `%%entity parent:` in [05-directives.md](05-directives.md). A model that
+never writes it gets a dashboard card listing every quote item ever written, and
+a quote that does not show its own items — which is the default rather than an
+error, and why the checker reports `EML149` on every entity shaped like one.
+
 ## Complete ERD example
 
 ```mermaid

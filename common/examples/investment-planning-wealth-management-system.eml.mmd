@@ -6,19 +6,19 @@
 %% Every entity is named by exactly one category. The dashboard is built from
 %% these and nothing else, so an entity left out of all of them is a table with
 %% no way in.
-%%category name: Party and Household; description: Legal identities, the households they belong to and the contact, nominee and mandate records attached to them; icon: Users; color: #6366f1; entities: Party, Person, Organization, Household, HouseholdMember, Client, Address, ContactPoint, Nominee, PowerOfAttorney
-%%category name: Advisor and Organization; description: The firm itself — its units, advisors, teams and the households each advisor is assigned; icon: Building2; color: #0ea5e9; entities: OrganizationUnit, Advisor, AdvisorAssignment, Team, TeamMember
+%%category name: Party and Household; description: Legal identities, the households they belong to and the contact, nominee and mandate records attached to them; icon: Users; color: #6366f1; entities: Party, Person, Organization, Household, Client, PowerOfAttorney
+%%category name: Advisor and Organization; description: The firm itself — its units, advisors, teams and the households each advisor is assigned; icon: Building2; color: #0ea5e9; entities: OrganizationUnit, Advisor, Team
 %%category name: CRM and Onboarding; description: Prospects, the conversations held with them, service requests raised afterwards, and the case that carries a prospect through to an active client; icon: UserPlus; color: #ec4899; entities: Prospect, Interaction, Activity, ServiceRequest, OnboardingCase
-%%category name: Compliance and Identity; description: The regulatory file — KYC, FATCA and CRS declarations, suitability assessments, identity documents, signatures and the audit trail; icon: ShieldCheck; color: #f59e0b; entities: KYCRecord, KYCVerification, FATCADeclaration, CRSDeclaration, SuitabilityAssessment, IdentityDocument, ESignatureRequest, BankAccount, Document, AuditEvent, AdvancedComplianceRecord
-%%category name: Financial Planning; description: The plan itself — assumptions, income, expenses, liabilities, cash flows, goals and the scenarios run against them; icon: Target; color: #14b8a6; entities: FinancialPlan, FinancialPlanAssumption, IncomeSource, Expense, Liability, CashFlow, Goal, GoalFunding, GoalProjection, Scenario, ScenarioAssumption
-%%category name: Risk; description: How much risk a household says it will take, how that was assessed, and how the assessment has changed; icon: Gauge; color: #ef4444; entities: RiskAssessment, RiskProfile, RiskProfileHistory
+%%category name: Compliance and Identity; description: The regulatory file — KYC, FATCA and CRS declarations, suitability assessments, identity documents, signatures and the audit trail; icon: ShieldCheck; color: #f59e0b; entities: KYCRecord, SuitabilityAssessment, ESignatureRequest, BankAccount, Document, AuditEvent, AdvancedComplianceRecord
+%%category name: Financial Planning; description: The plan itself — assumptions, income, expenses, liabilities, cash flows, goals and the scenarios run against them; icon: Target; color: #14b8a6; entities: FinancialPlan, IncomeSource, Expense, Liability, CashFlow, Goal, Scenario
+%%category name: Risk; description: How much risk a household says it will take, how that was assessed, and how the assessment has changed; icon: Gauge; color: #ef4444; entities: RiskAssessment, RiskProfile
 %%category name: Security Master; description: The investable universe — instruments, their types, the houses that manage them and their prices; icon: Library; color: #8b5cf6; entities: Security, SecurityType, MutualFundScheme, AMC, ProductPrice, AssetClass, CorporateAction, Benchmark
-%%category name: Accounts and Portfolio; description: What a client actually owns: accounts, folios, portfolios, holdings, lots and the valuations taken of them; icon: Wallet; color: #06b6d4; entities: InvestmentAccount, Folio, Portfolio, PortfolioAccount, Holding, HoldingLot, PortfolioValuation
-%%category name: Allocation; description: The model portfolios and the per-asset-class targets they set; icon: PieChart; color: #a855f7; entities: AssetAllocationModel, AllocationTarget
+%%category name: Accounts and Portfolio; description: What a client actually owns: accounts, folios, portfolios, holdings, lots and the valuations taken of them; icon: Wallet; color: #06b6d4; entities: InvestmentAccount, Folio, Portfolio, Holding
+%%category name: Allocation; description: The model portfolios and the per-asset-class targets they set; icon: PieChart; color: #a855f7; entities: AssetAllocationModel
 %%category name: Transactions and Execution; description: Orders sent to the dealing desk, the transactions they settle into, and the standing instructions that generate them; icon: ArrowLeftRight; color: #22c55e; entities: InvestmentTransaction, Order, SIPInstruction, STPInstruction, SWPInstruction
-%%category name: Recommendations and Proposals; description: What was advised, whether it was suitable, who approved it, and what the client said; icon: FileSignature; color: #3b82f6; entities: InvestmentRecommendation, RecommendationItem, SuitabilityResult, RecommendationApproval, Proposal, ClientAcceptance
-%%category name: Rebalancing and Performance; description: Drift against the model, the performance measured afterwards, and the review held with the client; icon: TrendingUp; color: #10b981; entities: RebalanceRecommendation, PerformanceSnapshot, PerformanceAttribution, ClientReview
-%%category name: Fees and Revenue; description: What the firm charges, what it is paid, and the reconciliation between the two; icon: Receipt; color: #eab308; entities: FeeSchedule, Commission, CommissionReconciliation, RevenueHierarchy, SubBroker
+%%category name: Recommendations and Proposals; description: What was advised, whether it was suitable, who approved it, and what the client said; icon: FileSignature; color: #3b82f6; entities: InvestmentRecommendation, Proposal
+%%category name: Rebalancing and Performance; description: Drift against the model, the performance measured afterwards, and the review held with the client; icon: TrendingUp; color: #10b981; entities: RebalanceRecommendation, PerformanceSnapshot, ClientReview
+%%category name: Fees and Revenue; description: What the firm charges, what it is paid, and the reconciliation between the two; icon: Receipt; color: #eab308; entities: FeeSchedule, Commission, RevenueHierarchy, SubBroker
 %%category name: Investment Specializations; description: Instrument-specific detail held beside the security master, and the tax consequences of disposing of it; icon: Layers; color: #64748b; entities: Equity, Bond, AIF, PMS, Insurance, RealEstate, TaxLot, CapitalGain, ExternalIntegration
 
 %%enum PartyStatus: active, inactive, deceased, merged
@@ -1008,881 +1008,840 @@ erDiagram
     Client ||--o{ ClientAcceptance : "gives"
     SuitabilityAssessment ||--o{ SuitabilityResult : "produces"
 
-%%entity Party help: Root identity for a real-world person or organization; may participate in multiple business roles and has its own lifecycle.
-%%field Party.id help: Unique identifier for Party.
-%%field Party.party_type help: Party type for Party.
-%%field Party.display_name help: Display name for Party.
+%%entity Party help: The root identity record — one row for every real person or legal entity the firm deals with, whatever role they later play. A party can be a client, a nominee, an attorney, an advisor and a sub-broker at once; separating identity from role is what stops the same human being duplicated five times and lets KYC be done once.
+%%field Party.party_type help: individual or organization — which of the two detail tables carries the rest of this identity. It is set when the party is created and never changed: switching it would orphan the Person or Organization record hanging off it.
+%%field Party.display_name help: The name shown wherever this identity appears in a list, a dropdown or an audit line. Derived from the person's or organization's own name at creation, and kept as one field so every screen can label a party without joining to whichever detail table applies.
 %%field Party.status enum: PartyStatus
-%%field Party.status help: Status for Party.
+%%field Party.status help: Whether this identity may still be used. A party is deactivated rather than deleted — regulatory record-keeping outlives the relationship, and a nominee or attorney on a historic mandate must remain resolvable years after they stopped being current.
 
-%%entity Person help: Individual specialization of Party.
-%%field Person.id help: Unique identifier for Person.
-%%field Person.party_id help: Party id for Person.
-%%field Person.first_name help: First name for Person.
-%%field Person.middle_name help: Middle name for Person.
-%%field Person.last_name help: Last name for Person.
-%%field Person.date_of_birth help: Date of birth for Person.
-%%field Person.gender help: Gender for Person.
-%%field Person.marital_status help: Marital status for Person.
-%%field Person.nationality help: Nationality for Person.
-%%field Person.occupation help: Occupation for Person.
+%%entity Person help: The natural-person half of an identity: the demographic detail that KYC, suitability and nomination all read. It exists once per human being no matter how many households, mandates or roles they appear in, which is why it hangs off Party rather than off Client.
+%%field Person.party_id help: The identity this individual detail belongs to. One row per party, and the reason a person can be a client in one household and a nominee in another without being entered twice.
+%%field Person.first_name help: Given name exactly as it appears on the primary identity document. Regulators match on the document, not on the preferred name, so a mismatch here is the most common cause of a KYC rejection.
+%%field Person.middle_name help: Middle name or patronymic where the identity document carries one. Optional, but omitting it when the document shows it will fail an exact-match KYC check.
+%%field Person.last_name help: Family name as printed on the identity document. Combined with the first name to form the display name and to match against sanctions and PEP lists.
+%%field Person.date_of_birth help: Date of birth, used to establish legal capacity, to compute the investment horizon a suitability assessment assumes, and to match identity records. A minor's account needs a guardian mandate before it can transact.
+%%field Person.gender help: As recorded on the identity document. Held because some product applications and statutory returns require it, not because the firm makes any decision on it.
+%%field Person.marital_status help: Marital status, which changes who has a claim on the estate and therefore what nomination and succession advice is appropriate. Reviewed at every periodic review rather than assumed to be static.
+%%field Person.nationality help: Country of citizenship. It drives the tax-residency questions on the FATCA and CRS declarations and determines which products the client is eligible to hold at all.
+%%field Person.occupation help: What the client does for a living. Two things read it: the source-of-funds justification KYC requires, and the risk assessment, where income stability matters as much as income size.
 
-%%entity Organization help: Legal-entity specialization of Party, including companies, trusts, partnerships, HUFs and institutions.
-%%field Organization.id help: Unique identifier for Organization.
-%%field Organization.party_id help: Party id for Organization.
-%%field Organization.legal_name help: Legal name for Organization.
-%%field Organization.organization_type help: Organization type for Organization.
-%%field Organization.registration_number help: Registration number for Organization.
-%%field Organization.tax_identifier help: Tax identifier for Organization.
+%%entity Organization help: The legal-entity half of an identity — a company, trust, partnership or society that invests in its own name. Corporate clients differ from individuals in almost every downstream process: authorised signatories rather than a single holder, board resolutions rather than consent, and a different documentary standard for KYC.
+%%field Organization.party_id help: The identity this corporate detail belongs to. One row per party, mirroring Person on the other branch.
+%%field Organization.legal_name help: The entity's registered name, exactly as on the incorporation certificate. Every mandate, contract note and statutory filing must use this form, not the trading name people use in conversation.
+%%field Organization.organization_type help: Company, trust, partnership, HUF, society — the constitution of the entity. It decides which documents KYC demands, who can sign, and which products the entity may hold.
+%%field Organization.registration_number help: The number the entity is incorporated under (CIN, registration or trust deed number). It is what a registry lookup is performed against during onboarding.
+%%field Organization.tax_identifier help: The entity's tax registration — PAN or the local equivalent. Required before any investment can be made and quoted on every capital-gains statement.
 
-%%entity Household help: Primary consolidated wealth context for related parties and clients.
-%%field Household.id help: Unique identifier for Household.
-%%field Household.name help: Name for Household.
+%%entity Household help: The advisory unit: the group of parties whose wealth is planned together. Almost nothing in planning is done per person — a goal, a plan, a portfolio and an allocation belong to a family, and a couple's retirement is one problem, not two. The household is also what an advisor is assigned to and what fees are usually struck against.
+%%field Household.name help: How the family is referred to in the firm — usually the principal's surname. It appears on every plan, review pack and portfolio statement, so keep it the form the family would recognise.
 %%field Household.status enum: RecordStatus
-%%field Household.status help: Status for Household.
-%%field Household.advisor_id help: Primary advisor id for Household.
-%%field Household.risk_profile_id help: Risk profile id for Household.
-%%field Household.annual_income help: Annual income for Household.
-%%field Household.net_worth help: Net worth for Household.
+%%field Household.status help: Whether the household is an active advisory relationship. Closing it stops new plans and recommendations while leaving history, valuations and tax records readable.
+%%field Household.advisor_id help: The advisor accountable for the relationship as a whole. Distinct from the assignment records, which can carry several advisors over time: this is the single name the family expects to hear from.
+%%field Household.risk_profile_id help: The risk profile currently in force for the household. Recommendations and rebalancing are checked against this, so a household whose profile has expired cannot be advised until it is reassessed.
+%%field Household.annual_income help: Combined income of the household's members, as declared at the last review. Used to size affordability in the plan and, with net worth, to sanity-check the risk capacity the questionnaire reported.
+%%field Household.net_worth help: Total assets less liabilities across the household, including assets the firm does not manage. It is what makes a recommendation proportionate: a position that is aggressive for the managed portfolio may be trivial against the whole balance sheet.
 
-%%entity HouseholdMember help: Time-bounded association of a Party with a Household.
-%%field HouseholdMember.id help: Unique identifier for HouseholdMember.
-%%field HouseholdMember.household_id help: Household id for HouseholdMember.
-%%field HouseholdMember.party_id help: Party id for HouseholdMember.
-%%field HouseholdMember.relationship_type help: Relationship type for HouseholdMember.
-%%field HouseholdMember.ownership_percentage help: Ownership percentage for HouseholdMember.
-%%field HouseholdMember.is_primary help: Is primary for HouseholdMember.
-%%field HouseholdMember.start_date help: Start date for HouseholdMember.
-%%field HouseholdMember.end_date help: End date for HouseholdMember.
+%%entity HouseholdMember help: One party's membership of one household, over a period. Membership is time-bounded because families change: a spouse joins, a child becomes independent, an estate is settled. Holding it as a record rather than a link keeps the history a review needs.
 
-%%entity Client help: Onboarded advisory or distribution relationship for a Party within a Household.
-%%field Client.id help: Unique identifier for Client.
-%%field Client.party_id help: Party id for Client.
-%%field Client.household_id help: Household id for Client.
-%%field Client.client_number help: Client number for Client.
-%%field Client.client_type help: Client type for Client.
+%%entity HouseholdMember parent: Household
+%%field HouseholdMember.household_id help: The family this membership is in. Listed inside the household's own screen — a membership away from its household is not something anybody looks up.
+%%field HouseholdMember.party_id help: The person or entity that is a member. The same party may be a member of more than one household — an elderly parent counted in their children's plan, for instance.
+%%field HouseholdMember.relationship_type help: How this member relates to the principal — spouse, child, parent, dependant, trustee. It determines whose goals are whose and who has a natural claim in succession planning.
+%%field HouseholdMember.ownership_percentage help: This member's share of jointly held household assets, where the family has agreed one. Used to split valuations and gains when reporting per person rather than per household.
+%%field HouseholdMember.is_primary help: Whether this member is the principal — the person the firm corresponds with and whose consent carries the relationship. Exactly one member should hold it at a time.
+%%field HouseholdMember.start_date help: When this member joined the household for planning purposes. It bounds the period their income, goals and assets belong in the household's figures.
+%%field HouseholdMember.end_date help: When the membership ended — separation, death, or a child setting up their own household. Empty for a current member; setting it excludes them from future plans without erasing them from past ones.
+
+%%entity Client help: A party the firm actually advises, under a stated service and fee arrangement. The distinction from Party matters commercially: a party becomes a client only when onboarding completes, and everything billable, reportable or regulated hangs off this record rather than off the identity.
+%%field Client.party_id help: The identity being advised. One party can hold only one client record — a second would split the relationship's history and its fee accrual.
+%%field Client.household_id help: The family this client is planned within. Goals, plans and portfolios are held at the household, so a client outside one can transact but cannot be planned for.
+%%field Client.client_number help: The reference quoted on statements, contract notes and in correspondence. It is what a client reads out on the phone, which is why it exists alongside the internal key.
+%%field Client.client_type help: Retail, HNI, ultra-HNI or institutional. It sets the regulatory protections that apply, the products the client may be offered, and the service model the firm is committing to.
 %%field Client.status enum: ClientStatus
-%%field Client.status help: Client status for Client.
-%%field Client.onboarding_date help: Onboarding date for Client.
-%%field Client.advisor_id help: Advisor id for Client.
-%%field Client.service_model help: Service model for Client.
-%%field Client.fee_model help: Fee model for Client.
+%%field Client.status help: Where the relationship stands — prospective, onboarding, active, dormant or closed. Only an active client may be transacted for; a dormant one keeps holdings but generates no new advice.
+%%field Client.onboarding_date help: When onboarding completed and advice could begin. It is the start of the fee clock and the anchor for every since-inception performance figure.
+%%field Client.advisor_id help: The advisor of record for this client. Where a household has several members with different advisors, this is the one accountable for this client's suitability.
+%%field Client.service_model help: What the client has been promised — execution-only, advisory or discretionary. It decides whether the firm may act without asking, and therefore which recommendations need an acceptance before anything is bought.
+%%field Client.fee_model help: How the firm is paid for this client: a percentage of assets, a flat retainer, commission on products, or a combination. It must be disclosed and it governs which fee schedule accrues against the relationship.
 
-%%entity Address help: Address is a business record in the wealth-management platform.
-%%field Address.id help: Unique identifier for Address.
-%%field Address.party_id help: Party id for Address.
-%%field Address.address_type help: Address type for Address.
-%%field Address.line1 help: Line1 for Address.
-%%field Address.city help: City for Address.
-%%field Address.state_province help: State for Address.
-%%field Address.postal_code help: Postal code for Address.
-%%field Address.country help: Country for Address.
-%%field Address.is_primary help: Is primary for Address.
+%%entity Address help: A postal address belonging to a party, kept as its own record because a party has several — registered, correspondence, and often an overseas one — and because a change of address is a KYC event that has to be evidenced rather than typed over the old one.
 
-%%entity ContactPoint help: ContactPoint is a business record in the wealth-management platform.
-%%field ContactPoint.id help: Unique identifier for ContactPoint.
-%%field ContactPoint.party_id help: Party id for ContactPoint.
-%%field ContactPoint.contact_type help: Contact type for ContactPoint.
-%%field ContactPoint.value help: Value for ContactPoint.
-%%field ContactPoint.is_primary help: Is primary for ContactPoint.
-%%field ContactPoint.verified help: Verified for ContactPoint.
+%%entity Address parent: Party
+%%field Address.party_id help: The identity this address belongs to. Addresses are read inside the party's own screen; a list of every address in the firm is not a screen anybody opens.
+%%field Address.address_type help: Registered, correspondence, permanent or overseas. The registered address is what statutory filings use; correspondence is where paper actually goes, and the two are often not the same.
+%%field Address.line1 help: Street address, in the form the postal service expects. Written as the courier will read it, because dispatch of physical contract notes and cheques depends on it.
+%%field Address.city help: City or town. Part of the postal address and one of the fields matched when verifying an address document.
+%%field Address.state_province help: State or province. It matters beyond the postal address: stamp duty and some product eligibility vary by state.
+%%field Address.postal_code help: Postal or PIN code, matched against the address proof during KYC. A mismatch here is a common reason a verification is rejected.
+%%field Address.country help: Country of the address. A non-domestic address raises tax-residency questions and may make the client reportable under FATCA or CRS regardless of what the declaration says.
+%%field Address.is_primary help: Whether this is the address the firm uses by default. One per party — the flag is what a statement run and a courier both read.
 
-%%entity Nominee help: Nominee is a business record in the wealth-management platform.
-%%field Nominee.id help: Unique identifier for Nominee.
-%%field Nominee.client_id help: Client id for Nominee.
-%%field Nominee.party_id help: Nominee party id for Nominee.
-%%field Nominee.relationship_type help: Relationship type for Nominee.
-%%field Nominee.allocation_percentage help: Allocation percentage for Nominee.
-%%field Nominee.start_date help: Start date for Nominee.
-%%field Nominee.end_date help: End date for Nominee.
+%%entity ContactPoint help: One way of reaching a party — a mobile number, an email address, a landline. Held as records rather than columns because a party has several, each verified separately, and because a change to the one used for transaction confirmation is itself a controlled event.
 
-%%entity PowerOfAttorney help: PowerOfAttorney is a business record in the wealth-management platform.
-%%field PowerOfAttorney.id help: Unique identifier for PowerOfAttorney.
-%%field PowerOfAttorney.grantor_party_id help: Grantor party id for PowerOfAttorney.
-%%field PowerOfAttorney.attorney_party_id help: Attorney party id for PowerOfAttorney.
-%%field PowerOfAttorney.effective_date help: Effective date for PowerOfAttorney.
-%%field PowerOfAttorney.expiry_date help: Expiry date for PowerOfAttorney.
+%%entity ContactPoint parent: Party
+%%field ContactPoint.party_id help: The identity that can be reached this way. Read from the party's own screen along with their addresses.
+%%field ContactPoint.contact_type help: mobile, email, landline or fax. The type decides what the channel can be used for: one-time passwords go to a mobile, contract notes to an email.
+%%field ContactPoint.value help: The number or address itself. Stored exactly as it should be dialled or sent to, including country code, because an automated dispatch will not repair it.
+%%field ContactPoint.is_primary help: Whether this is the default for its type. Statements, alerts and confirmations go to the primary; the others exist so a client can be reached when it fails.
+%%field ContactPoint.verified help: Whether the firm has proved the party actually controls this channel — a one-time password answered, or a confirmation link followed. An unverified channel must not be used for transaction authorisation.
+
+%%entity Nominee help: The person a client has named to receive an investment on their death. Nomination is a statutory mechanism separate from a will, and getting it wrong is expensive for the family: an out-of-date nominee overrides what everyone assumed, so the record is time-bounded and reviewed at every periodic review.
+
+%%entity Nominee parent: Client
+%%field Nominee.client_id help: The client whose holdings this nomination applies to. Nominations are read inside the client's own screen, because a nomination away from the client it protects means nothing.
+%%field Nominee.party_id help: The person named to receive. Held as a party rather than free text so the nominee's own identity and contact details are already on file when a claim is made.
+%%field Nominee.relationship_type help: How the nominee is related to the client — spouse, child, parent, sibling, other. Registrars require it, and it is what a claims team checks the supporting documents against.
+%%field Nominee.allocation_percentage help: This nominee's share of the proceeds. Shares across a client's active nominations should total one hundred per cent; anything less leaves the remainder to the estate and a much slower process.
+%%field Nominee.start_date help: When this nomination took effect. Nominations are dated because a claim is settled against whichever was in force on the date of death.
+%%field Nominee.end_date help: When the nomination was superseded or revoked. Empty for the nomination currently in force; setting it keeps the earlier one on file, which is exactly what a disputed claim needs.
+
+%%entity PowerOfAttorney help: A mandate letting one party act on another's investments. It is the instrument behind every discretionary arrangement and every account operated by a family member, and its scope and expiry are what an operations team checks before accepting an instruction from anyone who is not the holder.
+%%field PowerOfAttorney.grantor_party_id help: The party whose investments may be operated — the person giving the authority away. Nothing may be done under this mandate that the grantor could not do themselves.
+%%field PowerOfAttorney.attorney_party_id help: The party granted the authority. Held as a party so the attorney's own identity is verified before any instruction of theirs is accepted.
+%%field PowerOfAttorney.effective_date help: When the authority begins. An instruction dated before this is not covered by the mandate, however plainly it was intended to be.
+%%field PowerOfAttorney.expiry_date help: When the authority lapses, where it is time-limited. Empty for an open mandate; a lapsed one must be refused even when the parties are unaware it has expired.
 %%field PowerOfAttorney.status enum: RecordStatus
-%%field PowerOfAttorney.status help: Status for PowerOfAttorney.
-%%field PowerOfAttorney.scope help: Scope for PowerOfAttorney.
+%%field PowerOfAttorney.status help: Whether the mandate is active, suspended or revoked. Revocation takes effect immediately and is the reason this is a status rather than an expiry date alone.
+%%field PowerOfAttorney.scope help: What the attorney may actually do — operate accounts, transact, redeem, change nominations. Scope is what makes a mandate safe: a general authority where a limited one would do is the finding a compliance review reports.
 
-%%entity OrganizationUnit help: OrganizationUnit is a business record in the wealth-management platform.
-%%field OrganizationUnit.id help: Unique identifier for OrganizationUnit.
-%%field OrganizationUnit.name help: Name for OrganizationUnit.
-%%field OrganizationUnit.unit_type help: Unit type for OrganizationUnit.
-%%field OrganizationUnit.parent_unit_id help: Parent unit id for OrganizationUnit.
+%%entity OrganizationUnit help: A branch, region or desk within the advisory firm. Units nest, so the tree is what revenue, supervision and access are rolled up along — an advisor belongs to a unit, and who may see whose clients follows from where they sit.
+%%field OrganizationUnit.name help: The unit as the firm refers to it internally — the branch or desk name that appears in reporting hierarchies.
+%%field OrganizationUnit.unit_type help: Branch, region, zone or head office. The type is what the reporting rollup understands, so a unit typed wrongly appears at the wrong level of every management report.
+%%field OrganizationUnit.parent_unit_id help: The unit this one reports into, empty at the top of the tree. It is the edge that makes the hierarchy, and a unit pointing at its own descendant would make the rollup loop.
 %%field OrganizationUnit.status enum: RecordStatus
-%%field OrganizationUnit.status help: Status for OrganizationUnit.
+%%field OrganizationUnit.status help: Whether the unit is currently operating. Closed units are kept so historic revenue and supervision records still resolve to somewhere.
 
-%%entity Advisor help: Advisor is a business record in the wealth-management platform.
-%%field Advisor.id help: Unique identifier for Advisor.
-%%field Advisor.party_id help: Party id for Advisor.
-%%field Advisor.organization_unit_id help: Organization unit id for Advisor.
-%%field Advisor.employee_number help: Employee number for Advisor.
-%%field Advisor.advisor_type help: Advisor type for Advisor.
-%%field Advisor.license_number help: License number for Advisor.
-%%field Advisor.license_expiry help: License expiry for Advisor.
+%%entity Advisor help: A licensed individual who advises clients on the firm's behalf. Advisors are the accountable name on every recommendation, and their licence state is a hard gate: advice given on a lapsed licence is a regulatory breach regardless of its quality.
+%%field Advisor.party_id help: The advisor's own identity record. Holding it as a party means an advisor who is also a client of the firm is one human being in the system, not two.
+%%field Advisor.organization_unit_id help: The branch or desk the advisor sits in. It decides whose supervision they fall under and which slice of the revenue hierarchy their production rolls into.
+%%field Advisor.employee_number help: The firm's own staff reference for this advisor, and the key payroll and commission systems reconcile against.
+%%field Advisor.advisor_type help: Relationship manager, investment adviser, distributor or sub-broker. The type governs what they may advise on and how they are remunerated for it.
+%%field Advisor.license_number help: The regulatory registration the advisor operates under. It is quoted on advice documents and is what a client or regulator verifies them by.
+%%field Advisor.license_expiry help: When the registration lapses. Recommendations and approvals should be refused past this date — the usual failure is that nobody notices until an audit does.
 %%field Advisor.status enum: RecordStatus
-%%field Advisor.status help: Status for Advisor.
+%%field Advisor.status help: Whether the advisor is currently practising. Deactivating one stops new assignments while keeping their name on the advice they have already given.
 
-%%entity AdvisorAssignment help: AdvisorAssignment is a business record in the wealth-management platform.
-%%field AdvisorAssignment.id help: Unique identifier for AdvisorAssignment.
-%%field AdvisorAssignment.advisor_id help: Advisor id for AdvisorAssignment.
-%%field AdvisorAssignment.household_id help: Household id for AdvisorAssignment.
-%%field AdvisorAssignment.assignment_type help: Assignment type for AdvisorAssignment.
-%%field AdvisorAssignment.start_date help: Start date for AdvisorAssignment.
-%%field AdvisorAssignment.end_date help: End date for AdvisorAssignment.
-%%field AdvisorAssignment.is_primary help: Is primary for AdvisorAssignment.
+%%entity AdvisorAssignment help: One advisor's responsibility for one household, over a period. Assignments are time-bounded rather than overwritten, because who was advising a family in a given quarter is the first question when a recommendation is later reviewed.
 
-%%entity Team help: Team is a business record in the wealth-management platform.
-%%field Team.id help: Unique identifier for Team.
-%%field Team.organization_unit_id help: Organization unit id for Team.
-%%field Team.name help: Name for Team.
-%%field Team.team_type help: Team type for Team.
+%%entity AdvisorAssignment parent: Advisor
+%%field AdvisorAssignment.advisor_id help: The advisor taking responsibility. Read from the advisor's own screen, where the assignments together are the advisor's book.
+%%field AdvisorAssignment.household_id help: The family being taken on. A household can carry several concurrent assignments — a relationship manager and a specialist, for instance.
+%%field AdvisorAssignment.assignment_type help: Primary, secondary, specialist or servicing. It distinguishes the advisor who owns the relationship from those supporting it, which is what a handover and a commission split both depend on.
+%%field AdvisorAssignment.start_date help: When this advisor took the household on. Advice given before it belongs to whoever held the assignment then.
+%%field AdvisorAssignment.end_date help: When the assignment ended. Empty while current; setting it is what a handover actually is, and leaving it empty on a departed advisor is why orphaned households go unnoticed.
+%%field AdvisorAssignment.is_primary help: Whether this is the household's lead relationship. One primary at a time — it decides who the family hears from and who is answerable for their suitability.
+
+%%entity Team help: A group of advisors working a book together. Teams matter for coverage rather than hierarchy: an advisor's clients must still be serviced when they are away, and the team is who picks them up.
+%%field Team.organization_unit_id help: The branch or desk the team belongs to. Teams do not span units, because supervision and revenue both follow the unit.
+%%field Team.name help: What the team is called internally. It appears in coverage lists and in the handover notes a client-facing screen shows.
+%%field Team.team_type help: Advisory, sales, service or specialist. The type says what the team is for, and therefore which work can reasonably be routed to it.
 %%field Team.status enum: RecordStatus
-%%field Team.status help: Status for Team.
+%%field Team.status help: Whether the team is currently constituted. Disbanded teams stay on file so historic coverage still resolves.
 
-%%entity TeamMember help: TeamMember is a business record in the wealth-management platform.
-%%field TeamMember.id help: Unique identifier for TeamMember.
-%%field TeamMember.team_id help: Team id for TeamMember.
-%%field TeamMember.advisor_id help: Advisor id for TeamMember.
-%%field TeamMember.start_date help: Start date for TeamMember.
-%%field TeamMember.end_date help: End date for TeamMember.
-%%field TeamMember.role help: Role for TeamMember.
+%%entity TeamMember help: One advisor's membership of one team, over a period. It is a line item of the team — a membership away from its team is not something anyone looks up — and it is dated so past coverage can be reconstructed.
 
-%%entity Prospect help: Prospect is a business record in the wealth-management platform.
-%%field Prospect.id help: Unique identifier for Prospect.
-%%field Prospect.party_id help: Party id for Prospect.
-%%field Prospect.source help: Source for Prospect.
+%%entity TeamMember parent: Team
+%%field TeamMember.team_id help: The team this membership is in. Listed inside the team's own screen, alongside the other members.
+%%field TeamMember.advisor_id help: The advisor who is a member. The same advisor may sit on more than one team, which is normal where a specialist supports several desks.
+%%field TeamMember.start_date help: When the advisor joined the team. It bounds the period their work counts towards the team's coverage and production.
+%%field TeamMember.end_date help: When they left it. Empty for a current member; an unset end date on somebody who has moved on is why a team looks better staffed than it is.
+%%field TeamMember.role help: What the advisor does on this team — lead, member, support or specialist. It is what routing reads when deciding who to hand a piece of work to.
+
+%%entity Prospect help: Somebody the firm is trying to win, before they are a client. A prospect is a party with an estimated size and a next action against it, and the point of keeping them here rather than in a spreadsheet is that the conversation history survives the handover to onboarding.
+%%field Prospect.party_id help: The identity being pursued. Recording a prospect as a party means that when they convert, the KYC already gathered is not re-keyed.
+%%field Prospect.source help: Where the lead came from — referral, campaign, walk-in, an existing client's family. It is the only honest input to which channels actually produce clients, as opposed to which produce leads.
 %%field Prospect.status enum: ProspectStatus
-%%field Prospect.status help: Lead status for Prospect.
-%%field Prospect.lead_score help: Lead score for Prospect.
-%%field Prospect.advisor_id help: Assigned advisor id for Prospect.
-%%field Prospect.estimated_aum help: Estimated aum for Prospect.
-%%field Prospect.next_action_date help: Next action date for Prospect.
+%%field Prospect.status help: How far the pursuit has got: new, contacted, qualified, proposal issued, converted or lost. A prospect stuck in one status past its next action date is what a pipeline review looks for.
+%%field Prospect.lead_score help: A ranking of how likely and how valuable this prospect is, used to order an advisor's day. It is a judgement recorded so it can be argued with, not a computed certainty.
+%%field Prospect.advisor_id help: The advisor pursuing this prospect. It is who the next action belongs to, and who inherits the relationship if it converts.
+%%field Prospect.estimated_aum help: What the firm believes this prospect would bring, in assets. It sizes the opportunity for pipeline reporting; it is an estimate before onboarding and should not be quoted as a commitment.
+%%field Prospect.next_action_date help: When somebody has undertaken to do the next thing. A prospect without one is a prospect nobody is working, which is the point of the field.
 
-%%entity Interaction help: Interaction is a business record in the wealth-management platform.
-%%field Interaction.id help: Unique identifier for Interaction.
-%%field Interaction.party_id help: Party id for Interaction.
-%%field Interaction.advisor_id help: Advisor id for Interaction.
-%%field Interaction.interaction_type help: Interaction type for Interaction.
-%%field Interaction.interaction_at help: Interaction at for Interaction.
-%%field Interaction.subject help: Subject for Interaction.
-%%field Interaction.notes help: Notes for Interaction.
+%%entity Interaction help: A recorded conversation with a party — a call, a meeting, an email exchange. Interactions are the relationship's memory: they establish what was discussed and when, which is what a suitability review reconstructs the advice from.
+%%field Interaction.party_id help: Who the conversation was with. Held as a party rather than a client so conversations with prospects, nominees and family members are recorded on the same footing.
+%%field Interaction.advisor_id help: Who from the firm was speaking. Every piece of advice has a name against it, and this is where a conversation acquires one.
+%%field Interaction.interaction_type help: Call, meeting, email, video or note. The type matters for the record: a documented meeting carries more evidential weight than a note somebody typed afterwards.
+%%field Interaction.interaction_at help: When the conversation happened, not when it was written up. A suitability review reads these in date order against the advice given, so a wrong timestamp misplaces the reasoning.
+%%field Interaction.subject help: One line saying what the conversation was about, as it would appear in a chronological list of the relationship.
+%%field Interaction.notes help: What was actually discussed, decided and promised. This is the substance a later reviewer relies on, so write it for somebody who was not in the room and is reading it two years on.
 
-%%entity Activity help: Activity is a business record in the wealth-management platform.
-%%field Activity.id help: Unique identifier for Activity.
-%%field Activity.client_id help: Client id for Activity.
-%%field Activity.advisor_id help: Advisor id for Activity.
-%%field Activity.activity_type help: Activity type for Activity.
-%%field Activity.subject help: Subject for Activity.
-%%field Activity.due_date help: Due date for Activity.
-%%field Activity.priority help: Priority for Activity.
+%%entity Activity help: A piece of work owed to a client with a date on it — a call-back, a document to chase, a review to prepare. Activities are how service commitments stop being remembered and start being tracked.
+%%field Activity.client_id help: The client the work is for. Read from the client's own screen so an advisor opening a relationship sees what is outstanding on it.
+%%field Activity.advisor_id help: Who owes the work. An activity without an owner is a wish; this is what makes it an assignment.
+%%field Activity.activity_type help: Call, meeting, document, review or follow-up. It says what kind of effort the item needs, which is what makes a day's list sortable into something workable.
+%%field Activity.subject help: What has to be done, in one line. Specific enough that the person picking it up does not have to open it to know whether they can do it now.
+%%field Activity.due_date help: When it is owed by. Everything overdue is what a morning list is, so a date set optimistically is worse than no activity at all.
+%%field Activity.priority help: How much this displaces other work. Used to break ties on a day where everything is due, and to escalate what genuinely cannot wait.
 %%field Activity.status enum: RecordStatus
-%%field Activity.status help: Status for Activity.
-%%field Activity.completed_at help: Completed at for Activity.
+%%field Activity.status help: open, in progress, completed or cancelled. Only the moves the lifecycle allows are accepted, so an activity cannot be quietly completed without having been started.
+%%field Activity.completed_at help: When the work was actually finished. Empty until then; comparing it with the due date is the whole of the service-level picture.
 
-%%entity ServiceRequest help: ServiceRequest is a business record in the wealth-management platform.
-%%field ServiceRequest.id help: Unique identifier for ServiceRequest.
-%%field ServiceRequest.client_id help: Client id for ServiceRequest.
-%%field ServiceRequest.request_type help: Request type for ServiceRequest.
-%%field ServiceRequest.subject help: Subject for ServiceRequest.
+%%entity ServiceRequest help: Something a client has asked the firm to do — a change of address, a statement, a redemption instruction, a complaint. Distinct from an activity, which the firm sets itself: a service request has a client waiting on the other end of it and usually a promised turnaround.
+%%field ServiceRequest.client_id help: The client who asked. It decides which service standard applies and who is told when the request is done.
+%%field ServiceRequest.request_type help: What kind of request it is — information, transaction, change of detail, or complaint. Complaints in particular carry regulatory timelines that other requests do not.
+%%field ServiceRequest.subject help: What the client asked for, in their terms. The operations team triages from this line before opening anything.
 %%field ServiceRequest.status enum: ServiceRequestStatus
-%%field ServiceRequest.status help: Status for ServiceRequest.
-%%field ServiceRequest.priority help: Priority for ServiceRequest.
-%%field ServiceRequest.submitted_at help: Submitted at for ServiceRequest.
-%%field ServiceRequest.completed_at help: Completed at for ServiceRequest.
+%%field ServiceRequest.status help: submitted, in progress, completed or rejected. Only the drawn transitions are allowed, so a request cannot be completed without having been picked up.
+%%field ServiceRequest.priority help: How quickly this has to be answered, from the request type and the client's service model. It is what orders the queue when more arrives than can be done.
+%%field ServiceRequest.submitted_at help: When the client raised it. The clock every turnaround promise is measured from, so it is the time of receipt rather than of logging.
+%%field ServiceRequest.completed_at help: When the client actually got their answer. Empty while open; the gap from submission is the number a service review is conducted on.
 
-%%entity OnboardingCase help: OnboardingCase is a business record in the wealth-management platform.
-%%field OnboardingCase.id help: Unique identifier for OnboardingCase.
-%%field OnboardingCase.client_id help: Client id for OnboardingCase.
-%%field OnboardingCase.prospect_id help: Prospect id for OnboardingCase.
+%%entity OnboardingCase help: The file that carries a prospect through to being an active client — KYC, declarations, suitability, mandates and the first account. It exists because onboarding is a process with a state, not an event, and because a case that stalls needs to be visible while it is stalling.
+%%field OnboardingCase.client_id help: The client record this case is creating or completing. Present from the start, in draft, so documents and declarations have something to attach to.
+%%field OnboardingCase.prospect_id help: The prospect this case grew out of. It is the join that lets the firm measure how long conversion actually takes, and to carry the pursuit's history into the relationship.
 %%field OnboardingCase.status enum: OnboardingStatus
-%%field OnboardingCase.status help: Status for OnboardingCase.
-%%field OnboardingCase.started_date help: Started date for OnboardingCase.
-%%field OnboardingCase.completed_date help: Completed date for OnboardingCase.
-%%field OnboardingCase.advisor_id help: Assigned advisor id for OnboardingCase.
+%%field OnboardingCase.status help: Where onboarding has reached — initiated, documents pending, under verification, approved or rejected. A case cannot be approved with an outstanding KYC or declaration, which is the whole reason for tracking it.
+%%field OnboardingCase.started_date help: When onboarding began. With the completion date it gives the turnaround figure that says whether the process is working.
+%%field OnboardingCase.completed_date help: When the client became active. Empty while the case is open; a case open past the firm's own standard is what an operations review escalates.
+%%field OnboardingCase.advisor_id help: The advisor driving the case. Onboarding stalls when nobody chases the client for the missing document, and this is who is expected to.
 
-%%entity KYCRecord help: KYCRecord is a business record in the wealth-management platform.
-%%field KYCRecord.id help: Unique identifier for KYCRecord.
-%%field KYCRecord.client_id help: Client id for KYCRecord.
-%%field KYCRecord.kyc_status help: Kyc status for KYCRecord.
-%%field KYCRecord.kyc_type help: Kyc type for KYCRecord.
-%%field KYCRecord.verification_date help: Verification date for KYCRecord.
-%%field KYCRecord.verification_source help: Verification source for KYCRecord.
-%%field KYCRecord.kyc_identifier help: Kyc identifier for KYCRecord.
-%%field KYCRecord.expiry_date help: Expiry date for KYCRecord.
+%%entity KYCRecord help: The client's know-your-customer file: what identity was established, on what evidence, when, and when it expires. It is the gate on everything — no transaction may be accepted against a client whose KYC is incomplete or lapsed, whatever the commercial pressure.
+%%field KYCRecord.client_id help: The client whose identity this file establishes. One current record per client, superseded rather than edited when re-verification happens.
+%%field KYCRecord.kyc_status help: pending, in progress, verified, rejected or expired. Only `verified` permits transacting; `expired` is the one that catches firms out, because nothing about the client changed on the day it flipped.
+%%field KYCRecord.kyc_type help: The standard applied — simplified, standard or enhanced due diligence. Enhanced applies to politically exposed persons and higher-risk profiles, and demands materially more evidence.
+%%field KYCRecord.verification_date help: When identity was last established. It is the date the expiry is computed from and the date an auditor asks to see the evidence for.
+%%field KYCRecord.verification_source help: Who or what verified it — an in-person check, a central KYC registry, or a third-party verification agency. The source determines how much weight the check carries.
+%%field KYCRecord.kyc_identifier help: The reference issued by the central KYC registry, where one applies. It lets another intermediary confirm the client is already verified without repeating the process.
+%%field KYCRecord.expiry_date help: When re-verification falls due. Periodic review is mandatory and risk-based — an enhanced-diligence client comes round far sooner than a simplified one.
 
-%%entity KYCVerification help: KYCVerification is a business record in the wealth-management platform.
-%%field KYCVerification.id help: Unique identifier for KYCVerification.
-%%field KYCVerification.kyc_record_id help: Kyc record id for KYCVerification.
-%%field KYCVerification.verification_type help: Verification type for KYCVerification.
+%%entity KYCVerification help: One individual check performed as part of a client's KYC file — an identity document validated, an address confirmed, a sanctions list searched. Held as line items of the record because a KYC file is only as good as the checks under it, and each has its own source, date and outcome.
+
+%%entity KYCVerification parent: KYCRecord
+%%field KYCVerification.kyc_record_id help: The KYC file this check belongs to. Read inside that file, where the checks together are the evidence for its status.
+%%field KYCVerification.verification_type help: What was checked — identity, address, PAN, bank account, sanctions or PEP screening. Each type has its own acceptable evidence and its own failure meaning.
 %%field KYCVerification.status enum: RecordStatus
-%%field KYCVerification.status help: Status for KYCVerification.
-%%field KYCVerification.verified_at help: Verified at for KYCVerification.
-%%field KYCVerification.verification_source help: Verification source for KYCVerification.
-%%field KYCVerification.reference_number help: Reference number for KYCVerification.
+%%field KYCVerification.status help: pending, passed or failed. One failed check is enough to hold the whole file: a KYC record cannot be verified while any of its checks has not passed.
+%%field KYCVerification.verified_at help: When this particular check was carried out. Checks age at different rates, which is why the dates are held per check rather than only on the file.
+%%field KYCVerification.verification_source help: The agency, registry or document the check was performed against. It is what an auditor traces the result back to.
+%%field KYCVerification.reference_number help: The provider's own reference for this check, so the result can be re-pulled or disputed with them later.
 
-%%entity FATCADeclaration help: FATCADeclaration is a business record in the wealth-management platform.
-%%field FATCADeclaration.id help: Unique identifier for FATCADeclaration.
-%%field FATCADeclaration.client_id help: Client id for FATCADeclaration.
-%%field FATCADeclaration.tax_residency help: Tax residency for FATCADeclaration.
-%%field FATCADeclaration.country help: Country for FATCADeclaration.
-%%field FATCADeclaration.tin help: Tin for FATCADeclaration.
-%%field FATCADeclaration.us_person help: Us person for FATCADeclaration.
-%%field FATCADeclaration.declaration_date help: Declaration date for FATCADeclaration.
+%%entity FATCADeclaration help: The client's declaration of United States tax status, which the firm is required to collect and, where it applies, to report. Getting it wrong is not a service failure but a reporting breach, which is why it is a dated declaration by the client rather than a field somebody set.
 
-%%entity CRSDeclaration help: CRSDeclaration is a business record in the wealth-management platform.
-%%field CRSDeclaration.id help: Unique identifier for CRSDeclaration.
-%%field CRSDeclaration.client_id help: Client id for CRSDeclaration.
-%%field CRSDeclaration.tax_residency help: Tax residency for CRSDeclaration.
-%%field CRSDeclaration.country help: Country for CRSDeclaration.
-%%field CRSDeclaration.tin help: Tin for CRSDeclaration.
-%%field CRSDeclaration.declaration_date help: Declaration date for CRSDeclaration.
+%%entity FATCADeclaration parent: Client
+%%field FATCADeclaration.client_id help: The client making the declaration. One current declaration per client, refreshed whenever their circumstances change.
+%%field FATCADeclaration.tax_residency help: The country the client declares they are tax resident in. It may differ from nationality and from where they live, and the declaration is what the firm reports on.
+%%field FATCADeclaration.country help: The jurisdiction this declaration line refers to. A client with obligations in more than one country needs a line for each.
+%%field FATCADeclaration.tin help: The taxpayer identification number in that jurisdiction. Mandatory where the client is reportable; a missing one is itself something the firm must report.
+%%field FATCADeclaration.us_person help: Whether the client is a US person for tax purposes. Set, this makes the account reportable under FATCA and constrains which products may be offered at all.
+%%field FATCADeclaration.declaration_date help: When the client made this declaration. Declarations have a shelf life and must be refreshed on a change of circumstances, so the date is what triggers the refresh.
+
+%%entity CRSDeclaration help: The client's declaration of tax residency under the Common Reporting Standard — the multilateral counterpart to FATCA. Separate because the reportable population and the exchange partners differ, and a client can be reportable under one and not the other.
+
+%%entity CRSDeclaration parent: Client
+%%field CRSDeclaration.client_id help: The client making the declaration. Held per client and refreshed on any change of residency.
+%%field CRSDeclaration.tax_residency help: The jurisdiction of tax residency being declared. CRS exchanges information with the declared jurisdiction, so this is the field that decides who is told what.
+%%field CRSDeclaration.country help: The country this declaration line covers. Multiple residencies mean multiple lines, each reportable in its own right.
+%%field CRSDeclaration.tin help: The tax identification number in the declared jurisdiction. Its absence has to be explained, not merely left blank.
+%%field CRSDeclaration.declaration_date help: When the declaration was made. Reporting is annual and against the declaration in force, so the date decides which year it counts for.
 %%field CRSDeclaration.status enum: RecordStatus
-%%field CRSDeclaration.status help: Status for CRSDeclaration.
+%%field CRSDeclaration.status help: Whether the declaration is pending, valid or superseded. Only a valid declaration satisfies the requirement; a pending one blocks account opening.
 
-%%entity SuitabilityAssessment help: SuitabilityAssessment is a business record in the wealth-management platform.
-%%field SuitabilityAssessment.id help: Unique identifier for SuitabilityAssessment.
-%%field SuitabilityAssessment.client_id help: Client id for SuitabilityAssessment.
-%%field SuitabilityAssessment.assessment_type help: Assessment type for SuitabilityAssessment.
-%%field SuitabilityAssessment.assessment_date help: Assessment date for SuitabilityAssessment.
+%%entity SuitabilityAssessment help: The formal judgement that a course of advice fits this client — their objectives, horizon, knowledge, experience and capacity for loss. It is the document that answers the only question a regulator ever really asks about a recommendation, and it is dated because suitability is a judgement about a moment.
+%%field SuitabilityAssessment.client_id help: The client being assessed. Suitability is personal: a household-level plan still needs each transacting client to have been assessed.
+%%field SuitabilityAssessment.assessment_type help: Initial, periodic or event-driven. An event-driven assessment follows a material change — retirement, inheritance, a change in dependants — and is the one most often skipped.
+%%field SuitabilityAssessment.assessment_date help: When the assessment was made. Advice is defended against the assessment in force on the day it was given, so this date is load-bearing.
 %%field SuitabilityAssessment.status enum: RecordStatus
-%%field SuitabilityAssessment.status help: Status for SuitabilityAssessment.
-%%field SuitabilityAssessment.result help: Result for SuitabilityAssessment.
-%%field SuitabilityAssessment.advisor_id help: Assessor id for SuitabilityAssessment.
+%%field SuitabilityAssessment.status help: draft, completed or expired. Advice given against an expired assessment is unsupported, however sound it happens to be.
+%%field SuitabilityAssessment.result help: The conclusion — suitable, suitable with conditions, or unsuitable. An unsuitable result is a legitimate outcome and must stop the recommendation rather than be worked around.
+%%field SuitabilityAssessment.advisor_id help: The advisor who made the judgement. Suitability is signed, not computed, and this is the signature.
 
-%%entity IdentityDocument help: IdentityDocument is a business record in the wealth-management platform.
-%%field IdentityDocument.id help: Unique identifier for IdentityDocument.
-%%field IdentityDocument.party_id help: Party id for IdentityDocument.
-%%field IdentityDocument.document_type help: Document type for IdentityDocument.
-%%field IdentityDocument.document_number help: Document number for IdentityDocument.
-%%field IdentityDocument.issue_date help: Issue date for IdentityDocument.
-%%field IdentityDocument.expiry_date help: Expiry date for IdentityDocument.
-%%field IdentityDocument.verification_status help: Verification status for IdentityDocument.
+%%entity IdentityDocument help: One document evidencing a party's identity — a passport, national identity card, driving licence or tax card. Kept as records of the party because documents expire on their own schedules, and a KYC file is only current while the documents under it are.
 
-%%entity ESignatureRequest help: ESignatureRequest is a business record in the wealth-management platform.
-%%field ESignatureRequest.id help: Unique identifier for ESignatureRequest.
-%%field ESignatureRequest.client_id help: Client id for ESignatureRequest.
-%%field ESignatureRequest.document_id help: Document id for ESignatureRequest.
+%%entity IdentityDocument parent: Party
+%%field IdentityDocument.party_id help: The identity this document evidences. Read from the party's own screen, alongside their addresses and contact points.
+%%field IdentityDocument.document_type help: Passport, national identity card, driving licence, PAN or utility bill. Different types satisfy different checks: one that proves identity may not prove address.
+%%field IdentityDocument.document_number help: The number printed on the document, which is what a registry or verification agency is queried against.
+%%field IdentityDocument.issue_date help: When the document was issued. Some checks require a document issued within a recent window, particularly for address evidence.
+%%field IdentityDocument.expiry_date help: When the document ceases to be valid. An expired document silently invalidates the KYC check that relied on it, which is why it is tracked per document.
+%%field IdentityDocument.verification_status help: pending, verified or rejected. Rejected is kept rather than deleted: an auditor wants to see what was refused as much as what was accepted.
+
+%%entity ESignatureRequest help: A document sent to a client for electronic signature, and the record of what came back. It exists as its own entity because the signing provider is external and asynchronous — the firm needs somewhere to hold the request while it is outstanding and the provider's reference when it is not.
+%%field ESignatureRequest.client_id help: The client being asked to sign. It is who the reminder goes to and whose acceptance the signature evidences.
+%%field ESignatureRequest.document_id help: The document put out for signature. The signed copy comes back against the same record, so the version signed is never in doubt.
 %%field ESignatureRequest.status enum: RecordStatus
-%%field ESignatureRequest.status help: Status for ESignatureRequest.
-%%field ESignatureRequest.requested_at help: Requested at for ESignatureRequest.
-%%field ESignatureRequest.signed_at help: Signed at for ESignatureRequest.
-%%field ESignatureRequest.provider_reference help: Provider reference for ESignatureRequest.
+%%field ESignatureRequest.status help: requested, sent, viewed, signed, declined or expired. Anything that is not `signed` after the firm's own follow-up window is a request somebody has to chase.
+%%field ESignatureRequest.requested_at help: When the request was raised. With the signature time it gives the turnaround, which is what says whether the signing journey is working.
+%%field ESignatureRequest.signed_at help: When the client actually signed. Empty until they do, and it is the timestamp the instrument takes effect from.
+%%field ESignatureRequest.provider_reference help: The signing provider's own reference for this envelope. It is what a support query or an evidential certificate is retrieved with.
 
-%%entity BankAccount help: BankAccount is a business record in the wealth-management platform.
-%%field BankAccount.id help: Unique identifier for BankAccount.
-%%field BankAccount.client_id help: Client id for BankAccount.
-%%field BankAccount.bank_name help: Bank name for BankAccount.
-%%field BankAccount.account_number help: Account number for BankAccount.
-%%field BankAccount.account_type help: Account type for BankAccount.
-%%field BankAccount.ifsc help: Ifsc for BankAccount.
-%%field BankAccount.branch help: Branch for BankAccount.
-%%field BankAccount.is_primary help: Is primary for BankAccount.
-%%field BankAccount.verification_status help: Verification status for BankAccount.
+%%entity BankAccount help: A client's own bank account, registered with the firm so money can move. Registration is a controlled event: payouts go only to a verified account in the client's name, which is the main defence against redemption fraud.
+%%field BankAccount.client_id help: The client the account belongs to. Third-party payouts are not permitted, so an account whose name does not match the client cannot be used.
+%%field BankAccount.bank_name help: The bank holding the account, as it should appear on payment instructions and in the client's own statements.
+%%field BankAccount.account_number help: The account number money is credited to. Verified before first use — a redemption paid to a mistyped number is recovered slowly if at all.
+%%field BankAccount.account_type help: Savings, current or non-resident. The type constrains what may be credited to it: repatriable proceeds may not be paid into a resident account.
+%%field BankAccount.ifsc help: The branch routing code for domestic transfers. Wrong, the payment is rejected by the clearing system rather than misdirected, which is the better of the two failures.
+%%field BankAccount.branch help: The branch the account is held at, kept for reconciliation and for the cases where a manual instruction has to name it.
+%%field BankAccount.is_primary help: Whether this is the default account for payouts. One per client — it is what a redemption picks when the instruction does not name an account.
+%%field BankAccount.verification_status help: pending, verified or rejected. Only a verified account may receive money; verification is usually a penny credit or a cancelled-cheque check.
 
-%%entity Document help: Document is a business record in the wealth-management platform.
-%%field Document.id help: Unique identifier for Document.
-%%field Document.party_id help: Party id for Document.
-%%field Document.document_type help: Document type id for Document.
-%%field Document.file_name help: File name for Document.
-%%field Document.document_url help: Document url for Document.
+%%entity Document help: Any file the firm holds against a party — an agreement, a statement, a proof, a signed mandate. Documents are the evidence behind almost every regulated decision, which is why they are records with a status rather than files in a folder.
+%%field Document.party_id help: The identity the document belongs to. Documents are read from the party's own screen, in the context of what they evidence.
+%%field Document.document_type help: Agreement, KYC proof, mandate, statement, correspondence or report. It decides retention, who may see it, and what process it satisfies.
+%%field Document.file_name help: The name of the stored file, as it will be presented when downloaded. Meaningful names matter here because a client asks for a document by what it is, not by its key.
+%%field Document.document_url help: Where the stored file can be retrieved from. Held rather than the bytes so the firm's document store remains the system of record.
 %%field Document.status enum: RecordStatus
-%%field Document.status help: Status for Document.
-%%field Document.uploaded_at help: Uploaded at for Document.
+%%field Document.status help: draft, active, superseded or archived. A superseded document is kept: it is what was in force at the time, which is exactly what a dispute turns on.
+%%field Document.uploaded_at help: When the file was placed on record. It is the date retention is counted from and the date an auditor matches against the event it evidences.
 
-%%entity AuditEvent help: Append-only business audit event capturing who, what, when and before/after values.
-%%field AuditEvent.id help: Unique identifier for AuditEvent.
-%%field AuditEvent.timestamp help: Timestamp for AuditEvent.
-%%field AuditEvent.advisor_id help: User id for AuditEvent.
-%%field AuditEvent.action help: Action for AuditEvent.
-%%field AuditEvent.entity_type help: Entity type for AuditEvent.
-%%field AuditEvent.entity_ref help: Entity id for AuditEvent.
-%%field AuditEvent.before_value help: Before value for AuditEvent.
-%%field AuditEvent.after_value help: After value for AuditEvent.
-%%field AuditEvent.source help: Source for AuditEvent.
-%%field AuditEvent.ip_address help: Ip address for AuditEvent.
-%%field AuditEvent.correlation_ref help: Correlation id for AuditEvent.
+%%entity AuditEvent help: One recorded change to something that matters — who did it, to what, when, from where, and what the value was before and after. It is written by the application rather than by people, and it is the record a regulator, a dispute or an internal investigation is reconstructed from.
+%%field AuditEvent.timestamp help: When the change happened, from the server rather than the client. Ordering is the whole value of an audit trail, so this is never taken from a browser.
+%%field AuditEvent.advisor_id help: Who made the change. An event without an actor is of no use to an investigation, which is why unattributed changes are the finding rather than the norm.
+%%field AuditEvent.action help: What was done — created, updated, deleted, viewed, exported or approved. Exports and views are included deliberately: reading a client's data is itself an event worth recording.
+%%field AuditEvent.entity_type help: Which kind of record was affected. With the reference below it identifies the subject without the audit trail needing a foreign key to every table in the system.
+%%field AuditEvent.entity_ref help: The key of the affected record. Held as text for the same reason: the trail must outlive the record, including one that has since been deleted.
+%%field AuditEvent.before_value help: The state before the change, as far as it is worth keeping. It is what makes a trail reversible in argument, if not in fact.
+%%field AuditEvent.after_value help: The state after the change. With the before value it answers what actually altered, which a bare 'updated' never does.
+%%field AuditEvent.source help: Where the change came in from — the web application, an API client, a scheduled job or a data import. It distinguishes a person's decision from a batch's side effect.
+%%field AuditEvent.ip_address help: The network address the change originated from, kept for security investigation. It is the field that turns 'the account was changed' into 'the account was changed from an unfamiliar location'.
+%%field AuditEvent.correlation_ref help: A reference shared by every event from one request or job, so a single business action can be read as a whole rather than as scattered rows.
 
-%%entity FinancialPlan help: Versioned household financial plan describing objectives, assumptions, scenarios and funding requirements.
-%%field FinancialPlan.id help: Unique identifier for FinancialPlan.
-%%field FinancialPlan.household_id help: Household id for FinancialPlan.
-%%field FinancialPlan.advisor_id help: Advisor id for FinancialPlan.
-%%field FinancialPlan.plan_number help: Plan number for FinancialPlan.
-%%field FinancialPlan.plan_version help: Plan version for FinancialPlan.
+%%entity FinancialPlan help: The household's written financial plan: the assumptions, the income and outgoings, the liabilities and the goals, brought together as one dated version. Plans are versioned rather than edited because advice is defended against the plan that was in force, and a plan quietly rewritten is a plan nobody can be held to.
+%%field FinancialPlan.household_id help: The family this plan is for. Planning is a household exercise — one retirement, one education bill, one balance sheet — which is why the plan hangs here and not on a client.
+%%field FinancialPlan.advisor_id help: The advisor who built the plan and is accountable for its assumptions. Signed rather than generated: a projection is only as good as the judgements behind it.
+%%field FinancialPlan.plan_number help: The reference the plan is quoted by in review packs and correspondence, so a family and their advisor can be certain they are discussing the same document.
+%%field FinancialPlan.plan_version help: Which revision this is. A new version is issued whenever assumptions or goals change materially, and the superseded one stays readable.
 %%field FinancialPlan.status enum: PlanStatus
-%%field FinancialPlan.status help: Status for FinancialPlan.
-%%field FinancialPlan.effective_date help: Effective date for FinancialPlan.
-%%field FinancialPlan.review_date help: Review date for FinancialPlan.
-%%field FinancialPlan.base_currency help: Base currency for FinancialPlan.
+%%field FinancialPlan.status help: draft, active, superseded or archived. Exactly one active plan per household at a time — two would mean two answers to what the family is aiming at.
+%%field FinancialPlan.effective_date help: The date the plan's figures are stated as at. Every projection in it runs forward from here, so comparing two plans means comparing their effective dates first.
+%%field FinancialPlan.review_date help: When the plan is next due to be revisited. A plan past its review date is stale advice, and the whole point of the field is that somebody notices before the client does.
+%%field FinancialPlan.base_currency help: The currency the plan's figures are expressed in. Holdings in other currencies are translated to it, so a change here changes every number in the plan.
 
-%%entity FinancialPlanAssumption help: FinancialPlanAssumption is a business record in the wealth-management platform.
-%%field FinancialPlanAssumption.id help: Unique identifier for FinancialPlanAssumption.
-%%field FinancialPlanAssumption.financial_plan_id help: Financial plan id for FinancialPlanAssumption.
-%%field FinancialPlanAssumption.assumption_type help: Assumption type for FinancialPlanAssumption.
-%%field FinancialPlanAssumption.value help: Value for FinancialPlanAssumption.
-%%field FinancialPlanAssumption.unit help: Unit for FinancialPlanAssumption.
-%%field FinancialPlanAssumption.source help: Source for FinancialPlanAssumption.
+%%entity FinancialPlanAssumption help: One economic assumption the plan's arithmetic rests on — inflation, return by asset class, salary growth, life expectancy. Held as line items because the assumptions are what a reviewer argues with, and a projection whose assumptions are buried cannot be argued with at all.
 
-%%entity IncomeSource help: IncomeSource is a business record in the wealth-management platform.
-%%field IncomeSource.id help: Unique identifier for IncomeSource.
-%%field IncomeSource.financial_plan_id help: Financial plan id for IncomeSource.
-%%field IncomeSource.party_id help: Party id for IncomeSource.
-%%field IncomeSource.income_type help: Income type for IncomeSource.
-%%field IncomeSource.amount help: Amount for IncomeSource.
-%%field IncomeSource.frequency help: Frequency for IncomeSource.
-%%field IncomeSource.start_date help: Start date for IncomeSource.
-%%field IncomeSource.end_date help: End date for IncomeSource.
-%%field IncomeSource.inflation_linked help: Inflation linked for IncomeSource.
+%%entity FinancialPlanAssumption parent: FinancialPlan
+%%field FinancialPlanAssumption.financial_plan_id help: The plan this assumption belongs to. Read inside the plan, where the assumptions together are the basis of every figure in it.
+%%field FinancialPlanAssumption.assumption_type help: What is being assumed — inflation, expected return, salary growth, life expectancy, tax rate. The type is what a projection looks the value up by.
+%%field FinancialPlanAssumption.value help: The figure assumed. Stated as the plan states it, so a reader can check the projection by hand if they wish.
+%%field FinancialPlanAssumption.unit help: How to read the value — a percentage a year, an absolute amount, or a count of years. Without it a bare number is ambiguous in exactly the way that produces wrong projections.
+%%field FinancialPlanAssumption.source help: Where the assumption came from — a house view, a regulator's prescribed rate, or the client's own statement. It is what makes an assumption defensible rather than merely stated.
 
-%%entity Expense help: Expense is a business record in the wealth-management platform.
-%%field Expense.id help: Unique identifier for Expense.
-%%field Expense.financial_plan_id help: Financial plan id for Expense.
-%%field Expense.expense_type help: Expense type for Expense.
-%%field Expense.amount help: Amount for Expense.
-%%field Expense.frequency help: Frequency for Expense.
-%%field Expense.start_date help: Start date for Expense.
-%%field Expense.end_date help: End date for Expense.
-%%field Expense.inflation_linked help: Inflation linked for Expense.
+%%entity IncomeSource help: Money coming into the household, by source and schedule. Income is what funds every goal, so the plan needs each stream separately: salary stops at retirement, rent does not, and a bonus is not the same promise as a salary.
+%%field IncomeSource.financial_plan_id help: The plan this income belongs to. It is one of the inputs the projection is built from, and it is versioned with the plan.
+%%field IncomeSource.party_id help: Which member of the household earns it. Needed because income stops at different times for different people, and because tax is assessed per person.
+%%field IncomeSource.income_type help: Salary, business, rental, dividend, interest, pension or other. The type carries the assumptions about how long it lasts and how it is taxed.
+%%field IncomeSource.amount help: The amount received each period, before tax unless the plan says otherwise. Consistency here matters more than precision: mixing gross and net across sources quietly breaks the plan.
+%%field IncomeSource.frequency help: How often it is received — monthly, quarterly, annually or one-off. It is what the projection annualises from.
+%%field IncomeSource.start_date help: When this income begins, which for a pension or a maturing annuity may be years away. The projection has nothing before this date.
+%%field IncomeSource.end_date help: When it stops — retirement, the end of a lease, the last instalment. Empty for income assumed to continue throughout the plan, which is an assumption worth being deliberate about.
+%%field IncomeSource.inflation_linked help: Whether the amount is assumed to rise with inflation. A salary usually is and a fixed annuity is not, and the difference compounds into a very different picture over thirty years.
 
-%%entity Liability help: Liability is a business record in the wealth-management platform.
-%%field Liability.id help: Unique identifier for Liability.
-%%field Liability.financial_plan_id help: Financial plan id for Liability.
-%%field Liability.liability_type help: Liability type for Liability.
-%%field Liability.outstanding_amount help: Outstanding amount for Liability.
-%%field Liability.interest_rate help: Interest rate for Liability.
-%%field Liability.maturity_date help: Maturity date for Liability.
-%%field Liability.monthly_payment help: Monthly payment for Liability.
+%%entity Expense help: Money going out of the household, by category and schedule. Expenses are the other half of the cash-flow picture and the part clients underestimate: a plan built on stated expenses that do not reconcile to income is the first thing a good adviser challenges.
+%%field Expense.financial_plan_id help: The plan this outgoing belongs to. Held with the plan's version so a revised plan can revise the spending picture without rewriting history.
+%%field Expense.expense_type help: Household, education, medical, lifestyle, insurance premium or loan repayment. The type decides whether it is discretionary, which is what gets tested in a stress scenario.
+%%field Expense.amount help: The amount spent each period. Understating it is the most common source of a plan that looks affordable and is not.
+%%field Expense.frequency help: monthly, quarterly, annually or one-off. School fees are annual, groceries monthly, a wedding once — and treating them alike distorts the cash-flow curve.
+%%field Expense.start_date help: When this spending begins. Future expenses — a child's university, a planned purchase — are planned for from their own start date rather than smeared across the whole term.
+%%field Expense.end_date help: When it ceases. Empty for spending assumed to continue for life; setting it is what makes a school fee stop when the child graduates.
+%%field Expense.inflation_linked help: Whether the amount is assumed to rise with prices. Most living costs are, and medical costs typically faster than the general index — an assumption worth stating rather than defaulting.
+
+%%entity Liability help: A debt the household owes. Liabilities matter twice in planning: they consume cash flow while they run, and they reduce net worth until they are repaid, which is what makes an otherwise wealthy balance sheet fragile.
+%%field Liability.financial_plan_id help: The plan this debt appears in. Part of the same versioned picture as the income and expenses it interacts with.
+%%field Liability.liability_type help: Home loan, personal loan, education loan, credit card or margin borrowing. The type carries very different interest and very different urgency about repaying it.
+%%field Liability.outstanding_amount help: What is still owed. Deducted from assets to give net worth, and the figure a repay-or-invest comparison is made against.
+%%field Liability.interest_rate help: The rate being charged. It is the hurdle any investment has to clear before borrowing to invest makes sense, which is the calculation this field exists for.
+%%field Liability.maturity_date help: When the debt is due to be cleared. It tells the projection when the repayment stops consuming cash flow.
+%%field Liability.monthly_payment help: The regular servicing amount. It comes out of income before anything is available to invest, so a plan that ignores it overstates what the family can save.
 %%field Liability.status enum: RecordStatus
-%%field Liability.status help: Status for Liability.
+%%field Liability.status help: active, closed or in default. A default is not a bookkeeping state — it changes the advice entirely, and clearing it usually takes priority over every goal in the plan.
 
-%%entity CashFlow help: CashFlow is a business record in the wealth-management platform.
-%%field CashFlow.id help: Unique identifier for CashFlow.
-%%field CashFlow.financial_plan_id help: Financial plan id for CashFlow.
-%%field CashFlow.cashflow_type help: Cashflow type for CashFlow.
-%%field CashFlow.category help: Category for CashFlow.
-%%field CashFlow.amount help: Amount for CashFlow.
-%%field CashFlow.frequency help: Frequency for CashFlow.
-%%field CashFlow.start_date help: Start date for CashFlow.
-%%field CashFlow.end_date help: End date for CashFlow.
-%%field CashFlow.inflation_linked help: Inflation linked for CashFlow.
+%%entity CashFlow help: A modelled movement of money in the plan, in or out, at a stated frequency. Where income and expenses describe the household's ordinary life, cash flows are what the projection actually runs on — including the ones that exist only in the plan, like a planned lump sum or a goal contribution.
+%%field CashFlow.financial_plan_id help: The plan being projected. Cash flows have no meaning outside the plan whose assumptions they are discounted under.
+%%field CashFlow.cashflow_type help: inflow or outflow. The sign of the whole line, kept explicit rather than implied by a negative amount, which is easy to get wrong on entry.
+%%field CashFlow.category help: What this flow represents — a contribution, a withdrawal, a goal funding, a windfall. It is how a projection chart is broken down into something a client recognises.
+%%field CashFlow.amount help: The size of the movement each period, in the plan's base currency.
+%%field CashFlow.frequency help: monthly, quarterly, annually or one-off. Together with the dates this is what the projection discretises the plan into.
+%%field CashFlow.start_date help: When the flow begins. A goal contribution starting three years out is a materially different plan from one starting now.
+%%field CashFlow.end_date help: When it stops. Empty for a flow assumed to run to the end of the plan.
+%%field CashFlow.inflation_linked help: Whether the amount grows with inflation. A contribution the client intends to step up with their salary should be; a fixed instalment should not.
 
-%%entity Goal help: Financial objective tracked through planning, funding and achievement.
-%%field Goal.id help: Unique identifier for Goal.
-%%field Goal.household_id help: Household id for Goal.
-%%field Goal.financial_plan_id help: Financial plan id for Goal.
-%%field Goal.goal_type help: Goal type for Goal.
-%%field Goal.name help: Name for Goal.
-%%field Goal.target_amount help: Target amount for Goal.
-%%field Goal.target_date help: Target date for Goal.
-%%field Goal.priority help: Priority for Goal.
+%%entity Goal help: Something the family is actually trying to pay for — a retirement, a house, a child's education — with an amount and a date. Goals are the point of the whole plan: a portfolio without one is money with no purpose, and it is against goals rather than benchmarks that a family judges whether advice worked.
+%%field Goal.household_id help: The family whose goal this is. Goals belong to households because they are usually paid for jointly, whoever's name the account is in.
+%%field Goal.financial_plan_id help: The plan version this goal was set in. Keeping it tied to a version means a goal's target can be revised without silently rewriting the advice that was given against the old one.
+%%field Goal.goal_type help: Retirement, education, property, wedding, emergency fund, wealth creation or legacy. The type sets the default horizon and how much shortfall risk is tolerable — an education bill has a date that cannot move.
+%%field Goal.name help: What the family calls it, in their words: not 'Goal 2' but 'Ananya's university'. It is what appears on the review pack, and naming it properly is what makes the plan theirs.
+%%field Goal.target_amount help: What it will cost, in today's money unless the plan says otherwise. Inflating it to the target date is the projection's job, and the most commonly skipped step in do-it-yourself planning.
+%%field Goal.target_date help: When the money is needed. It determines the investment horizon, and therefore how much risk the goal can bear — a three-year goal cannot be funded from equity however good the long-run case is.
+%%field Goal.priority help: How this goal ranks when there is not enough to fund everything. Agreed with the family in advance, because the moment to decide which goal gives way is not the moment it becomes unaffordable.
 %%field Goal.status enum: GoalStatus
-%%field Goal.status help: Status for Goal.
-%%field Goal.funded_percentage help: Funded percentage for Goal.
+%%field Goal.status help: planned, on track, at risk, achieved or abandoned. `at risk` is the one that earns the field: it is what a review is for, and what a projection sets.
+%%field Goal.funded_percentage help: How much of the target the assets earmarked for it currently cover. The single number a family understands immediately, and the one a review opens with.
 
-%%entity GoalFunding help: GoalFunding is a business record in the wealth-management platform.
-%%field GoalFunding.id help: Unique identifier for GoalFunding.
-%%field GoalFunding.goal_id help: Goal id for GoalFunding.
-%%field GoalFunding.security_id help: Security id for GoalFunding.
-%%field GoalFunding.portfolio_id help: Portfolio id for GoalFunding.
-%%field GoalFunding.cash_flow_id help: Cashflow id for GoalFunding.
-%%field GoalFunding.allocated_amount help: Allocated amount for GoalFunding.
+%%entity GoalFunding help: An earmarking of a specific holding, portfolio or cash flow against a specific goal. It is what turns 'we have investments' into 'this is what the education bill will be paid from', and it is a line item of the goal because a funding line away from its goal means nothing.
 
-%%entity GoalProjection help: GoalProjection is a business record in the wealth-management platform.
-%%field GoalProjection.id help: Unique identifier for GoalProjection.
-%%field GoalProjection.goal_id help: Goal id for GoalProjection.
-%%field GoalProjection.scenario_id help: Scenario id for GoalProjection.
-%%field GoalProjection.projection_date help: Projection date for GoalProjection.
-%%field GoalProjection.projected_value help: Projected value for GoalProjection.
-%%field GoalProjection.shortfall help: Shortfall for GoalProjection.
-%%field GoalProjection.result help: Result for GoalProjection.
+%%entity GoalFunding parent: Goal
+%%field GoalFunding.goal_id help: The goal being funded. Read from inside the goal, where the funding lines together are what its funded percentage is computed from.
+%%field GoalFunding.security_id help: The instrument earmarked, where the earmarking is that specific. Useful for a goal funded from a named fund rather than from a portfolio as a whole.
+%%field GoalFunding.portfolio_id help: The portfolio the money is coming from. The usual level of earmarking, because families rebalance within a portfolio without changing what it is for.
+%%field GoalFunding.cash_flow_id help: The planned contribution funding the goal, where it is funded from future saving rather than from existing assets.
+%%field GoalFunding.allocated_amount help: How much of that source is earmarked for this goal. The same portfolio can fund several goals, and the allocations should not add up to more than it holds.
 
-%%entity Scenario help: Scenario is a business record in the wealth-management platform.
-%%field Scenario.id help: Unique identifier for Scenario.
-%%field Scenario.financial_plan_id help: Financial plan id for Scenario.
-%%field Scenario.name help: Name for Scenario.
-%%field Scenario.scenario_type help: Scenario type for Scenario.
+%%entity GoalProjection help: What a goal is projected to be worth on a given date under a given scenario, and whether that leaves a shortfall. Projections are stored rather than recomputed on demand so a review can show what was expected last year against what happened.
+
+%%entity GoalProjection parent: Goal
+%%field GoalProjection.goal_id help: The goal being projected. Read inside the goal alongside its funding, because a projection detached from what it projects is a number with no meaning.
+%%field GoalProjection.scenario_id help: The scenario this projection was run under. The same goal projects very differently under a base case and a market-downturn case, which is the entire reason scenarios exist.
+%%field GoalProjection.projection_date help: The date the projected value is stated at — normally the goal's target date, but interim dates are run to show the path.
+%%field GoalProjection.projected_value help: What the earmarked assets are expected to be worth by then, under this scenario's assumptions.
+%%field GoalProjection.shortfall help: How far the projection falls below the target. Empty when the goal is projected to be met; a shortfall is the number that drives every recommendation the review produces.
+%%field GoalProjection.result help: on track, at risk or shortfall. The one-word verdict a review pack leads with, derived from the shortfall against the family's own tolerance.
+
+%%entity Scenario help: A named set of alternative assumptions the plan can be re-run under — a market downturn, early retirement, a job loss, higher inflation. Scenarios are how a plan stops being a single optimistic line and starts being a range the family can prepare for.
+%%field Scenario.financial_plan_id help: The plan this scenario varies. A scenario is a modification of a plan's assumptions, so it has no meaning apart from one.
+%%field Scenario.name help: What the scenario is called in conversation — 'retire at 55', 'two years of poor markets'. It is the label on the chart the family looks at.
+%%field Scenario.scenario_type help: base, optimistic, pessimistic, or a stress test of a specific event. The type says how the result should be read: a stress test is not a forecast.
 %%field Scenario.status enum: RecordStatus
-%%field Scenario.status help: Status for Scenario.
-%%field Scenario.description help: Description for Scenario.
+%%field Scenario.status help: draft, active or archived. Archived scenarios are kept because what the family was shown last year is part of the advice record.
+%%field Scenario.description help: What this scenario supposes, in plain words. Without it a chart line labelled 'pessimistic' means whatever the reader assumes it means.
 
-%%entity ScenarioAssumption help: ScenarioAssumption is a business record in the wealth-management platform.
-%%field ScenarioAssumption.id help: Unique identifier for ScenarioAssumption.
-%%field ScenarioAssumption.scenario_id help: Scenario id for ScenarioAssumption.
-%%field ScenarioAssumption.assumption_type help: Assumption type for ScenarioAssumption.
-%%field ScenarioAssumption.value help: Value for ScenarioAssumption.
-%%field ScenarioAssumption.unit help: Unit for ScenarioAssumption.
+%%entity ScenarioAssumption help: One assumption this scenario overrides. Held as line items of the scenario so the difference from the base case is explicit — a scenario that silently changes six things is not one anybody can reason about.
 
-%%entity RiskAssessment help: RiskAssessment is a business record in the wealth-management platform.
-%%field RiskAssessment.id help: Unique identifier for RiskAssessment.
-%%field RiskAssessment.client_id help: Client id for RiskAssessment.
-%%field RiskAssessment.household_id help: Household id for RiskAssessment.
-%%field RiskAssessment.assessment_date help: Assessment date for RiskAssessment.
-%%field RiskAssessment.assessment_type help: Assessment type for RiskAssessment.
+%%entity ScenarioAssumption parent: Scenario
+%%field ScenarioAssumption.scenario_id help: The scenario this override belongs to. Read inside it, where the overrides together are the whole of what the scenario is.
+%%field ScenarioAssumption.assumption_type help: Which of the plan's assumptions is being replaced — return, inflation, retirement age, longevity.
+%%field ScenarioAssumption.value help: The value used instead of the plan's. Stated the same way the plan states it, so the two can be read side by side.
+%%field ScenarioAssumption.unit help: How to read the value — per cent a year, an amount, or years. The same ambiguity the plan's own assumptions have, and the same reason for the field.
+
+%%entity RiskAssessment help: The questionnaire and conversation that establishes how much risk a client is willing and able to take. It is the input to the risk profile, kept separately because the assessment is an event with a date and an author, while the profile is the state it produces.
+%%field RiskAssessment.client_id help: The client being assessed. Risk tolerance is personal even inside a household, and a spouse's differing tolerance is a real planning constraint.
+%%field RiskAssessment.household_id help: The household the assessment was carried out in the context of. It is what makes a joint portfolio's risk profile reconcilable with two individual answers.
+%%field RiskAssessment.assessment_date help: When the assessment was carried out. Risk tolerance is not stable across a market cycle, which is why the date matters as much as the answer.
+%%field RiskAssessment.assessment_type help: initial, periodic or event-driven. An event-driven reassessment follows something that plausibly changed the client's capacity — a redundancy, an inheritance, a market shock.
 %%field RiskAssessment.status enum: RecordStatus
-%%field RiskAssessment.status help: Status for RiskAssessment.
-%%field RiskAssessment.result help: Result for RiskAssessment.
+%%field RiskAssessment.status help: draft, completed or expired. An expired assessment cannot support new advice, and this is the field a recommendation checks before it is allowed to proceed.
+%%field RiskAssessment.result help: The conclusion drawn — the risk category the answers support. Recorded as the assessment's own output so a later change to the scoring model does not rewrite history.
 
-%%entity RiskProfile help: Approved risk context used when evaluating recommendations; historical versions are retained.
-%%field RiskProfile.id help: Unique identifier for RiskProfile.
-%%field RiskProfile.client_id help: Client id for RiskProfile.
-%%field RiskProfile.household_id help: Household id for RiskProfile.
-%%field RiskProfile.risk_score help: Risk score for RiskProfile.
+%%entity RiskProfile help: The risk category currently in force for a client or household, and the thing every recommendation is checked against. A profile has an expiry because a stale profile is worse than none: it looks like evidence and is not.
+%%field RiskProfile.client_id help: The client this profile belongs to, where it is held individually.
+%%field RiskProfile.household_id help: The household this profile applies to, where the family is advised as one. A household-level profile is what a jointly held portfolio is measured against.
+%%field RiskProfile.risk_score help: The numeric score the assessment produced. Kept alongside the category because a score near a boundary is a materially different conversation from one in the middle of a band.
 %%field RiskProfile.risk_category enum: RiskCategory
-%%field RiskProfile.risk_category help: Risk category for RiskProfile.
-%%field RiskProfile.effective_date help: Effective date for RiskProfile.
-%%field RiskProfile.expiry_date help: Expiry date for RiskProfile.
-%%field RiskProfile.assessment_id help: Assessment id for RiskProfile.
+%%field RiskProfile.risk_category help: conservative, moderate, balanced, growth or aggressive. This is what a recommendation's suitability check actually compares against, so the banding is the operative decision.
+%%field RiskProfile.effective_date help: When this profile took effect. Advice is judged against the profile in force on the day it was given.
+%%field RiskProfile.expiry_date help: When reassessment falls due. Past it, new recommendations should be refused until the client has been reassessed.
+%%field RiskProfile.assessment_id help: The assessment this profile was derived from. It is the evidence behind the category, and the first thing an audit asks to see.
 %%field RiskProfile.status enum: RiskStatus
-%%field RiskProfile.status help: Status for RiskProfile.
+%%field RiskProfile.status help: active, expired or superseded. Exactly one active profile per client or household — two would let a recommendation pick whichever suited it.
 
-%%entity RiskProfileHistory help: RiskProfileHistory is a business record in the wealth-management platform.
-%%field RiskProfileHistory.id help: Unique identifier for RiskProfileHistory.
-%%field RiskProfileHistory.risk_profile_id help: Risk profile id for RiskProfileHistory.
-%%field RiskProfileHistory.risk_score help: Risk score for RiskProfileHistory.
+%%entity RiskProfileHistory help: A superseded risk profile, kept with the reason it changed. It is a line item of the profile because the history has no independent life, and it exists because 'the client's attitude to risk changed' is a claim that has to be evidenced with a date and a cause.
+
+%%entity RiskProfileHistory parent: RiskProfile
+%%field RiskProfileHistory.risk_profile_id help: The profile this entry is a past state of. Read inside the profile, where the history is the record of how the current category was arrived at.
+%%field RiskProfileHistory.risk_score help: The score as it stood in that period. Comparing successive scores is what shows drift, which is often more informative than any single reading.
 %%field RiskProfileHistory.risk_category enum: RiskCategory
-%%field RiskProfileHistory.risk_category help: Risk category for RiskProfileHistory.
-%%field RiskProfileHistory.effective_date help: Effective date for RiskProfileHistory.
-%%field RiskProfileHistory.expiry_date help: Expiry date for RiskProfileHistory.
-%%field RiskProfileHistory.reason help: Reason for RiskProfileHistory.
+%%field RiskProfileHistory.risk_category help: The category in force during that period. It is what any advice given in that window has to be judged against.
+%%field RiskProfileHistory.effective_date help: When this historic profile took effect.
+%%field RiskProfileHistory.expiry_date help: When it was superseded. Together with the effective date it bounds the window this category governed.
+%%field RiskProfileHistory.reason help: Why the profile changed — a reassessment, a life event, a client's own request. Without it the history is a list of numbers that nobody can interpret.
 
-%%entity Security help: Security is a business record in the wealth-management platform.
-%%field Security.id help: Unique identifier for Security.
-%%field Security.security_type_id help: Security type id for Security.
-%%field Security.symbol help: Symbol for Security.
-%%field Security.name help: Name for Security.
-%%field Security.isin help: Isin for Security.
-%%field Security.currency help: Currency for Security.
+%%entity Security help: Any investable instrument the firm can hold a position in — a share, a bond, a mutual fund unit, an alternative. It is the common record every price, holding, order and transaction points at, with the asset-specific detail held in the satellite tables beside it, so a portfolio can be valued without knowing what kind of thing each line is.
+%%field Security.security_type_id help: What kind of instrument this is. It decides which satellite table carries the rest of the detail and how the position is valued and taxed.
+%%field Security.symbol help: The trading symbol or scheme code the instrument is quoted under. Optional because unlisted instruments — an alternative fund, a property — have none.
+%%field Security.name help: The instrument as it appears on a statement and in a recommendation. Use the form the client will see on their own contract note, not an internal abbreviation.
+%%field Security.isin help: The international securities identification number, which is the only globally unambiguous handle on an instrument. Reconciliation with registrars and custodians is done on this, not on the name.
+%%field Security.currency help: The currency the instrument is denominated and priced in. A portfolio holding instruments in several currencies is translated to its base currency for valuation, so this is what that translation reads.
 %%field Security.status enum: RecordStatus
-%%field Security.status help: Status for Security.
+%%field Security.status help: active, suspended, matured or delisted. A suspended instrument cannot be dealt but must still be valued, which is why this is a status rather than a deletion.
 
-%%entity SecurityType help: SecurityType is a business record in the wealth-management platform.
-%%field SecurityType.id help: Unique identifier for SecurityType.
-%%field SecurityType.name help: Name for SecurityType.
-%%field SecurityType.category help: Category for SecurityType.
+%%entity SecurityType help: The classification of instruments the firm deals in — equity, bond, mutual fund, alternative, insurance, property. Held as a table rather than an enum because each type carries its own valuation, taxation and eligibility behaviour, and new types are added as the firm's product range grows.
+%%field SecurityType.name help: What this class of instrument is called, as it appears in product lists and asset breakdowns.
+%%field SecurityType.category help: The broader grouping the type sits in — market-traded, fund, alternative or physical. It is what a high-level asset breakdown rolls up to.
 %%field SecurityType.status enum: RecordStatus
-%%field SecurityType.status help: Status for SecurityType.
+%%field SecurityType.status help: Whether the firm currently deals in this type. Closing a type stops new purchases without affecting the positions already held in it.
 
-%%entity MutualFundScheme help: MutualFundScheme is a business record in the wealth-management platform.
-%%field MutualFundScheme.id help: Unique identifier for MutualFundScheme.
-%%field MutualFundScheme.security_id help: Security id for MutualFundScheme.
-%%field MutualFundScheme.amc_id help: Amc id for MutualFundScheme.
-%%field MutualFundScheme.scheme_code help: Scheme code for MutualFundScheme.
-%%field MutualFundScheme.isin help: Isin for MutualFundScheme.
-%%field MutualFundScheme.scheme_name help: Scheme name for MutualFundScheme.
-%%field MutualFundScheme.category help: Category for MutualFundScheme.
-%%field MutualFundScheme.plan_type help: Plan type for MutualFundScheme.
-%%field MutualFundScheme.option_type help: Option type for MutualFundScheme.
-%%field MutualFundScheme.benchmark help: Benchmark for MutualFundScheme.
-%%field MutualFundScheme.risk_level help: Risk level for MutualFundScheme.
+%%entity MutualFundScheme help: The scheme-specific detail behind a mutual fund security: which house runs it, which plan and option the client holds, and what it is benchmarked against. Funds need their own record because plan and option decide the client's actual return — a regular plan and a direct plan of the same scheme differ by the distributor's commission.
+%%field MutualFundScheme.security_id help: The instrument record this scheme detail belongs to. One row per fund security, so a portfolio line can be valued without knowing it is a fund.
+%%field MutualFundScheme.amc_id help: The asset management company that runs the scheme. Concentration of a client's holdings in one house is a risk a review should surface, and this is what makes it visible.
+%%field MutualFundScheme.scheme_code help: The registrar's own code for the scheme, used when placing orders and reconciling folios. It is the identifier the fund house's systems answer to.
+%%field MutualFundScheme.isin help: The scheme's ISIN, which differs by plan and option — the same fund has several. Getting it wrong buys the right fund on the wrong terms.
+%%field MutualFundScheme.scheme_name help: The full scheme name as the fund house publishes it, including plan and option, because that is what appears on the client's account statement.
+%%field MutualFundScheme.category help: The scheme's classification — equity, debt, hybrid, liquid, index. It is what the asset allocation is computed from, so a misclassified scheme distorts the whole picture.
+%%field MutualFundScheme.plan_type help: regular or direct. A direct plan carries no distributor commission and therefore a higher return to the client; which is held is a disclosure matter, not a detail.
+%%field MutualFundScheme.option_type help: growth or dividend, and where dividend, its frequency. It decides whether returns compound inside the scheme or are paid out, which changes both the projection and the tax.
+%%field MutualFundScheme.benchmark help: The index the scheme measures itself against. Performance reporting compares the holding to this, so quoting the wrong benchmark flatters or penalises the fund unfairly.
+%%field MutualFundScheme.risk_level help: The scheme's own risk classification, as published by the fund house. It is checked against the client's risk profile before the scheme can be recommended.
 
-%%entity AMC help: AMC is a business record in the wealth-management platform.
-%%field AMC.id help: Unique identifier for AMC.
-%%field AMC.name help: Name for AMC.
-%%field AMC.registration_number help: Registration number for AMC.
+%%entity AMC help: An asset management company whose schemes the firm distributes or advises on. Held as an entity because exposure is tracked per house: a client whose entire portfolio sits with one manager carries a concentration risk no fund fact sheet will show.
+%%field AMC.name help: The fund house as clients and fact sheets refer to it.
+%%field AMC.registration_number help: The regulatory registration the house operates under, quoted in disclosures and verified during product onboarding.
 %%field AMC.status enum: RecordStatus
-%%field AMC.status help: Status for AMC.
+%%field AMC.status help: Whether the firm currently deals with this house. Suspending one stops new business while existing holdings continue to be valued and serviced.
 
-%%entity ProductPrice help: ProductPrice is a business record in the wealth-management platform.
-%%field ProductPrice.id help: Unique identifier for ProductPrice.
-%%field ProductPrice.security_id help: Security id for ProductPrice.
-%%field ProductPrice.price_date help: Price date for ProductPrice.
-%%field ProductPrice.price help: Price for ProductPrice.
-%%field ProductPrice.price_type help: Price type for ProductPrice.
-%%field ProductPrice.source help: Source for ProductPrice.
+%%entity ProductPrice help: One instrument's price on one date. Prices are stored as a series rather than a current value because every valuation, gain and performance figure is computed as at a date — and a portfolio valued at today's prices cannot answer what it was worth at the last review.
+%%field ProductPrice.security_id help: The instrument this price is for. Read as a series per instrument rather than as a list across all of them.
+%%field ProductPrice.price_date help: The date the price applies to. Valuations pick the latest price on or before their own date, so a missing day silently values a portfolio on stale prices.
+%%field ProductPrice.price help: The price per unit, in the instrument's own currency. For a fund this is the net asset value; for a listed security, the close.
+%%field ProductPrice.price_type help: net asset value, closing price, or a manual mark. A manual mark for an unlisted asset is a judgement and should be visible as one.
+%%field ProductPrice.source help: Where the price came from — an exchange feed, the registrar, the fund house, or an internal valuation. It is what a disputed valuation is traced back to.
 
-%%entity AssetClass help: AssetClass is a business record in the wealth-management platform.
-%%field AssetClass.id help: Unique identifier for AssetClass.
-%%field AssetClass.name help: Name for AssetClass.
-%%field AssetClass.parent_asset_class_id help: Parent asset class id for AssetClass.
+%%entity AssetClass help: A category of investment for allocation purposes — equity, debt, gold, real estate, cash — nested so that broad classes break into the sub-classes an allocation model actually targets. Allocation is the single decision that drives most of a portfolio's return, and this is the vocabulary it is expressed in.
+%%field AssetClass.name help: The class as it appears in an allocation model and on a client's asset breakdown.
+%%field AssetClass.parent_asset_class_id help: The broader class this one sits within — large-cap inside equity, for example. Empty at the top level; the tree is what lets an allocation be shown at whatever depth the audience needs.
 %%field AssetClass.status enum: RecordStatus
-%%field AssetClass.status help: Status for AssetClass.
+%%field AssetClass.status help: Whether the class is currently used in allocation. Retiring one keeps historic models and attributions readable.
 
-%%entity InvestmentAccount help: InvestmentAccount is a business record in the wealth-management platform.
-%%field InvestmentAccount.id help: Unique identifier for InvestmentAccount.
-%%field InvestmentAccount.client_id help: Client id for InvestmentAccount.
-%%field InvestmentAccount.institution_id help: Institution id for InvestmentAccount.
-%%field InvestmentAccount.account_number help: Account number for InvestmentAccount.
-%%field InvestmentAccount.account_type help: Account type for InvestmentAccount.
-%%field InvestmentAccount.ownership_type help: Ownership type for InvestmentAccount.
-%%field InvestmentAccount.opened_date help: Opened date for InvestmentAccount.
+%%entity InvestmentAccount help: An account at an institution through which investments are actually held — a demat account, a fund-house account, a custody account. It is the operational layer beneath a portfolio: a portfolio is how the firm thinks about the money, an account is where it legally sits.
+%%field InvestmentAccount.client_id help: The client in whose name the account is held. Ownership is a legal fact, and it constrains who may instruct on the account and where proceeds may be paid.
+%%field InvestmentAccount.institution_id help: The bank, broker or fund house holding the account. Reconciliation runs per institution, so this is what a statement is matched against.
+%%field InvestmentAccount.account_number help: The account's number at that institution, as it appears on their statements. It is the reconciliation key and is quoted on every instruction.
+%%field InvestmentAccount.account_type help: demat, trading, folio, custody or PMS account. The type decides what can be held in it and what an instruction has to look like.
+%%field InvestmentAccount.ownership_type help: single, joint, either-or-survivor or corporate. It decides who has to sign an instruction, which is the most common reason a redemption is held up.
+%%field InvestmentAccount.opened_date help: When the account was opened. It bounds what can have been held in it, and it is the start of the account's own statement history.
 %%field InvestmentAccount.status enum: RecordStatus
-%%field InvestmentAccount.status help: Status for InvestmentAccount.
+%%field InvestmentAccount.status help: active, dormant, frozen or closed. A frozen account can be valued but not dealt, usually pending a compliance or succession matter.
 
-%%entity Folio help: Folio is a business record in the wealth-management platform.
-%%field Folio.id help: Unique identifier for Folio.
-%%field Folio.investment_account_id help: Investment account id for Folio.
-%%field Folio.mutual_fund_scheme_id help: Mutual fund scheme id for Folio.
-%%field Folio.folio_number help: Folio number for Folio.
+%%entity Folio help: A client's registered folio with one fund house for one scheme. Folios exist because fund houses account per folio rather than per client: units, statements and redemption instructions are all folio-level, and a client with two folios in the same scheme has two balances.
+%%field Folio.investment_account_id help: The account the folio is held under. It is how the folio's holdings roll up into the client's portfolio.
+%%field Folio.mutual_fund_scheme_id help: The scheme the folio is in. A folio belongs to exactly one scheme, which is why a client accumulates several.
+%%field Folio.folio_number help: The number the fund house issued. Every order, statement and redemption for these units quotes it, and consolidating folios is a common piece of housekeeping.
 %%field Folio.status enum: RecordStatus
-%%field Folio.status help: Status for Folio.
+%%field Folio.status help: active, dormant or closed. A closed folio with a nil balance is kept because past transactions and capital gains still reference it.
 
-%%entity Portfolio help: Logical investment portfolio representing actual owned wealth and its investment objective.
-%%field Portfolio.id help: Unique identifier for Portfolio.
-%%field Portfolio.household_id help: Household id for Portfolio.
-%%field Portfolio.portfolio_name help: Portfolio name for Portfolio.
-%%field Portfolio.portfolio_type help: Portfolio type for Portfolio.
-%%field Portfolio.base_currency help: Base currency for Portfolio.
-%%field Portfolio.investment_objective help: Investment objective for Portfolio.
-%%field Portfolio.risk_profile_id help: Risk profile id for Portfolio.
+%%entity Portfolio help: A managed pool of investments for a household, with its own objective, risk profile and base currency. The portfolio is the unit advice is given at: allocation models, rebalancing, performance and recommendations all operate here, above the accounts the assets physically sit in.
+%%field Portfolio.household_id help: The family the portfolio is managed for. A household may run several — a retirement pool and a shorter-horizon one — with different objectives.
+%%field Portfolio.portfolio_name help: What the family calls this pool, ideally naming its purpose rather than its number. It appears on every valuation and review pack.
+%%field Portfolio.portfolio_type help: core, satellite, tactical or goal-specific. The type sets the expectation: a satellite portfolio is meant to be more concentrated, and judging it against a core benchmark is unfair.
+%%field Portfolio.base_currency help: The currency the portfolio is valued and reported in. Holdings in other currencies are translated to it, so changing it changes every figure on the statement.
+%%field Portfolio.investment_objective help: What this money is for, in the family's own words — income, growth, capital preservation, a named goal. It is the sentence a recommendation has to be consistent with.
+%%field Portfolio.risk_profile_id help: The risk profile this portfolio is managed to. Rebalancing and recommendation checks read it, so a portfolio whose profile has expired cannot be advised on.
 %%field Portfolio.status enum: RecordStatus
-%%field Portfolio.status help: Status for Portfolio.
+%%field Portfolio.status help: active, closed or transferred. Closing one keeps its history, which is what a since-inception performance figure for the family depends on.
 
-%%entity PortfolioAccount help: PortfolioAccount is a business record in the wealth-management platform.
-%%field PortfolioAccount.id help: Unique identifier for PortfolioAccount.
-%%field PortfolioAccount.portfolio_id help: Portfolio id for PortfolioAccount.
-%%field PortfolioAccount.investment_account_id help: Investment account id for PortfolioAccount.
-%%field PortfolioAccount.start_date help: Start date for PortfolioAccount.
-%%field PortfolioAccount.end_date help: End date for PortfolioAccount.
+%%entity PortfolioAccount help: The link between a portfolio and one of the accounts its assets are held in, over a period. It is a line item of the portfolio, and it is dated because assets are moved between accounts without the advice changing — a transfer of custody should not restate the portfolio's history.
 
-%%entity Holding help: Current position of a Security within a Portfolio.
-%%field Holding.id help: Unique identifier for Holding.
-%%field Holding.portfolio_id help: Portfolio id for Holding.
-%%field Holding.security_id help: Security id for Holding.
-%%field Holding.quantity help: Quantity for Holding.
-%%field Holding.average_cost help: Average cost for Holding.
-%%field Holding.market_value help: Market value for Holding.
-%%field Holding.cost_value help: Cost value for Holding.
-%%field Holding.unrealized_gain help: Unrealized gain for Holding.
-%%field Holding.weight help: Weight for Holding.
+%%entity PortfolioAccount parent: Portfolio
+%%field PortfolioAccount.portfolio_id help: The portfolio being composed. Read inside it, where the accounts together are where the portfolio's assets physically sit.
+%%field PortfolioAccount.investment_account_id help: The account contributing holdings to this portfolio. One account can serve more than one portfolio where the family has agreed a split.
+%%field PortfolioAccount.start_date help: When this account's holdings began counting towards the portfolio. Valuations before it do not include them.
+%%field PortfolioAccount.end_date help: When the account left the portfolio — a transfer out, or a closure. Empty while it is part of it.
 
-%%entity HoldingLot help: HoldingLot is a business record in the wealth-management platform.
-%%field HoldingLot.id help: Unique identifier for HoldingLot.
-%%field HoldingLot.holding_id help: Holding id for HoldingLot.
-%%field HoldingLot.acquisition_date help: Acquisition date for HoldingLot.
-%%field HoldingLot.quantity help: Quantity for HoldingLot.
-%%field HoldingLot.cost_basis help: Cost basis for HoldingLot.
-%%field HoldingLot.tax_status help: Tax status for HoldingLot.
+%%entity Holding help: A current position: how much of one instrument a portfolio owns, what it cost and what it is worth. This is the row a valuation, an allocation breakdown and a rebalancing calculation all read, and it is maintained by the transactions rather than entered.
+%%field Holding.portfolio_id help: The portfolio holding the position. Holdings are read inside the portfolio, which is where a valuation is assembled.
+%%field Holding.security_id help: The instrument held. With the portfolio it identifies the position, and it is what the price series is joined on to value it.
+%%field Holding.quantity help: Units currently held. Maintained from the transactions, so a quantity that disagrees with the custodian's statement is a reconciliation break rather than a typo.
+%%field Holding.average_cost help: The weighted average price paid per unit across the lots making up this position. It is what an unrealised gain is computed against when lots are not being tracked individually.
+%%field Holding.market_value help: What the position is worth at the latest available price. The figure the client's statement leads with, and the one every allocation percentage is computed from.
+%%field Holding.cost_value help: Total amount invested in this position. The difference from market value is the unrealised gain, which is the number clients react to.
+%%field Holding.unrealized_gain help: Market value less cost value — profit on paper. It becomes a taxable gain only on sale, which is the distinction a client statement has to make plainly.
+%%field Holding.weight help: This position as a percentage of the portfolio's market value. It is what an allocation model's targets are compared against, and what a concentration limit is tested on.
 
-%%entity PortfolioValuation help: PortfolioValuation is a business record in the wealth-management platform.
-%%field PortfolioValuation.id help: Unique identifier for PortfolioValuation.
-%%field PortfolioValuation.portfolio_id help: Portfolio id for PortfolioValuation.
-%%field PortfolioValuation.valuation_date help: Valuation date for PortfolioValuation.
-%%field PortfolioValuation.market_value help: Market value for PortfolioValuation.
-%%field PortfolioValuation.cost_value help: Cost value for PortfolioValuation.
-%%field PortfolioValuation.cash_value help: Cash value for PortfolioValuation.
-%%field PortfolioValuation.net_value help: Net value for PortfolioValuation.
+%%entity HoldingLot help: One purchase within a position, kept separately because tax is computed per lot. Which units are sold decides the gain and whether it is short or long term, so a position bought over five years is five lots and not one average — and this is a line item of the holding for exactly that reason.
 
-%%entity AssetAllocationModel help: AssetAllocationModel is a business record in the wealth-management platform.
-%%field AssetAllocationModel.id help: Unique identifier for AssetAllocationModel.
-%%field AssetAllocationModel.name help: Name for AssetAllocationModel.
+%%entity HoldingLot parent: Holding
+%%field HoldingLot.holding_id help: The position this purchase is part of. Read inside the holding, where the lots together are what its average cost is derived from.
+%%field HoldingLot.acquisition_date help: When these units were bought. It is what decides whether a sale from this lot is a short-term or long-term gain, which can double the tax.
+%%field HoldingLot.quantity help: Units acquired in this purchase, and the amount still available to sell from it.
+%%field HoldingLot.cost_basis help: What was paid for these units, including the charges that are allowed to be added. It is the figure subtracted from the sale proceeds to give the gain.
+%%field HoldingLot.tax_status help: Whether this lot has crossed the long-term holding period. Selling a short-term lot when a long-term one was available is a common and entirely avoidable tax cost.
+
+%%entity PortfolioValuation help: What a portfolio was worth on a given date, stored rather than recomputed. Valuations are a series because performance, drawdown and every comparison with a previous review depend on being able to read the portfolio as it stood, at prices as they stood.
+
+%%entity PortfolioValuation parent: Portfolio
+%%field PortfolioValuation.portfolio_id help: The portfolio valued. Read as the portfolio's own history rather than as a list across the firm.
+%%field PortfolioValuation.valuation_date help: The date the portfolio is valued as at. Prices are taken as of this date, so a valuation is reproducible rather than dependent on when it was run.
+%%field PortfolioValuation.market_value help: The portfolio's worth at that date's prices — the headline figure on the statement.
+%%field PortfolioValuation.cost_value help: Total invested capital as at that date. The gap to market value is the portfolio's gain, and holding both means the gain does not have to be recomputed from transactions.
+%%field PortfolioValuation.cash_value help: Uninvested cash sitting in the portfolio. Worth separating, because cash drag is a real and frequently unnoticed cause of underperformance.
+%%field PortfolioValuation.net_value help: Market value plus cash, less anything owed on the portfolio. This is the number a client's net worth uses, and the one a fee is usually struck against.
+
+%%entity AssetAllocationModel help: A target mix of asset classes for a given risk category — the house view expressed as percentages. Models exist so that advice is consistent between advisors and clients: a balanced portfolio should mean the same thing in two different branches.
+%%field AssetAllocationModel.name help: What the model is called — usually naming its risk stance, because that is what an advisor selects it by.
 %%field AssetAllocationModel.risk_category enum: RiskCategory
-%%field AssetAllocationModel.risk_category help: Risk category for AssetAllocationModel.
+%%field AssetAllocationModel.risk_category help: The risk profile this model is intended for. It is what matches a model to a client, so a model applied outside its category is an exception that needs justifying.
 %%field AssetAllocationModel.status enum: RecordStatus
-%%field AssetAllocationModel.status help: Status for AssetAllocationModel.
-%%field AssetAllocationModel.description help: Description for AssetAllocationModel.
+%%field AssetAllocationModel.status help: draft, active or retired. Only an active model should be assigned; retired ones are kept because portfolios were managed to them.
+%%field AssetAllocationModel.description help: The reasoning behind the mix, in words. It is what an advisor explains to a client and what an investment committee revisits when the house view changes.
 
-%%entity AllocationTarget help: AllocationTarget is a business record in the wealth-management platform.
-%%field AllocationTarget.id help: Unique identifier for AllocationTarget.
-%%field AllocationTarget.asset_allocation_model_id help: Asset allocation model id for AllocationTarget.
-%%field AllocationTarget.asset_class_id help: Asset class id for AllocationTarget.
-%%field AllocationTarget.target_percentage help: Target percentage for AllocationTarget.
-%%field AllocationTarget.min_percentage help: Min percentage for AllocationTarget.
-%%field AllocationTarget.max_percentage help: Max percentage for AllocationTarget.
+%%entity AllocationTarget help: One asset class's target weight in a model, with the band it is allowed to drift inside. It is a line item of the model, and the bands are what turn a target into something operable: a portfolio is not rebalanced because it is off target, but because it is outside the band.
 
-%%entity InvestmentTransaction help: Immutable investment transaction affecting positions, cash or fees.
-%%field InvestmentTransaction.id help: Unique identifier for InvestmentTransaction.
-%%field InvestmentTransaction.portfolio_id help: Portfolio id for InvestmentTransaction.
-%%field InvestmentTransaction.holding_id help: Holding id for InvestmentTransaction.
-%%field InvestmentTransaction.order_id help: Order id for InvestmentTransaction.
-%%field InvestmentTransaction.transaction_type help: Transaction type for InvestmentTransaction.
-%%field InvestmentTransaction.transaction_date help: Transaction date for InvestmentTransaction.
-%%field InvestmentTransaction.quantity help: Quantity for InvestmentTransaction.
-%%field InvestmentTransaction.amount help: Amount for InvestmentTransaction.
-%%field InvestmentTransaction.price help: Price for InvestmentTransaction.
+%%entity AllocationTarget parent: AssetAllocationModel
+%%field AllocationTarget.asset_allocation_model_id help: The model this target belongs to. Read inside it, where the targets together should sum to one hundred per cent.
+%%field AllocationTarget.asset_class_id help: The asset class being targeted. At whatever depth the model works — broad classes for a simple model, sub-classes for a detailed one.
+%%field AllocationTarget.target_percentage help: The intended weight for this class. The point the portfolio is rebalanced back towards.
+%%field AllocationTarget.min_percentage help: The lowest weight tolerated before rebalancing is triggered. Too tight a band means constant trading and constant tax.
+%%field AllocationTarget.max_percentage help: The highest weight tolerated. It is what caps a concentration built up by one asset class performing well, which is how portfolios drift into more risk than the client agreed to.
+
+%%entity InvestmentTransaction help: A movement that actually happened in a portfolio — a purchase, a sale, a dividend, a switch, a fee. Transactions are the ledger every holding, gain and performance figure is derived from, which is why they are never edited: a wrong transaction is corrected by a reversing one.
+%%field InvestmentTransaction.portfolio_id help: The portfolio affected. It is how the transaction reaches the holdings and the valuations that depend on it.
+%%field InvestmentTransaction.holding_id help: The position the movement applies to. A purchase creates the holding if there is none; everything afterwards adjusts it.
+%%field InvestmentTransaction.order_id help: The order this transaction settles, where it came from one. Corporate actions and fees have no order, which is why it is not always present.
+%%field InvestmentTransaction.transaction_type help: buy, sell, dividend, switch-in, switch-out, bonus, fee or transfer. The type decides which way quantity and cost move, and whether a gain is realised.
+%%field InvestmentTransaction.transaction_date help: The date the movement takes effect for accounting and tax — the trade date, not the date it was keyed. It determines the holding period a sale is taxed on.
+%%field InvestmentTransaction.quantity help: Units moved. Absent on a cash-only movement such as a dividend or a fee.
+%%field InvestmentTransaction.amount help: The money that moved. Always present, because a movement with no amount has no effect worth recording.
+%%field InvestmentTransaction.price help: The price per unit at which it was done. Absent on movements that are not priced per unit, and it is what the average cost of a position is recomputed from.
 %%field InvestmentTransaction.status enum: TransactionStatus
-%%field InvestmentTransaction.status help: Status for InvestmentTransaction.
+%%field InvestmentTransaction.status help: pending, settled, failed or reversed. Only settled transactions count towards holdings — including a pending sale in the valuation is how a portfolio comes to show units it has already disposed of.
 
-%%entity Order help: Order is a business record in the wealth-management platform.
-%%field Order.id help: Unique identifier for Order.
-%%field Order.client_id help: Client id for Order.
-%%field Order.portfolio_id help: Portfolio id for Order.
-%%field Order.security_id help: Security id for Order.
-%%field Order.order_type help: Order type for Order.
+%%entity Order help: An instruction to buy or sell, from the moment it is placed to the moment it is executed. Orders are held separately from transactions because the two are not the same event: an order can be partially filled, rejected or left unexecuted for days, and the client's question is usually about the order rather than the trade.
+%%field Order.client_id help: The client the order is placed for. It is whose mandate authorises it and whose account the money moves through.
+%%field Order.portfolio_id help: The portfolio the order is for. It is what the resulting holding lands in, and what the order was sized against.
+%%field Order.security_id help: The instrument being dealt. With the amount or quantity it is the whole of what the order instructs.
+%%field Order.order_type help: buy, sell, switch, systematic instalment or redemption. It decides which market or registrar route the order takes and what confirmation the client should expect.
 %%field Order.status enum: OrderStatus
-%%field Order.status help: Order status for Order.
-%%field Order.quantity help: Quantity for Order.
-%%field Order.amount help: Amount for Order.
-%%field Order.ordered_at help: Ordered at for Order.
-%%field Order.executed_at help: Executed at for Order.
+%%field Order.status help: placed, submitted, partially executed, executed, rejected or cancelled. Only the drawn transitions are allowed, so an order cannot be executed without having been submitted.
+%%field Order.quantity help: Units to deal, where the client is instructing in units. Mutual fund purchases are usually by amount instead, which is why both exist and only one is set.
+%%field Order.amount help: Money to deal, where the client is instructing by value. The units follow from the price on the day, which is why a fund purchase cannot promise a unit count.
+%%field Order.ordered_at help: When the instruction was received. Cut-off times decide which day's price applies, so an order received a minute late gets a different price — and this is the timestamp that proves which.
+%%field Order.executed_at help: When it was actually filled. Empty while outstanding; the gap from placement is what an execution-quality review looks at.
 
-%%entity SIPInstruction help: SIPInstruction is a business record in the wealth-management platform.
-%%field SIPInstruction.id help: Unique identifier for SIPInstruction.
-%%field SIPInstruction.client_id help: Client id for SIPInstruction.
-%%field SIPInstruction.security_id help: Security id for SIPInstruction.
-%%field SIPInstruction.portfolio_id help: Portfolio id for SIPInstruction.
-%%field SIPInstruction.amount help: Amount for SIPInstruction.
-%%field SIPInstruction.frequency help: Frequency for SIPInstruction.
-%%field SIPInstruction.start_date help: Start date for SIPInstruction.
-%%field SIPInstruction.end_date help: End date for SIPInstruction.
-%%field SIPInstruction.next_execution_date help: Next execution date for SIPInstruction.
-%%field SIPInstruction.mandate_reference help: Mandate id for SIPInstruction.
+%%entity SIPInstruction help: A standing instruction to invest a fixed amount at a fixed interval — the systematic investment plan. It is the single most effective habit in retail investing, and it is modelled as an instruction with its own schedule and mandate because it runs for years without anybody touching it.
+%%field SIPInstruction.client_id help: The client whose money is being invested. Their bank mandate is what each instalment is collected under.
+%%field SIPInstruction.security_id help: The instrument bought each time. Changing it means stopping this instruction and starting another, so the history stays attributable.
+%%field SIPInstruction.portfolio_id help: The portfolio the accumulated units belong to. It is what the instalments build up inside.
+%%field SIPInstruction.amount help: The amount invested each instalment. Its constancy is the point: the same sum buys more units when prices are low, which is the whole mechanism.
+%%field SIPInstruction.frequency help: monthly, quarterly or weekly. Monthly is the norm because it matches how salaries arrive.
+%%field SIPInstruction.start_date help: When instalments begin. The first collection needs the mandate registered, which is usually what delays it.
+%%field SIPInstruction.end_date help: When instalments stop. Empty for a perpetual instruction, which is generally the better default — an end date reached without anybody noticing silently stops the client investing.
+%%field SIPInstruction.next_execution_date help: When the next instalment is due. It is what the collection run reads, and what a client asks about when money has not left their account.
+%%field SIPInstruction.mandate_reference help: The bank mandate the instalments are collected under. Without a live mandate the instruction cannot execute, however valid it looks.
 %%field SIPInstruction.status enum: RecordStatus
-%%field SIPInstruction.status help: Status for SIPInstruction.
+%%field SIPInstruction.status help: active, paused, stopped or completed. A paused instruction keeps its mandate and schedule and resumes; a stopped one does not, and restarting means a new mandate.
 
-%%entity InvestmentRecommendation help: Auditable recommendation preserving inputs, risk context, suitability, approval and client decision.
-%%field InvestmentRecommendation.id help: Unique identifier for InvestmentRecommendation.
-%%field InvestmentRecommendation.household_id help: Household id for InvestmentRecommendation.
-%%field InvestmentRecommendation.advisor_id help: Advisor id for InvestmentRecommendation.
-%%field InvestmentRecommendation.portfolio_id help: Portfolio id for InvestmentRecommendation.
-%%field InvestmentRecommendation.recommendation_date help: Recommendation date for InvestmentRecommendation.
-%%field InvestmentRecommendation.recommendation_type help: Recommendation type for InvestmentRecommendation.
-%%field InvestmentRecommendation.rationale help: Rationale for InvestmentRecommendation.
+%%entity InvestmentRecommendation help: A piece of advice put to a household: what to do, why, and what it is checked against. This is the regulated artefact of the whole system — it names the advisor, the risk profile it was tested against, and the rationale, because a recommendation without those three is not defensible.
+%%field InvestmentRecommendation.household_id help: The family being advised. Recommendations are made at household level because that is where the plan and the goals live.
+%%field InvestmentRecommendation.advisor_id help: The advisor making the recommendation. Advice is signed, and this is the signature the firm stands behind.
+%%field InvestmentRecommendation.portfolio_id help: The portfolio the advice applies to. A recommendation for a satellite portfolio is judged differently from one for the core.
+%%field InvestmentRecommendation.recommendation_date help: When the advice was given. It fixes which risk profile, suitability assessment and market conditions the advice has to be judged against.
+%%field InvestmentRecommendation.recommendation_type help: new investment, rebalance, switch, redemption or a change to a systematic instruction. It says what kind of action the client is being asked to take.
+%%field InvestmentRecommendation.rationale help: Why this is being recommended, in words the client can weigh. It is the field regulators read first and the one advisors are most tempted to leave thin — a rationale that does not connect the advice to the client's own goals is not a rationale.
 %%field InvestmentRecommendation.status enum: RecommendationStatus
-%%field InvestmentRecommendation.status help: Status for InvestmentRecommendation.
-%%field InvestmentRecommendation.risk_profile_id help: Risk profile id for InvestmentRecommendation.
-%%field InvestmentRecommendation.suitability_status help: Suitability status for InvestmentRecommendation.
+%%field InvestmentRecommendation.status help: draft, pending approval, approved, presented, accepted, rejected or expired. Only the drawn transitions are allowed, so a recommendation cannot be presented to a client before it has been approved.
+%%field InvestmentRecommendation.risk_profile_id help: The risk profile this advice was tested against. Captured on the recommendation rather than looked up later, because the profile may since have changed.
+%%field InvestmentRecommendation.suitability_status help: Whether the suitability check passed, passed with conditions or failed. A failed check must stop the recommendation; overriding it is an exception that has to be recorded as one.
 
-%%entity RecommendationItem help: RecommendationItem is a business record in the wealth-management platform.
-%%field RecommendationItem.id help: Unique identifier for RecommendationItem.
-%%field RecommendationItem.investment_recommendation_id help: Investment recommendation id for RecommendationItem.
-%%field RecommendationItem.security_id help: Security id for RecommendationItem.
-%%field RecommendationItem.asset_class_id help: Asset class id for RecommendationItem.
-%%field RecommendationItem.recommended_amount help: Recommended amount for RecommendationItem.
-%%field RecommendationItem.target_percentage help: Target percentage for RecommendationItem.
-%%field RecommendationItem.reason help: Reason for RecommendationItem.
+%%entity RecommendationItem help: One line of a recommendation: an instrument, an amount, and the reason it is there. Held as line items because a recommendation is a basket — sell this, buy that, leave the rest — and the basket has to be read against the portfolio as a whole.
 
-%%entity SuitabilityResult help: SuitabilityResult is a business record in the wealth-management platform.
-%%field SuitabilityResult.id help: Unique identifier for SuitabilityResult.
-%%field SuitabilityResult.investment_recommendation_id help: Investment recommendation id for SuitabilityResult.
-%%field SuitabilityResult.suitability_assessment_id help: Assessment id for SuitabilityResult.
-%%field SuitabilityResult.result help: Result for SuitabilityResult.
-%%field SuitabilityResult.risk_result help: Risk result for SuitabilityResult.
-%%field SuitabilityResult.eligibility_result help: Eligibility result for SuitabilityResult.
-%%field SuitabilityResult.reason help: Reason for SuitabilityResult.
-%%field SuitabilityResult.evaluated_at help: Evaluated at for SuitabilityResult.
+%%entity RecommendationItem parent: InvestmentRecommendation
+%%field RecommendationItem.investment_recommendation_id help: The recommendation this line belongs to. Read inside it, where the lines together are what the client is being asked to do.
+%%field RecommendationItem.security_id help: The instrument being recommended. It is what the resulting order will be placed in if the client accepts.
+%%field RecommendationItem.asset_class_id help: The asset class this line moves the portfolio's allocation towards. It is how the basket's effect on allocation is computed before anything is bought.
+%%field RecommendationItem.recommended_amount help: How much to put into, or take out of, this instrument. The lines together should leave the portfolio inside its allocation bands.
+%%field RecommendationItem.target_percentage help: The weight this instrument should end up at in the portfolio. Stated as well as the amount, because the weight is what the client is really agreeing to.
+%%field RecommendationItem.reason help: Why this instrument rather than another. It is the line-level counterpart of the recommendation's rationale, and it is what makes a basket reviewable line by line.
 
-%%entity RecommendationApproval help: RecommendationApproval is a business record in the wealth-management platform.
-%%field RecommendationApproval.id help: Unique identifier for RecommendationApproval.
-%%field RecommendationApproval.investment_recommendation_id help: Investment recommendation id for RecommendationApproval.
-%%field RecommendationApproval.advisor_id help: Approver id for RecommendationApproval.
+%%entity SuitabilityResult help: The recorded outcome of checking one recommendation against one suitability assessment. It is kept as its own record, and as a line item of the recommendation, because the check has three separate answers — risk, eligibility, overall — and a recommendation that passed two of them has not passed.
+
+%%entity SuitabilityResult parent: InvestmentRecommendation
+%%field SuitabilityResult.investment_recommendation_id help: The recommendation that was checked. Read inside it, alongside the lines the check was run over.
+%%field SuitabilityResult.suitability_assessment_id help: The assessment it was checked against. Naming it makes the check reproducible: the same recommendation against a later assessment can legitimately give a different answer.
+%%field SuitabilityResult.result help: The overall verdict — suitable, suitable with conditions, or unsuitable. This is what gates the recommendation's approval.
+%%field SuitabilityResult.risk_result help: Whether the recommendation sits inside the client's risk profile. The most common failure: a sound investment that is simply more volatile than the client agreed to hold.
+%%field SuitabilityResult.eligibility_result help: Whether the client is permitted to hold these instruments at all — some products are restricted by client category, residency or minimum investment. A failure here cannot be advised around.
+%%field SuitabilityResult.reason help: Why the check reached this answer. Essential on a failure, because the advisor's next step depends on which of the three tests failed and by how much.
+%%field SuitabilityResult.evaluated_at help: When the check was run. Recommendations move slowly through approval, and a check run before a profile changed has to be identifiable as such.
+
+%%entity RecommendationApproval help: The supervisory sign-off on a recommendation before it reaches a client. Approval exists because advice is a firm's liability rather than an individual's, and the approver is the second pair of eyes the firm is required to put on it.
+
+%%entity RecommendationApproval parent: InvestmentRecommendation
+%%field RecommendationApproval.investment_recommendation_id help: The recommendation being approved. Read inside it, where the approvals together are the record of who let it through.
+%%field RecommendationApproval.advisor_id help: Who approved it. Deliberately a different person from the recommending advisor — a self-approved recommendation defeats the control.
 %%field RecommendationApproval.status enum: RecordStatus
-%%field RecommendationApproval.status help: Status for RecommendationApproval.
-%%field RecommendationApproval.approved_at help: Approved at for RecommendationApproval.
-%%field RecommendationApproval.comments help: Comments for RecommendationApproval.
+%%field RecommendationApproval.status help: pending, approved or rejected. A rejection is a legitimate outcome and is kept: what was refused, and why, is as much a part of the record as what was allowed.
+%%field RecommendationApproval.approved_at help: When approval was given. Empty while pending; a recommendation presented to a client before this timestamp is a control breach.
+%%field RecommendationApproval.comments help: What the approver had to say — conditions attached, concerns noted, or reasons for refusal. It is the most useful text in the whole approval chain and the most often left blank.
 
-%%entity Proposal help: Client-facing proposal generated from an approved recommendation.
-%%field Proposal.id help: Unique identifier for Proposal.
-%%field Proposal.investment_recommendation_id help: Investment recommendation id for Proposal.
-%%field Proposal.client_id help: Client id for Proposal.
-%%field Proposal.proposal_number help: Proposal number for Proposal.
+%%entity Proposal help: The client-facing document that carries an approved recommendation — what is being proposed, what it costs, and what the client is being asked to agree to. Separate from the recommendation because the internal artefact and the document the client signs have different lifespans and different audiences.
+%%field Proposal.investment_recommendation_id help: The approved advice this document presents. One proposal per recommendation, so what the client saw is never in doubt.
+%%field Proposal.client_id help: The client the proposal is put to. Within a household it is the client who will actually transact and whose acceptance is needed.
+%%field Proposal.proposal_number help: The reference the proposal is quoted by in conversation and correspondence, so client and advisor can be sure they are discussing the same version.
 %%field Proposal.status enum: ProposalStatus
-%%field Proposal.status help: Status for Proposal.
-%%field Proposal.proposal_date help: Proposal date for Proposal.
-%%field Proposal.expiry_date help: Expiry date for Proposal.
+%%field Proposal.status help: draft, issued, accepted, rejected or expired. An expired proposal must be reissued rather than acted on: the prices and the suitability behind it have moved.
+%%field Proposal.proposal_date help: When it was issued to the client. The clock the validity period runs from.
+%%field Proposal.expiry_date help: When the proposal lapses. It exists because a recommendation priced against last month's market is not advice any more, and acting on a lapsed one is the failure the date prevents.
 
-%%entity ClientAcceptance help: Retained client decision on a proposal.
-%%field ClientAcceptance.id help: Unique identifier for ClientAcceptance.
-%%field ClientAcceptance.proposal_id help: Proposal id for ClientAcceptance.
-%%field ClientAcceptance.client_id help: Client id for ClientAcceptance.
-%%field ClientAcceptance.decision help: Decision for ClientAcceptance.
-%%field ClientAcceptance.decision_at help: Decision at for ClientAcceptance.
-%%field ClientAcceptance.comments help: Comments for ClientAcceptance.
+%%entity ClientAcceptance help: The client's recorded decision on a proposal. It is the moment advice becomes an instruction, so it is a record with a timestamp and the client's own words rather than a flag on the proposal.
 
-%%entity RebalanceRecommendation help: RebalanceRecommendation is a business record in the wealth-management platform.
-%%field RebalanceRecommendation.id help: Unique identifier for RebalanceRecommendation.
-%%field RebalanceRecommendation.portfolio_id help: Portfolio id for RebalanceRecommendation.
-%%field RebalanceRecommendation.asset_allocation_model_id help: Asset allocation model id for RebalanceRecommendation.
+%%entity ClientAcceptance parent: Proposal
+%%field ClientAcceptance.proposal_id help: The proposal being decided on. Read inside it, because an acceptance away from what was accepted means nothing.
+%%field ClientAcceptance.client_id help: Who accepted. In a joint arrangement, whose consent this is — which matters when the account needs both.
+%%field ClientAcceptance.decision help: accepted, partially accepted, rejected or deferred. A partial acceptance is common and consequential: acting on the whole basket when the client took half of it is unauthorised dealing.
+%%field ClientAcceptance.decision_at help: When the client decided. Orders placed before this timestamp were placed without authority, which is why it is recorded to the minute.
+%%field ClientAcceptance.comments help: What the client said — which parts they were unhappy with, what they want to revisit. It is the beginning of the next conversation, and it belongs on the record rather than in an advisor's memory.
+
+%%entity RebalanceRecommendation help: A detected drift of a portfolio outside its allocation bands, and the advice to correct it. It is generated rather than composed: the bands are breached or they are not, which is what makes rebalancing a discipline rather than a judgement.
+%%field RebalanceRecommendation.portfolio_id help: The portfolio that has drifted. Rebalancing is always portfolio-level, because a single holding cannot be off-allocation on its own.
+%%field RebalanceRecommendation.asset_allocation_model_id help: The model the portfolio is being measured against. Changing the model is a different decision from rebalancing to it, and conflating the two is how portfolios end up chasing performance.
 %%field RebalanceRecommendation.status enum: RebalanceStatus
-%%field RebalanceRecommendation.status help: Status for RebalanceRecommendation.
-%%field RebalanceRecommendation.deviation_amount help: Deviation amount for RebalanceRecommendation.
-%%field RebalanceRecommendation.detected_date help: Detected date for RebalanceRecommendation.
-%%field RebalanceRecommendation.reason help: Reason for RebalanceRecommendation.
+%%field RebalanceRecommendation.status help: detected, reviewed, recommended, executed or dismissed. Dismissed is legitimate — the tax cost of correcting a small drift often exceeds the benefit — but it should be a recorded decision.
+%%field RebalanceRecommendation.deviation_amount help: How far the portfolio is from its targets, in money. Money rather than percentage points, because that is what makes the trading and tax cost comparable with the benefit.
+%%field RebalanceRecommendation.detected_date help: When the breach was found. Drift left unaddressed for months is the finding, and this date is what makes it visible.
+%%field RebalanceRecommendation.reason help: What caused the drift and why acting or not acting is right — a run in one asset class, a large contribution, an imminent goal. It is what turns a computed breach into advice.
 
-%%entity PerformanceSnapshot help: PerformanceSnapshot is a business record in the wealth-management platform.
-%%field PerformanceSnapshot.id help: Unique identifier for PerformanceSnapshot.
-%%field PerformanceSnapshot.portfolio_id help: Portfolio id for PerformanceSnapshot.
-%%field PerformanceSnapshot.snapshot_date help: Snapshot date for PerformanceSnapshot.
-%%field PerformanceSnapshot.market_value help: Market value for PerformanceSnapshot.
-%%field PerformanceSnapshot.absolute_return help: Absolute return for PerformanceSnapshot.
-%%field PerformanceSnapshot.xirr help: Xirr for PerformanceSnapshot.
-%%field PerformanceSnapshot.time_weighted_return help: Time weighted return for PerformanceSnapshot.
-%%field PerformanceSnapshot.benchmark_return help: Benchmark return for PerformanceSnapshot.
+%%entity PerformanceSnapshot help: A portfolio's performance as at a date: what it is worth, what it returned, and how that compares with its benchmark. Snapshots are stored because performance is the thing clients remember being told, and it must be reproducible months later rather than recomputed from whatever prices are current.
+%%field PerformanceSnapshot.portfolio_id help: The portfolio measured. Read as the portfolio's own series, which is what a performance chart is.
+%%field PerformanceSnapshot.snapshot_date help: The date performance is measured to. Every return below is computed to this date, so comparing snapshots means comparing like periods.
+%%field PerformanceSnapshot.market_value help: The portfolio's value at the snapshot date, so the returns can be read against the size they were earned on.
+%%field PerformanceSnapshot.absolute_return help: Money made or lost over the period, before any annualisation. It is the figure clients understand instantly and the one that should be quoted first.
+%%field PerformanceSnapshot.xirr help: The money-weighted annualised return, which accounts for when contributions were made. It is what the client actually earned, and it is the honest number for a portfolio fed by systematic instalments.
+%%field PerformanceSnapshot.time_weighted_return help: The annualised return with the effect of cash flows removed. It measures the manager rather than the client's timing, which is why both are reported and neither alone is enough.
+%%field PerformanceSnapshot.benchmark_return help: What the benchmark did over the same period. A return without it is a number with no scale: eight per cent is excellent in one year and poor in another.
 
-%%entity ClientReview help: ClientReview is a business record in the wealth-management platform.
-%%field ClientReview.id help: Unique identifier for ClientReview.
-%%field ClientReview.client_id help: Client id for ClientReview.
+%%entity ClientReview help: The periodic review meeting and its conclusions — where the portfolio, the goals and the risk profile stand, and what is being recommended as a result. Reviews are the firm's central service obligation, which is why the record carries a next-review date: a relationship without one has quietly stopped being advised.
+%%field ClientReview.client_id help: The client reviewed. The review is held at client level because suitability is personal, even where the plan is the household's.
 %%field ClientReview.status enum: ReviewStatus
-%%field ClientReview.status help: Where this review stands: due when the review cycle falls due, scheduled once a date is agreed with the client, conducted after the meeting, follow_up while actions from it are open, closed when nothing is outstanding.
-%%field ClientReview.review_date help: Review date for ClientReview.
-%%field ClientReview.advisor_id help: Advisor id for ClientReview.
-%%field ClientReview.portfolio_status help: Portfolio status for ClientReview.
-%%field ClientReview.goal_status help: Goal status for ClientReview.
-%%field ClientReview.risk_status help: Risk status for ClientReview.
-%%field ClientReview.recommendations help: Recommendations for ClientReview.
-%%field ClientReview.next_review_date help: Next review date for ClientReview.
+%%field ClientReview.status help: scheduled, in progress, completed or missed. `missed` is deliberately recordable: a review that did not happen is a service failure worth seeing rather than deleting.
+%%field ClientReview.review_date help: When the review took place. Reviews are due at an agreed interval, and this is what the next due date is computed from.
+%%field ClientReview.advisor_id help: The advisor who conducted it. The review is a piece of advice and carries a name like any other.
+%%field ClientReview.portfolio_status help: How the portfolio stood at the review — on allocation, drifted, or requiring action. The summary line a client remembers from the meeting.
+%%field ClientReview.goal_status help: Where the goals stood: on track, at risk, or in shortfall. This is the part of the review the family actually cares about, ahead of any return figure.
+%%field ClientReview.risk_status help: Whether the risk profile is still current and still appropriate. A review that does not revisit it is how a retiring client ends up in a growth portfolio.
+%%field ClientReview.recommendations help: What was agreed to do next, in the words used with the client. It is the bridge from the review to the recommendations that follow it.
+%%field ClientReview.next_review_date help: When the next review is due. Empty only on a closed relationship: an active client without a next review date is the gap this field exists to expose.
 
-%%entity FeeSchedule help: FeeSchedule is a business record in the wealth-management platform.
-%%field FeeSchedule.id help: Unique identifier for FeeSchedule.
-%%field FeeSchedule.name help: Name for FeeSchedule.
-%%field FeeSchedule.fee_type help: Fee type for FeeSchedule.
-%%field FeeSchedule.rate help: Rate for FeeSchedule.
-%%field FeeSchedule.frequency help: Frequency for FeeSchedule.
+%%entity FeeSchedule help: A way the firm charges for its work — a percentage of assets, a flat retainer, a transaction fee. Schedules are held as records because the charge has to be disclosed, applied consistently and reconciled, and because a client's fee arrangement outlives whoever agreed it.
+%%field FeeSchedule.name help: What this arrangement is called internally and in the client's agreement, so the fee on an invoice can be traced to the terms that produced it.
+%%field FeeSchedule.fee_type help: Percentage of assets, flat retainer, transaction-based or performance-based. Performance fees carry additional disclosure requirements that the others do not.
+%%field FeeSchedule.rate help: The rate or amount charged. For a percentage schedule, the annual rate applied to the value the fee is struck on.
+%%field FeeSchedule.frequency help: How often the fee is charged — monthly, quarterly or annually. An annual rate billed quarterly is a quarter of it, which is worth being explicit about.
 %%field FeeSchedule.status enum: RecordStatus
-%%field FeeSchedule.status help: Status for FeeSchedule.
+%%field FeeSchedule.status help: active, superseded or retired. A superseded schedule is kept because past invoices were raised under it and have to remain explicable.
 
-%%entity Commission help: Commission is a business record in the wealth-management platform.
-%%field Commission.id help: Unique identifier for Commission.
-%%field Commission.client_id help: Client id for Commission.
-%%field Commission.security_id help: Security id for Commission.
-%%field Commission.amount help: Amount for Commission.
-%%field Commission.commission_type help: Commission type for Commission.
-%%field Commission.earned_date help: Earned date for Commission.
+%%entity Commission help: Money the firm earns from a product provider on a client's investment — trail, upfront or brokerage. It is tracked per client and instrument because it is a conflict of interest that has to be disclosed, and because what the provider says they paid and what arrived are frequently different.
+%%field Commission.client_id help: The client whose investment generated the commission. Disclosure is per client, and so is the conflict.
+%%field Commission.security_id help: The instrument that paid it. Commission varies sharply by product, which is exactly why recommendations have to be defensible on suitability rather than on revenue.
+%%field Commission.amount help: The commission earned. Recorded gross, with reconciliation against what was actually received held separately.
+%%field Commission.commission_type help: upfront, trail or brokerage. Trail accrues for as long as the client holds the product, which is what makes it the bulk of a distributor's revenue.
+%%field Commission.earned_date help: The period the commission relates to, as opposed to when it was paid. Revenue is recognised on this date, so a payment arriving late does not move the month it belongs to.
 %%field Commission.status enum: RecordStatus
-%%field Commission.status help: Status for Commission.
+%%field Commission.status help: accrued, received, reconciled or written off. Written off is real: small differences are not always worth chasing, but they should be a decision rather than a silence.
 
-%%entity CommissionReconciliation help: CommissionReconciliation is a business record in the wealth-management platform.
-%%field CommissionReconciliation.id help: Unique identifier for CommissionReconciliation.
-%%field CommissionReconciliation.commission_id help: Commission id for CommissionReconciliation.
-%%field CommissionReconciliation.expected_amount help: Expected amount for CommissionReconciliation.
-%%field CommissionReconciliation.received_amount help: Received amount for CommissionReconciliation.
+%%entity CommissionReconciliation help: The comparison between what the firm expected on a commission and what the provider actually paid. It is a line item of the commission and it exists because provider statements routinely disagree with the firm's own accrual, and the difference has to be chased while it is still traceable.
+
+%%entity CommissionReconciliation parent: Commission
+%%field CommissionReconciliation.commission_id help: The commission being reconciled. Read inside it, where the reconciliation is the account of whether the money arrived.
+%%field CommissionReconciliation.expected_amount help: What the firm calculated it was owed, from the product's own rate card.
+%%field CommissionReconciliation.received_amount help: What the provider actually paid. Empty until their statement arrives; the difference from the expected amount is the whole subject of the record.
 %%field CommissionReconciliation.status enum: CommissionStatus
-%%field CommissionReconciliation.status help: Status for CommissionReconciliation.
-%%field CommissionReconciliation.reconciliation_date help: Reconciliation date for CommissionReconciliation.
+%%field CommissionReconciliation.status help: pending, matched, short paid, over paid or written off. A short payment left in `pending` for a quarter is revenue quietly lost.
+%%field CommissionReconciliation.reconciliation_date help: When the comparison was performed. Providers have their own dispute windows, and a reconciliation done after one closes cannot be acted on.
 
-%%entity Equity help: Equity is a business record in the wealth-management platform.
-%%field Equity.id help: Unique identifier for Equity.
-%%field Equity.security_id help: Security id for Equity.
-%%field Equity.exchange help: Exchange for Equity.
-%%field Equity.ticker help: Ticker for Equity.
-%%field Equity.sector help: Sector for Equity.
+%%entity Equity help: The listed-share detail behind an equity security: where it trades, under what ticker, and in which sector. Sector in particular is not cosmetic — it is what a concentration check reads, and a portfolio of ten stocks in one sector is one bet rather than ten.
+%%field Equity.security_id help: The instrument record this share detail belongs to. One row per equity security.
+%%field Equity.exchange help: The exchange the share is listed on. It decides the price source, the settlement cycle and, for a dual-listed company, which line the client actually holds.
+%%field Equity.ticker help: The symbol the share trades under on that exchange. The same company can have different tickers on different exchanges, which is why it is held with the exchange rather than alone.
+%%field Equity.sector help: The economic sector the company operates in. Aggregating a portfolio by it is how a sector concentration becomes visible, which no single holding's own fact sheet will show.
 
-%%entity Bond help: Bond is a business record in the wealth-management platform.
-%%field Bond.id help: Unique identifier for Bond.
-%%field Bond.security_id help: Security id for Bond.
-%%field Bond.issuer help: Issuer for Bond.
-%%field Bond.coupon_rate help: Coupon rate for Bond.
-%%field Bond.maturity_date help: Maturity date for Bond.
-%%field Bond.credit_rating help: Credit rating for Bond.
+%%entity Bond help: The fixed-income detail behind a bond security: who is borrowing, at what coupon, until when, and how creditworthy they are judged to be. All four change what the instrument is: two bonds at the same price can be entirely different risks.
+%%field Bond.security_id help: The instrument record this bond detail belongs to. One row per bond security.
+%%field Bond.issuer help: Who is borrowing the money. The issuer is the credit risk, and issuer concentration across a portfolio's bonds is the exposure that matters most in fixed income.
+%%field Bond.coupon_rate help: The annual interest the bond pays on its face value. With the price it gives the yield, which is what the holding actually earns rather than what the certificate says.
+%%field Bond.maturity_date help: When the principal is repaid. It sets the duration, and therefore how much the price moves when rates move — a long bond is a far more volatile holding than its coupon suggests.
+%%field Bond.credit_rating help: The agency rating of the issuer's creditworthiness. It gates eligibility for conservative mandates and is the first thing to check when a bond's price moves without rates moving.
 
-%%entity AIF help: AIF is a business record in the wealth-management platform.
-%%field AIF.id help: Unique identifier for AIF.
-%%field AIF.security_id help: Security id for AIF.
-%%field AIF.fund_name help: Fund name for AIF.
-%%field AIF.category help: Category for AIF.
-%%field AIF.minimum_investment help: Minimum investment for AIF.
+%%entity AIF help: The detail behind an alternative investment fund holding — the fund's name, its category, and the minimum ticket. Alternatives are restricted products with long lock-ins, so the minimum and the category are eligibility facts rather than descriptive ones.
+%%field AIF.security_id help: The instrument record this fund detail belongs to. One row per alternative fund security.
+%%field AIF.fund_name help: The fund as its offering document names it, which is the form that appears on the client's statement and in every regulatory disclosure.
+%%field AIF.category help: The regulatory category of the fund, which determines who may invest and what the fund is permitted to do. It is a compliance fact before it is a classification.
+%%field AIF.minimum_investment help: The smallest permitted commitment. It is high by design, and it is the first check before an alternative can even be recommended to a client.
 
-%%entity PMS help: PMS is a business record in the wealth-management platform.
-%%field PMS.id help: Unique identifier for PMS.
-%%field PMS.security_id help: Security id for PMS.
-%%field PMS.provider_name help: Provider name for PMS.
-%%field PMS.strategy_name help: Strategy name for PMS.
-%%field PMS.minimum_investment help: Minimum investment for PMS.
+%%entity PMS help: The detail behind a portfolio management service holding: who runs it and under which strategy. A discretionary mandate placed with an external manager is a single line in the client's portfolio but a whole portfolio underneath, which is why the strategy is named.
+%%field PMS.security_id help: The instrument record this mandate belongs to. One row per portfolio management service security.
+%%field PMS.provider_name help: The manager running the mandate. Manager concentration across a client's portfolio is the risk this makes visible.
+%%field PMS.strategy_name help: The specific strategy the money is managed under. The same provider runs several with very different risk, so naming it is what makes the holding meaningful.
+%%field PMS.minimum_investment help: The regulatory or contractual minimum for the mandate. It restricts which clients can hold it at all, and it is checked before recommending rather than after.
 
-%%entity Insurance help: Insurance is a business record in the wealth-management platform.
-%%field Insurance.id help: Unique identifier for Insurance.
-%%field Insurance.security_id help: Security id for Insurance.
-%%field Insurance.insurer help: Insurer for Insurance.
-%%field Insurance.policy_type help: Policy type for Insurance.
-%%field Insurance.premium help: Premium for Insurance.
-%%field Insurance.sum_assured help: Sum assured for Insurance.
+%%entity Insurance help: The detail behind an insurance policy held as part of a client's financial picture: the insurer, the kind of cover, the premium and the sum assured. Protection is part of planning rather than a separate subject — an unprotected earner is the largest single risk in most household plans.
+%%field Insurance.security_id help: The instrument record this policy belongs to. Held as a security so cover appears on the same balance sheet as the investments.
+%%field Insurance.insurer help: The company carrying the risk. Their claims record and solvency are the substance of whether the cover is worth anything.
+%%field Insurance.policy_type help: term, endowment, unit-linked, health or general. The type decides whether this is protection, investment, or an expensive mixture of the two.
+%%field Insurance.premium help: What the client pays for the cover, per period. It is an expense in the plan's cash flow, and comparing it with the sum assured is how a poor-value policy is spotted.
+%%field Insurance.sum_assured help: What the policy pays on a claim. Set against the household's liabilities and its dependants' needs, this is the number that says whether the family is actually protected.
 
-%%entity RealEstate help: RealEstate is a business record in the wealth-management platform.
-%%field RealEstate.id help: Unique identifier for RealEstate.
-%%field RealEstate.security_id help: Security id for RealEstate.
-%%field RealEstate.property_type help: Property type for RealEstate.
-%%field RealEstate.location help: Location for RealEstate.
-%%field RealEstate.acquisition_value help: Acquisition value for RealEstate.
-%%field RealEstate.current_value help: Current value for RealEstate.
+%%entity RealEstate help: A property held as part of the household's wealth. Property is usually the largest asset a family owns and the least liquid, so recording it — even though the firm does not manage it — is what makes the allocation picture honest.
+%%field RealEstate.security_id help: The instrument record this property belongs to, so it appears in the asset allocation alongside financial holdings.
+%%field RealEstate.property_type help: residential, commercial, land or plot. The type determines how it is valued, how quickly it could be sold, and how it is taxed on sale.
+%%field RealEstate.location help: Where the property is. Property valuation is almost entirely local, so the location is the valuation's main input.
+%%field RealEstate.acquisition_value help: What was paid for it, including the costs allowed to be added to the base. It is the cost basis a capital gain on sale is computed from, decades later.
+%%field RealEstate.current_value help: The latest estimate of what it would fetch. An estimate rather than a price — it is worth showing as at a date, because an unrevisited property valuation distorts every allocation percentage in the portfolio.
 
-%%entity STPInstruction help: STPInstruction is a business record in the wealth-management platform.
-%%field STPInstruction.id help: Unique identifier for STPInstruction.
-%%field STPInstruction.client_id help: Client id for STPInstruction.
-%%field STPInstruction.source_security_id help: Source security id for STPInstruction.
-%%field STPInstruction.target_security_id help: Target security id for STPInstruction.
-%%field STPInstruction.amount help: Amount for STPInstruction.
-%%field STPInstruction.frequency help: Frequency for STPInstruction.
+%%entity STPInstruction help: A standing instruction to move money gradually from one instrument to another — the systematic transfer plan. It is how a lump sum is fed into equity over months instead of at one price, which is the practical answer to a client who has cash and is afraid of the market's timing.
+%%field STPInstruction.client_id help: The client whose money is being moved. Both instruments must be held in their name for the transfer to be permitted.
+%%field STPInstruction.source_security_id help: What the money comes out of, usually a liquid or short-duration fund where it earns something while it waits.
+%%field STPInstruction.target_security_id help: What it goes into. The instalments accumulate here at whatever price applies each time, which is the entire point of the arrangement.
+%%field STPInstruction.amount help: The amount transferred each instalment. Constant, so the transfer buys more units when the target is cheaper.
+%%field STPInstruction.frequency help: weekly, monthly or quarterly. Shorter intervals smooth the entry price more but cost more in transaction charges.
 %%field STPInstruction.status enum: RecordStatus
-%%field STPInstruction.status help: Status for STPInstruction.
+%%field STPInstruction.status help: active, paused, completed or stopped. It completes when the source is exhausted, which is the normal ending and worth distinguishing from being stopped early.
 
-%%entity SWPInstruction help: SWPInstruction is a business record in the wealth-management platform.
-%%field SWPInstruction.id help: Unique identifier for SWPInstruction.
-%%field SWPInstruction.client_id help: Client id for SWPInstruction.
-%%field SWPInstruction.security_id help: Security id for SWPInstruction.
-%%field SWPInstruction.amount help: Amount for SWPInstruction.
-%%field SWPInstruction.frequency help: Frequency for SWPInstruction.
-%%field SWPInstruction.start_date help: Start date for SWPInstruction.
+%%entity SWPInstruction help: A standing instruction to withdraw a fixed amount at a fixed interval — the systematic withdrawal plan. It is how a retired client draws an income from a portfolio, and it is the mirror image of a systematic investment: regular, automatic, and in need of watching lest it outrun the portfolio.
+%%field SWPInstruction.client_id help: The client receiving the money. The proceeds go to their verified bank account and nowhere else.
+%%field SWPInstruction.security_id help: The holding being drawn down. Each withdrawal is a redemption, so it realises a gain and consumes units — which is why the sustainability of the rate matters.
+%%field SWPInstruction.amount help: The amount withdrawn each time. Set against the portfolio's expected return: a rate above it depletes capital, slowly at first and then quickly.
+%%field SWPInstruction.frequency help: monthly, quarterly or annually. Monthly is usual because it replaces a salary.
+%%field SWPInstruction.start_date help: When withdrawals begin. Often set to a retirement date, in which case it should be reviewed shortly before it takes effect rather than left to start unexamined.
 %%field SWPInstruction.status enum: RecordStatus
-%%field SWPInstruction.status help: Status for SWPInstruction.
+%%field SWPInstruction.status help: active, paused, completed or stopped. Pausing during a market fall is the classic protective move, because withdrawing from a depressed portfolio sells the most units.
 
-%%entity CorporateAction help: CorporateAction is a business record in the wealth-management platform.
-%%field CorporateAction.id help: Unique identifier for CorporateAction.
-%%field CorporateAction.security_id help: Security id for CorporateAction.
-%%field CorporateAction.action_type help: Action type for CorporateAction.
-%%field CorporateAction.record_date help: Record date for CorporateAction.
-%%field CorporateAction.effective_date help: Effective date for CorporateAction.
+%%entity CorporateAction help: Something an issuer does that changes what a holder holds — a dividend, a bonus, a split, a merger, a buyback. Corporate actions have to be recorded because they alter quantities and cost bases without anybody having traded, and a portfolio that misses one is simply wrong.
+%%field CorporateAction.security_id help: The instrument the action applies to. Every holder of it is affected, which is why the action is recorded once against the instrument rather than per portfolio.
+%%field CorporateAction.action_type help: dividend, bonus, split, rights issue, merger, buyback or delisting. The type decides what happens to the quantity, the cost basis, or both.
+%%field CorporateAction.record_date help: The date on which holders are identified. Only positions held on this date participate, which is the whole mechanism of entitlement.
+%%field CorporateAction.effective_date help: When the action actually changes holdings. It can be well after the record date, and the gap is where reconciliation breaks tend to appear.
 %%field CorporateAction.status enum: RecordStatus
-%%field CorporateAction.status help: Status for CorporateAction.
-%%field CorporateAction.details help: Details for CorporateAction.
+%%field CorporateAction.status help: announced, processed or cancelled. An announced action not yet processed is the state that needs watching: the entitlement exists and the holdings do not reflect it yet.
+%%field CorporateAction.details help: The terms — the ratio, the amount per unit, the price. Without them the action cannot be applied, and 'bonus issue' on its own tells an operations team nothing.
 
-%%entity TaxLot help: TaxLot is a business record in the wealth-management platform.
-%%field TaxLot.id help: Unique identifier for TaxLot.
-%%field TaxLot.holding_lot_id help: Holding lot id for TaxLot.
-%%field TaxLot.acquisition_date help: Acquisition date for TaxLot.
-%%field TaxLot.quantity help: Quantity for TaxLot.
-%%field TaxLot.cost_basis help: Cost basis for TaxLot.
-%%field TaxLot.tax_year help: Tax year for TaxLot.
+%%entity TaxLot help: A holding lot as the tax computation sees it: units, acquisition date and cost basis, held for the tax year they belong to. It is kept apart from the holding lot because tax rules differ from accounting ones and are revised, and rewriting the accounting record every time a rule changes would be worse than keeping two.
+%%field TaxLot.holding_lot_id help: The purchase this tax lot corresponds to. The link back is what makes a capital-gains statement traceable to the actual trade.
+%%field TaxLot.acquisition_date help: When the units were acquired for tax purposes. It decides the holding period and therefore the rate, which is the single most consequential fact in the whole computation.
+%%field TaxLot.quantity help: Units in the lot still available to be matched against a sale.
+%%field TaxLot.cost_basis help: The cost allowed to be deducted from the proceeds, including any indexation or grandfathering the rules provide for. It differs from the accounting cost, which is exactly why this record exists.
+%%field TaxLot.tax_year help: The year the lot is reported in when sold. It is what a client's annual statement is assembled by.
 
-%%entity CapitalGain help: CapitalGain is a business record in the wealth-management platform.
-%%field CapitalGain.id help: Unique identifier for CapitalGain.
-%%field CapitalGain.tax_lot_id help: Tax lot id for CapitalGain.
-%%field CapitalGain.sale_date help: Sale date for CapitalGain.
-%%field CapitalGain.sale_proceeds help: Sale proceeds for CapitalGain.
-%%field CapitalGain.cost_basis help: Cost basis for CapitalGain.
-%%field CapitalGain.gain_amount help: Gain amount for CapitalGain.
-%%field CapitalGain.gain_type help: Gain type for CapitalGain.
-%%field CapitalGain.tax_year help: Tax year for CapitalGain.
+%%entity CapitalGain help: A realised gain or loss from a sale, matched against the lot it came from. Computed at the moment of sale and stored, because the rules in force on the sale date are the rules that apply — and recomputing an old gain under today's rules would silently restate the client's tax position.
+%%field CapitalGain.tax_lot_id help: The lot the units were sold from. Which lot was matched decides the gain and its term, so the link is what makes the figure auditable.
+%%field CapitalGain.sale_date help: When the sale took place. It sets the tax year and, against the acquisition date, whether the gain is short or long term.
+%%field CapitalGain.sale_proceeds help: What was received, net of the charges allowed to be deducted. It is the gross side of the computation.
+%%field CapitalGain.cost_basis help: The cost attributed to the units sold, taken from the tax lot rather than from the position's average. Averaging here would misstate the gain on any position built up over time.
+%%field CapitalGain.gain_amount help: Proceeds less cost — the taxable figure, positive or negative. Losses are as valuable as gains here, because they can be set off.
+%%field CapitalGain.gain_type help: short term or long term, from the holding period. The rates differ enough that the type is usually worth more to the client than the timing of the sale itself.
+%%field CapitalGain.tax_year help: The year this gain is reportable in. It is what the annual capital-gains statement is grouped by, and what a set-off against a loss has to match.
 
-%%entity Benchmark help: Benchmark is a business record in the wealth-management platform.
-%%field Benchmark.id help: Unique identifier for Benchmark.
-%%field Benchmark.name help: Name for Benchmark.
-%%field Benchmark.symbol help: Symbol for Benchmark.
-%%field Benchmark.benchmark_type help: Benchmark type for Benchmark.
+%%entity Benchmark help: An index a portfolio's performance is compared against. Benchmarks are held as records because the comparison is only meaningful if the benchmark is appropriate and stated in advance — choosing one after the fact is how performance reporting stops being honest.
+%%field Benchmark.name help: The index as it is published and as it will appear on a client's performance report.
+%%field Benchmark.symbol help: The code the index's values are retrieved under, where it has one.
+%%field Benchmark.benchmark_type help: equity, debt, hybrid or a composite blend. A portfolio holding several asset classes needs a blended benchmark; comparing it to an equity index alone flatters it in a falling market and penalises it in a rising one.
 %%field Benchmark.status enum: RecordStatus
-%%field Benchmark.status help: Status for Benchmark.
+%%field Benchmark.status help: Whether the benchmark is still in use. Retired ones are kept because past performance reports were made against them.
 
-%%entity PerformanceAttribution help: PerformanceAttribution is a business record in the wealth-management platform.
-%%field PerformanceAttribution.id help: Unique identifier for PerformanceAttribution.
-%%field PerformanceAttribution.performance_snapshot_id help: Performance snapshot id for PerformanceAttribution.
-%%field PerformanceAttribution.asset_class_id help: Asset class id for PerformanceAttribution.
-%%field PerformanceAttribution.contribution help: Contribution for PerformanceAttribution.
-%%field PerformanceAttribution.allocation_effect help: Allocation effect for PerformanceAttribution.
-%%field PerformanceAttribution.selection_effect help: Selection effect for PerformanceAttribution.
+%%entity PerformanceAttribution help: How much of a portfolio's return came from each asset class, split into the part from choosing the weights and the part from choosing the instruments. Attribution is what turns a return into a diagnosis: it says whether the allocation or the selection did the work.
 
-%%entity RevenueHierarchy help: RevenueHierarchy is a business record in the wealth-management platform.
-%%field RevenueHierarchy.id help: Unique identifier for RevenueHierarchy.
-%%field RevenueHierarchy.name help: Name for RevenueHierarchy.
-%%field RevenueHierarchy.parent_id help: Parent id for RevenueHierarchy.
-%%field RevenueHierarchy.level_type help: Level type for RevenueHierarchy.
+%%entity PerformanceAttribution parent: PerformanceSnapshot
+%%field PerformanceAttribution.performance_snapshot_id help: The performance measurement this attribution decomposes. Read inside the snapshot, because an attribution away from the return it explains is meaningless.
+%%field PerformanceAttribution.asset_class_id help: The asset class whose contribution this line describes. The lines together should account for the snapshot's total return.
+%%field PerformanceAttribution.contribution help: How much of the portfolio's return this class produced, weight and return combined. It is what a client's eye goes to first.
+%%field PerformanceAttribution.allocation_effect help: The part of the contribution that came from holding more or less of this class than the benchmark. This is the advisor's allocation decision, measured.
+%%field PerformanceAttribution.selection_effect help: The part that came from the specific instruments chosen within the class, rather than from the class itself. It is the honest measure of whether fund selection added anything.
+
+%%entity RevenueHierarchy help: The tree revenue is rolled up along — advisor to team to branch to region. Held separately from the organisation chart because revenue is reported along lines that do not always match supervision, and a reorganisation should not restate last year's numbers.
+%%field RevenueHierarchy.name help: The node as it appears in revenue reporting.
+%%field RevenueHierarchy.parent_id help: The node this one rolls into, empty at the top. It is the edge that makes the rollup, and a node pointing into its own subtree would make the total infinite.
+%%field RevenueHierarchy.level_type help: advisor, team, branch, region or firm. It says which level of the report a node belongs at, so a mistyped node appears in the wrong total.
 %%field RevenueHierarchy.status enum: RecordStatus
-%%field RevenueHierarchy.status help: Status for RevenueHierarchy.
+%%field RevenueHierarchy.status help: Whether the node is current. Closed nodes are kept so historic revenue still rolls up somewhere.
 
-%%entity SubBroker help: SubBroker is a business record in the wealth-management platform.
-%%field SubBroker.id help: Unique identifier for SubBroker.
-%%field SubBroker.party_id help: Party id for SubBroker.
-%%field SubBroker.code help: Code for SubBroker.
-%%field SubBroker.name help: Name for SubBroker.
+%%entity SubBroker help: An intermediary who introduces and services clients under the firm's registration. Sub-brokers are held as their own records because they are remunerated differently from employed advisors and because the firm is answerable for their conduct.
+%%field SubBroker.party_id help: The sub-broker's own identity record, so their KYC and contact details sit with everyone else's.
+%%field SubBroker.code help: The registration code the sub-broker operates under, quoted on business they introduce and used to attribute commission.
+%%field SubBroker.name help: The sub-broker as clients and statements refer to them, which may be a firm rather than an individual.
 %%field SubBroker.status enum: RecordStatus
-%%field SubBroker.status help: Status for SubBroker.
+%%field SubBroker.status help: active, suspended or terminated. Suspension stops new business immediately while their existing clients continue to be serviced by the firm.
 
-%%entity AdvancedComplianceRecord help: AdvancedComplianceRecord is a business record in the wealth-management platform.
-%%field AdvancedComplianceRecord.id help: Unique identifier for AdvancedComplianceRecord.
-%%field AdvancedComplianceRecord.client_id help: Client id for AdvancedComplianceRecord.
-%%field AdvancedComplianceRecord.compliance_type help: Compliance type for AdvancedComplianceRecord.
+%%entity AdvancedComplianceRecord help: A compliance review of a client beyond ordinary KYC — sanctions screening, politically-exposed-person status, source-of-wealth verification, transaction-monitoring alerts. These are held apart because they are risk-based, recur on their own schedule, and their outcomes constrain what the client may do.
+%%field AdvancedComplianceRecord.client_id help: The client reviewed. Enhanced review is triggered by risk rather than applied to everyone, which is why not every client has one.
+%%field AdvancedComplianceRecord.compliance_type help: sanctions screening, PEP check, source-of-wealth verification, or a transaction-monitoring review. Each has its own evidence and its own consequence on failure.
 %%field AdvancedComplianceRecord.status enum: RecordStatus
-%%field AdvancedComplianceRecord.status help: Status for AdvancedComplianceRecord.
-%%field AdvancedComplianceRecord.review_date help: Review date for AdvancedComplianceRecord.
-%%field AdvancedComplianceRecord.result help: Result for AdvancedComplianceRecord.
+%%field AdvancedComplianceRecord.status help: pending, cleared, escalated or blocked. `blocked` stops activity on the relationship outright and is not an advisor's decision to override.
+%%field AdvancedComplianceRecord.review_date help: When the review was carried out or is next due. Enhanced-risk clients come round far more often, and this is what the schedule reads.
+%%field AdvancedComplianceRecord.result help: What the review found and what was decided. On an escalation this text is the handover to the compliance officer, so it needs to say what was seen rather than only what was concluded.
 
-%%entity ExternalIntegration help: ExternalIntegration is a business record in the wealth-management platform.
-%%field ExternalIntegration.id help: Unique identifier for ExternalIntegration.
-%%field ExternalIntegration.integration_type help: Integration type for ExternalIntegration.
-%%field ExternalIntegration.provider_name help: Provider name for ExternalIntegration.
-%%field ExternalIntegration.endpoint_url help: Endpoint url for ExternalIntegration.
+%%entity ExternalIntegration help: A connection to an outside system the firm depends on — a registrar, a custodian, a price feed, a KYC agency, a payment gateway. Held as records because a silent integration failure looks exactly like a data problem: prices stop moving, holdings stop reconciling, and nobody suspects the pipe.
+%%field ExternalIntegration.integration_type help: price feed, registrar, custodian, KYC provider, payment gateway or e-signature provider. It says what stops working when this connection does.
+%%field ExternalIntegration.provider_name help: Who supplies the service. It is who is called when the connection fails and whose contract governs the service level.
+%%field ExternalIntegration.endpoint_url help: Where the firm connects to. Held so a configuration change is a recorded event rather than an environment variable nobody remembers setting.
 %%field ExternalIntegration.status enum: RecordStatus
-%%field ExternalIntegration.status help: Status for ExternalIntegration.
-%%field ExternalIntegration.last_sync_at help: Last sync at for ExternalIntegration.
+%%field ExternalIntegration.status help: active, degraded, failed or disabled. `degraded` is the state worth having: a feed that is answering slowly is not yet broken but is already affecting valuations.
+%%field ExternalIntegration.last_sync_at help: When the connection last exchanged data successfully. It is the single most useful field here — a last sync from three days ago explains a great many apparent data problems.
 
 %%rbac role:advisor on Party.read
 %%rbac role:advisor on Client.read

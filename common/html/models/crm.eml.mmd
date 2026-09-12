@@ -51,7 +51,7 @@
 %% ---- Entity categories ------------------------------------------------------
 %% Group entities into dashboard sections. One block per category.
 %%category name: Accounts and Contacts; description: Customer organisations, their people and the territories that cover them; icon: Building2; color: #6366f1; entities: Account, Contact, Territory
-%%category name: Demand Generation; description: Campaigns, campaign membership and inbound leads; icon: Megaphone; color: #ec4899; entities: Campaign, CampaignMember, Lead
+%%category name: Demand Generation; description: Campaigns, campaign membership and inbound leads; icon: Megaphone; color: #ec4899; entities: Campaign, Lead
 %%category name: Sales Pipeline; description: Opportunities and the products sold; line items live inside the opportunity; icon: TrendingUp; color: #0ea5e9; entities: Opportunity, Product
 %%category name: Quotes and Contracts; description: Priced quotes and signed agreements; line items live inside the quote; icon: FileSignature; color: #14b8a6; entities: Quote, Contract
 %%category name: Customer Service; description: Support cases and the service levels that govern them; icon: LifeBuoy; color: #f59e0b; entities: SupportCase, SlaPolicy
@@ -543,6 +543,7 @@ erDiagram
     %%entity Lead help: An unqualified enquiry that has not been connected to an account yet. A lead is either converted into an account, a contact and an opportunity, or disqualified.
     %%entity Campaign help: A marketing programme with a budget and a window, run to generate leads.
     %%entity CampaignMember help: One person on one campaign's target list, and whether they responded.
+    %%entity CampaignMember parent: Campaign
     %%entity Opportunity help: A deal in progress against an account, with an amount, a stage and a close date. The pipeline is the sum of these.
     %%entity OpportunityLineItem help: One product on one opportunity, priced. The opportunity's amount is what these add up to.
     %%entity OpportunityLineItem parent: Opportunity

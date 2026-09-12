@@ -280,6 +280,11 @@ export function isPersonRoleColumn(columnName: string): boolean {
   );
 }
 
+/** A literal for use inside a constructed RegExp. */
+function escapeRe(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Whether a column name is one the generator can resolve to a table at all.
  *
@@ -390,6 +395,9 @@ class CheckEngine {
     this.checkFieldDirectives();
     this.checkIndexDirectives();
     this.checkEntityDirectives();
+    this.checkCategoryDirectives();
+    this.checkLineItems();
+    this.checkHelpText();
     this.checkHooks();
     this.checkAutomationTriggers();
     this.checkGuards();
@@ -1117,22 +1125,334 @@ class CheckEngine {
             hint: "A line item belongs to a different entity. Remove the directive if it has no owner.",
           });
         } else if (child) {
-          const snake = parentName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-          const link = child.attributes.find(
-            (attribute) =>
-              attribute.isForeignKey &&
-              (attribute.name === `${snake}_id` || attribute.name.startsWith(`${snake}_`))
-          );
+          /* One resolver for the link column, shared with EML149, so a parent
+             the checker suggests is one it will then accept. Its own snake-caser
+             used to drop the acronym rule — `KYCRecord` came out `kycrecord` —
+             and a model naming `kyc_record_id`, which is the column the
+             generator emits, was told it had no foreign key to its parent. */
+          const link = this.linkColumnTo(child, parentName);
           if (!link) {
             this.error(
               "EML148",
               `%%entity ${entityName} parent: ${parentName}, but ${entityName} has no foreign key to it.`,
               {
                 line: lineNo,
-                hint: `Add \`string ${snake}_id FK\` to ${entityName}. The tab links its rows to the open ${parentName} on that column.`,
+                hint: `Add \`string ${this.entityToFkName(parentName)} FK\` to ${entityName}. The tab links its rows to the open ${parentName} on that column.`,
               }
             );
           }
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // EML149-EML150: line items, and where the dictionary puts them
+  // -------------------------------------------------------------------------
+
+  /**
+   * Read `%%entity <Child> parent: <Parent>` off the source.
+   *
+   * The checker's own model carries no `parentEntity` — `checkEntityDirectives`
+   * reads the directive lines directly and so does this — which keeps both
+   * halves of the rule reading the same bytes the author wrote.
+   */
+  private declaredParents(): Map<string, string> {
+    const parents = new Map<string, string>();
+    for (const { text } of this.src.findAll(/^\s*%%entity\b/)) {
+      const m = text.trim().match(/^%%entity\s+(\w+)\s+parent\s*:\s*(\S+)\s*$/);
+      if (m?.[1] && m[2]) parents.set(m[1], m[2]);
+    }
+    return parents;
+  }
+
+  /** Every entity named by a `%%category ... entities:` list, with its line. */
+  private categorisedEntities(): Map<string, number> {
+    const named = new Map<string, number>();
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%category\b/)) {
+      const m = text.match(/entities\s*:\s*([^;]*)/);
+      if (!m?.[1]) continue;
+      for (const raw of m[1].split(",")) {
+        const name = raw.trim();
+        if (name && !named.has(name)) named.set(name, lineNo);
+      }
+    }
+    return named;
+  }
+
+  /**
+   * The foreign key an entity would link to `parentName` on — the same rule
+   * EML148 and `dictionary.generator` use, so a candidate the checker offers is
+   * one the directive would actually be able to link.
+   */
+  private linkColumnTo(entity: EmlEntity, parentName: string): EmlAttribute | undefined {
+    const snake = parentName
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+      .toLowerCase();
+    return entity.attributes.find(
+      (attribute) =>
+        attribute.isForeignKey &&
+        (attribute.name === `${snake}_id` || attribute.name.startsWith(`${snake}_`))
+    );
+  }
+
+  /**
+   * EML154: a `%%category` the parser will skip entirely.
+   *
+   * `category.parser.ts` requires a `name:` key and `continue`s without one, so
+   * `%%category Sources: DataSource, SchemaEntity` — which reads perfectly well
+   * — declares nothing at all. The whole grouping is lost, the entities fall
+   * into the default "General" category, and the model checks clean: the
+   * directive is a comment Mermaid ignores and a directive the generator
+   * ignores too. One published model carried four of them.
+   */
+  private checkCategoryDirectives(): void {
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%category\b/)) {
+      const body = text.trim().replace(/^%%\s*category\b\s*/i, "");
+      if (!body) continue;
+
+      const keys = body
+        .split(";")
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+        .map((segment) => segment.slice(0, segment.indexOf(":")).trim().toLowerCase());
+
+      if (!keys.includes("name")) {
+        const shorthand = body.match(/^([^:;]+):\s*(.+)$/);
+        this.warn("EML154", "%%category has no `name:` key, so nothing is declared.", {
+          line: lineNo,
+          hint: shorthand
+            ? `Write it as \`%%category name: ${shorthand[1]?.trim()}; entities: ${shorthand[2]?.trim()}\`. Without \`name:\` the parser skips the line and every entity in it falls into the default General category.`
+            : "Syntax: %%category name: <Name>; description: …; icon: …; entities: <A>, <B>. `name` is the only required key, and a directive without it is dropped.",
+        });
+      }
+    }
+  }
+
+  private checkLineItems(): void {
+    const parents = this.declaredParents();
+    const categorised = this.categorisedEntities();
+    const declared = new Map(this.model.entities.map((e) => [e.name, e]));
+
+    /*
+     * EML150: a child named in a %%category.
+     *
+     * A category is the dashboard's grouping, and `parent:` is the directive
+     * that takes a child's dashboard card away. Naming a child in a category
+     * therefore asks for a card that the dictionary will not create: the group
+     * counts an entity the reader can never open from it. Mechanical, and there
+     * is nothing to weigh — the two directives contradict each other.
+     */
+    for (const [child, parent] of parents) {
+      const line = categorised.get(child);
+      if (line === undefined || !declared.has(child)) continue;
+      this.warn(
+        "EML150",
+        `"${child}" is a line item of "${parent}" but is named in a %%category.`,
+        {
+          line,
+          hint: `A category lists what the dashboard shows, and a child has no card — it is reached by opening a ${parent}. Remove "${child}" from the entities: list.`,
+        }
+      );
+    }
+
+    /*
+     * EML149: an entity shaped like a line item that never says so.
+     *
+     * The ERD cannot tell a line item from a reference — `InvoiceLine.invoice_id`
+     * and `Invoice.patient_id` are both a foreign key with a relationship behind
+     * it — so `parent:` is the only place a model can say which it is, and the
+     * cost of never saying it is a dashboard card listing every line ever
+     * written and a parent record that does not show its own lines.
+     *
+     * Nothing here can decide it: whether a list of these records away from
+     * their owner is useful to anyone is a question about the business, not
+     * about the document. So this is an `info` that names the candidate and the
+     * parent it would link to, and the author answers it either way. It is
+     * deliberately narrow — the entity's name has to *begin* with a declared
+     * entity's name (InvoiceLine/Invoice, OrderItem/Order, TeamMember/Team), or
+     * end in one of the line-item nouns, and in both cases it has to carry the
+     * foreign key the tab would link on. An entity that merely references
+     * another stays quiet.
+     */
+    const LINE_ITEM_NOUNS = /(Line|LineItem|Item|Detail|Entry|Row)s?$/;
+
+    for (const entity of this.model.entities) {
+      if (parents.has(entity.name)) continue;
+
+      // Longest match wins: FinancialPlanAssumption belongs to FinancialPlan,
+      // not to whatever shorter entity happens to share its first word.
+      let candidate: string | undefined;
+      for (const other of declared.keys()) {
+        if (other === entity.name || other.length < 3) continue;
+        if (!entity.name.startsWith(other) || entity.name.length <= other.length) continue;
+        if (!this.linkColumnTo(entity, other)) continue;
+        if (!candidate || other.length > candidate.length) candidate = other;
+      }
+
+      /*
+       * The second shape: the noun says line item even though the parent's name
+       * is not a prefix of it — RecommendationItem under InvestmentRecommendation.
+       * Only then, and only through a foreign key that resolves to a declared
+       * entity, so the candidate offered is one `parent:` could link.
+       */
+      if (!candidate && LINE_ITEM_NOUNS.test(entity.name)) {
+        for (const attribute of entity.attributes) {
+          if (!attribute.isForeignKey || attribute.isPrimaryKey) continue;
+          if (!isForeignKeyColumnName(attribute.name)) continue;
+          if (isPersonRoleColumn(attribute.name)) continue;
+          const target = this.fkToEntityName(attribute.name);
+          const match = [...declared.keys()].find(
+            (name) => name !== entity.name && (name === target || name.endsWith(target))
+          );
+          if (match && this.linkColumnTo(entity, match)) {
+            candidate = match;
+            break;
+          }
+        }
+      }
+
+      if (!candidate) continue;
+
+      const link = this.linkColumnTo(entity, candidate);
+      this.info(
+        "EML149",
+        `"${entity.name}" looks like a line item of "${candidate}" but declares no parent.`,
+        {
+          line: this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`)),
+          hint:
+            `If a list of every ${entity.name} away from its ${candidate} is not a screen anyone opens, ` +
+            `declare \`%%entity ${entity.name} parent: ${candidate}\` — the dictionary then drops its dashboard ` +
+            `card and gives it a tab inside the ${candidate} window, linked on ${link?.name}. ` +
+            `If it is a thing in its own right, leave it: a reference is the opposite on all three questions (§3.5.1).`,
+        }
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // EML151-EML153: help text, and the two ways a model has none
+  // -------------------------------------------------------------------------
+
+  /** `entity_name` or `column_name` as the words a sentence would use. */
+  private nameAsWords(name: string): string {
+    return name.replace(/[_.]+/g, " ").trim().toLowerCase();
+  }
+
+  /**
+   * Whether a piece of help says nothing the reader could not already see.
+   *
+   * Help is the only explanation a generated application has — it becomes
+   * `sys_table.description` and `sys_column.description`, the hint under the
+   * control, and the whole of the "what it is for" column of the manual. Text
+   * that restates the column's own name fills the field and leaves the reader
+   * with nothing, and it does it invisibly: coverage looks complete, the
+   * checker used to pass, and the manual reads as a list of labels twice.
+   *
+   * Three shapes, all of them templates rather than sentences anyone wrote
+   * about a business. Deliberately narrow — real help that happens to be short
+   * ("The day this offer expires.") is not a restatement and does not fire.
+   */
+  private restatedHelp(subject: string, text: string): string | undefined {
+    const [entity = "", column = ""] = subject.split(".");
+    const body = text.trim().replace(/\.+$/, "").trim().toLowerCase();
+    const own = this.nameAsWords(column || entity);
+    const of = entity.toLowerCase();
+
+    if (/^unique identifier( for \w+)?$/.test(body)) return "restates the key";
+    if (new RegExp(`^(the )?${escapeRe(own)}( for ${escapeRe(of)})?$`).test(body)) {
+      return "is the name again, in prose";
+    }
+    if (new RegExp(`^${escapeRe(of)} is an? [\\w -]*(record|entity|table|object)\\b`).test(body)) {
+      return "is a template sentence, not a description";
+    }
+    return undefined;
+  }
+
+  private checkHelpText(): void {
+    /* The columns the generator adds itself. A model does not describe them —
+       EML103 reports declaring one at all — so they are not counted as missing
+       help. `id` is the exception the set already handles: a declared primary
+       key is the model's own. */
+
+    const entityHelp = new Map<string, { text: string; line: number }>();
+    const fieldHelp = new Map<string, { text: string; line: number }>();
+
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%entity\b/)) {
+      const m = text.trim().match(/^%%entity\s+(\w+)\s+(?:help|description)\s*:\s*(.+)$/);
+      if (m?.[1] && m[2]) entityHelp.set(m[1], { text: m[2], line: lineNo });
+    }
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%field\b/)) {
+      const m = text.trim().match(/^%%field\s+([\w.]+)\s+help\s*:\s*(.+)$/);
+      if (m?.[1] && m[2]) fieldHelp.set(m[1], { text: m[2], line: lineNo });
+    }
+
+    for (const entity of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
+
+      /*
+       * EML152: an entity nobody described.
+       *
+       * `%%entity <Name> help:` is compiled to `sys_table.description` and is
+       * the opening paragraph of that entity's section in the generated manual.
+       * Without it the manual opens on a placeholder, and the only moment
+       * anybody knew what the entity was for has passed.
+       */
+      const help = entityHelp.get(entity.name);
+      if (!help) {
+        this.warn("EML152", `Entity "${entity.name}" has no %%entity help:.`, {
+          line: entityLine,
+          hint: `Add \`%%entity ${entity.name} help: …\` — what this record is for in the business, when one is created, and what distinguishes it from the entities it sounds like. It becomes sys_table.description and opens the entity's section of the manual.`,
+        });
+      } else {
+        const why = this.restatedHelp(entity.name, help.text);
+        if (why) {
+          this.warn("EML151", `%%entity ${entity.name} help: ${why}.`, {
+            line: help.line,
+            hint: `"${help.text.trim().slice(0, 60)}" tells a reader nothing the entity name did not. Say what the business does with these records — the domain knowledge behind the name is the whole reason this line exists.`,
+          });
+        }
+      }
+
+      /*
+       * EML153: the columns nobody described, reported once for the entity.
+       *
+       * One diagnostic per column would bury every other finding on a model
+       * that skipped help entirely — which is the common case, because it is
+       * the most-skipped part of a model. The columns are named instead.
+       */
+      const undocumented = entity.attributes
+        .filter((attribute) => !MANAGED_COLUMN_NAMES.has(attribute.name.toLowerCase()))
+        /* The key is excluded. It is a uuid the generator issues, read-only on
+           every form, and "the record's key" is the only thing anyone could
+           write about it — which is the restatement EML151 exists to refuse. */
+        .filter((attribute) => !attribute.isPrimaryKey)
+        .filter((attribute) => !fieldHelp.has(`${entity.name}.${attribute.name}`))
+        .map((attribute) => attribute.name);
+
+      if (undocumented.length > 0) {
+        const shown = undocumented.slice(0, 6).join(", ");
+        const rest = undocumented.length > 6 ? `, and ${undocumented.length - 6} more` : "";
+        this.warn(
+          "EML153",
+          `${entity.name} has ${undocumented.length} column${undocumented.length === 1 ? "" : "s"} with no %%field help:.`,
+          {
+            line: entityLine,
+            hint: `Add \`%%field ${entity.name}.<column> help: …\` for ${shown}${rest}. Each becomes sys_column.description — the hint under the control and the column's row in the manual — and a column without one prints a dash.`,
+          }
+        );
+      }
+
+      for (const attribute of entity.attributes) {
+        const field = fieldHelp.get(`${entity.name}.${attribute.name}`);
+        if (!field) continue;
+        const why = this.restatedHelp(`${entity.name}.${attribute.name}`, field.text);
+        if (why) {
+          this.warn("EML151", `%%field ${entity.name}.${attribute.name} help: ${why}.`, {
+            line: field.line,
+            hint: `"${field.text.trim().slice(0, 60)}" repeats the column name. Say why the value matters, what is expected in it, and what happens downstream — a reference column should say what the reference is *for*, not that it is one.`,
+          });
         }
       }
     }
