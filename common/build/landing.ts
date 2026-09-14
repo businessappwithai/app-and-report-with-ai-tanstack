@@ -48,7 +48,13 @@ interface Pack {
   reports: unknown[];
   charts: unknown[];
   dashboards: unknown[];
-  access?: { roles: AccessRoleSpec[]; scoped: boolean; entityTotal?: number };
+  access?: {
+    roles: AccessRoleSpec[];
+    scoped: boolean;
+    entityTotal?: number;
+    appPassword?: string;
+    reportPassword?: string;
+  };
 }
 
 const esc = (value: string): string =>
@@ -83,6 +89,10 @@ export function renderLanding(pack: Pack, origin: string): string {
   const entityTotal =
     pack.access?.entityTotal ?? roles.reduce((max, role) => Math.max(max, role.tables.length), 0);
   const app = pack.application;
+  // Stated by the pack, per side, because they differ. The fallbacks are for a
+  // pack built before that was carried.
+  const appPassword = pack.access?.appPassword ?? "admin123";
+  const reportPassword = pack.access?.reportPassword ?? "admin";
   const counts = `${pack.reports.length} reports · ${pack.charts.length} charts · ${pack.dashboards.length} dashboards`;
 
   return `<!doctype html>
@@ -142,6 +152,8 @@ export function renderLanding(pack: Pack, origin: string): string {
   .scope { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text-faint); }
   tr.is-admin td, tr.is-admin th { background: color-mix(in srgb, var(--accent) 7%, transparent); }
   .pw { margin-top: 12px; font-size: 12.5px; color: var(--text-faint); }
+  .pwhead { display: block; margin-top: 3px; font-weight: 400; text-transform: none;
+            letter-spacing: 0; font-size: 11.5px; }
   footer { margin-top: 30px; font-size: 12.5px; color: var(--text-faint); }
 </style>
 </head>
@@ -178,19 +190,24 @@ ${
   roles.length > 0
     ? `  <h3>Accounts</h3>
   <table>
-    <caption>One pair per role the model declares. Both sides seed the same password.</caption>
+    <caption>One pair per role the model declares. The two sides seed different passwords.</caption>
     <thead>
-      <tr><th>Role</th><th>Application &mdash; /app</th><th>Reports &mdash; /report</th></tr>
+      <tr>
+        <th>Role</th>
+        <th>Application &mdash; /app<span class="pwhead">password <code>${esc(appPassword)}</code></span></th>
+        <th>Reports &mdash; /report<span class="pwhead">password <code>${esc(reportPassword)}</code></span></th>
+      </tr>
     </thead>
     <tbody>
 ${accountRows(roles, entityTotal)}
     </tbody>
   </table>
-  <p class="pw">Every account above signs in with the password <code>admin</code>. The two
-  administrators share an address and are still two different accounts, in two
-  different databases.</p>`
+  <p class="pw">The two administrators share an address, <code>admin@admin.com</code>, and are
+  still two different accounts in two different databases &mdash; with two
+  different passwords, as above.</p>`
     : `  <div class="note">This model declares no <code>%%rbac</code> roles, so each side has
-  only its administrator: <code>admin@admin.com</code> / <code>admin</code>.</div>`
+  only its administrator, <code>admin@admin.com</code> &mdash; <code>${esc(appPassword)}</code>
+  on the application, <code>${esc(reportPassword)}</code> on the reports.</div>`
 }
 
   <footer>Generated from ${esc(app.model)}. Stop everything with <code>./stop.sh</code>.</footer>
