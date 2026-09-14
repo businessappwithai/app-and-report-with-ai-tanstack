@@ -139,6 +139,19 @@ export interface AccessRoleSpec {
 
 export interface AccessSpec {
   roles: AccessRoleSpec[];
+  /**
+   * The password each side's seeded accounts use — and they are not the same.
+   *
+   * The generated application seeds `admin123` (`DEFAULT_PASSWORD` in
+   * `common/seeds/users-and-roles.ts.hbs`, which is what better-auth's minimum
+   * length forces); the reporting platform's bootstrap administrator and the
+   * accounts the seeder creates beside it use `admin`. A front door that stated
+   * one password for both was wrong for every application account on it, which
+   * is worse than stating none: a reader who is told the wrong password
+   * concludes the account does not work.
+   */
+  appPassword: string;
+  reportPassword: string;
   /** True when at least one role is narrower than the whole schema. */
   scoped: boolean;
   /**
@@ -168,6 +181,17 @@ export interface ReportingPack {
   /** Roles to create on the reporting side, mirroring the model's `%%rbac`. */
   access: AccessSpec;
 }
+
+/**
+ * What the two sides actually seed, stated once.
+ *
+ * `APP_PASSWORD` mirrors `DEFAULT_PASSWORD` in the generator's
+ * `common/seeds/users-and-roles.ts.hbs`. It cannot be imported — that file is a
+ * Handlebars template, not a module — so this is a copy, and the E2E check that
+ * signs in as a seeded account is what holds the two together.
+ */
+const APP_PASSWORD = "admin123";
+const REPORT_PASSWORD = "admin";
 
 // --- Naming ------------------------------------------------------------------
 
@@ -819,10 +843,28 @@ function deriveAccessSpec(source: string, model: EmlModel, projectId: string): A
     roles,
     scoped: roles.some((role) => !role.isAdmin && role.tables.length < model.entities.length),
     entityTotal: model.entities.length,
+    appPassword: APP_PASSWORD,
+    reportPassword: REPORT_PASSWORD,
   };
 }
 
-export function buildPack(source: string, modelPath: string, databaseName: string): ReportingPack {
+export function buildPack(
+  source: string,
+  modelPath: string,
+  databaseName: string,
+  /**
+   * The name the application was generated under — `appwithai generate -n`.
+   *
+   * Not `%%meta name:`, and the difference is the whole point. `start.sh`
+   * passes the *model file's* basename, so `crm.eml.mmd` generates an
+   * application whose seeded accounts are `sales.manager@crm.example.com`.
+   * Deriving the accounts here from `%%meta name:` instead produced
+   * `sales.manager@enterprise-crm.example.com` — addresses that belong to no
+   * account anywhere, printed on the front door as the way in. Defaults to the
+   * same basename so a caller that omits it agrees with `start.sh` anyway.
+   */
+  projectName?: string
+): ReportingPack {
   const model = parseEml(source);
   const errors = model.diagnostics.filter((d) => d.severity === "error");
   if (errors.length > 0) {
@@ -864,7 +906,11 @@ export function buildPack(source: string, modelPath: string, databaseName: strin
     reports: ctx.reports,
     charts: ctx.charts,
     dashboards,
-    access: deriveAccessSpec(source, model, kebab(appName)),
+    access: deriveAccessSpec(
+      source,
+      model,
+      kebab(projectName ?? path.basename(modelPath).replace(/\.eml\.mmd$|\.mmd$/, ""))
+    ),
   };
 }
 
@@ -888,9 +934,12 @@ function main(): number {
   const input = flag("-i") ?? flag("--input");
   const output = flag("-o") ?? flag("--output") ?? "reporting-pack.json";
   const database = flag("--database") ?? "appdb";
+  const appName = flag("--app-name");
 
   if (!input) {
-    console.error("usage: reporting-pack.ts -i <model.eml.mmd> [-o pack.json] [--database name]");
+    console.error(
+      "usage: reporting-pack.ts -i <model.eml.mmd> [-o pack.json] [--database name] [--app-name name]"
+    );
     return 2;
   }
   if (!existsSync(input)) {
@@ -898,7 +947,7 @@ function main(): number {
     return 2;
   }
 
-  const pack = buildPack(readFileSync(input, "utf8"), input, database);
+  const pack = buildPack(readFileSync(input, "utf8"), input, database, appName);
   mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
   writeFileSync(output, `${JSON.stringify(pack, null, 2)}\n`);
 

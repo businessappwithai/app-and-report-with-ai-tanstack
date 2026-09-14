@@ -112,8 +112,12 @@ say "3/7  Putting the application on /app"
 
 say "4/7  Deriving the reporting pack"
 mkdir -p "$PACK_DIR"
+# --app-name is the same value the generate above was given. The reporting
+# accounts and the application's are derived from it, so passing a different one
+# here puts addresses on the front door that belong to no account.
 (cd "$COMMON" && bun build/reporting-pack.ts \
-    -i "../${MODEL}" -o "../${PACK_DIR}/reporting-pack.json" --database "$APP_DB_NAME")
+    -i "../${MODEL}" -o "../${PACK_DIR}/reporting-pack.json" \
+    --database "$APP_DB_NAME" --app-name "$APP_NAME")
 
 say "5/7  Writing the front door"
 # The page nginx serves at /. Generated rather than static because every
