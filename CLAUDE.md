@@ -27,8 +27,10 @@ generate the application   --stack tanstack-nestjs, driving the orchestrator
       ↓                    inside app-with-ai-tanstack
 put it on /app             common/build/subpath-overlay.ts
       ↓
-derive the reporting pack  common/build/reporting-pack.ts
-      ↓
+derive the reporting pack  common/build/reporting-pack.ts — the queries, and
+      ↓                    one reporting role per %%rbac role
+write the front door       common/build/landing.ts — both applications, both
+      ↓                    sets of accounts, served by nginx at /
 inject configuration       common/.runtime/.env
       ↓
 build and start            docker compose — postgres, the generated backend and
@@ -121,7 +123,7 @@ imports through its `@/` alias, using that project's real `getDb`, `encrypt` and
 │   │   │                 04-types-and-modifiers · 05-directives
 │   │   ├── cli/          eml.ts, and src/generate/{app,tanstack,enterprise-reporting,jdm}.ts
 │   │   └── examples/     crm · dance-studio · ecommerce · helpdesk · minimal
-│   ├── build/            reporting-pack.ts · subpath-overlay.ts
+│   ├── build/            reporting-pack.ts · subpath-overlay.ts · landing.ts
 │   ├── seed/             seed-reporting.ts — loads a generated app into the platform
 │   ├── docker/           reporting.Dockerfile · seeder.Dockerfile · nginx · pg-init
 │   ├── scripts/          deps.ts · check-models.ts · check-stacks.ts · check-reporting-pack.ts
@@ -290,13 +292,52 @@ ran, and the whole point of that file is to not be that.
 
 | | |
 |---|---|
+| http://localhost/ | the front door: both applications and the accounts for each |
 | http://localhost/app | the application generated from the model |
 | http://localhost/report | the reporting platform, already holding that application's schema as a data source and its reports, charts and dashboard |
 
-The platform signs in as `admin@admin.com` / `admin`. The first start migrates
-and seeds the application, then loads its schema and reporting pack into the
-platform; until the seeder exits, `/report` is up but **empty**. `./stop.sh`
-takes it down, `--volumes` discards the databases too.
+The first start migrates and seeds the application, then loads its schema and
+reporting pack into the platform; until the seeder exits, `/report` is up but
+**empty**. `./stop.sh` takes it down, `--volumes` discards the databases too.
+
+### Two applications, two logins, and why they are not merged
+
+This is the thing most likely to be got wrong, so the root serves a page about
+it rather than redirecting. `/` used to `return 302 /app/` under a comment
+saying "guessing which one somebody meant is worse than saying so" — and then
+guessing. A reader who did not scroll back through the terminal never learned
+`/report` existed, so the platform that had just been built and attached to
+their application was invisible.
+
+|  | `/app` | `/report` |
+|---|---|---|
+| Database | `appdb` | `enterprise_config` |
+| Users | its own table, its own session | its own table, its own session |
+| A role decides | what you may **do** to a record | which tables your queries may **read** |
+| `sales_manager` | `sales.manager@<app>.example.com` | `sales.manager@<app>.reports.example.com` |
+
+`reporting-pack.ts` derives the second column from the *same* `%%rbac` the
+application compiles, so the two role sets line up by name — one reporting role
+per declared role, permitted to read exactly the `bus_` tables that role's
+`read` rules admit. **It is a mirror, not a shared system**: nothing is
+federated, neither password works on the other side, and merging them would
+force one product's meaning of "role" onto the other.
+
+Two details worth knowing:
+
+- **The addresses differ on purpose.** Identical ones would invite a reader to
+  try a single password on both. The administrator is the exception and keeps
+  `admin@admin.com` on each side — the same address, two different accounts, in
+  two different databases — because that is what the platform bootstraps for
+  itself. Every seeded account uses the password `admin`.
+- **Only `read` rules narrow a reporting role.** `%%rbac` also restricts create,
+  update and delete, and none of that means anything to somebody who cannot
+  write through the reporting platform at all.
+
+The table counts on the front door are asserted against `deriveAccess`'s own
+`entityCounts` before the pack is written — two readings of one fact is how the
+products come to disagree about what a role may see, so the second is checked
+against the first rather than merely resembling it.
 
 `start.sh`'s six steps: check the model → generate into `common/.runtime/app` →
 overlay onto `/app` → derive the pack into `common/.runtime/pack` → write

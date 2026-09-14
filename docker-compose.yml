@@ -246,6 +246,10 @@ services:
       - "${PUBLIC_PORT:-80}:80"
     volumes:
       - ./common/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # The front door's own page, written by common/build/landing.ts from the
+      # reporting pack — so the accounts it lists are this model's. Read-only,
+      # and the config falls back to redirecting at /app when it is absent.
+      - ./common/.runtime/landing:/usr/share/nginx/landing:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz || exit 1"]
       interval: 15s

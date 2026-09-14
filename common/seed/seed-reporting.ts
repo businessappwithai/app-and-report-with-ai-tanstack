@@ -27,6 +27,15 @@
 
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+/*
+ * The same bcryptjs the platform's own sign-in uses.
+ *
+ * `src/lib/auth/better-auth.ts` keeps bcrypt rather than Better Auth's default
+ * scrypt, because every password in an existing installation is a bcrypt hash.
+ * A seeder that hashed with anything else would write accounts that cannot
+ * sign in, and the failure would read as a wrong password.
+ */
+import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/config";
 import { introspectAndCacheSchema } from "@/lib/mastra/schema-store";
 import { encrypt } from "@/lib/security/encryption";
@@ -72,6 +81,16 @@ interface DashboardSpec {
   description: string;
   widgets: DashboardWidgetSpec[];
 }
+interface AccessRoleSpec {
+  name: string;
+  declaredAs: string;
+  description: string;
+  isAdmin: boolean;
+  email: string;
+  /** `bus_` tables this role may read. Empty means every table. */
+  tables: string[];
+}
+
 interface ReportingPack {
   application: { name: string; description: string; model: string; databaseName: string };
   dataSource: { name: string; description: string; clientType: string };
@@ -79,6 +98,8 @@ interface ReportingPack {
   reports: ReportSpec[];
   charts: ChartSpec[];
   dashboards: DashboardSpec[];
+  /** Absent in a pack built before roles were derived; treated as none. */
+  access?: { roles: AccessRoleSpec[]; scoped: boolean };
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: nine of this schema's tables are absent from the Database interface
@@ -530,6 +551,233 @@ async function upsertDashboards(
   return widgetCount;
 }
 
+// --- Roles -------------------------------------------------------------------
+
+/**
+ * Create a reporting account per role the model declared.
+ *
+ * These are *not* the application's accounts. The two products have separate
+ * user tables, in separate databases, behind separate sign-in screens, and a
+ * role means a different thing on each side: in the application it decides what
+ * a user may do to a record, here it decides which tables their queries and
+ * reports may read. The names line up so an administrator can tell which is
+ * which; nothing else is shared, and neither password works on the other.
+ *
+ * The addresses are deliberately different for the same reason — the reporting
+ * account for `sales_manager` is `sales.manager@<app>.reports.example.com`,
+ * against the application's `sales.manager@<app>.example.com`. Identical
+ * addresses would invite a reader to try one password on both.
+ *
+ * Idempotent by email and by name, like everything else here: it runs on every
+ * `docker compose up`, not only the first.
+ *
+ * Two things are seeded per role, and they are different layers:
+ *
+ *   - a platform user + role + link, which is what signing in produces;
+ *   - a `ds_role` scoped to this data source, with one `ds_entity_permissions`
+ *     row per table the role may read. That is the part derived from `%%rbac`.
+ */
+async function upsertAccess(
+  db: Db,
+  pack: ReportingPack,
+  dataSourceId: string,
+  ownerId: string
+): Promise<number> {
+  const roles = pack.access?.roles ?? [];
+  if (roles.length === 0) return 0;
+
+  const stamp = now();
+  // The password every seeded account shares, and the one the application's
+  // own seeded accounts use. A demo whose nine accounts have nine passwords is
+  // a demo nobody signs into twice.
+  const passwordHash = bcrypt.hashSync("admin", 10);
+  let seeded = 0;
+
+  for (const role of roles) {
+    // ── The platform account ────────────────────────────────────────────────
+    //
+    // The administrator already exists — `bootstrapSchema()` creates it before
+    // anything here runs, and it owns every row this seeder wrote. Creating a
+    // second user with that address would fail on the unique index; what it
+    // still needs is the data-source role below, which bootstrap knows nothing
+    // about.
+    let userId: string;
+    const existing = await db
+      .selectFrom("users")
+      .select("id")
+      .where("email", "=", role.email)
+      .executeTakeFirst();
+
+    if (existing) {
+      userId = existing.id as string;
+    } else {
+      userId = randomUUID().replace(/-/g, "");
+      await db
+        .insertInto("users")
+        .values({
+          id: userId,
+          email: role.email,
+          password_hash: passwordHash,
+          display_name: role.name,
+          avatar_url: null,
+          is_active: true,
+          created_at: stamp,
+          updated_at: stamp,
+        })
+        .execute();
+
+      // Better Auth reads the credential from `auth_accounts`, never from
+      // `users.password_hash` — see the note in the platform's bootstrap. A
+      // user without this row is rejected with a correct password.
+      await db
+        .insertInto("auth_accounts")
+        .values({
+          id: `cred_${userId}`.slice(0, 255),
+          user_id: userId,
+          account_id: userId,
+          provider_id: "credential",
+          password: passwordHash,
+          access_token: null,
+          refresh_token: null,
+          id_token: null,
+          access_token_expires_at: null,
+          refresh_token_expires_at: null,
+          scope: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .onConflict((oc: any) => oc.column("id").doNothing())
+        .execute();
+    }
+
+    // ── The platform role ───────────────────────────────────────────────────
+    //
+    // `nl_query:*` and the report/chart/dashboard resources are what a
+    // reporting user does. An administrator keeps whatever bootstrap gave it.
+    if (!role.isAdmin) {
+      const permissions = JSON.stringify(["nl_query:*", "report:view", "chart:view", "dashboard:view"]);
+      let roleId: string;
+      const existingRole = await db
+        .selectFrom("roles")
+        .select("id")
+        .where("name", "=", role.name)
+        .executeTakeFirst();
+
+      if (existingRole) {
+        roleId = existingRole.id as string;
+        await db
+          .updateTable("roles")
+          .set({ description: role.description, permissions })
+          .where("id", "=", roleId)
+          .execute();
+      } else {
+        roleId = randomUUID().replace(/-/g, "");
+        await db
+          .insertInto("roles")
+          .values({
+            id: roleId,
+            name: role.name,
+            description: role.description,
+            permissions,
+            created_at: stamp,
+          })
+          .execute();
+      }
+
+      await db
+        .insertInto("user_roles")
+        .values({ user_id: userId, role_id: roleId, assigned_at: stamp })
+        .onConflict((oc: any) => oc.doNothing())
+        .execute();
+    }
+
+    // ── The data-source role ────────────────────────────────────────────────
+    const existingDsRole = await db
+      .selectFrom("ds_roles")
+      .select("id")
+      .where("data_source_id", "=", dataSourceId)
+      .where("name", "=", role.name)
+      .executeTakeFirst();
+
+    let dsRoleId: string;
+    if (existingDsRole) {
+      dsRoleId = existingDsRole.id as string;
+      await db
+        .updateTable("ds_roles")
+        .set({ description: role.description, is_active: true, updated_at: stamp })
+        .where("id", "=", dsRoleId)
+        .execute();
+    } else {
+      dsRoleId = randomUUID();
+      await db
+        .insertInto("ds_roles")
+        .values({
+          id: dsRoleId,
+          data_source_id: dataSourceId,
+          name: role.name,
+          description: role.description,
+          is_active: true,
+          created_by: ownerId,
+          created_at: stamp,
+          updated_at: stamp,
+        })
+        .execute();
+    }
+
+    await db
+      .insertInto("ds_user_roles")
+      .values({
+        data_source_id: dataSourceId,
+        user_id: userId,
+        ds_role_id: dsRoleId,
+        assigned_at: stamp,
+      })
+      .onConflict((oc: any) => oc.doNothing())
+      .execute();
+
+    // ── What the role may read ──────────────────────────────────────────────
+    //
+    // Replaced rather than merged: the model is the source of truth for this,
+    // so a permission removed from the model has to disappear here too.
+    await db
+      .deleteFrom("ds_entity_permissions")
+      .where("data_source_id", "=", dataSourceId)
+      .where("ds_role_id", "=", dsRoleId)
+      .execute();
+
+    // An empty list means the whole schema — that is what an administrator
+    // gets, and writing a row per table for it would only go stale.
+    for (const table of role.tables) {
+      await db
+        .insertInto("ds_entity_permissions")
+        .values({
+          id: randomUUID(),
+          data_source_id: dataSourceId,
+          ds_role_id: dsRoleId,
+          entity_name: table,
+          entity_type: "table",
+          entity_schema: "public",
+          // `select` is the vocabulary the type declares and the permissions
+          // screen offers, so a seeded row is one an administrator can read and
+          // edit in the UI this product already ships. See the note on
+          // SELECT_LEVELS in sql-ast-validator.ts for why the enforcement side
+          // had to learn it.
+          permission_level: "select",
+          column_restrictions: null,
+          row_filter: null,
+          created_by: ownerId,
+          created_at: stamp,
+          updated_at: stamp,
+        })
+        .execute();
+    }
+
+    seeded++;
+  }
+
+  return seeded;
+}
+
 // --- Entry point -------------------------------------------------------------
 
 async function main(): Promise<number> {
@@ -581,6 +829,9 @@ async function main(): Promise<number> {
 
   const widgets = await upsertDashboards(db, pack, chartIds, reportIds, ownerId);
   log(`dashboards: ${pack.dashboards.length} (${widgets} widgets)`);
+
+  const accounts = await upsertAccess(db, pack, dataSource.id, ownerId);
+  log(`reporting roles: ${accounts}`);
 
   log("done");
   return 0;
