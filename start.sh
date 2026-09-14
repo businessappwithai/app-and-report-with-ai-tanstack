@@ -25,6 +25,7 @@ readonly COMMON="common"
 readonly RUNTIME="${COMMON}/.runtime"
 readonly APP_DIR="${RUNTIME}/app"
 readonly PACK_DIR="${RUNTIME}/pack"
+readonly LANDING_DIR="${RUNTIME}/landing"
 readonly ENV_FILE="${RUNTIME}/.env"
 readonly DEFAULT_MODEL="${COMMON}/language/examples/crm.eml.mmd"
 
@@ -79,7 +80,12 @@ APP_NAME="$(basename "$MODEL" | sed 's/\.eml\.mmd$//;s/\.mmd$//')"
 APP_DB_NAME="$(printf '%s' "$APP_NAME" | tr '[:upper:]-' '[:lower:]_' | tr -cd 'a-z0-9_')"
 [[ -n "$APP_DB_NAME" ]] || APP_DB_NAME="appdb"
 
-say "1/6  Checking the model"
+# Resolved here rather than beside the closing message, because the front door
+# is generated in step 5 and has to print the same origin the reader will use.
+ORIGIN="http://localhost"
+[[ "$PORT" == "80" ]] || ORIGIN="http://localhost:${PORT}"
+
+say "1/7  Checking the model"
 # The checker writes a .error file beside whatever it reads; that is its
 # interface. Removed again unless it was already tracked.
 HAD_ERROR_FILE=""
@@ -90,7 +96,7 @@ if ! (cd "$COMMON" && bun language/checker.ts "../${MODEL}"); then
 fi
 [[ -n "$HAD_ERROR_FILE" ]] || rm -f "${MODEL}.error"
 
-say "2/6  Generating the application"
+say "2/7  Generating the application"
 mkdir -p "$RUNTIME"
 if [[ -n "$KEEP_APP" && -d "$APP_DIR" ]]; then
   echo "  --keep-app: reusing the application already in ${APP_DIR}"
@@ -101,15 +107,22 @@ else
       --stack tanstack-nestjs --force)
 fi
 
-say "3/6  Putting the application on /app"
+say "3/7  Putting the application on /app"
 (cd "$COMMON" && bun build/subpath-overlay.ts --dir "../${APP_DIR}/frontend" --base /app)
 
-say "4/6  Deriving the reporting pack"
+say "4/7  Deriving the reporting pack"
 mkdir -p "$PACK_DIR"
 (cd "$COMMON" && bun build/reporting-pack.ts \
     -i "../${MODEL}" -o "../${PACK_DIR}/reporting-pack.json" --database "$APP_DB_NAME")
 
-say "5/6  Configuration"
+say "5/7  Writing the front door"
+# The page nginx serves at /. Generated rather than static because every
+# account on it comes from this model's %%rbac.
+mkdir -p "$LANDING_DIR"
+(cd "$COMMON" && bun build/landing.ts \
+    -i "../${PACK_DIR}/reporting-pack.json" -o "../${LANDING_DIR}" --origin "$ORIGIN")
+
+say "6/7  Configuration"
 # Secrets are generated once and then left alone: regenerating ENCRYPTION_KEY
 # would leave every stored data-source password undecryptable, and the failure
 # would look like a broken data source rather than a rotated key.
@@ -157,20 +170,23 @@ sed -i.bak '/^# --- derived/,$d' "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
   fi
 } >> "$ENV_FILE"
 
-say "6/6  Building and starting (profile: ${PROFILE})"
+say "7/7  Building and starting (profile: ${PROFILE})"
 docker compose --env-file "$ENV_FILE" --profile "$PROFILE" up -d --build ${REBUILD:+--no-cache}
-
-ORIGIN="http://localhost"
-[[ "$PORT" == "80" ]] || ORIGIN="http://localhost:${PORT}"
 
 cat <<EOF
 
   ${APP_NAME} is starting.
 
+    ${ORIGIN}/         both applications, and the accounts for each
     ${ORIGIN}/app      the application
     ${ORIGIN}/report   the reports and charts derived from its model
 
-  The reporting platform signs in as admin@admin.com / admin.
+  These are two systems: separate databases, separate user tables, separate
+  sign-ins. A role name means "what you may do to a record" in the application
+  and "which tables your queries may read" in the reporting platform, so the
+  accounts are listed side by side at ${ORIGIN}/ rather than here. Both
+  administrators are admin@admin.com / admin — the same address, two different
+  accounts, in two different databases.
 
   The first start migrates and seeds the application, then loads its schema and
   reporting pack into the platform. That takes a few minutes; until the seeder

@@ -31,6 +31,33 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+/**
+ * `%%rbac`, read by the code that already owns it.
+ *
+ * These reach across the repository boundary into the `app-with-ai-tanstack`
+ * checkout, the same way `language/cli/src/generate/jdm.ts` does — and for the
+ * same reason. The generated application seeds one account per declared role
+ * and scopes its navigation from exactly this derivation; a second
+ * implementation here would be a second answer to "what roles does this model
+ * have", and the two would disagree the first time either changed.
+ *
+ * Note this is *not* what the reporting platform then enforces. It cannot be:
+ * the two products have separate role tables, separate logins and separate
+ * meanings for a role. What it gives is the shape — which roles exist, and
+ * which entities each may read — so the platform's own roles can be created to
+ * match rather than invented.
+ *
+ * This repository's own CLI parser reads `%%guard`, which used to carry the
+ * RBAC sense and no longer does. It has no `%%rbac` case at all, so deriving
+ * from `model.guards` here would silently produce no roles for every modern
+ * model.
+ */
+import { compileRbac } from "../../app-with-ai-tanstack/packages/generator/src/rbac/index.ts";
+import {
+  type DerivedAccess,
+  deriveAccess,
+} from "../../app-with-ai-tanstack/packages/generator/src/rbac/roles.ts";
+import { compileWorkflows } from "../../app-with-ai-tanstack/packages/generator/src/workflows/index.ts";
 import type { EmlAttribute, EmlEntity, EmlModel, EmlWorkflow } from "../language/cli/src/model.ts";
 import { parseEml } from "../language/cli/src/parser.ts";
 import { foreignKeyName } from "../language/cli/src/util.ts";
@@ -80,6 +107,51 @@ export interface DashboardSpec {
   widgets: DashboardWidgetSpec[];
 }
 
+/**
+ * One reporting-side role, derived from a `%%rbac` role but not the same thing.
+ *
+ * The application's role decides what a user may *do* to a record. This one
+ * decides what a reporting user may *read* — which tables of the attached data
+ * source their queries and reports may touch. The names line up so that an
+ * administrator can see which is which; nothing else is shared, and the two are
+ * signed into separately.
+ */
+export interface AccessRoleSpec {
+  /** Display name, title-cased: `sales_manager` -> `Sales Manager`. */
+  name: string;
+  /** The spelling the model used. */
+  declaredAs: string;
+  description: string;
+  isAdmin: boolean;
+  /** The account seeded for this role on the *reporting* side. */
+  email: string;
+  /**
+   * The account the *generated application* seeds for the same role.
+   *
+   * Carried so the landing page can show both sign-ins side by side without a
+   * second derivation. It is never used to authenticate anything here — the two
+   * products do not share a user table, and this is the other one's address.
+   */
+  appEmail: string;
+  /** `bus_` tables this role may read. Empty means every table. */
+  tables: string[];
+}
+
+export interface AccessSpec {
+  roles: AccessRoleSpec[];
+  /** True when at least one role is narrower than the whole schema. */
+  scoped: boolean;
+  /**
+   * How many tables the application has in total.
+   *
+   * Stated rather than inferred from the widest role: the widest role is not
+   * necessarily the whole schema, and a page that read "0 of 15" where the
+   * model declares 17 entities is wrong about the only number on it that a
+   * reader would check.
+   */
+  entityTotal: number;
+}
+
 export interface ReportingPack {
   application: {
     name: string;
@@ -93,6 +165,8 @@ export interface ReportingPack {
   reports: ReportSpec[];
   charts: ChartSpec[];
   dashboards: DashboardSpec[];
+  /** Roles to create on the reporting side, mirroring the model's `%%rbac`. */
+  access: AccessSpec;
 }
 
 // --- Naming ------------------------------------------------------------------
@@ -648,6 +722,106 @@ function assertNamesUnique(ctx: Ctx, dashboards: DashboardSpec[]): void {
 
 // --- Entry point -------------------------------------------------------------
 
+/**
+ * The reporting platform's roles, shaped by the model's `%%rbac`.
+ *
+ * Two deliberate decisions here.
+ *
+ * **The addresses differ from the application's.** `deriveAccess` gives the
+ * generated application `sales.manager@crm.example.com`; the reporting account
+ * for the same role is `sales.manager@crm.reports.example.com`. They are
+ * different accounts, in different databases, behind different sign-in screens,
+ * and an address that looked identical would invite a reader to believe one
+ * password works for both. The administrator is the exception and keeps
+ * `admin@admin.com`, because that is the account the reporting platform
+ * bootstraps for itself and the one every existing instruction names.
+ *
+ * **A role's tables come from `read` rules only.** `%%rbac` also restricts
+ * create, update and delete, and none of that means anything to a reporting
+ * user, who cannot write through this product at all. A role no `read` rule
+ * mentions gets every table — which is what the application does too: a target
+ * no directive names stays open.
+ */
+function deriveAccessSpec(source: string, model: EmlModel, projectId: string): AccessSpec {
+  const entityNames = model.entities.map((e) => e.name);
+  const quiet = () => {};
+
+  // The state machines go in because an `%%rbac` line may name a transition
+  // rather than an operation, and only they can resolve it.
+  const workflows = compileWorkflows(source, entityNames, quiet);
+  const compiled = compileRbac(source, entityNames, workflows, quiet);
+  const access: DerivedAccess = deriveAccess(compiled, {
+    projectId,
+    entities: entityNames,
+  });
+
+  const reportDomain = `${projectId || "app"}.reports.example.com`;
+
+  const roles: AccessRoleSpec[] = access.roles.map((role) => {
+    const appUser = access.users.find((u) => u.roleName === role.name);
+
+    // An administrator reads everything; that is what the role is for, and
+    // narrowing it would make the one account that can compare the others
+    // narrower than all of them.
+    const tables = role.isAdmin
+      ? []
+      : model.entities
+          .filter((entity) => {
+            const admitted = access.entityVisibility[entity.name];
+            // No `read` rule on this entity: open to every role.
+            if (!admitted || admitted.length === 0) return true;
+            return admitted.some((r) => r.toLowerCase() === role.declaredAs.toLowerCase());
+          })
+          .map((entity) => tableOf(entity));
+
+    return {
+      name: role.name,
+      declaredAs: role.declaredAs,
+      description: role.isAdmin
+        ? "Reads every table of the attached application"
+        : `Reads what ${role.name} may see in the application`,
+      isAdmin: role.isAdmin,
+      email: role.isAdmin
+        ? (appUser?.email ?? "admin@admin.com")
+        : `${role.declaredAs
+            .toLowerCase()
+            .split(/[\s_-]+/)
+            .filter(Boolean)
+            .join(".")}@${reportDomain}`,
+      appEmail: appUser?.email ?? "admin@admin.com",
+      tables,
+    };
+  });
+
+  /*
+   * Checked against the derivation's own answer rather than trusted.
+   *
+   * `entityCounts` is what the generated application prints beside each seeded
+   * account — "Support Agent · 5 of 17" — and it is computed by `deriveAccess`
+   * from the same visibility map this walks. Two readings of one fact is
+   * exactly how the two products come to disagree about what a role may see, so
+   * the second one is asserted against the first instead of merely resembling
+   * it. A mismatch is a bug here, not a model to be loaded anyway.
+   */
+  for (const role of roles) {
+    if (role.isAdmin) continue;
+    const expected = access.entityCounts[role.name];
+    if (expected !== undefined && expected !== role.tables.length) {
+      throw new Error(
+        `Reporting role "${role.name}" resolved ${role.tables.length} readable tables, ` +
+          `but the application derives ${expected} for the same role. ` +
+          `These must agree — the reporting side is mirroring %%rbac, not reinterpreting it.`
+      );
+    }
+  }
+
+  return {
+    roles,
+    scoped: roles.some((role) => !role.isAdmin && role.tables.length < model.entities.length),
+    entityTotal: model.entities.length,
+  };
+}
+
 export function buildPack(source: string, modelPath: string, databaseName: string): ReportingPack {
   const model = parseEml(source);
   const errors = model.diagnostics.filter((d) => d.severity === "error");
@@ -690,7 +864,19 @@ export function buildPack(source: string, modelPath: string, databaseName: strin
     reports: ctx.reports,
     charts: ctx.charts,
     dashboards,
+    access: deriveAccessSpec(source, model, kebab(appName)),
   };
+}
+
+/** `Acme CRM` -> `acme-crm`, for the account domain. */
+function kebab(value: string): string {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "app"
+  );
 }
 
 function main(): number {
@@ -719,6 +905,9 @@ function main(): number {
   console.log(`  ${pack.application.name}`);
   console.log(
     `  ${pack.queries.length} queries · ${pack.reports.length} reports · ${pack.charts.length} charts · ${pack.dashboards.length} dashboard(s)`
+  );
+  console.log(
+    `  ${pack.access.roles.length} reporting role(s)${pack.access.scoped ? ", scoped to what each may read" : ""}`
   );
   console.log(`  → ${output}`);
   return 0;
