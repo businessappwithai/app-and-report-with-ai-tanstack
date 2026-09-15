@@ -158,6 +158,8 @@ longer takes the `common` build context.
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
 │   ├── website/
 │   │   ├── llmtext/      llms-full.txt · llmdetailed.txt · llms-reporting.txt
+│   │   │                 · llmtextenhancement.txt · llmdetailedenhancement.txt
+│   │   │                 — the last two are DERIVED from the first two (below)
 │   │   └── viewers/      the ERD, rules and workflow model viewers
 │   └── examples/         analytics-reporting · drug-discovery · investment-planning · ERD sketches
 │
@@ -225,6 +227,43 @@ Bun is the runtime, the package manager and the test runner. CI pins
 `BUN_VERSION: "1.3.11"`; the manifest requires `>=1.3.11`.
 
 ---
+
+## The four protocol documents, and the two that are derived
+
+`common/website/llmtext/` carries the documents a language model is pointed at.
+Two of them describe how to **write** a model from a brief; two describe how to
+**change one that already exists**:
+
+| | Start from a brief | Start from an existing `.mmd` |
+|---|---|---|
+| **One pass** | `llms-full.txt` | `llmtextenhancement.txt` |
+| **Phased, with approval gates** | `llmdetailed.txt` §10 | `llmdetailedenhancement.txt` §10 |
+
+**The enhancement pair is derived from the pair above it** — each is its base
+with the protocol section swapped and the entire language reference copied
+across byte for byte, so the four cannot come to disagree about the language
+itself. The deriver and its sources live in `businessappwithai.github.io`
+(`scripts/build-llmtext-enhancement.mjs`, `scripts/llmtext/`), which is where the
+published copies are served from. Regenerate this repository's copies from its
+own bases:
+
+```bash
+node <site>/scripts/build-llmtext-enhancement.mjs \
+  --base common/website/llmtext/llms-full.txt   --protocol batch \
+  --out  common/website/llmtext/llmtextenhancement.txt
+node <site>/scripts/build-llmtext-enhancement.mjs \
+  --base common/website/llmtext/llmdetailed.txt --protocol interactive \
+  --out  common/website/llmtext/llmdetailedenhancement.txt
+```
+
+**Edit a base here and regenerate its companion in the same commit.** Nothing in
+*this* repository checks it — the assertion lives upstream in
+`app-with-ai-tanstack`'s `bun run test:llmtext` and on the site in
+`scripts/check-spec.mjs`, both against their own copies. These three sets of
+bases have already drifted from each other (see the language section below), and
+the enhancement editions inherit whichever drift their base carries — which is
+correct, and is why each repository derives from its own base rather than copying
+the site's output.
 
 ## The language
 
