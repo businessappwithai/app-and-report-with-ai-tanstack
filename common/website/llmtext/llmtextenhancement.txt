@@ -756,6 +756,40 @@ and is the difference between a reader who can reproduce your problem and one wh
 cannot. Report the URL you actually requested — not a shortened, prettified or
 linked version of it.
 
+**What a diagnostic gives you back.** Every diagnostic that can be placed
+carries three things, and the report prints all three:
+
+```
+error:18 [EML144] %%field "Order.status" references undeclared enum "MissingEnum".
+  18 │ %%field Order.status enum: MissingEnum
+     └ fix: Add  %%enum MissingEnum: value1, value2  before the erDiagram block.
+```
+
+the code and the line; the **text of that line, as the checker read it**; and the
+repair. Match your edit against the text rather than against the number. If the
+line in your copy does not look like the one printed, you are editing a different
+document from the one that was checked — which is the commonest way a fix gets
+reported as applied when it never was. Structured callers get the same thing as
+`issue.lineText` beside `issue.line`.
+
+A diagnostic with no line says so — *no single line — this is about the document
+as a whole*. `EML001`, a missing `%%meta name:`, is one: it is about the document,
+not about any line in it.
+
+**Line numbers always belong to the document that was checked.** `checkAndFix`
+repairs first and re-checks after, so every number in `remaining` indexes
+`report.source` — the repaired text — and not the string you passed in. Inserting
+`%%meta name:` moves every line below it down by one, so resolving those numbers
+against your own copy reads one line too high, all the way down, and without any
+sign that it has. Re-read the file from `report.source`, or re-check after
+writing it, before you act on a line number.
+
+**The report ends with the steps for this run**, worked out from these
+diagnostics rather than stated in general: which of them repair themselves and so
+should not be hand-edited, which line to start at, and the reminder that the
+whole file is re-checked from zero after every round. The verdict stays the final
+line, so the last thing you read is still the outcome.
+
 See §10.3, which is also the procedure you are expected to follow before handing
 a model to anyone.
 
