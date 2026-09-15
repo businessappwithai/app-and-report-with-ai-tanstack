@@ -187,6 +187,25 @@ jobs:
       - name: Install root tooling
         run: bun install --frozen-lockfile
 
+      # The checkout's own dependencies, which this job needs as much as the
+      # three below it do.
+      #
+      # `tsc` follows an import across the repository boundary and type-checks
+      # what it finds, so anything the checkout imports has to resolve. That
+      # used to cost nothing here — `language/cli/src/generate/jdm.ts` reaches
+      # for two self-contained modules — and it stopped being free when
+      # `build/reporting-pack.ts` started importing the generator's
+      # `reporting/pack.ts`: through `@appwithai/core/types` that wants `zod`
+      # and `better-auth/types`, and `tsc` reported TS2307 on each. The errors
+      # name files this repository never meant to read, which is exactly how
+      # long it takes to work out that the install is what is missing.
+      #
+      # The `stacks`, `wasm` and `reporting-pack` jobs have had this step all
+      # along. This job was getting away without it.
+      - name: Install app-with-ai-tanstack
+        working-directory: app-with-ai-tanstack
+        run: bun install --frozen-lockfile
+
       # Runs the checker over language/examples and examples, then compares
       # html/models against its counterpart for each shared model. The checker
       # writes a .error file beside every model it reads — that is its interface
