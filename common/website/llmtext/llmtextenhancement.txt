@@ -34,8 +34,10 @@
   language and are held to the same checker.
 - **Validators**, published by this document's validation section:
   `https://www.appwithai.org/guide/checker.js` and
-  `https://www.appwithai.org/guide/fixer.js`. The apex, `appwithai.org`, serves
-  the same files; `www` is canonical. **If neither host is reachable from your
+  `https://www.appwithai.org/guide/fixer.js`. **Write that exact form every
+  time** — scheme, `www.`, and never a bare host. The apex
+  `https://appwithai.org` serves the same files, but the `www` form is
+  canonical and is the one to write. **If neither host is reachable from your
   environment, that is a fact about your network and not a reason to skip
   validation or to stop** — that section's last two rows are the offline
   procedure, and they are real runs with real counts.
@@ -100,8 +102,8 @@ app-with-ai-tanstack/
 ├── database/          # Migrations for the modelling tool's own database
 ├── website/           # What the site publishes from this repository
 │   ├── llmtext/       #   This file, and its companion
-│   └── viewers/       #   The model viewers — appwithai.org/viewers
-├── html/              # The human guide published at appwithai.org/guide, plus
+│   └── viewers/       #   The model viewers — https://www.appwithai.org/viewers
+├── html/              # The human guide published at https://www.appwithai.org/guide, plus
 │                   #   checker.js and fixer.js — the published validators — and
 │                   #   the pages that run a whole stack in a browser tab
 ├── scripts/           # Build and CI scripts, incl. the four --check bundlers (§8)
@@ -721,14 +723,38 @@ Without a checkout, the same two engines are published — as ES modules, and as
 runner that drives both. Neither needs this repository, and neither needs Bun:
 
 ```sh
-curl -sO https://appwithai.org/guide/check-model.mjs
+curl -sO https://www.appwithai.org/guide/check-model.mjs
 node check-model.mjs model.mmd
 ```
 
 ```js
-import { check }        from "https://appwithai.org/guide/checker.js";
-import { checkAndFix }  from "https://appwithai.org/guide/fixer.js";
+import { check }        from "https://www.appwithai.org/guide/checker.js";
+import { checkAndFix }  from "https://www.appwithai.org/guide/fixer.js";
 ```
+
+**Write the URL in full, every time: `https://www.appwithai.org/…`.** Scheme
+included, `www.` included, never a bare host. Three things go wrong otherwise and
+all three have been observed:
+
+- **A bare host is not a URL.** `appwithai.org/guide/checker.js` is a string a
+  runtime either refuses or has to guess a scheme for, and a sandboxed agent's
+  HTTP client usually refuses.
+- **A Markdown link around a bare host is worse**, because it looks right.
+  `[www.appwithai.org](https://www.appwithai.org)` reads to a person as a working
+  link and to anything parsing your output as the bare host. Write the plain
+  absolute URL: this is a specification, not a web page, and nothing here is
+  rendered.
+- **The apex is not the canonical form.** `https://appwithai.org/…` serves the
+  same files, but `https://www.appwithai.org/…` is canonical, and an environment
+  that resolves one and not the other is common enough never to rely on.
+
+**The same rule governs how you report a failure.** Name the exact request and
+the exact error. *"Validator retrieval failed for appwithai.org"* says neither
+what was requested nor what happened; *"GET
+https://www.appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
+and is the difference between a reader who can reproduce your problem and one who
+cannot. Report the URL you actually requested — not a shortened, prettified or
+linked version of it.
 
 See §10.3, which is also the procedure you are expected to follow before handing
 a model to anyone.
@@ -1535,7 +1561,7 @@ All three pin the same `BUN_VERSION`; none uses `bun-version: latest`.
 
 ## 9. Worked example — building a CRM
 
-Mirrors the human guide at https://appwithai.org/guide/index.html. Model:
+Mirrors the human guide at https://www.appwithai.org/guide/index.html. Model:
 `language/examples/crm.eml.mmd`.
 
 **Scale**: 1 model file · 17 entities · 7 categories · 26 enums · 20 indexes ·
@@ -2082,7 +2108,7 @@ you wrote down in §10.2, you are attaching a regression.
     does not come clean. Work the §10.3 ladder to its last rung before
     concluding the checker is out of reach: **a repository you could not clone
     is not a checker you could not run**, since the engine is published at
-    `appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
+    `https://www.appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
     Never describe anything but a run of the published engine as a checker
     result, and never withhold the file because you could not produce one.
 13. **Say what the `enterprise-reporting` target does not compile.** Workflows
