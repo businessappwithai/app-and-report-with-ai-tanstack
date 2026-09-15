@@ -223,8 +223,6 @@ services:
     build:
       context: ./enterprise_reporting_tanstack
       dockerfile: ../common/docker/seeder.Dockerfile
-      additional_contexts:
-        common: ./common
     restart: "no"
     environment:
       DATABASE_URL: postgresql://${REPORT_DB_USER:-app}:${REPORT_DB_PASSWORD:-app}@${REPORT_DB_HOST:-postgres}:5432/enterprise_config

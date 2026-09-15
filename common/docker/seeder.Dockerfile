@@ -3,13 +3,23 @@
 # Runs after both databases are up and the generated application has migrated,
 # then exits. It registers the application's database as a data source,
 # introspects and caches its schema, and writes the reporting pack's queries,
-# reports, charts and dashboards.
+# reports, charts, dashboards and reporting roles.
 #
-# Built from the reporting application's source rather than a bare bun image so
-# that `seed-reporting.ts` can import through `@/` and use that project's own
-# `getDb`, `encrypt` and `introspectAndCacheSchema`. A seeder with its own
-# encryption or its own schema-cache shape would drift from the reader, and the
-# failure would be a data source that exists and cannot be opened.
+# **The script is the reporting platform's own** —
+# `scripts/seed-reporting-pack.ts`, checked in there. It used to live here, at
+# `common/seed/seed-reporting.ts`, and be copied into that project's tree at
+# build time so it could import through `@/`. That was the right dependency in
+# the wrong direction: it needs that project's real `getDb`, `encrypt` and
+# `introspectAndCacheSchema` — a seeder with its own encryption or its own
+# schema-cache shape drifts from the reader, and the failure is a data source
+# that exists and cannot be opened — and it writes eleven of that schema's
+# tables, so it belongs beside them.
+#
+# It moved because a third caller appeared: a generated application's own
+# `docker-compose.yml` now brings the platform up alongside it, and a copy of an
+# 800-line seeder in the code generator's templates would have been the third
+# implementation of the same writes. This file no longer carries a copy at all,
+# which is why there is no `--from=common` here any more.
 
 # syntax=docker/dockerfile:1.7
 FROM oven/bun:1.3
@@ -39,10 +49,10 @@ COPY src/lib/sql ./src/lib/sql
 COPY src/lib/mastra ./src/lib/mastra
 COPY src/types ./src/types
 
-# Inside the app's own tree, so `@/` resolves through its tsconfig paths.
-COPY --from=common seed/seed-reporting.ts ./src/seed-reporting.ts
+# The seeder itself, from the reporting application's own tree.
+COPY scripts/seed-reporting-pack.ts ./scripts/seed-reporting-pack.ts
 
 ENV NODE_ENV=production \
     REPORTING_PACK=/pack/reporting-pack.json
 
-CMD ["bun", "src/seed-reporting.ts"]
+CMD ["bun", "scripts/seed-reporting-pack.ts"]
