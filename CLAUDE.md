@@ -52,7 +52,7 @@ identically, and moving a pin is one edit.
 
 ```bash
 ./deps.sh                # clone or update both to their pinned refs
-./deps.sh --install      # …and bun install --frozen-lockfile in each
+./deps.sh --install      # …and bun install --frozen-lockfile where deps.json asks
 ./deps.sh --status       # what is checked out, and whether it matches
 ./deps.sh --update       # resolve each branch to its head and rewrite deps.json
 ```
@@ -91,6 +91,12 @@ dependencies installed: with a `node_modules` under `common/` and none there,
 resolution stops here and the generate fails on `Cannot find package 'zod'`.
 That is why `./deps.sh --install` exists and why `start.sh` refuses to run
 without it.
+
+**`--install` installs one checkout, not both.** `deps.json` carries an `install`
+flag per dependency and only `app-with-ai-tanstack` sets it: nothing local reads
+`enterprise_reporting_tanstack`'s `node_modules`, because that checkout is a Docker
+build context and the image build runs its own install inside the image. A run that
+prints `no install needed (see deps.json)` for it is behaving correctly.
 
 A third module joins them, and it is the one that carries the most weight:
 
@@ -137,7 +143,7 @@ longer takes the `common` build context.
 ├── stop.sh               --volumes discards the databases too
 ├── docker-compose.yml    profiles: demo (one PostgreSQL) · prod (two)
 ├── .github/workflows/
-│   ├── root-ci.yml       models · types · lint · stacks · reporting pack
+│   ├── root-ci.yml       models · types · lint · stacks · both CLIs · reporting pack
 │   └── build-and-run.yml the orchestrator: generate → configure → build → run → smoke-test
 ├── common/               everything that is not a product
 │   ├── package.json          the only manifest; `bun run check` lives here
@@ -181,12 +187,15 @@ inside `common/`. The scripts resolve their own paths from `import.meta.dir`.
 cd common
 bun install
 
-bun run check            # models → types → lint → stacks → pack, in that order
+bun run check            # models → types → lint → stacks → CLIs → pack, in that order
 bun run check:models     # every model checks clean, and the duplicated copies match
 bun run type-check       # tsc --project tsconfig.language.json
 bun run lint             # Biome over language/ and scripts/ + build/
 bun run lint:fix
 bun run check:stacks     # every --stack target actually generates
+bun run check:clis       # both published CLIs generate — see below
+bun run check:cli        # just `appwithai`
+bun run check:cli:wasm   # just `appwithai-wasm`
 bun run check:pack       # every derived query runs against a real generated schema
 bun run check:pack:ci    # same, but --require-server: a missing database fails
 bun run pack             # bun build/reporting-pack.ts
@@ -316,6 +325,14 @@ new entity needs. It does **not** compile workflows or `%%rbac`. See
 ---
 
 ## Conventions that bite
+
+**Two CLIs, two runtimes, and they are not interchangeable.** `appwithai` runs on
+bun **1.4** — what `app-with-ai-tanstack` pins, and what the Dockerfiles it
+generates run on — while `appwithai-wasm` runs on bun **1.3**. `check:clis` runs
+both under whichever bun is on `PATH`, which is right for a local sanity run;
+`root-ci.yml` splits them into two jobs (`stacks` and `wasm-cli`) so each gets its
+own runtime. A green `check:clis` locally therefore proves less than CI does — it
+proves both CLIs work on *one* runtime, not that each works on the one it ships on.
 
 **Models are checked in twice.** `language/examples/*.eml.mmd` and
 `html/models/*.eml.mmd` are the same files: one set is what the CLI reads, the
@@ -486,7 +503,7 @@ of the dashboard. See `website/llmtext/llmdetailed.txt` §10.5.1.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `root-ci.yml` | push to `main`, PRs touching `common/**`, `deps.json`, the scripts or compose file | `resolve` reads the pins, then three jobs: models/types/lint, every stack, and the reporting pack against a real `postgres:16` |
+| `root-ci.yml` | push to `main`, PRs touching `common/**`, `deps.json`, the scripts or compose file | `resolve` reads the pins, then four jobs: models/types/lint, every stack plus the `appwithai` CLI, the `appwithai-wasm` CLI on its own runtime, and the reporting pack against a real `postgres:16` |
 | `build-and-run.yml` | `workflow_dispatch`, nightly at 04:00 UTC | The whole thing: check out both products at their pins, generate an application from a model, inject configuration, `docker compose up`, wait for `/app` and `/report` to answer, assert the seeder exited 0, report what the platform was loaded with, upload logs and the generated source, tear down |
 
 Both start with a `resolve` job that reads `deps.json` and emits the repository
