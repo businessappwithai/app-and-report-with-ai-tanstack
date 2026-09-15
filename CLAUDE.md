@@ -27,8 +27,9 @@ generate the application   --stack tanstack-nestjs, driving the orchestrator
       ↓                    inside app-with-ai-tanstack
 put it on /app             common/build/subpath-overlay.ts
       ↓
-derive the reporting pack  common/build/reporting-pack.ts — the queries, and
-      ↓                    one reporting role per %%rbac role
+derive the reporting pack  common/build/reporting-pack.ts — a CLI over the
+      ↓                    generator's buildReportingPack: the queries, and one
+      ↓                    reporting role per %%rbac role
 write the front door       common/build/landing.ts — both applications, both
       ↓                    sets of accounts, served by nginx at /
 inject configuration       common/.runtime/.env
@@ -91,11 +92,38 @@ resolution stops here and the generate fails on `Cannot find package 'zod'`.
 That is why `./deps.sh --install` exists and why `start.sh` refuses to run
 without it.
 
+A third module joins them, and it is the one that carries the most weight:
+
+| Reaches for | From | Consequence when absent |
+|---|---|---|
+| `packages/generator/src/reporting/pack.ts` | `build/reporting-pack.ts`, as a static import | No pack can be derived at all — `bun run pack`, `check:pack` and `start.sh`'s fourth step all fail at module resolution |
+
+**The pack derivation moved to the generator.** It was about eight hundred lines
+in `build/reporting-pack.ts`; that file is now a 165-line CLI over
+`buildReportingPack`. The move happened because the pack acquired two more
+readers: a generated application's browser build serves the same reports behind
+its own sign-in, and its deployable archive ships the pack in a `reporting/`
+directory for the platform its compose file starts. Three derivations would have
+been three answers to "what reports does this model have", and the first time
+any of them changed the products would have disagreed about a model in front of
+a reader. The direction is the point — the generator writes the applications, so
+it owns what a model means.
+
+What stayed here is what belongs to this repository: the CLI, the diagnostics
+gate (on *this* repository's `parseEml`, the checker `check:models` runs), and
+compose's idea of where a pack goes. `tsconfig.language.json` gained a `paths`
+entry for `@appwithai/core/*` so the checkout's own aliases resolve; without it
+`tsc` reports TS2307 on the generator's type imports and a cascade of implicit
+`any` behind them.
+
 `enterprise_reporting_tanstack` is needed at a different moment — it is the
-Docker build context for the `report` and `seeder` services, and
-`common/seed/seed-reporting.ts` is copied into its tree at image build time and
-imports through its `@/` alias, using that project's real `getDb`, `encrypt` and
-`introspectAndCacheSchema` rather than a second implementation of any of them.
+Docker build context for the `report` and `seeder` services. **The seeder is now
+that project's own script**, `scripts/seed-reporting-pack.ts`, rather than
+`common/seed/seed-reporting.ts` copied into its tree at image build time: it
+needs that project's real `getDb`, `encrypt` and `introspectAndCacheSchema`, it
+writes eleven of that schema's tables, and a generated application's compose
+file runs the same script. `common/seed/` is gone and `seeder.Dockerfile` no
+longer takes the `common` build context.
 
 ---
 
@@ -123,8 +151,8 @@ imports through its `@/` alias, using that project's real `getDb`, `encrypt` and
 │   │   │                 04-types-and-modifiers · 05-directives
 │   │   ├── cli/          eml.ts, and src/generate/{app,tanstack,enterprise-reporting,jdm}.ts
 │   │   └── examples/     crm · dance-studio · ecommerce · helpdesk · minimal
-│   ├── build/            reporting-pack.ts · subpath-overlay.ts · landing.ts
-│   ├── seed/             seed-reporting.ts — loads a generated app into the platform
+│   ├── build/            reporting-pack.ts (a CLI over the generator's
+│   │                     buildReportingPack) · subpath-overlay.ts · landing.ts
 │   ├── docker/           reporting.Dockerfile · seeder.Dockerfile · nginx · pg-init
 │   ├── scripts/          deps.ts · check-models.ts · check-stacks.ts · check-reporting-pack.ts
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
@@ -334,6 +362,11 @@ Two details worth knowing:
   update and delete, and none of that means anything to somebody who cannot
   write through the reporting platform at all.
 
+Both sides of that mirror are now *served* as well as seeded: the generated
+application's browser build carries the same reports and the same roles behind a
+sign-in of its own, and its deployable archive brings the real platform up
+beside it. One derivation feeds all three.
+
 The table counts on the front door are asserted against `deriveAccess`'s own
 `entityCounts` before the pack is written — two readings of one fact is how the
 products come to disagree about what a role may see, so the second is checked
@@ -384,8 +417,9 @@ whole origin.
 
 ### Where the reports come from
 
-`build/reporting-pack.ts` invents nothing. Every query is derived from something
-the model declares:
+`buildReportingPack` invents nothing — it lives in the generator
+(`packages/generator/src/reporting/pack.ts`) and `build/reporting-pack.ts` is
+the CLI over it. Every query is derived from something the model declares:
 
 | Model declares | Pack gets |
 |---|---|
