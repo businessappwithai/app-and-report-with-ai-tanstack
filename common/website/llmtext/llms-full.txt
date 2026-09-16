@@ -4,7 +4,7 @@
 > language it reads, the pipeline that compiles it, the templates it renders,
 > and the shape of the application that comes out. Written for language models.
 >
-> Companion human guide: https://appwithai.org/guide/index.html
+> Companion human guide: https://www.appwithai.org/guide/index.html
 > (nine chapters, every screenshot from the CRM described in §9. The material
 > is inlined here in §9 so you do not need to fetch it.)
 
@@ -73,8 +73,8 @@ app-with-ai-tanstack/
 ├── database/          # Migrations for the modelling tool's own database
 ├── website/           # What the site publishes from this repository
 │   ├── llmtext/       #   This file, and its companion
-│   └── viewers/       #   The model viewers — https://appwithai.org/viewers
-├── html/              # The human guide published at https://appwithai.org/guide, plus
+│   └── viewers/       #   The model viewers — https://www.appwithai.org/viewers
+├── html/              # The human guide published at https://www.appwithai.org/guide, plus
 │                   #   checker.js and fixer.js — the published validators — and
 │                   #   the pages that run a whole stack in a browser tab
 ├── scripts/           # Build and CI scripts, incl. the four --check bundlers (§8)
@@ -694,16 +694,16 @@ Without a checkout, the same two engines are published — as ES modules, and as
 runner that drives both. Neither needs this repository, and neither needs Bun:
 
 ```sh
-curl -sO https://appwithai.org/guide/check-model.mjs
+curl -sO https://www.appwithai.org/guide/check-model.mjs
 node check-model.mjs model.mmd
 ```
 
 ```js
-import { check }        from "https://appwithai.org/guide/checker.js";
-import { checkAndFix }  from "https://appwithai.org/guide/fixer.js";
+import { check }        from "https://www.appwithai.org/guide/checker.js";
+import { checkAndFix }  from "https://www.appwithai.org/guide/fixer.js";
 ```
 
-**Write the URL in full, every time: `https://appwithai.org/…`.** Scheme
+**Write the URL in full, every time: `https://www.appwithai.org/…`.** Scheme
 included, never a bare host, and never under a `www.` label. Three things go wrong otherwise and
 all three have been observed:
 
@@ -711,19 +711,19 @@ all three have been observed:
   runtime either refuses or has to guess a scheme for, and a sandboxed agent's
   HTTP client usually refuses.
 - **A Markdown link around a bare host is worse**, because it looks right.
-  `[appwithai.org](https://appwithai.org)` reads to a person as a working
+  `[appwithai.org](https://www.appwithai.org)` reads to a person as a working
   link and to anything parsing your output as the bare host. Write the plain
   absolute URL: this is a specification, not a web page, and nothing here is
   rendered.
-- **There is no `www.` alias.** `https://appwithai.org/…` is not a second
-  spelling of this host. GitHub Pages issues a certificate for the domain in
-  repository settings, so that label is refused over TLS before it answers — a
-  failure that reads as "the checker is unavailable" and is not.
+- **The apex is not the canonical form.** `https://appwithai.org/…` serves the same files and
+  is the domain the repository's `CNAME` pins, but `https://www.appwithai.org/…`
+  is the canonical form to write. Both carry a certificate now; write the
+  canonical one so every reference agrees.
 
 **The same rule governs how you report a failure.** Name the exact request and
 the exact error. *"Validator retrieval failed for appwithai.org"* says neither
 what was requested nor what happened; *"GET
-https://appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
+https://www.appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
 and is the difference between a reader who can reproduce your problem and one who
 cannot. Report the URL you actually requested — not a shortened, prettified or
 linked version of it.
@@ -1567,7 +1567,7 @@ All three pin the same `BUN_VERSION`; none uses `bun-version: latest`.
 
 ## 9. Worked example — building a CRM
 
-Mirrors the human guide at https://appwithai.org/guide/index.html. Model:
+Mirrors the human guide at https://www.appwithai.org/guide/index.html. Model:
 `language/examples/crm.eml.mmd`.
 
 **Scale**: 1 model file · 17 entities · 7 categories · 26 enums · 20 indexes ·
@@ -1810,7 +1810,7 @@ accepts it.
 installed:
 
 ```sh
-curl -sO https://appwithai.org/guide/check-model.mjs
+curl -sO https://www.appwithai.org/guide/check-model.mjs
 node check-model.mjs model.mmd
 #   exit 0  clean · exit 1  the generator would refuse it · exit 2  it could not run
 ```
@@ -1821,8 +1821,8 @@ prints the checker's own report. `--write` saves the repairs it applied;
 
 | File | URL | What it is |
 |---|---|---|
-| `html/checker.js` | `https://appwithai.org/guide/checker.js` | every diagnostic `bun language/checker.ts` prints, as `check(source)` |
-| `html/fixer.js` | `https://appwithai.org/guide/fixer.js` | the seven auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
+| `html/checker.js` | `https://www.appwithai.org/guide/checker.js` | every diagnostic `bun language/checker.ts` prints, as `check(source)` |
+| `html/fixer.js` | `https://www.appwithai.org/guide/fixer.js` | the seven auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
 
 Both are ES modules bundled from `language/checker.ts` and `language/fixer.ts` by
 `scripts/build-language-tools.ts`. They are the same engines the CLI runs, not a
@@ -1834,7 +1834,7 @@ convenient path when this repository is already on disk; it is not the
 authoritative one, and nothing downstream distinguishes a verdict that came from
 it. In particular — and this has been observed in the wild — **failing to reach
 GitHub says nothing about whether the checker can run.** The modules are served
-from `https://appwithai.org`, and `check-model.mjs` resolves them from `--base`, then
+from `https://www.appwithai.org`, and `check-model.mjs` resolves them from `--base`, then
 from its own directory, then from the published site. GitHub is in none of those
 paths. "I could not obtain the repository, therefore I could not validate" is a
 wrong inference, not an honest limitation.
@@ -1864,12 +1864,12 @@ that runs:
 | 1 | `bun language/checker.ts <file>` | this repository is already on disk |
 | 2 | `curl -sO …/check-model.mjs`, then `node check-model.mjs <file>` | any shell with Node 18+, Bun or Deno — **this is the rung that answers "I could not clone the repository"** |
 | 3 | `fetch` both modules into one directory and `import()` them | a runtime that can make a request but has no `curl`. Node has no network imports: a URL `import` there fails with `ERR_UNSUPPORTED_ESM_URL_SCHEME` while the module is resolved, which reads like the modules being unreachable rather than like Node declining that form |
-| 4 | `https://appwithai.org/guide/11-check-a-model.html` | no shell at all. It runs these same modules in the tab, so if you can drive or render a browser this is a real run and its counts are reportable |
+| 4 | `https://www.appwithai.org/guide/11-check-a-model.html` | no shell at all. It runs these same modules in the tab, so if you can drive or render a browser this is a real run and its counts are reportable |
 | 5 | The by-hand list below | only once 1–4 have actually been tried and failed |
 
 ```js
-import { check, formatReport } from "https://appwithai.org/guide/checker.js";
-import { checkAndFix }          from "https://appwithai.org/guide/fixer.js";
+import { check, formatReport } from "https://www.appwithai.org/guide/checker.js";
+import { checkAndFix }          from "https://www.appwithai.org/guide/fixer.js";
 
 let model = /* the .mmd you just wrote */;
 
@@ -1939,7 +1939,7 @@ traceable to a line you did or did not check.
 Then hand the file over with one plain sentence: the checker could not be run
 here, this is what was verified by hand, and the user can validate it in their
 own browser in seconds at
-`https://appwithai.org/guide/11-check-a-model.html`. Never report a check of
+`https://www.appwithai.org/guide/11-check-a-model.html`. Never report a check of
 your own devising in the vocabulary of a checker result — "passes", "0
 warnings", a pass count — because the reader cannot tell the two apart. An
 unvalidated `.mmd` delivered with that sentence is still the deliverable; a
@@ -2009,7 +2009,7 @@ The user should be able to take that one file straight to `appwithai generate`.
     does not come clean. Work the §10.3 ladder to its last rung before
     concluding the checker is out of reach: **a repository you could not clone
     is not a checker you could not run**, since the engine is published at
-    `https://appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
+    `https://www.appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
     Never describe anything but a run of the published engine as a checker
     result, and never withhold the file because you could not produce one.
 13. **Say what the `enterprise-reporting` target does not compile.** Workflows
