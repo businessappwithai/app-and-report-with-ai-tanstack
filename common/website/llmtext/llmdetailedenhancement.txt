@@ -2370,6 +2370,7 @@ the checker is out of reach:
 | Bun or Deno, writing the code yourself | `import { check } from "https://appwithai.org/guide/checker.js"` — a URL import works as it stands |
 | Node, writing the code yourself | Node has no network imports: `fetch` both files into one directory and `import()` them from there |
 | A browser, a canvas, an HTML preview | `<script type="module">` with the same URL import |
+| A shell that reaches no host, and a text-only way in | **One file**, `https://appwithai.org/guide/check-model-standalone.mjs` (~130KB), carrying both modules and the runner compressed inside it. Paste it in and `node check-model-standalone.mjs <file>`. It runs the published runner against the inflated modules — a real run, counts reportable |
 | A browse or fetch tool beside a shell with no network | The split most assistants have, and a **bridge, not a blocker**: read the two modules with the layer that can reach them, write them into the shell's working directory, then take the Node row above with `--base .`. The shell needs no network — only a file write |
 | None of these | "If the checker cannot be run here", below — check by hand, and say so |
 
@@ -2398,7 +2399,15 @@ these in order, and stop at the first that runs:
    `https://appwithai.org/viewers/` answers the same question the same way — it
    carries the same checker and prints the same verdict — and draws the model
    besides, so it is the better rung when the user is present.
-5. **A layer that reaches beside a shell that does not.** The commonest split
+5. **One file, when nothing in the shell can fetch and the only way in is
+   text.** `https://appwithai.org/guide/check-model-standalone.mjs` is about
+   130KB and carries `checker.js`, `fixer.js` and the runner compressed inside
+   it. Paste it in, then `node check-model-standalone.mjs <file>`. It inflates
+   them into a temp directory and runs the published runner against them, so
+   the three passes, the diagnostics and the exit codes are the real ones and
+   the counts are reportable. Prefer the three separate files whenever anything
+   can fetch — they are smaller apart than this is together.
+6. **A layer that reaches beside a shell that does not.** The commonest split
    in a tool-using assistant: a browse or fetch tool that can read
    `https://appwithai.org/guide/checker.js` and
    `https://appwithai.org/guide/fixer.js`, and a sandboxed shell that cannot
@@ -2410,7 +2419,7 @@ these in order, and stop at the first that runs:
    only a file write. Reporting "my web layer can read it but my shell cannot"
    describes the transport rather than the checker, and stops one capability
    short of a result the two together can produce.
-6. Only now, the manual review below.
+7. Only now, the manual review below.
 
 Record which rung answered in `03-validation.md`. A step is only unvalidated
 once every rung has actually been tried and failed — not once the first one did.
