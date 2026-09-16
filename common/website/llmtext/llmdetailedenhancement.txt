@@ -4,7 +4,7 @@
 > language it reads, the pipeline that compiles it, the templates it renders,
 > and the shape of the application that comes out. Written for language models.
 >
-> Companion human guide: https://www.appwithai.org/guide/index.html
+> Companion human guide: https://appwithai.org/guide/index.html
 > (nine chapters, every screenshot from the CRM described in §9. The material
 > is inlined here in §9 so you do not need to fetch it.)
 >
@@ -1781,7 +1781,7 @@ else — the rules, the workflows, the enums and the access control are `%%`
 directives it treats as comments — so a stakeholder pointed at a Mermaid preview
 is being shown the smallest part of what they are approving.
 
-**The viewers are at `https://www.appwithai.org/viewers/`**, and they draw all of
+**The viewers are at `https://appwithai.org/viewers/`**, and they draw all of
 it — entities with their columns, badges and help text, relationships in crow's
 foot notation, state machines with the moves the generated API will allow, sagas
 as an ordered ladder, decision tables as tables, and the roles with the entity
@@ -2557,7 +2557,7 @@ Alongside the file — in the reply, never inside it — give the change roster 
 built, the regression table from §10.6, the checker's counts for the original
 and for the delivered file, anything still unresolved, and where the session
 directory is on disk. Then tell them what to do next: upload the file at
-`https://www.appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
+`https://appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
 running application in the browser tab.
 
 Say plainly that the original is still at `00-original.mmd`. A user who can see

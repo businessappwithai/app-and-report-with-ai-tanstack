@@ -33,14 +33,14 @@
   This file is the one-pass enhancement form. All four describe the same
   language and are held to the same checker.
 - **Validators**, published by this document's validation section:
-  `https://www.appwithai.org/guide/checker.js` and
-  `https://www.appwithai.org/guide/fixer.js`. The apex, `appwithai.org`, serves
+  `https://appwithai.org/guide/checker.js` and
+  `https://appwithai.org/guide/fixer.js`. The apex, `appwithai.org`, serves
   the same files; `www` is canonical. **If neither host is reachable from your
   environment, that is a fact about your network and not a reason to skip
   validation or to stop** — that section's last two rows are the offline
   procedure, and they are real runs with real counts.
 - **To check a model from a shell** (§10.5) — nothing to install:
-  `curl -sO https://www.appwithai.org/guide/check-model.mjs` then
+  `curl -sO https://appwithai.org/guide/check-model.mjs` then
   `node check-model.mjs my-business.mmd`. Exit `0` means the generator accepts
   it; exit `1` means it does not, and the report says why.
 - **Every example in this document is a complete model that the checker accepts
@@ -1928,7 +1928,7 @@ tool.
 a shell, this is the whole of it:
 
 ```sh
-curl -sO https://www.appwithai.org/guide/check-model.mjs
+curl -sO https://appwithai.org/guide/check-model.mjs
 node check-model.mjs my-business.mmd
 ```
 
@@ -1968,7 +1968,7 @@ Only when every rung has genuinely failed: walk the delivery checklist by hand,
 then hand over the file with one plain sentence — the checker could not be run
 here, this is what was verified by hand, and the user can validate it in their
 own browser in a few seconds at
-`https://www.appwithai.org/guide/11-check-a-model.html`, which runs these same
+`https://appwithai.org/guide/11-check-a-model.html`, which runs these same
 two modules with nothing to install. Never report the output of a check of your
 own devising in the vocabulary of the real one: a substitute described as
 "passes" or "0 warnings" is worse than no check at all, because the user cannot
@@ -2035,7 +2035,7 @@ Alongside the file — in the reply, never inside it — give:
 - **anything still unresolved**, and any pre-existing diagnostic you deliberately
   left alone;
 - **what to do next**: upload the file at
-  `https://www.appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
+  `https://appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
   running application in the browser tab, with nothing installed and nothing
   uploaded to a server.
 
