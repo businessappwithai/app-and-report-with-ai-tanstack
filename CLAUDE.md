@@ -277,7 +277,12 @@ the site's output.
 ### The published host is written in full
 
 Every mention of the host in the five `llmtext/*.txt` documents is
-`https://appwithai.org` — scheme and `www.` included. These copies used the
+`https://www.appwithai.org` — scheme and `www.` included. **`www` is canonical
+and the apex serves the same files**; both carry a certificate. For part of this
+project's life `www` was a DNS record onto the apex, so GitHub Pages served it a
+certificate naming only the apex and every client refused it with
+ERR_CERT_COMMON_NAME_INVALID — which is why these documents named the apex for a
+while. It is a CNAME onto `businessappwithai.github.io` now. These copies used the
 apex for most of their URLs and named the host without a scheme in prose, and a
 model following them reported a failed validator fetch as a Markdown link around
 a bare host, which is what its own tooling then tried to resolve. Nothing in this

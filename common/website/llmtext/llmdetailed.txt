@@ -4,7 +4,7 @@
 > language it reads, the pipeline that compiles it, the templates it renders,
 > and the shape of the application that comes out. Written for language models.
 >
-> Companion human guide: https://appwithai.org/guide/index.html
+> Companion human guide: https://www.appwithai.org/guide/index.html
 > (nine chapters, every screenshot from the CRM described in §9. The material
 > is inlined here in §9 so you do not need to fetch it.)
 >
@@ -88,8 +88,8 @@ app-with-ai-tanstack/
 ├── database/          # Migrations for the modelling tool's own database
 ├── website/           # What the site publishes from this repository
 │   ├── llmtext/       #   This file, and its companion
-│   └── viewers/       #   The model viewers — https://appwithai.org/viewers
-├── html/              # The human guide published at https://appwithai.org/guide, plus
+│   └── viewers/       #   The model viewers — https://www.appwithai.org/viewers
+├── html/              # The human guide published at https://www.appwithai.org/guide, plus
 │                   #   checker.js and fixer.js — the published validators — and
 │                   #   the pages that run a whole stack in a browser tab
 ├── scripts/           # Build and CI scripts, incl. the four --check bundlers (§8)
@@ -710,8 +710,8 @@ which is also the procedure you are expected to follow before handing a model to
 anyone:
 
 ```js
-import { check }        from "https://appwithai.org/guide/checker.js";
-import { checkAndFix }  from "https://appwithai.org/guide/fixer.js";
+import { check }        from "https://www.appwithai.org/guide/checker.js";
+import { checkAndFix }  from "https://www.appwithai.org/guide/fixer.js";
 ```
 
 Severities: **error** (generator would produce something wrong — exit 1);
@@ -1518,7 +1518,7 @@ All three pin the same `BUN_VERSION`; none uses `bun-version: latest`.
 
 ## 9. Worked example — building a CRM
 
-Mirrors the human guide at https://appwithai.org/guide/index.html. Model:
+Mirrors the human guide at https://www.appwithai.org/guide/index.html. Model:
 `language/examples/crm.eml.mmd`.
 
 **Scale**: 1 model file · 17 entities · 7 categories · 26 enums · 20 indexes ·
@@ -1751,7 +1751,7 @@ else — the rules, the workflows, the enums and the access control are `%%`
 directives it treats as comments — so a stakeholder pointed at a Mermaid preview
 is being shown the smallest part of what they are approving.
 
-**The viewers are at `https://appwithai.org/viewers/`**, and they draw all of
+**The viewers are at `https://www.appwithai.org/viewers/`**, and they draw all of
 it — entities with their columns, badges and help text, relationships in crow's
 foot notation, state machines with the moves the generated API will allow, sagas
 as an ordered ladder, decision tables as tables, the roles and the entity counts
@@ -2133,7 +2133,7 @@ being built.
 first moment there is a document to look at, and every gate after it asks them to
 approve something a Mermaid preview does not draw:
 
-> Open `https://appwithai.org/viewers/` and press **Watch a file**, then pick
+> Open `https://www.appwithai.org/viewers/` and press **Watch a file**, then pick
 > `docs/eml-sessions/<slug>/<slug>.mmd`. The page re-reads it whenever it
 > changes, so the diagram fills in as we go. On a browser without that button,
 > **Open a file** or paste the document instead.
@@ -2627,7 +2627,7 @@ though it were expected.
 #### The tools
 
 **One engine, published four ways.** `language/checker.ts` in this repository,
-`https://appwithai.org/guide/checker.js` on the web, the copy chapter 11 runs
+`https://www.appwithai.org/guide/checker.js` on the web, the copy chapter 11 runs
 inside a browser tab, and the copy inside `website/viewers/eml-model.js` that
 the viewers report their verdict from are the same checker, built from the same
 source by `bun run build:language-tools` and `bun run build:viewers`, with CI
@@ -2641,12 +2641,12 @@ authoritative path, and nothing downstream distinguishes a verdict that came
 from it. In particular — and this has been observed in the wild — **failing to
 reach GitHub says nothing about whether the checker can run.** No clone, no
 credentials, no network route to github.com: the modules are served from
-`https://appwithai.org`, and `check-model.mjs` resolves them from `--base`, then from
+`https://www.appwithai.org`, and `check-model.mjs` resolves them from `--base`, then from
 its own directory, then from the published site. GitHub is not in that path at
 any point. "I could not obtain the repository, therefore I could not validate"
 is a wrong inference, not an honest limitation.
 
-**Write the URL in full, every time: `https://appwithai.org/…`.** Scheme
+**Write the URL in full, every time: `https://www.appwithai.org/…`.** Scheme
 included, never a bare host, and never under a `www.` label. Three things go wrong otherwise and
 all three have been observed:
 
@@ -2654,19 +2654,19 @@ all three have been observed:
   runtime either refuses or has to guess a scheme for, and a sandboxed agent's
   HTTP client usually refuses.
 - **A Markdown link around a bare host is worse**, because it looks right.
-  `[appwithai.org](https://appwithai.org)` reads to a person as a working
+  `[appwithai.org](https://www.appwithai.org)` reads to a person as a working
   link and to anything parsing your output as the bare host. Write the plain
   absolute URL: this is a specification, not a web page, and nothing here is
   rendered.
-- **There is no `www.` alias.** `https://appwithai.org/…` is not a second
-  spelling of this host. GitHub Pages issues a certificate for the domain in
-  repository settings, so that label is refused over TLS before it answers — a
-  failure that reads as "the checker is unavailable" and is not.
+- **The apex is not the canonical form.** `https://appwithai.org/…` serves the same files and
+  is the domain the repository's `CNAME` pins, but `https://www.appwithai.org/…`
+  is the canonical form to write. Both carry a certificate now; write the
+  canonical one so every reference agrees.
 
 **The same rule governs how you report a failure.** Name the exact request and
 the exact error. *"Validator retrieval failed for appwithai.org"* says neither
 what was requested nor what happened; *"GET
-https://appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
+https://www.appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
 and is the difference between a reader who can reproduce your problem and one who
 cannot. Report the URL you actually requested — not a shortened, prettified or
 linked version of it.
@@ -2718,7 +2718,7 @@ the engine it describes.
 bitten.** It validates the document; it does not ask whether the document's parts
 can perform each other. Two checks belong in this phase, and both are a dozen
 lines against the same `ViewModel` the viewers draw from
-(`https://appwithai.org/viewers/eml-model.js`, whose `readModel` is the
+(`https://www.appwithai.org/viewers/eml-model.js`, whose `readModel` is the
 generator's own reader):
 
 1. **Every state a saga writes must be a state its machine draws.** A
@@ -2775,7 +2775,7 @@ runner that drives both is published beside them. **On a shell this is the whole
 step** — no checkout, nothing installed:
 
 ```sh
-curl -sO https://appwithai.org/guide/check-model.mjs
+curl -sO https://www.appwithai.org/guide/check-model.mjs
 node check-model.mjs docs/eml-sessions/<slug>/<slug>.mmd
 #   exit 0  clean
 #   exit 1  one or more errors — the generator would refuse it
@@ -2789,8 +2789,8 @@ over the input; `--base <url>` points it at another host.
 
 | File | URL | What it is |
 |---|---|---|
-| `html/checker.js` | `https://appwithai.org/guide/checker.js` | every diagnostic the CLI prints, as `check(source)` |
-| `html/fixer.js` | `https://appwithai.org/guide/fixer.js` | the auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
+| `html/checker.js` | `https://www.appwithai.org/guide/checker.js` | every diagnostic the CLI prints, as `check(source)` |
+| `html/fixer.js` | `https://www.appwithai.org/guide/fixer.js` | the auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
 
 They are bundled from `language/checker.ts` and `language/fixer.ts` by
 `scripts/build-language-tools.ts`, and CI asserts they are current — so a
@@ -2804,10 +2804,10 @@ the checker is out of reach:
 |---|---|
 | A checkout | `bun language/checker.ts <file>` — above |
 | A shell with Node 18+, Bun or Deno | `curl -sO …/check-model.mjs`, then `node check-model.mjs <file>` |
-| Bun or Deno, writing the code yourself | `import { check } from "https://appwithai.org/guide/checker.js"` — a URL import works as it stands |
+| Bun or Deno, writing the code yourself | `import { check } from "https://www.appwithai.org/guide/checker.js"` — a URL import works as it stands |
 | Node, writing the code yourself | Node has no network imports: `fetch` both files into one directory and `import()` them from there |
 | A browser, a canvas, an HTML preview | `<script type="module">` with the same URL import |
-| A shell that reaches no host, and a text-only way in | **One file**, `https://appwithai.org/guide/check-model-standalone.mjs` (~130KB), carrying both modules and the runner compressed inside it. Paste it in and `node check-model-standalone.mjs <file>`. It runs the published runner against the inflated modules — a real run, counts reportable |
+| A shell that reaches no host, and a text-only way in | **One file**, `https://www.appwithai.org/guide/check-model-standalone.mjs` (~130KB), carrying both modules and the runner compressed inside it. Paste it in and `node check-model-standalone.mjs <file>`. It runs the published runner against the inflated modules — a real run, counts reportable |
 | A browse or fetch tool beside a shell with no network | The split most assistants have, and a **bridge, not a blocker**: read the two modules with the layer that can reach them, write them into the shell's working directory, then take the Node row above with `--base .`. The shell needs no network — only a file write |
 | None of these | "If the checker cannot be run here", below — check by hand, and say so |
 
@@ -2823,21 +2823,21 @@ not a finding about the environment; it is a finding about that attempt. Work
 these in order, and stop at the first that runs:
 
 1. `bun language/checker.ts <file>` — if the repository happens to be on disk.
-2. `curl -sO https://appwithai.org/guide/check-model.mjs` then
+2. `curl -sO https://www.appwithai.org/guide/check-model.mjs` then
    `node check-model.mjs <file>` — no checkout, no Bun, one dependency-free
    file. This is the one that answers "I could not clone the repository".
 3. `fetch` `checker.js` and `fixer.js` into one directory and `import()` them
    from there — when `curl` is missing but the runtime can make a request.
-4. **The website.** Open `https://appwithai.org/guide/11-check-a-model.html`,
+4. **The website.** Open `https://www.appwithai.org/guide/11-check-a-model.html`,
    paste the document, read the verdict line. It runs these same modules in the
    tab with nothing installed, so if you can drive or render a browser at all,
    this is a real run and its counts are reportable as such. A surface with no
    shell is not thereby a surface with no checker.
-   `https://appwithai.org/viewers/` answers the same question the same way — it
+   `https://www.appwithai.org/viewers/` answers the same question the same way — it
    carries the same checker and prints the same verdict — and draws the model
    besides, so it is the better rung when the user is present.
 5. **One file, when nothing in the shell can fetch and the only way in is
-   text.** `https://appwithai.org/guide/check-model-standalone.mjs` is about
+   text.** `https://www.appwithai.org/guide/check-model-standalone.mjs` is about
    130KB and carries `checker.js`, `fixer.js` and the runner compressed inside
    it. Paste it in, then `node check-model-standalone.mjs <file>`. It inflates
    them into a temp directory and runs the published runner against them, so
@@ -2846,8 +2846,8 @@ these in order, and stop at the first that runs:
    can fetch — they are smaller apart than this is together.
 6. **A layer that reaches beside a shell that does not.** The commonest split
    in a tool-using assistant: a browse or fetch tool that can read
-   `https://appwithai.org/guide/checker.js` and
-   `https://appwithai.org/guide/fixer.js`, and a sandboxed shell that cannot
+   `https://www.appwithai.org/guide/checker.js` and
+   `https://www.appwithai.org/guide/fixer.js`, and a sandboxed shell that cannot
    resolve the host. Both halves of the job are present — one side reads, the
    other writes a file and runs Node — so read the two modules with the side
    that reaches, write them where the side that runs will find them (a heredoc
@@ -2983,7 +2983,7 @@ nothing else earns it.
 **3 · Say one plain sentence at delivery** (§10.7): the checker could not be run
 here, this is what was verified by hand, and the user can validate the file in
 their own browser in a few seconds at
-`https://appwithai.org/guide/11-check-a-model.html`, which runs these same two
+`https://www.appwithai.org/guide/11-check-a-model.html`, which runs these same two
 modules with nothing to install.
 
 An unvalidated `.mmd` handed over with that sentence is still the deliverable.
@@ -3045,7 +3045,7 @@ copy out of a chat log. Alongside it:
   was verified by hand, and where the user can run it themselves;
 - **everything assumed**, and anything still unresolved;
 - **the completion mode** from §10.0;
-- **where to look at it** — `https://appwithai.org/viewers/`, which draws the
+- **where to look at it** — `https://www.appwithai.org/viewers/`, which draws the
   delivered file: the entities and their links, each lifecycle's legal moves,
   each rule's branches and each saga's steps, and the roles with what each one
   can see. A user handed a `.mmd` and a prose summary has to take the summary on
@@ -3250,7 +3250,7 @@ tables. All three are decisions a batch pass would have made silently.
     reach the checker at all, work the §10.6 ladder to its last rung first, then
     the manual review — and report it as a manual review. **A repository you
     could not clone is not a checker you could not run**: the engine is
-    published at `https://appwithai.org`, reachable by one `curl`, and runnable in a
+    published at `https://www.appwithai.org`, reachable by one `curl`, and runnable in a
     browser tab. Never describe anything but a run of the published engine as a
     checker result, and never withhold the file because you could not produce
     one.
