@@ -33,14 +33,16 @@
   This file is the one-pass enhancement form. All four describe the same
   language and are held to the same checker.
 - **Validators**, published by this document's validation section:
-  `https://www.appwithai.org/guide/checker.js` and
-  `https://www.appwithai.org/guide/fixer.js`. The apex, `appwithai.org`, serves
-  the same files; `www` is canonical. **If neither host is reachable from your
+  `https://appwithai.org/guide/checker.js` and
+  `https://appwithai.org/guide/fixer.js`. **Write that exact form every
+  time** — scheme included, and never a bare host. That host is the only one
+  that serves them: there is no `www.` alias, and a request to one is refused
+  over TLS before it is answered. **If the host is not reachable from your
   environment, that is a fact about your network and not a reason to skip
   validation or to stop** — that section's last two rows are the offline
   procedure, and they are real runs with real counts.
 - **To check a model from a shell** (§10.5) — nothing to install:
-  `curl -sO https://www.appwithai.org/guide/check-model.mjs` then
+  `curl -sO https://appwithai.org/guide/check-model.mjs` then
   `node check-model.mjs my-business.mmd`. Exit `0` means the generator accepts
   it; exit `1` means it does not, and the report says why.
 - **Every example in this document is a complete model that the checker accepts
@@ -100,8 +102,8 @@ app-with-ai-tanstack/
 ├── database/          # Migrations for the modelling tool's own database
 ├── website/           # What the site publishes from this repository
 │   ├── llmtext/       #   This file, and its companion
-│   └── viewers/       #   The model viewers — appwithai.org/viewers
-├── html/              # The human guide published at appwithai.org/guide, plus
+│   └── viewers/       #   The model viewers — https://appwithai.org/viewers
+├── html/              # The human guide published at https://appwithai.org/guide, plus
 │                   #   checker.js and fixer.js — the published validators — and
 │                   #   the pages that run a whole stack in a browser tab
 ├── scripts/           # Build and CI scripts, incl. the four --check bundlers (§8)
@@ -729,6 +731,65 @@ node check-model.mjs model.mmd
 import { check }        from "https://appwithai.org/guide/checker.js";
 import { checkAndFix }  from "https://appwithai.org/guide/fixer.js";
 ```
+
+**Write the URL in full, every time: `https://appwithai.org/…`.** Scheme
+included, never a bare host, and never under a `www.` label. Three things go wrong otherwise and
+all three have been observed:
+
+- **A bare host is not a URL.** `appwithai.org/guide/checker.js` is a string a
+  runtime either refuses or has to guess a scheme for, and a sandboxed agent's
+  HTTP client usually refuses.
+- **A Markdown link around a bare host is worse**, because it looks right.
+  `[appwithai.org](https://appwithai.org)` reads to a person as a working
+  link and to anything parsing your output as the bare host. Write the plain
+  absolute URL: this is a specification, not a web page, and nothing here is
+  rendered.
+- **There is no `www.` alias.** `https://appwithai.org/…` is not a second
+  spelling of this host. GitHub Pages issues a certificate for the domain in
+  repository settings, so that label is refused over TLS before it answers — a
+  failure that reads as "the checker is unavailable" and is not.
+
+**The same rule governs how you report a failure.** Name the exact request and
+the exact error. *"Validator retrieval failed for appwithai.org"* says neither
+what was requested nor what happened; *"GET
+https://appwithai.org/guide/checker.js failed: EAI_AGAIN (DNS)"* says both,
+and is the difference between a reader who can reproduce your problem and one who
+cannot. Report the URL you actually requested — not a shortened, prettified or
+linked version of it.
+
+**What a diagnostic gives you back.** Every diagnostic that can be placed
+carries three things, and the report prints all three:
+
+```
+error:18 [EML144] %%field "Order.status" references undeclared enum "MissingEnum".
+  18 │ %%field Order.status enum: MissingEnum
+     └ fix: Add  %%enum MissingEnum: value1, value2  before the erDiagram block.
+```
+
+the code and the line; the **text of that line, as the checker read it**; and the
+repair. Match your edit against the text rather than against the number. If the
+line in your copy does not look like the one printed, you are editing a different
+document from the one that was checked — which is the commonest way a fix gets
+reported as applied when it never was. Structured callers get the same thing as
+`issue.lineText` beside `issue.line`.
+
+A diagnostic with no line says so — *no single line — this is about the document
+as a whole*. `EML001`, a missing `%%meta name:`, is one: it is about the document,
+not about any line in it.
+
+**Line numbers always belong to the document that was checked.** `checkAndFix`
+repairs first and re-checks after, so every number in `remaining` indexes
+`report.source` — the repaired text — and not the string you passed in. Inserting
+`%%meta name:` moves every line below it down by one, so resolving those numbers
+against your own copy reads one line too high, all the way down, and without any
+sign that it has. Re-read the file from `report.source`, or re-check after
+writing it, before you act on a line number.
+
+**The report ends with the steps for this run**, worked out from these
+diagnostics rather than stated in general: which of them repair themselves and so
+should not be hand-edited, which line to start at, and the reminder that the
+whole file is re-checked from zero after every round. The verdict stays the final
+line, so the last thing you read is still the outcome.
 
 See §10.3, which is also the procedure you are expected to follow before handing
 a model to anyone.
@@ -1928,7 +1989,7 @@ tool.
 a shell, this is the whole of it:
 
 ```sh
-curl -sO https://www.appwithai.org/guide/check-model.mjs
+curl -sO https://appwithai.org/guide/check-model.mjs
 node check-model.mjs my-business.mmd
 ```
 
@@ -1968,7 +2029,7 @@ Only when every rung has genuinely failed: walk the delivery checklist by hand,
 then hand over the file with one plain sentence — the checker could not be run
 here, this is what was verified by hand, and the user can validate it in their
 own browser in a few seconds at
-`https://www.appwithai.org/guide/11-check-a-model.html`, which runs these same
+`https://appwithai.org/guide/11-check-a-model.html`, which runs these same
 two modules with nothing to install. Never report the output of a check of your
 own devising in the vocabulary of the real one: a substitute described as
 "passes" or "0 warnings" is worse than no check at all, because the user cannot
@@ -2035,7 +2096,7 @@ Alongside the file — in the reply, never inside it — give:
 - **anything still unresolved**, and any pre-existing diagnostic you deliberately
   left alone;
 - **what to do next**: upload the file at
-  `https://www.appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
+  `https://appwithai.org/guide/run-in-browser.html#upload`, where it becomes a
   running application in the browser tab, with nothing installed and nothing
   uploaded to a server.
 
@@ -2082,7 +2143,7 @@ you wrote down in §10.2, you are attaching a regression.
     does not come clean. Work the §10.3 ladder to its last rung before
     concluding the checker is out of reach: **a repository you could not clone
     is not a checker you could not run**, since the engine is published at
-    `appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
+    `https://appwithai.org`, reachable by one `curl`, and runnable in a browser tab.
     Never describe anything but a run of the published engine as a checker
     result, and never withhold the file because you could not produce one.
 13. **Say what the `enterprise-reporting` target does not compile.** Workflows
