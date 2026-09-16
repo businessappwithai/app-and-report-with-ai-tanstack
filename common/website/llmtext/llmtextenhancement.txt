@@ -34,8 +34,9 @@
   language and are held to the same checker.
 - **Validators**, published by this document's validation section:
   `https://appwithai.org/guide/checker.js` and
-  `https://appwithai.org/guide/fixer.js`. The apex, `appwithai.org`, serves
-  the same files; `www` is canonical. **If neither host is reachable from your
+  `https://appwithai.org/guide/fixer.js`. That host is the only one that
+  serves them: there is no `www.` alias, and a request to one is refused over
+  TLS before it is answered. **If the host is not reachable from your
   environment, that is a fact about your network and not a reason to skip
   validation or to stop** — that section's last two rows are the offline
   procedure, and they are real runs with real counts.
