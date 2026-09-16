@@ -265,6 +265,16 @@ the enhancement editions inherit whichever drift their base carries — which is
 correct, and is why each repository derives from its own base rather than copying
 the site's output.
 
+### The published host is written in full
+
+Every mention of the host in the five `llmtext/*.txt` documents is
+`https://appwithai.org` — scheme and `www.` included. These copies used the
+apex for most of their URLs and named the host without a scheme in prose, and a
+model following them reported a failed validator fetch as a Markdown link around
+a bare host, which is what its own tooling then tried to resolve. Nothing in this
+repository checks it; the assertions are upstream in `bun run test:llmtext` and
+on the site in `scripts/check-spec.mjs`, each against its own copies.
+
 ## The language
 
 `common/language/appwithai-language.json` is the **single source of truth** —
