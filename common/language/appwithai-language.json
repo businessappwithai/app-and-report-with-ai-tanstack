@@ -1421,6 +1421,7 @@
       "EML112": "Duplicate attribute - deletes the later line, keeping the stronger constraints.",
       "EML114": "Foreign key not ending in _id - appends the suffix.",
       "EML117": "Entity has no primary key - prepends `string id PK`.",
+      "EML287": "Rule condition names a camelCase identifier - rewrites it as the snake_case column.",
       "EML421": "State workflow has no initial transition - inserts `[*] --> <firstState>`.",
       "EML422": "State workflow has no terminal state - appends `<lastState> --> [*]`."
     },

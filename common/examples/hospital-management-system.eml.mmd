@@ -1191,7 +1191,7 @@ flowchart TD
     E --> G([Refused])
     F --> H([Booked])
 
-    %%action refusePastSlot validation-error when: scheduledAt < now message: An appointment cannot be booked in the past.
+    %%action refusePastSlot validation-error when: scheduled_at < now message: An appointment cannot be booked in the past.
 
 %%meta name: Discharge Summary Gate
 %%meta kind: rules
@@ -1205,7 +1205,7 @@ flowchart TD
     D --> F([Refused])
     E --> G([Allowed])
 
-    %%action requireDischargeSummary validation-error when: status == 'discharged' and dischargeSummary == null message: Write the discharge summary before discharging. A patient sent home without one leaves their GP with nothing.
+    %%action requireDischargeSummary validation-error when: status == 'discharged' and discharge_summary == null message: Write the discharge summary before discharging. A patient sent home without one leaves their GP with nothing.
 
 %%meta name: Procedure Lifecycle
 %%meta kind: workflow
@@ -1310,7 +1310,7 @@ flowchart TD
     D --> G([Refused])
     F --> H([Recorded])
 
-    %%action requireResultValue validation-error when: valueNumeric == null and valueText == null message: A result must carry a value — a number with its unit, or the words the laboratory reported. An empty result is an order that has not come back yet.
+    %%action requireResultValue validation-error when: value_numeric == null and value_text == null message: A result must carry a value — a number with its unit, or the words the laboratory reported. An empty result is an order that has not come back yet.
 
 %%meta name: Critical Result Gate
 %%meta kind: rules
@@ -1322,7 +1322,7 @@ flowchart TD
     C --> D([Escalated])
     E --> F([Filed])
 
-    %%action escalateCriticalResult trigger-workflow when: abnormalFlag == 'critical_high' or abnormalFlag == 'critical_low' workflow: CriticalResultEscalation message: A critical value has to be told to the requesting clinician now, not read at the next ward round.
+    %%action escalateCriticalResult trigger-workflow when: abnormal_flag == 'critical_high' or abnormal_flag == 'critical_low' workflow: CriticalResultEscalation message: A critical value has to be told to the requesting clinician now, not read at the next ward round.
 
 %%meta name: Critical Finding Gate
 %%meta kind: rules
@@ -1334,7 +1334,7 @@ flowchart TD
     C --> D([Escalated])
     E --> F([Filed])
 
-    %%action escalateCriticalFinding trigger-workflow when: isCritical == true workflow: CriticalFindingEscalation message: A critical imaging finding has to be told to the requesting clinician now, not left in the report for them to find.
+    %%action escalateCriticalFinding trigger-workflow when: is_critical == true workflow: CriticalFindingEscalation message: A critical imaging finding has to be told to the requesting clinician now, not left in the report for them to find.
 
 %%meta name: Prescription Lifecycle
 %%meta kind: workflow
@@ -1385,7 +1385,7 @@ flowchart TD
     E --> G([Refused])
     F --> H([Allowed])
 
-    %%action refuseSelfDispense validation-error when: status == 'dispensed' and hasControlledItem == true and dispensedById == prescribedById message: A controlled drug cannot be dispensed by the person who prescribed it. Ask a second member of staff to dispense.
+    %%action refuseSelfDispense validation-error when: status == 'dispensed' and has_controlled_item == true and dispensed_by_id == prescribed_by_id message: A controlled drug cannot be dispensed by the person who prescribed it. Ask a second member of staff to dispense.
 
 %%meta name: High Alert Check Gate
 %%meta kind: rules
@@ -1399,7 +1399,7 @@ flowchart TD
     C --> G([Refused])
     F --> H([Added])
 
-    %%action requireSecondCheck validation-error when: isHighAlert == true and secondCheckById == null message: A high-alert medicine needs a second qualified check before it goes on the prescription.
+    %%action requireSecondCheck validation-error when: is_high_alert == true and second_check_by_id == null message: A high-alert medicine needs a second qualified check before it goes on the prescription.
 
 %%meta name: Invoice Lifecycle
 %%meta kind: workflow
@@ -1563,9 +1563,9 @@ flowchart TD
     F --> H([Refused])
     G --> I([Allowed])
 
-    %%action refuseInvalidPolicy validation-error when: status == 'issued' and insurancePolicyId != null and policyVerified == false message: The policy on this bill is not active for the dates being charged. Correct the cover, or bill the patient directly.
-    %%action refuseUnbalancedSplit validation-error when: status == 'issued' and insurerAmount + patientAmount != grossAmount message: The insurer's share and the patient's share do not add up to the total. The co-payment has not been applied.
-    %%action refuseEarlyOverdue validation-error when: status == 'overdue' and dueOn >= today message: A bill cannot be overdue before the day it falls due.
+    %%action refuseInvalidPolicy validation-error when: status == 'issued' and insurance_policy_id != null and policy_verified == false message: The policy on this bill is not active for the dates being charged. Correct the cover, or bill the patient directly.
+    %%action refuseUnbalancedSplit validation-error when: status == 'issued' and insurer_amount + patient_amount != gross_amount message: The insurer's share and the patient's share do not add up to the total. The co-payment has not been applied.
+    %%action refuseEarlyOverdue validation-error when: status == 'overdue' and due_on >= today message: A bill cannot be overdue before the day it falls due.
 
 %%meta name: Invoice Episode Gate
 %%meta kind: rules
@@ -1577,7 +1577,7 @@ flowchart TD
     C --> E([Refused])
     D --> F([Raised])
 
-    %%action requireEpisode validation-error when: encounterId == null and admissionId == null message: A bill prices an episode. Attach it to the outpatient contact or to the admission it is charging for.
+    %%action requireEpisode validation-error when: encounter_id == null and admission_id == null message: A bill prices an episode. Attach it to the outpatient contact or to the admission it is charging for.
 
 %%meta name: Invoice Line Gate
 %%meta kind: rules
@@ -1589,7 +1589,7 @@ flowchart TD
     D --> F([Refused])
     E --> G([Added])
 
-    %%action refuseMiscalculatedLine validation-error when: lineAmount != quantity * unitPrice message: The line total does not equal the quantity times the unit price. A bill whose lines do not add up cannot be defended to a patient or an insurer.
+    %%action refuseMiscalculatedLine validation-error when: line_amount != quantity * unit_price message: The line total does not equal the quantity times the unit price. A bill whose lines do not add up cannot be defended to a patient or an insurer.
 
 %%meta name: Payment Posting Gate
 %%meta kind: rules
@@ -1604,7 +1604,7 @@ flowchart TD
     E --> G([Recorded])
 
     %%action refuseNonPositivePayment validation-error when: amount <= 0 message: A payment must be for a positive amount. A refund is not recorded here.
-    %%action refuseOverpayment validation-error when: amount > outstandingBefore message: That is more than this bill still owes. Check the amount, or apply the balance to another invoice.
+    %%action refuseOverpayment validation-error when: amount > outstanding_before message: That is more than this bill still owes. Check the amount, or apply the balance to another invoice.
 
 %%meta name: Payment Settlement Gate
 %%meta kind: rules
@@ -1616,8 +1616,8 @@ flowchart TD
     C --> E([Settled])
     D --> F([Part paid])
 
-    %%action settleInvoice trigger-workflow when: amount >= outstandingBefore workflow: InvoiceSettlement message: The bill is now fully paid.
-    %%action partPayInvoice trigger-workflow when: amount < outstandingBefore workflow: InvoicePartPayment message: The bill is partly paid and a balance remains.
+    %%action settleInvoice trigger-workflow when: amount >= outstanding_before workflow: InvoiceSettlement message: The bill is now fully paid.
+    %%action partPayInvoice trigger-workflow when: amount < outstanding_before workflow: InvoicePartPayment message: The bill is partly paid and a balance remains.
 
 %%meta name: Stock Hooks
 %%meta kind: workflow
@@ -1655,9 +1655,9 @@ flowchart TD
     E --> H([Recorded])
 
     %%action refuseZeroMovement validation-error when: quantity == 0 message: A movement of nothing is not a movement. To correct a count, record the difference.
-    %%action refuseWrongDirectionIn validation-error when: transactionType == 'receipt' and quantity <= 0 message: A receipt adds to the store. Record a negative quantity as a return or a disposal.
-    %%action refuseWrongDirectionOut validation-error when: transactionType == 'issue' and quantity >= 0 message: An issue takes stock away. Record it as a negative quantity.
-    %%action refuseNegativeStock validation-error when: quantityOnHandAfter < 0 message: There is not that much in the store. Count the shelf and record a correction before issuing.
+    %%action refuseWrongDirectionIn validation-error when: transaction_type == 'receipt' and quantity <= 0 message: A receipt adds to the store. Record a negative quantity as a return or a disposal.
+    %%action refuseWrongDirectionOut validation-error when: transaction_type == 'issue' and quantity >= 0 message: An issue takes stock away. Record it as a negative quantity.
+    %%action refuseNegativeStock validation-error when: quantity_on_hand_after < 0 message: There is not that much in the store. Count the shelf and record a correction before issuing.
 
 %%meta name: Stock Reorder Gate
 %%meta kind: rules
@@ -1671,7 +1671,7 @@ flowchart TD
     D --> F([Raised])
     E --> G([Done])
 
-    %%action raiseReplenishment trigger-workflow when: triggersReorder == true workflow: StockReplenishment message: This item has fallen to its reorder level and is now on the buyer's worklist.
+    %%action raiseReplenishment trigger-workflow when: triggers_reorder == true workflow: StockReplenishment message: This item has fallen to its reorder level and is now on the buyer's worklist.
 
 %% ---- Gate D — the effects that cross entities ------------------------------
 
@@ -1756,7 +1756,7 @@ flowchart TD
     D --> F([Invoice drafted])
     E --> G([Done])
 
-    %%action raiseInvoice trigger-workflow when: status == 'closed' and isBillable == true workflow: EncounterInvoicing message: A closed contact is what makes an episode billable, so the bill is drafted here rather than typed later.
+    %%action raiseInvoice trigger-workflow when: status == 'closed' and is_billable == true workflow: EncounterInvoicing message: A closed contact is what makes an episode billable, so the bill is drafted here rather than typed later.
 
 %%meta name: Consent Withdrawal Gate
 %%meta kind: rules
@@ -1768,4 +1768,4 @@ flowchart TD
     C --> E([Procedure unconsented])
     D --> F([Done])
 
-    %%action unconsentProcedure trigger-workflow when: isWithdrawn == true workflow: ConsentWithdrawal message: Consent has been withdrawn, so the procedure it authorised is no longer consented.
+    %%action unconsentProcedure trigger-workflow when: is_withdrawn == true workflow: ConsentWithdrawal message: Consent has been withdrawn, so the procedure it authorised is no longer consented.

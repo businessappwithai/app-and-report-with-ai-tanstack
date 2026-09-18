@@ -1991,6 +1991,59 @@ class CheckEngine {
         );
       }
 
+      // EML287: a condition naming a column that does not exist.
+      //
+      // A rule is evaluated against the record being written and nothing else,
+      // so an identifier in `when:` is a column of that record or it is
+      // undefined. Every column an EML ERD declares is snake_case — 1385 of
+      // them across the reference models, not one camelCase — so a camelCase
+      // identifier here is never a column, and the comparison it sits in is
+      // against `undefined`.
+      //
+      // That fails in both directions and neither is visible:
+      //
+      //   when: isCritical == true          → undefined == true is false, so
+      //                                       the rule never fires. It is
+      //                                       seeded, listed in the admin
+      //                                       screen, drawn by the viewer, and
+      //                                       inert.
+      //   when: encounterId == null         → undefined == null is TRUE, so the
+      //                                       rule fires on every write and the
+      //                                       entity cannot be created at all,
+      //                                       whatever the payload carries.
+      //
+      // The second one shipped. A published model had `%%action requireEpisode
+      // validation-error when: encounterId == null and admissionId == null` on
+      // Invoice, whose columns are `encounter_id` and `admission_id`: every
+      // POST /api/bus/bus_invoice answered 400 with the rule's own message,
+      // and supplying `encounterId` instead reached the database as a column
+      // that does not exist. Two of that model's entities could not be created
+      // through the API, and nothing in the language reported it.
+      const condition = props.when?.trim();
+      if (condition) {
+        const camel = [
+          ...new Set(
+            (condition.match(/\b[a-z][A-Za-z0-9]*\b/g) ?? []).filter((identifier) =>
+              /[a-z][A-Z]/.test(identifier)
+            )
+          ),
+        ];
+        if (camel.length > 0) {
+          const snake = (identifier: string) =>
+            identifier.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+          const tested = camel.map((c) => `"${c}"`).join(", ");
+          const meant = camel.map(snake).join(", ");
+          this.error("EML287", `%%action "${name}" tests ${tested}, which no column is named.`, {
+            line: lineNo,
+            hint:
+              `A rule reads the record being written, and every column is snake_case. ` +
+              `Write ${meant}. A camelCase name is undefined at evaluation: the rule ` +
+              `never fires, or — against == null — fires on every write and the entity ` +
+              `cannot be created.`,
+          });
+        }
+      }
+
       // EML285: an unknown key is ignored, so the action runs without it.
       const known = new Set(["when", ...contract.required, ...(contract.optional ?? [])]);
       for (const key of Object.keys(props)) {
@@ -3153,6 +3206,7 @@ export const AUTO_FIXABLE_CODES = new Set([
   "EML114", // FK not ending in _id → append the suffix (_by columns then resolve to bus_user)
   "EML112", // duplicate attribute → delete the later line, keeping the stronger constraints
   "EML103", // a column the generator adds → delete the line
+  "EML287", // camelCase identifier in a rule condition → rewrite it snake_case
 ]);
 
 /** Structured output written to <file>.error for the fixer to consume. */

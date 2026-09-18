@@ -752,10 +752,10 @@ Code ranges: `EML0xx` document · `EML1xx` entities and their directives ·
 `EML2xx` directive-declared hooks/rules/workflows · `EML3xx` rule flowcharts ·
 `EML4xx` workflow sections · `EML5xx` cross-section consistency.
 
-Auto-fixable — seven codes: `EML001` (missing `%%meta name`), `EML103` (a column
+Auto-fixable — eight codes: `EML001` (missing `%%meta name`), `EML103` (a column
 the generator adds anyway), `EML112` (duplicate attribute), `EML114` (FK missing
-`_id`), `EML117` (no primary key), `EML421` (no initial transition), `EML422`
-(no terminal state). The authority is `AUTO_FIXABLE_CODES` in
+`_id`), `EML117` (no primary key), `EML287` (a rule condition written in
+camelCase), `EML421` (no initial transition), `EML422` (no terminal state). The authority is `AUTO_FIXABLE_CODES` in
 `language/checker.ts`, mirrored by the fixer's dispatch table and
 `diagnostics.autoFixable` in `language/appwithai-language.json`.
 
@@ -1455,7 +1455,7 @@ isHookType("beforeCreate");  // true
 | `bun run lint:fix` | Biome check + autofix |
 | `bun run test` | Vitest — 540 passing, 6 skipped, across core/generator/ai/web |
 | `bun language/checker.ts <f.mmd>` | validate a model |
-| `bun language/fixer.ts <f.mmd.error>` | apply the seven auto-repairs |
+| `bun language/fixer.ts <f.mmd.error>` | apply the eight auto-repairs |
 | `bun run build:language-tools` | rebuild `html/checker.js` + `html/fixer.js` (§10.6) |
 | `bun run test:language-tools` | assert those two still agree with the CLI |
 | `bun run test:wasm` | drive the browser stack in Chromium |
@@ -2520,7 +2520,7 @@ once every rung has actually been tried and failed — not once the first one di
   the fixer's input. Do not hand it over as part of the deliverable, and if you
   ever run the checker over a file in `language/examples/`, revert the `.error`
   it leaves behind unless the verdict actually changed.
-- **Seven codes are auto-fixable**, not five:
+- **Eight codes are auto-fixable**, not five:
 
 | Code | What the fixer does |
 |---|---|
@@ -2529,6 +2529,7 @@ once every rung has actually been tried and failed — not once the first one di
 | `EML112` | duplicate attribute → delete the later line, keeping the stronger constraints |
 | `EML114` | FK not ending `_id` → append the suffix |
 | `EML117` | no primary key → add `string id PK` |
+| `EML287` | a `%%action when:` written in camelCase → rewrite it as the snake_case column |
 | `EML421` | no initial transition → add `[*] --> <firstState>` |
 | `EML422` | no terminal state → add `<lastState> --> [*]` |
 
