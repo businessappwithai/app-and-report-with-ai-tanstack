@@ -147,6 +147,8 @@ function applyFix(lines: string[], issue: Issue): FixResult {
       return fixMissingInitialTransition(lines, issue, base);
     case "EML422":
       return fixMissingTerminalTransition(lines, issue, base);
+    case "EML287":
+      return fixCamelCaseRuleCondition(lines, issue, base);
     default:
       base.description = `No auto-fix strategy for ${issue.code}.`;
       return base;
@@ -189,6 +191,84 @@ function fixMissingMetaName(lines: string[], _issue: Issue, base: FixResult): Fi
   base.applied = true;
   base.description = `Inserted  ${newLine}  at line ${insertAt + 1}.`;
   base.changes.push({ lineNo: insertAt + 1, before: "", after: newLine, action: "insert" });
+  return base;
+}
+
+// ---------------------------------------------------------------------------
+// Fix: EML287 — A rule condition naming a column that does not exist
+// ---------------------------------------------------------------------------
+
+/**
+ * Rewrite a camelCase identifier in a `%%action … when:` condition to the
+ * snake_case column it meant.
+ *
+ * A rule is evaluated against the record being written, whose keys are the
+ * ERD's column names — and every column an EML ERD declares is snake_case. So
+ * `when: encounterId == null` compares `undefined` to `null`, which is true,
+ * and the rule refuses every write to that entity; `when: isCritical == true`
+ * compares `undefined` to `true`, which is false, and the rule never fires at
+ * all. Neither reports anything: the rule is seeded, listed in the admin
+ * screen and drawn by the viewer, and the only symptom is an entity that
+ * cannot be created or a rule nobody notices is dead.
+ *
+ * The rewrite is confined to the `when:` value, and only to identifiers that
+ * carry a lower-to-upper transition. A string literal is left alone — the
+ * values a condition compares against are the model's own enum values and are
+ * not columns — and so is every other key on the line.
+ */
+function fixCamelCaseRuleCondition(lines: string[], issue: Issue, base: FixResult): FixResult {
+  const lineNo = issue.line ? issue.line - 1 : -1;
+  if (lineNo < 0 || lineNo >= lines.length) {
+    base.description = "EML287 carries no line to repair.";
+    return base;
+  }
+
+  const original = lines[lineNo] ?? "";
+  if (!/^\s*%%action\b/.test(original)) {
+    base.description = `Line ${issue.line} is not a %%action directive.`;
+    return base;
+  }
+
+  // The condition runs from `when:` to the next key on the line. Splitting on
+  // the keys rather than on whitespace is what keeps `message:` prose — which
+  // routinely contains words with capitals — out of the rewrite.
+  const WHEN = /^(.*?\bwhen:\s*)(.*?)(\s+(?:message|field|value|workflow|to|target):\s.*)?$/;
+  const match = original.match(WHEN);
+  if (!match) {
+    base.description = "Could not isolate the when: condition.";
+    return base;
+  }
+
+  type WhenParts = [string, string, string, string | undefined];
+  const [, head, condition, tail] = match as unknown as WhenParts;
+
+  const renamed: string[] = [];
+  // Skip quoted literals: a condition compares against the model's own enum
+  // values, and `'critical_high'` is not a column to rename.
+  const repaired = condition.replace(/'[^']*'|"[^"]*"|\b[a-z][A-Za-z0-9]*\b/g, (token) => {
+    if (token.startsWith("'") || token.startsWith('"')) return token;
+    if (!/[a-z][A-Z]/.test(token)) return token;
+    const snake = token.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+    renamed.push(`${token} → ${snake}`);
+    return snake;
+  });
+
+  if (renamed.length === 0) {
+    base.description = "No camelCase identifier found in the condition.";
+    return base;
+  }
+
+  lines[lineNo] = `${head}${repaired}${tail ?? ""}`;
+  base.applied = true;
+  base.description = `Rewrote ${renamed.join(", ")} in the rule condition.`;
+  base.changes = [
+    {
+      lineNo: issue.line ?? lineNo + 1,
+      before: original,
+      after: lines[lineNo] ?? "",
+      action: "replace",
+    },
+  ];
   return base;
 }
 
@@ -702,6 +782,7 @@ ${c.bold("AUTO-FIXABLE CODES")}
             a plain string that renders as a raw UUID)
   EML112   Duplicate attribute → delete the later line, keeping the stronger constraints
   EML103   A column the generator adds anyway → delete the line
+  EML287   camelCase in a %%action when: → rewrite it as the snake_case column
   EML117   No primary key → insert  string id PK  as first attribute
   EML421   State workflow: no [*]→First transition → insert it
   EML422   State workflow: no terminal state (→[*]) → insert it

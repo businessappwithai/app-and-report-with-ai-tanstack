@@ -825,10 +825,10 @@ Code ranges: `EML0xx` document · `EML1xx` entities and their directives ·
 `EML2xx` directive-declared hooks/rules/workflows · `EML3xx` rule flowcharts ·
 `EML4xx` workflow sections · `EML5xx` cross-section consistency.
 
-Auto-fixable — seven codes: `EML001` (missing `%%meta name`), `EML103` (a column
+Auto-fixable — eight codes: `EML001` (missing `%%meta name`), `EML103` (a column
 the generator adds anyway), `EML112` (duplicate attribute), `EML114` (FK missing
-`_id`), `EML117` (no primary key), `EML421` (no initial transition), `EML422`
-(no terminal state). The authority is `AUTO_FIXABLE_CODES` in
+`_id`), `EML117` (no primary key), `EML287` (a rule condition written in
+camelCase), `EML421` (no initial transition), `EML422` (no terminal state). The authority is `AUTO_FIXABLE_CODES` in
 `language/checker.ts`, mirrored by the fixer's dispatch table and
 `diagnostics.autoFixable` in `language/appwithai-language.json`.
 
@@ -1528,7 +1528,7 @@ isHookType("beforeCreate");  // true
 | `bun run lint:fix` | Biome check + autofix |
 | `bun run test` | Vitest — 540 passing, 6 skipped, across core/generator/ai/web |
 | `bun language/checker.ts <f.mmd>` | validate a model |
-| `bun language/fixer.ts <f.mmd.error>` | apply the seven auto-repairs |
+| `bun language/fixer.ts <f.mmd.error>` | apply the eight auto-repairs |
 | `bun run build:language-tools` | rebuild `html/checker.js` + `html/fixer.js` (§10.3) |
 | `bun run test:language-tools` | assert those two still agree with the CLI |
 | `bun run test:wasm` | drive the browser stack in Chromium |
@@ -1902,7 +1902,7 @@ not the whole truth about the file.
 | File | URL | What it is |
 |---|---|---|
 | `html/checker.js` | `https://www.appwithai.org/guide/checker.js` | every diagnostic `bun language/checker.ts` prints, as `check(source)` |
-| `html/fixer.js` | `https://www.appwithai.org/guide/fixer.js` | the seven auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
+| `html/fixer.js` | `https://www.appwithai.org/guide/fixer.js` | the eight auto-repairs, plus `checkAndFix(source)` — repair and re-check in one call |
 
 Both are ES modules bundled from `language/checker.ts` and `language/fixer.ts` by
 `scripts/build-language-tools.ts`. They are the same engines the CLI runs, not a
