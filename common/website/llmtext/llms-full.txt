@@ -753,6 +753,22 @@ and is the difference between a reader who can reproduce your problem and one wh
 cannot. Report the URL you actually requested — not a shortened, prettified or
 linked version of it.
 
+**Classify the failure by its exit code before you describe it.** These mean
+different things, and only one of them is about the site at all:
+
+| What you see | What it is | What it tells you |
+|---|---|---|
+| `curl: (6)` · `EAI_AGAIN` · `ENOTFOUND` | The host did not resolve | **There is no working DNS here.** Nothing was sent. Resolve any other host to confirm — if that fails too, the resolver is the finding, and it is not about this hostname |
+| `curl: (7)` · `ECONNREFUSED` | Resolved, nothing accepted the connection | Egress is blocked at the network layer. Nothing was sent |
+| `curl: (56)` with `403` or `407` | A proxy refused the CONNECT | Your gateway answered, in the site's place. Nothing was sent |
+| `403` · `407` · `502` with a body | An HTTP answer that is not the site's | Same: an egress proxy or corporate gateway replying for it |
+| `404` from this host | The site answered, and that path is wrong | The only one of these that is a fact about the site. Re-read the URL |
+
+The first four never reached the site, so none of them is evidence it is down,
+and none is a verdict on the model. Say which one you got, verbatim, and then
+take the local-first path: put `checker.js` and `fixer.js` on disk and name
+their directory with `--base <dir>`. That is a real run, with real counts.
+
 **What a diagnostic gives you back.** Every diagnostic that can be placed
 carries three things, and the report prints all three:
 
