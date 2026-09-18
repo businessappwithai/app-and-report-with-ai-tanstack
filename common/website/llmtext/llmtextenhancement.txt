@@ -731,6 +731,31 @@ import { check }        from "https://www.appwithai.org/guide/checker.js";
 import { checkAndFix }  from "https://www.appwithai.org/guide/fixer.js";
 ```
 
+**A clean report is not a finished model.** Nothing in the checker requires a
+model to *have* anything: one entity with a primary key and a name is valid EML
+with no lifecycle, no rule, no access control and no help text — 0 errors, and
+`formatReport` closes with *the generator accepts this model*, which is not the
+same as *this model is done*. A second runner scores that, published beside the
+two modules and resolved the same way:
+
+```sh
+curl -sO https://www.appwithai.org/guide/audit-model.mjs
+node audit-model.mjs model.mmd
+#   exit 0  every check passed · exit 1  one or more failed · exit 2  it could not run
+```
+
+Twenty-two checks — last line `22 passed, 0 failed` — over the file contract and
+the delivery checklist: a primary key per entity, the `FK` modifier on every
+`_id`/`_by` column, an enum binding behind every status, a `kind: state` workflow
+with an initial transition and a terminal state, `%%action`, `%%hook`,
+`kind: saga` and `%%rbac` all present, help on every entity and column that is
+not a restatement of its own name, every declared line item out of every
+`%%category`, and the three checker passes over the file's own bytes. `--quiet`
+prints the score alone; `--base <dir-or-url>` is the same flag, so a relative
+directory such as `--base ./` works with no network at all. It is a **scorer, not
+a second checker**: every diagnostic it reads comes from `checker.js`. Run both,
+and report both.
+
 **Write the URL in full, every time: `https://www.appwithai.org/…`.** Scheme
 included, never a bare host, and never under a `www.` label. Three things go wrong otherwise and
 all three have been observed:
