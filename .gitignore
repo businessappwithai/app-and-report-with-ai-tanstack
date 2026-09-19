@@ -33,3 +33,6 @@ common/.runtime/
 # run setup.
 /.claude/skills/*/
 !/.claude/skills/gstack/
+# Skills authored here are not that, and are tracked: they are prose about
+# this repository, valid in any checkout of it.
+!/.claude/skills/sync-downstream/

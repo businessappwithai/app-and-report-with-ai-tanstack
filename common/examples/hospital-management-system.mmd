@@ -381,35 +381,63 @@ erDiagram
 %%index StockTransaction(inventory_item_id, transaction_at)
 
 %%entity Patient help: The master patient record containing identity, contact details and the hospital medical record number.
+%%entity Patient icon: user-round
 %%entity Department help: A clinical or operational department that owns staff, wards and scheduled services.
+%%entity Department icon: building-2
 %%entity Staff help: A hospital employee account used for clinical, operational and administrative work.
+%%entity Staff icon: users
 %%entity Doctor help: A staff member with a medical license who can conduct encounters, prescribe and perform procedures.
+%%entity Doctor icon: stethoscope
 %%entity Nurse help: A nursing staff member who records observations and supports inpatient care.
+%%entity Nurse icon: heart-pulse
 %%entity Ward help: An inpatient care area within a department containing beds.
+%%entity Ward icon: bed-double
 %%entity Bed help: A physical inpatient bed whose availability is controlled by admissions and cleaning.
+%%entity Bed icon: bed
 %%entity Appointment help: A scheduled patient visit with a doctor or department.
+%%entity Appointment icon: calendar
 %%entity Encounter help: The clinical episode where a doctor evaluates and treats a patient.
+%%entity Encounter icon: clipboard-list
 %%entity Admission help: An inpatient stay linking a patient and encounter to a ward and bed.
+%%entity Admission icon: log-in
 %%entity ClinicalNote help: A narrative clinical note authored against an encounter.
+%%entity ClinicalNote icon: notebook-pen
 %%entity VitalSign help: A time-stamped set of patient observations recorded during an encounter.
+%%entity VitalSign icon: activity
 %%entity Diagnosis help: A diagnosis recorded against an encounter, including its clinical code and whether it is primary.
+%%entity Diagnosis icon: scan-search
 %%entity Procedure help: A billable or clinical procedure performed during an encounter.
+%%entity Procedure icon: scissors
 %%entity Medication help: A catalog item that can be prescribed to a patient.
+%%entity Medication icon: pill
 %%entity Prescription help: A doctor's medication order for a patient arising from an encounter.
+%%entity Prescription icon: file-text
 %%entity PrescriptionItem help: One medication, dose, frequency and duration within a prescription.
+%%entity PrescriptionItem icon: list-checks
 %%entity PrescriptionItem parent: Prescription
 %%entity LabOrder help: A laboratory test requested for a patient and tracked through collection and processing.
+%%entity LabOrder icon: test-tube
 %%entity LabResult help: A laboratory result that belongs to a lab order and may require verification.
+%%entity LabResult icon: microscope
 %%entity ImagingOrder help: A diagnostic imaging request tracked from ordering through reporting.
+%%entity ImagingOrder icon: scan
 %%entity ImagingReport help: A radiologist's final interpretation of an imaging order.
+%%entity ImagingReport icon: file-image
 %%entity InsurancePolicy help: A patient's active or historical insurance coverage used for billing.
+%%entity InsurancePolicy icon: shield-check
 %%entity Invoice help: A patient charge document summarizing services and the amount still owed.
+%%entity Invoice icon: receipt
 %%entity InvoiceLine help: One billable service or charge on an invoice.
+%%entity InvoiceLine icon: list-checks
 %%entity InvoiceLine parent: Invoice
 %%entity Payment help: A financial receipt applied to an invoice.
+%%entity Payment icon: banknote
 %%entity InventoryItem help: A stock-controlled medicine, consumable or other hospital item.
+%%entity InventoryItem icon: package
 %%entity Supplier help: An external supplier providing stock items to the hospital.
+%%entity Supplier icon: truck
 %%entity StockTransaction help: An inbound, outbound or adjustment movement of an inventory item.
+%%entity StockTransaction icon: arrow-left-right
 
 %%field Patient.medical_record_number help: The permanent hospital identifier used to locate the patient's longitudinal record.
 %%field Patient.date_of_birth help: The patient's date of birth used for age-sensitive clinical decisions.
@@ -604,7 +632,7 @@ erDiagram
 %%category name: Clinical Care; icon: stethoscope; entities: Department, Staff, Doctor, Nurse, Encounter, ClinicalNote, VitalSign, Diagnosis, Procedure
 %%category name: Inpatient Care; icon: bed; entities: Ward, Bed, Admission
 %%category name: Pharmacy; icon: pill; entities: Medication, Prescription
-%%category name: Diagnostics; icon: flask; entities: LabOrder, LabResult, ImagingOrder, ImagingReport
+%%category name: Diagnostics; icon: flask-conical; entities: LabOrder, LabResult, ImagingOrder, ImagingReport
 %%category name: Billing; icon: receipt; entities: Invoice, Payment
 %%category name: Inventory; icon: boxes; entities: InventoryItem, Supplier, StockTransaction
 

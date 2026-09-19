@@ -288,22 +288,63 @@ it. **reserved** = documented, renderer-safe, inert.
 | `%%category` | `%%category name: X; icon: Y; entities: A, B` | compiled | `generator/src/parsers/category.parser.ts` |
 
 The `name:` key on `%%category` is **required** — a directive without one is skipped entirely and declares no group at all (`EML154`).
+
+**An `icon:` names a lucide icon, and a wrong name is silent.** `%%category
+icon:` reaches `sys_category.icon` and is drawn beside the category's heading on
+the dashboard; `%%entity icon:` reaches `sys_table.icon` and is drawn on the
+entity's own card. Three spellings all resolve — `LayoutGrid`, `layout_grid`
+and `layout-grid` are the same icon — so write whichever reads best and the
+application normalises it. What does *not* resolve is a name lucide does not
+have: it is not a diagnostic, because the checker does not carry lucide's
+catalogue, and the application draws a placeholder in its place. `icon: flask`
+is the trap — lucide has no `flask`, it has `flask-conical` — and it sat
+uncaught in this project's own hospital example for months, drawing a
+placeholder where the Diagnostics heading's icon should have been. Check a name
+at https://lucide.dev/icons before writing it.
+
+`%%entity icon:` is compiled too, and follows the same rules. It reaches
+`sys_table.icon`, which is what the entity's dashboard card, its window heading
+and the navigation all draw — so a model can give every entity its own icon,
+and an entity the model says nothing about gets a default rather than nothing.
+The same column is what Application Dictionary → Table and Column writes, where
+an administrator can override the model's choice or upload an image instead, so
+the two never disagree about where an icon lives.
+
+In the browser (`--standalone`) stack the value is carried into `model.json` and
+served by `/model`, but that interface draws a text glyph and does not render
+it — the icon is for the NestJS stack's screens.
 | `%%index` | `%%index <E>(<a>[, <b>]) [unique]` | compiled | `mermaid.parser.ts` → real DDL |
 | `%%guard` | `%%guard <field> <operator> <jsonValue>` | compiled | `web/src/lib/automation/model.ts` |
 | `%%loop` | `%%loop <id> while: <f> <op> <v> max: <n>` | compiled | `workflows/steps.ts` |
 | `%%workflow` | `%%workflow <Name> entity: <E> kind: <hook\|state\|saga>` | compiled | `generator/src/workflows/index.ts` |
 | `%%rbac` | `%%rbac <roleExpr> on <E>.<op>` | compiled | `generator/src/rbac/index.ts` |
-| `%%report` | `%%report <name> title: <T> [entity: <E>] [chart: <t> x: <col> y: <col>] [help: <why>] sql: <query>` | compiled | `common/build/reporting-pack.ts` → the reporting platform |
-| `%%entity` | `%%entity <E> <k>: <v>` | compiled *(`help:`/`description:`, `parent:`)*, validated otherwise | `mermaid.parser.ts` · `language/checker.ts` |
+| `%%report` | `%%report <name> title: <T> [entity: <E>] [chart: <t> x: <col> y: <col>] [help: <why>] sql: <query>` | compiled | `generator/src/reports/index.ts` · `common/build/reporting-pack.ts` |
+| `%%entity` | `%%entity <E> <k>: <v>` | compiled *(`help:`/`description:`, `icon:`, `parent:`)*, validated otherwise | `mermaid.parser.ts` · `language/checker.ts` |
 | `%%rule` | `%%rule <name> on <E> event: <hook> priority: <n>` | validated | `language/checker.ts` |
 | `%%trigger` | `%%trigger <source> -> <handler> on <E>` | validated | `language/checker.ts` |
 
 `%%report` is the newest and the only one whose payload is SQL. It declares a
-question the application's *users* ask, as the query that answers it, and it is
-read by the reporting platform rather than by the generated application — see
+question the application's *users* ask, as the query that answers it — see
 §10.5.1 for when to write one and what the reporting layer already derives
 without being asked. The query runs against the generated application's own
 database, so it names `bus_` tables.
+
+**It has two compilers, and neither replaces the other.** The generator puts
+each report into the application it writes — a `sys_report` row under Admin →
+Analysis in the NestJS stack, a `model.json` entry under Reports in the browser
+one. Separately `common/build/reporting-pack.ts`, over the generator's own
+`buildReportingPack`, turns the same directive into a saved query, a report
+definition and — where `chart:` is set — a chart, seeded into the Enterprise
+Reporting platform ahead of the derived baseline. That platform is composed
+beside a *deployed* application by docker-compose, which is why the generated
+application compiles the directive too rather than leaving its reports answered
+by nothing.
+
+**A foreign key and a primary key are both `UUID`, in both stacks, so a join is
+written plainly: `ON c.account_id = p.id`.** Do not cast. `::text` was needed
+while the browser stack typed a foreign key as `VARCHAR`; it does not any more,
+and PostgreSQL has no implicit cast back, so a cast that is no longer needed is
+now the thing that breaks the query.
 
 **Do not tell a user a directive "will do X" without checking its status.** A
 `%%entity Order audited: true` is validated but not compiled: it will not make
@@ -1203,8 +1244,19 @@ routes/
 ```
 
 The dashboard is your `%%category` directives: one block per category, heading
-and description taken from the model. An eighth block, Application Dictionary,
-is the generator's own admin surface. Above them is a **Manual** button.
+and description taken from the model. A final block, Application Dictionary, is
+the generator's own admin surface. Above them is a **Manual** button.
+
+**Both halves are scoped to the reader, and neither is a fixed list.** The
+entity blocks hold what `%%rbac … .read` lets this role see, with line items
+excluded because a child is reached through its parent; a category whose every
+entity belongs to someone else does not appear at all. The Application
+Dictionary block is the admin windows this role is granted through `sys_access`,
+so an administrator and an ordinary user see different cards there — and a
+window the dictionary defines is never withheld for want of an icon. Every
+card's icon comes from the dictionary: `sys_category.icon` for a heading,
+`sys_table.icon` for an entity, `sys_window.icon` for an admin card.
+
 
 ### 5.6 The manual
 
