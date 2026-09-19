@@ -193,6 +193,50 @@ that project's commands, conventions and CI — read it in the checkout `./deps.
 placed, not from memory. `../CLAUDE.md` is the authority on this repository and
 on how the two are run together.
 
+## Where this repository knowingly differs from the product
+
+`deps.sh` places a checkout; it does not make the copies agree. Three
+divergences are deliberate and are recorded here so nobody "fixes" them back.
+`/sync-downstream` is the procedure for carrying a generator commit across; this
+is the list of things that procedure must *not* flatten.
+
+**The product's language JSON contradicts itself about `icon`, and this copy
+does not.** `applicationDictionary.alsoDerived` in
+`app-with-ai-tanstack/language/appwithai-language.json` still reads *"validated
+but not yet compiled … an entity's icon is not taken from the model"*, while its
+own `%%entity` entry three keys away says `icon:` compiles to `sys_table.icon`.
+`fe4ff9d` wrote the first; `ffed835` reversed it and left that line standing.
+This copy carries the fact rather than the contradiction: `icon` is compiled,
+the model sets the default and Application Dictionary → Table and Column keeps
+the last word. When the two disagree about the language, **this copy is the
+language** — and that is the case it was written for.
+
+**A product change to `llmdetailed.txt` fails the site's own spec check.**
+`7e6ced3` rewrote the bare-host counter-example as
+`[www.appwithai.org](https://www.appwithai.org)`. The site's `check-spec.mjs`
+held the apex spelling verbatim, because the bullet exists to *show* a link
+around a bare host and so has to be excluded from the scan that forbids one —
+so re-vendoring that document made it fail a check about a rule it obeys, on
+the very line that teaches the rule. Both spellings are the same lesson and
+both are true, so the check now accepts either rather than either document
+being edited to suit it. The vendored copy keeps the product's wording; this
+repository's own bases keep theirs.
+
+**The published hospital model is not the product's hospital model.**
+`app-with-ai-tanstack/examples/hospital-management-system.mmd` (1057 lines)
+gained 28 `%%entity icon:` lines, and `common/examples/` twins *that* file, so
+it has them too. The 1771-line `hospital-management-system.eml.mmd` the site and
+this repository publish is a different document — the one rebuilt through the
+interactive protocol — and it has no entity icons. Adding them would be
+authoring, not syncing, and nothing checks the two against each other.
+
+Every `icon:` in every model here and on the site does resolve: 189 names
+checked against lucide 1.47.0's 2112 ids, through the same `normalizeIconName`
+the generated front end uses (`icon.tsx` — it hyphenates before a digit, so
+`Building2` is `building-2` and valid), 0 invalid. A wrong name is not a
+diagnostic — the checker does not carry lucide's catalogue — so this is the
+only thing that would catch one.
+
 ## Checks
 
 This folder has its own manifest and its own checks, separate from either
