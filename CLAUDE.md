@@ -162,6 +162,7 @@ longer takes the `common` build context.
 │   ├── docker/           reporting.Dockerfile · seeder.Dockerfile · nginx · pg-init
 │   ├── scripts/          deps.ts · check-models.ts · check-stacks.ts · check-reporting-pack.ts
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
+│   │                     — the two validators are BUILT here, not vendored (below)
 │   ├── website/
 │   │   ├── llmtext/      llms-full.txt · llmdetailed.txt · llms-reporting.txt
 │   │   │                 · llmtextenhancement.txt · llmdetailedenhancement.txt
@@ -187,11 +188,13 @@ inside `common/`. The scripts resolve their own paths from `import.meta.dir`.
 cd common
 bun install
 
-bun run check            # models → types → lint → stacks → CLIs → pack, in that order
+bun run check            # models → types → lint → validators → stacks → CLIs → pack
 bun run check:models     # every model checks clean, and the duplicated copies match
 bun run type-check       # tsc --project tsconfig.language.json
 bun run lint             # Biome over language/ and scripts/ + build/
 bun run lint:fix
+bun run build:language-tools        # bundle html/checker.js and html/fixer.js
+bun run check:language-tools        # …and fail if the committed copies are stale
 bun run check:stacks     # every --stack target actually generates
 bun run check:clis       # both published CLIs generate — see below
 bun run check:cli        # just `appwithai`
@@ -366,6 +369,34 @@ refuses to run at all. That is also why `bun run lint` is two commands: pointing
 Biome at `language` and `scripts` in one invocation makes it find the same file
 twice and fail the same way. Linting `language/` means `cd`-ing into it; linting
 `scripts` and `build` means `--config-path language` from outside.
+
+**The published validators are built here, and that is a change.** `html/checker.js`
+and `html/fixer.js` used to be copied from `app-with-ai-tanstack`'s `html/`. They are
+bundled now, by `bun run build:language-tools`, from `language/browser/*.entry.ts` —
+and each one **inlines `language/appwithai-language.json`**, the copy this repository
+calls canonical.
+
+That is the whole reason for the change. A vendored checker embeds the *product's*
+language definition, so this repository was publishing a validator that disagreed with
+the language it ships beside — by exactly the deltas kept on purpose. The difference is
+visible: the vendored bundle contains no `repositoryLayout` and no `enterprise-reporting`,
+the built one contains both.
+
+Two things make it easy to get wrong:
+
+- **`Bun.build` output depends on the bun version *and* the platform.** `root-ci.yml`
+  pins `BUN_VERSION: 1.4.0` and runs on `linux-x64`; a bundle built on anything else is
+  byte-wrong for CI while looking right locally. `scripts/lib/build-env.ts` reads that
+  pin out of the workflow and says which case a mismatch is, rather than "out of date"
+  — which is true of a stale build and misleading about a foreign one. The branch this
+  arrived on had been built on bun 1.3.11: it passed `--check` on its author's machine
+  and failed on CI's runtime.
+- **`check:language-tools` is a CI step of its own.** The `language` job does not run
+  `bun run check` — it runs `check:models`, `type-check` and `lint` separately — so
+  adding a check to that script alone would never run in CI.
+
+`website/viewers/eml-model.js` is **not** built here and stays vendored: its entry lives
+in the `app-with-ai-tanstack` checkout and imports *that* repository's language copy.
 
 **CI fails on a dirty tree.** The `language` job runs `git status --porcelain`
 after the checks and fails on any tracked modification. A check that rewrites a

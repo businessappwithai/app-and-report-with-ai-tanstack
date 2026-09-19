@@ -220,6 +220,24 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # html/checker.js and html/fixer.js are bundled from
+      # language/browser/*.entry.ts, and each inlines this repository's own
+      # appwithai-language.json — the canonical copy. Editing the definition or
+      # the checker stales them and nothing else notices, so this fails rather
+      # than serving a validator that disagrees with the language it ships
+      # beside.
+      #
+      # It belongs here as its own step rather than inside `bun run check`,
+      # because this job never runs that script: it runs check:models,
+      # type-check and lint as separate steps, so anything added to `check`
+      # alone would be local-only and CI would never see it.
+      #
+      # `Bun.build` output depends on the bun version and the platform, so this
+      # is only meaningful on the runtime the job pins — which is why the
+      # notice it prints on a mismatch names BUN_VERSION read out of this file.
+      - name: Validators match the language they ship beside
+        run: bun run check:language-tools
+
       # A model that checks clean can still leave the tree dirty, and a
       # generated file committed stale looks identical to one committed fresh
       # until someone regenerates it. Fail on either.
