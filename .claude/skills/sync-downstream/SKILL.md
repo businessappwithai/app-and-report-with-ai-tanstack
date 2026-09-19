@@ -102,8 +102,6 @@ bytes that CI will reject.
 
 | To | From |
 |---|---|
-| `$O/common/html/checker.js` | `$A/html/checker.js` |
-| `$O/common/html/fixer.js` | `$A/html/fixer.js` |
 | `$O/common/website/viewers/eml-model.js` | `$A/website/viewers/eml-model.js` |
 | `$W/guide/checker.js` | `$A/html/checker.js` |
 | `$W/guide/fixer.js` | `$A/html/fixer.js` |
@@ -112,6 +110,27 @@ bytes that CI will reject.
 | `$W/viewers/eml-model.js` | `$A/website/viewers/eml-model.js` |
 | `$W/guide/wasm-app/sw.js` | `$A/html/wasm-app/sw.js` |
 | `$W/llmdetailed.txt` | `$A/website/llmtext/llmdetailed.txt` |
+
+**The orchestrator's two validators are no longer on that list — they are built.**
+`$O/common/html/checker.js` and `fixer.js` are bundled from its own
+`language/browser/*.entry.ts`, which inline its own canonical
+`appwithai-language.json`. Copying the product's over them re-introduces a
+validator that disagrees with the language beside it. After changing that
+repository's language definition or checker, rebuild instead:
+
+```bash
+cd $O/common && bun run build:language-tools && bun run check:language-tools
+```
+
+**Build them on CI's runtime.** `Bun.build` output depends on the bun version and
+the platform; `root-ci.yml` pins `BUN_VERSION: 1.4.0` on `linux-x64`. Building on
+anything else commits bytes CI rejects while `--check` passes locally — which is
+exactly how the branch this came from shipped a 1.3.11 build. `--check` prints
+which case a mismatch is; read it rather than rebuilding reflexively.
+
+`$W/guide/checker.js` on the **site** stays vendored from the product, because the
+site publishes the product's validators. The two are now deliberately different
+bundles, and that is not drift.
 
 **`$W/assets/vendor/stack-templates.json` is the trap.** It is gitignored
 upstream, so it is not in the checkout and a `cp` silently skips it — while
