@@ -39,9 +39,21 @@ export const LANGUAGE_VERSION: string = languageDefinition.language.version;
 /** The codes this file knows how to repair. Anything else is returned untouched. */
 export const AUTO_FIXABLE: string[] = [...AUTO_FIXABLE_CODES].sort();
 
-/** One diagnostic, with the flag `fix` reads. */
+/** One diagnostic, with the flag `fix` reads and the line it is about. */
 export interface CheckedIssue extends CheckerIssue {
   autoFixable: boolean;
+  /**
+   * The source line `line` points at, verbatim — taken from `FixReport.source`,
+   * the **repaired** document, never from what was passed in.
+   *
+   * That distinction is the whole reason this is attached here rather than left
+   * to the caller. A repair inserts and deletes lines, so after `checkAndFix`
+   * every remaining diagnostic's line number indexes the repaired text; a caller
+   * that resolves those numbers against its own copy of the input silently reads
+   * the wrong lines, and the further down the file they are the more wrong they
+   * get.
+   */
+  lineText?: string;
 }
 
 /** What a check-repair-recheck round reports. */
@@ -62,13 +74,21 @@ export interface FixReport {
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const;
 
-function mark(result: CheckResult): CheckedIssue[] {
+function mark(result: CheckResult, source: string): CheckedIssue[] {
+  const lines = source.split("\n");
   return [...result.issues]
     .sort(
       (a, b) =>
         SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || (a.line ?? 0) - (b.line ?? 0)
     )
-    .map((issue) => ({ ...issue, autoFixable: AUTO_FIXABLE_CODES.has(issue.code) }));
+    .map((issue) => {
+      const text = issue.line && issue.line >= 1 ? lines[issue.line - 1] : undefined;
+      return {
+        ...issue,
+        autoFixable: AUTO_FIXABLE_CODES.has(issue.code),
+        ...(text === undefined ? {} : { lineText: text.replace(/\s+$/, "") }),
+      };
+    });
 }
 
 /**
@@ -111,7 +131,7 @@ export function checkAndFix(source: string): FixReport {
     ok: final.errors === 0,
     counts: { errors: final.errors, warnings: final.warnings, infos: final.infos },
     fixes,
-    remaining: mark(final),
+    remaining: mark(final, finalSource),
     languageVersion: LANGUAGE_VERSION,
   };
 }

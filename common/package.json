@@ -7,7 +7,7 @@
     "bun": ">=1.3.11"
   },
   "scripts": {
-    "check": "bun run check:models && bun run type-check && bun run lint && bun run check:stacks && bun run check:clis && bun run check:pack",
+    "check": "bun run check:models && bun run type-check && bun run lint && bun run check:language-tools && bun run check:stacks && bun run check:clis && bun run check:pack",
     "check:models": "bun scripts/check-models.ts",
     "check:stacks": "bun scripts/check-stacks.ts",
     "_comment:clis": "Two CLIs, two runtimes, and they are not interchangeable: `appwithai` is run on bun 1.4 (what app-with-ai-tanstack pins, and what the Dockerfiles it generates run on), `appwithai-wasm` on bun 1.3. `check:clis` runs both under whichever bun is on PATH, which is right for a local sanity run; CI splits them into two jobs so each gets its own \u2014 see .github/workflows/root-ci.yml.",
@@ -23,6 +23,9 @@
     "lint:language:fix": "cd language && biome check --write .",
     "lint:scripts": "biome check --config-path language --diagnostic-level=error scripts build",
     "lint:scripts:fix": "biome check --config-path language --write scripts build",
+    "_comment:language-tools": "html/checker.js and html/fixer.js are bundled from language/browser/*.entry.ts, and each one inlines language/appwithai-language.json. Editing the definition or the checker stales them, and nothing else notices — so `--check` runs in `check` and fails rather than serving a validator that disagrees with this repository's own language. website/viewers/eml-model.js is NOT built here: its entry lives in the app-with-ai-tanstack checkout and imports that repository's language copy, so it is carried across from there.",
+    "build:language-tools": "bun scripts/build-language-tools.ts",
+    "check:language-tools": "bun scripts/build-language-tools.ts --check",
     "pack": "bun build/reporting-pack.ts",
     "check:pack:ci": "bun scripts/check-reporting-pack.ts --require-server"
   },
