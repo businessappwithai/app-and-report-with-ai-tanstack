@@ -12648,6 +12648,74 @@ function generateSysWindow(entity, config = defaultDictionaryConfig) {
     updated_by: config.createdBy
   };
 }
+function generateSysTab(windowId, tableId, entity, tabLevel = 0, config = defaultDictionaryConfig) {
+  return {
+    sys_window_id: windowId,
+    sys_table_id: tableId,
+    name: entity.displayName,
+    description: undefined,
+    help: undefined,
+    tab_level: tabLevel,
+    seq_no: (tabLevel + 1) * 10,
+    is_single_row: tabLevel === 0,
+    has_tree: false,
+    is_info_tab: false,
+    is_translation_tab: false,
+    is_read_only: false,
+    is_insert_record: true,
+    is_advanced_tab: false,
+    parent_column_id: undefined,
+    link_column_id: undefined,
+    order_by_clause: undefined,
+    where_clause: undefined,
+    display_logic: undefined,
+    read_only_logic: undefined,
+    commit_warning: undefined,
+    entity_type: config.defaultEntityType,
+    is_active: true,
+    created_by: config.createdBy,
+    updated_by: config.createdBy
+  };
+}
+function generateSysFields(tabId, columns, config = defaultDictionaryConfig) {
+  const seqNumbers = columns.map((_, index) => (index + 1) * 10);
+  if (config.randomizeFieldOrder) {
+    shuffleArray(seqNumbers);
+  }
+  return columns.map((col, index) => ({
+    sys_tab_id: tabId,
+    sys_column_id: col.sys_column_id,
+    sys_field_group_id: undefined,
+    name: col.name,
+    description: col.description,
+    help: undefined,
+    seq_no: seqNumbers[index] ?? (index + 1) * 10,
+    seq_no_grid: (index + 1) * 10,
+    display_length: undefined,
+    x_position: undefined,
+    y_position: undefined,
+    column_span: undefined,
+    num_lines: undefined,
+    is_displayed: true,
+    is_displayed_grid: true,
+    is_read_only: false,
+    is_encrypted: false,
+    is_same_line: false,
+    is_heading: false,
+    is_field_only: false,
+    display_logic: undefined,
+    read_only_logic: undefined,
+    mandatory_logic: undefined,
+    obscure_type: undefined,
+    included_tab_id: undefined,
+    default_value: undefined,
+    sort_no: undefined,
+    entity_type: config.defaultEntityType,
+    is_active: true,
+    created_by: config.createdBy,
+    updated_by: config.createdBy
+  }));
+}
 function generateSysFieldGroups(entityName, config = defaultDictionaryConfig) {
   if (!config.includeFieldGroups) {
     return [];
@@ -12683,6 +12751,14 @@ function splitWords(name) {
 }
 function titleWord(word) {
   return /^[A-Z0-9]+$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1);
+}
+function shuffleArray(array) {
+  for (let i = array.length - 1;i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
 }
 function generateEntityDictionary(entity, config = defaultDictionaryConfig) {
   const busEntity = entityToBusEntity(entity);
@@ -18302,6 +18378,209 @@ MIT
   }
 }
 
+// packages/generator/src/generators/dictionary.generator.ts
+class DictionaryGenerator {
+  config;
+  constructor(options) {
+    this.config = {
+      ...defaultDictionaryConfig,
+      randomizeFieldOrder: options.randomizeFieldOrder
+    };
+  }
+  generateDictionaryContext(entities, relationships) {
+    const busEntities = [];
+    const busAttributesMap = new Map;
+    const sysTables = [];
+    const sysColumns = [];
+    const sysWindows = [];
+    const sysTabs = [];
+    const sysFields = [];
+    const sysFieldGroups = [];
+    let tableCounter = 0;
+    let columnCounter = 0;
+    let windowCounter = 0;
+    let tabCounter = 0;
+    let fieldCounter = 0;
+    let fieldGroupCounter = 0;
+    const windowByEntity = new Map;
+    const childTabs = [];
+    const declared = declaredEntityNames(entities);
+    for (const entity2 of entities) {
+      const busEntity = entityToBusEntity(entity2, declared);
+      busEntities.push(busEntity);
+      const busAttrs = entity2.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
+      busAttributesMap.set(busEntity.tableName, busAttrs);
+      const tableId = `table_${++tableCounter}`;
+      const sysTable = {
+        ...generateSysTable(busEntity, this.config),
+        _tempId: tableId
+      };
+      sysTables.push(sysTable);
+      const identifiers = new Set(identifierColumnNames(busAttrs, entity2.primaryKey));
+      const columnEntries = busAttrs.map((attr, _index) => {
+        const colId = `col_${++columnCounter}`;
+        return {
+          sys_table_id: tableId,
+          column_name: attr.columnName,
+          name: attr.displayName,
+          description: attr.description,
+          sys_reference_id: attr.referenceId,
+          sys_val_rule_id: undefined,
+          field_length: attr.maxLength,
+          default_value: attr.default?.toString(),
+          value_min: undefined,
+          value_max: undefined,
+          is_key: attr.name === entity2.primaryKey,
+          is_parent: false,
+          is_mandatory: attr.required,
+          is_updateable: attr.name !== entity2.primaryKey,
+          is_identifier: identifiers.has(attr.name),
+          is_selection_column: ["name", "email", "title", "description", "status"].includes(attr.name) || attr.unique === true,
+          is_translated: false,
+          is_encrypted: false,
+          is_allow_logging: true,
+          is_allow_copy: attr.name !== entity2.primaryKey,
+          seq_no: attr.seqNo,
+          callout: undefined,
+          read_only_logic: undefined,
+          mandatory_logic: undefined,
+          format_pattern: undefined,
+          entity_type: this.config.defaultEntityType,
+          is_active: true,
+          created_by: this.config.createdBy,
+          updated_by: this.config.createdBy,
+          _tempId: colId,
+          _tableRef: tableId
+        };
+      });
+      sysColumns.push(...columnEntries);
+      const isChild = !!entity2.parentEntity;
+      const windowId = `win_${++windowCounter}`;
+      if (!isChild) {
+        sysWindows.push({
+          ...generateSysWindow(busEntity, this.config),
+          _tempId: windowId,
+          _tableRef: tableId
+        });
+      }
+      const tabId = `tab_${++tabCounter}`;
+      const sysTab = {
+        ...generateSysTab(windowId, tableId, busEntity, isChild ? 1 : 0, this.config),
+        _tempId: tabId,
+        _windowRef: windowId,
+        _tableRef: tableId
+      };
+      sysTabs.push(sysTab);
+      if (isChild) {
+        const link = columnEntries.find((col) => col.column_name === entity2.parentLinkColumn);
+        if (link)
+          link.is_parent = true;
+        childTabs.push({
+          tab: sysTab,
+          table: sysTable,
+          parentEntity: entity2.parentEntity,
+          linkColumnRef: link?._tempId
+        });
+      } else {
+        windowByEntity.set(entity2.name, windowId);
+      }
+      const groups = generateSysFieldGroups(busEntity.displayName, this.config);
+      const groupEntries = groups.map((group) => ({
+        ...group,
+        _tempId: `fg_${++fieldGroupCounter}`
+      }));
+      sysFieldGroups.push(...groupEntries);
+      const columnRefs = columnEntries.map((col) => ({
+        sys_column_id: col._tempId,
+        column_name: col.column_name,
+        name: col.name,
+        description: col.description
+      }));
+      const fields = generateSysFields(tabId, columnRefs, this.config);
+      const fieldEntries = fields.map((field, idx) => ({
+        ...field,
+        _tempId: `field_${++fieldCounter}`,
+        _tabRef: tabId,
+        _columnRef: columnEntries[idx]?._tempId ?? ""
+      }));
+      sysFields.push(...fieldEntries);
+    }
+    let childSeq = 20;
+    for (const child of childTabs) {
+      const parentWindow = windowByEntity.get(child.parentEntity);
+      if (!parentWindow)
+        continue;
+      child.tab._windowRef = parentWindow;
+      child.tab.sys_window_id = parentWindow;
+      child.tab.seq_no = childSeq;
+      childSeq += 10;
+      if (child.linkColumnRef)
+        child.tab.link_column_id = child.linkColumnRef;
+      child.table.sys_window_id = parentWindow;
+    }
+    return {
+      entities: busEntities,
+      busAttributes: busAttributesMap,
+      sysTables,
+      sysColumns,
+      sysWindows,
+      sysTabs,
+      sysFields,
+      sysFieldGroups,
+      references: ReferenceType,
+      relationships
+    };
+  }
+  getSystemTableNames() {
+    return [
+      "sys_table",
+      "sys_column",
+      "sys_window",
+      "sys_tab",
+      "sys_field",
+      "sys_field_group",
+      "sys_reference",
+      "sys_ref_list",
+      "sys_ref_table",
+      "sys_val_rule",
+      "sys_user",
+      "sys_role",
+      "sys_user_roles",
+      "sys_access"
+    ];
+  }
+  getStandardReferences() {
+    return [
+      { id: ReferenceType.STRING, name: "String", description: "String/Varchar field" },
+      { id: ReferenceType.INTEGER, name: "Integer", description: "Integer number" },
+      { id: ReferenceType.AMOUNT, name: "Amount", description: "Decimal/Amount" },
+      { id: ReferenceType.ID, name: "ID", description: "Identifier (UUID)" },
+      { id: ReferenceType.TEXT, name: "Text", description: "Long text/memo" },
+      { id: ReferenceType.DATE, name: "Date", description: "Date only" },
+      { id: ReferenceType.DATETIME, name: "DateTime", description: "Date and time" },
+      { id: ReferenceType.LIST, name: "List", description: "Dropdown list" },
+      { id: ReferenceType.TABLE, name: "Table", description: "Table reference" },
+      {
+        id: ReferenceType.TABLE_DIRECT,
+        name: "Table Direct",
+        description: "Direct table reference"
+      },
+      { id: ReferenceType.YES_NO, name: "Yes-No", description: "Boolean (Yes/No)" },
+      { id: ReferenceType.LOCATION, name: "Location", description: "Location/Address" },
+      { id: ReferenceType.LOCATOR, name: "Locator", description: "Warehouse locator" },
+      { id: ReferenceType.ACCOUNT, name: "Account", description: "Account reference" },
+      { id: ReferenceType.URL, name: "URL", description: "URL/Web address" },
+      { id: ReferenceType.IMAGE, name: "Image", description: "Image file" },
+      { id: ReferenceType.FILE, name: "File", description: "File attachment" },
+      { id: ReferenceType.COLOR, name: "Color", description: "Color picker" },
+      { id: ReferenceType.JSON, name: "JSON", description: "JSON data" },
+      { id: ReferenceType.PASSWORD, name: "Password", description: "Masked password" },
+      { id: ReferenceType.EMAIL, name: "Email", description: "Email address" },
+      { id: ReferenceType.PHONE, name: "Phone", description: "Phone number" }
+    ];
+  }
+}
+
 // packages/generator/src/naming/tables.ts
 var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
 function tableNameFor(entity2) {
@@ -18860,7 +19139,14 @@ var MANAGED_COLUMN_NAMES = new Set([
   "deleted_at",
   "deleted_by"
 ]);
-var NOISE = new Set(["id", "created_by", "updated_by", "deleted_by", "deleted_at", "version"]);
+var GRID_NOISE = new Set([
+  "id",
+  "created_by",
+  "updated_by",
+  "deleted_by",
+  "deleted_at",
+  "version"
+]);
 var PERSON_ROLE_COLUMNS = new Set([
   "assigned_to",
   "author_id",
@@ -18977,6 +19263,74 @@ function relationshipsFor(model, entity2) {
           ${items}
       </ul>`;
 }
+function screensFor(dictionary2, entity2) {
+  const layout = dictionary2.get(entity2.name);
+  if (!layout)
+    return "";
+  const rows = layout.fields.map((field) => `          <tr>
+            <td><code>${escapeHtml(field.column)}</code></td>
+            <td>${escapeHtml(field.label)}</td>
+            <td>${field.onForm ? "Yes" : "No"}</td>
+            <td>${field.inGrid ? "Yes" : "No"}</td>
+            <td>${field.formSeq}</td>
+            <td>${field.readOnly ? "Yes" : "No"}</td>
+          </tr>`).join(`
+`);
+  return `      <h4>Where it appears</h4>
+      <p>The application opens this record in the <b>${escapeHtml(layout.window)}</b> window, on the <b>${escapeHtml(layout.tab)}</b> tab. These are its ${layout.fields.length} field${layout.fields.length === 1 ? "" : "s"} &mdash; what the screen draws, in the order it draws them. An administrator can change any of this in Application Dictionary &rarr; Fields without regenerating the application.</p>
+      <table>
+        <thead><tr><th>Column</th><th>Label</th><th>On the form</th><th>In the list</th><th>Order</th><th>Read only</th></tr></thead>
+        <tbody>
+${rows}
+        </tbody>
+      </table>`;
+}
+function manualDictionary(model) {
+  const context = new DictionaryGenerator({
+    databaseType: "postgresql",
+    includeRbac: true,
+    randomizeFieldOrder: false
+  }).generateDictionaryContext(model.entities, model.relationships);
+  const tableOf = new Map(context.sysTables.map((table) => [table._tempId, table.table_name]));
+  const windowOf = new Map(context.sysWindows.map((w) => [w._tempId, w.name]));
+  const columnOf = new Map(context.sysColumns.map((c) => [c._tempId, c.column_name]));
+  const tabOf = new Map(context.sysTabs.map((tab) => [
+    tab._tempId,
+    { name: tab.name, window: windowOf.get(tab._windowRef) ?? tab.name, table: tableOf.get(tab._tableRef) ?? "" }
+  ]));
+  const byTable = new Map;
+  for (const tab of tabOf.values()) {
+    if (tab.table && !byTable.has(tab.table)) {
+      byTable.set(tab.table, { window: tab.window, tab: tab.name, fields: [] });
+    }
+  }
+  for (const field of context.sysFields) {
+    const tab = tabOf.get(field._tabRef);
+    if (!tab?.table)
+      continue;
+    const layout = byTable.get(tab.table);
+    if (!layout)
+      continue;
+    const column = columnOf.get(field._columnRef) ?? "";
+    layout.fields.push({
+      column,
+      label: field.name,
+      onForm: field.is_displayed !== false,
+      inGrid: field.is_displayed_grid !== false && !GRID_NOISE.has(column),
+      formSeq: field.seq_no ?? 0,
+      readOnly: !!field.is_read_only
+    });
+  }
+  for (const layout of byTable.values())
+    layout.fields.sort((a, b) => a.formSeq - b.formSeq);
+  const byEntity = new Map;
+  for (const entity2 of model.entities) {
+    const layout = byTable.get(tableNameFor(entity2));
+    if (layout)
+      byEntity.set(entity2.name, layout);
+  }
+  return byEntity;
+}
 function workflowFor(model, entity2) {
   const workflows = model.workflows.filter((workflow) => workflow.entity === entity2.name);
   if (workflows.length === 0)
@@ -19054,6 +19408,7 @@ function renderManual(model, options) {
   }
   const entities = [...model.entities].sort((a, b) => a.name.localeCompare(b.name));
   const declared = declaredNames(model);
+  const dictionary2 = manualDictionary(model);
   const contents = `
       <nav class="toc" aria-label="Contents">
         <h2>Contents</h2>
@@ -19087,6 +19442,7 @@ ${fieldRows(entity2, declared)}
         </tbody>
       </table>
 ${[
+      screensFor(dictionary2, entity2),
       relationshipsFor(model, entity2),
       workflowFor(model, entity2),
       rulesFor(model, entity2),
