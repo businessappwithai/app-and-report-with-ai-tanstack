@@ -19296,7 +19296,11 @@ function manualDictionary(model) {
   const columnOf = new Map(context.sysColumns.map((c) => [c._tempId, c.column_name]));
   const tabOf = new Map(context.sysTabs.map((tab) => [
     tab._tempId,
-    { name: tab.name, window: windowOf.get(tab._windowRef) ?? tab.name, table: tableOf.get(tab._tableRef) ?? "" }
+    {
+      name: tab.name,
+      window: windowOf.get(tab._windowRef) ?? tab.name,
+      table: tableOf.get(tab._tableRef) ?? ""
+    }
   ]));
   const byTable = new Map;
   for (const tab of tabOf.values()) {
