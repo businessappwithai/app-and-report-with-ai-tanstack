@@ -6265,8 +6265,27 @@ var appwithai_language_default = {
       "%%category becomes the dashboard grouping; a model declaring none gets a single General category holding every entity.",
       "%%field <Entity>.<column> help: and %%entity <Name> help: become sys_column.description and sys_table.description - the help a reader sees under the field and beside the table. %%entity description: is the same key under its other name.",
       "%%entity <Child> parent: <Parent> makes the child a line item: no window and no dashboard card, a tab inside the parent's window instead. See masterDetail.",
-      "The remaining %%entity keys (label, icon, prefix, softDelete, audited) are validated but not yet compiled."
+      "%%entity <Name> icon: becomes sys_table.icon — the entity's dashboard card, its window heading and its navigation entry all draw it. It is a lucide name, and an administrator may override it afterwards in Table and Column, including by uploading an image; the same column holds both. %%category carries an icon the same way, for its heading.",
+      "The remaining %%entity keys (label, prefix, softDelete, audited) are validated but not yet compiled."
     ],
+    helpText: {
+      description: "The only explanation a generated application has. `%%entity <Name> help:` becomes sys_table.description and opens that entity's section of manual.html; `%%field <Entity>.<column> help:` becomes sys_column.description, the hint under the control, and the column's row in the manual. There is no second source — no hand-written tooltip, no README beside the form, no designer to ask — so a model that skips it produces an application whose manual is a table of dashes.",
+      required: "On every entity and every column, without exception, including the ones that feel self-evident. The primary key is the one thing that needs none: it is a generated uuid, read-only on every form, and the only sentence anyone could write about it restates its name.",
+      mustBeDomainKnowledge: "Help is where the *business* lands in the model, not where the schema is paraphrased. `Household id for HouseholdMember.` is the column name in a sentence and leaves the reader exactly where they started; `The family this membership is in — listed inside the household's own screen, since a membership away from its household is not something anybody looks up.` is what the field is for. The distinction is not style: help is compiled, so the difference between the two reaches every form, every dictionary row and every page of the manual.",
+      whatToSay: [
+        "An entity: what this record is for in the business, when one comes into existence, what distinguishes it from the entities it sounds like, and what it must not be confused with.",
+        "A column: why the value matters, what is expected in it, what reads it downstream, and what goes wrong when it is wrong.",
+        "A reference column: what the reference is *for* — `the ward this bed stands in`, not `the ward id`.",
+        "An enum-bound column: what each value means to the business, because the dictionary lists the values and nothing else says what choosing one does.",
+        "A lifecycle column: which moves are possible from which state, since the state machine enforces a topology the form cannot show."
+      ],
+      whenToWriteIt: "While the model is being written, and nowhere else. The moment a model is authored is the only moment anybody knows the answers, and no later pass adds them — which is why this is the most-skipped part of a model and the most expensive to skip.",
+      checkerCodes: {
+        EML151: "warning — help that restates its own subject: `Unique identifier for X`, the column name in prose (`Status for Client`), or a template sentence (`Address is a business record in the wealth-management platform`). Deliberately narrow: real help that happens to be short is not a restatement and does not fire.",
+        EML152: "warning — an entity with no `%%entity ... help:` at all.",
+        EML153: "warning — the columns of one entity with no `%%field ... help:`, reported once per entity and naming them. One diagnostic per column would bury every other finding on a model that skipped help entirely, which is the common case."
+      }
+    },
     masterDetail: {
       description: "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
       directive: "%%entity <Child> parent: <Parent>",
@@ -6282,7 +6301,17 @@ var appwithai_language_default = {
         "Does the row's identity depend on the owner - line 1 of invoice 7, rather than line 1? If so, it is a child.",
         "Would deleting the owner make the row meaningless? If so, it is a child.",
         "A reference is the opposite: Invoice.patient_id points at a Patient who exists, and matters, independently."
-      ]
+      ],
+      whyItMustBeDeclared: "Nothing derives it, and the default is not an error. A model that never writes the directive produces an application in which every line item carries its own dashboard card and its own screen, and no parent record shows its own lines — an invoice whose lines cannot be read from it, beside a card listing every line ever written. EML149 exists to name the candidates, because a silent default is the one thing a checker can still be useful about.",
+      leaveItOutOfCategory: "A %%category is the dashboard's grouping, and a child has no card, so naming a child in one asks for a card the dictionary will not create. Reported as EML150.",
+      detection: {
+        description: "EML149 is an info rather than an error, because whether a list of these records away from their owner is useful to anyone is a question about the business and not about the document. The checker names the candidate parent and the foreign key the tab would link on; the author answers it either way.",
+        shapes: [
+          "The entity's name begins with a declared entity's name and it carries a foreign key to that entity — InvoiceLine/Invoice, OrderItem/Order, TeamMember/Team, FinancialPlanAssumption/FinancialPlan. The longest match wins, so a name that begins with two declared entities belongs to the longer one.",
+          "The entity's name ends in a line-item noun (Line, LineItem, Item, Detail, Entry, Row, singular or plural) and one of its foreign keys resolves to a declared entity — RecommendationItem under InvestmentRecommendation."
+        ],
+        quietOn: "An entity that merely references another. Most foreign keys are references, and neither shape fires on one."
+      }
     },
     checkerCodes: {
       EML103: "A column the generator already adds (id, version, the audit pair, the soft-delete pair), declared in the model.",
@@ -6290,6 +6319,12 @@ var appwithai_language_default = {
       EML146: "A status/state/stage column with no %%field enum binding - the dropdown is lost.",
       EML147: "%%entity ... parent: names an entity that is not declared, or the entity names itself.",
       EML148: "%%entity ... parent: is declared but the child has no foreign key back to the parent, so the detail tab has nothing to link on.",
+      EML149: "info — an entity shaped like a line item that declares no parent:. Names the candidate parent and the column a tab would link on. Never an error: identifyingAChild's three questions are about the business, not the document.",
+      EML150: "warning — an entity declared parent: is also named in a %%category. The category asks for a dashboard card the directive has taken away.",
+      EML151: "warning — entity or column help that restates its own name instead of describing it. See helpText.mustBeDomainKnowledge.",
+      EML152: "warning — an entity with no help text at all.",
+      EML153: "warning — columns with no help text, reported once per entity.",
+      EML154: "warning — a %%category with no `name:` key. category.parser.ts requires one and skips the line without it, so the whole grouping is silently lost and its entities fall into the default General category.",
       EML500: "A `kind: state` workflow bound to an entity with no status/state/stage column at all - the machine has nothing to track."
     },
     reportDesigns: {
@@ -6974,16 +7009,18 @@ var appwithai_language_default = {
         form: "%%entity <Name> <key>: <value>",
         status: "compiled",
         consumedBy: [
-          "packages/generator/src/parsers/mermaid.parser.ts (the help: / description: key only; the rest are validated)",
+          "packages/generator/src/parsers/mermaid.parser.ts (help:/description:, icon: and parent: are compiled; prefix:, softDelete:, label: and audited: are validated only)",
           "language/checker.ts (EML160, EML161, EML162)"
         ],
-        purpose: "Attach entity-level metadata not expressible in the ERD block: the sentence that explains the entity to whoever opens its screen, plus table prefix (bus/sys), soft delete, label, icon, audited.",
+        purpose: "Attach entity-level metadata not expressible in the ERD block: the sentence that explains the entity to whoever opens its screen, the icon that represents it, the parent it is a line item of, plus table prefix (bus/sys), soft delete, label, audited.",
         examples: [
           "%%entity Account help: A company you sell to. One account holds many contacts and every deal you run with them.",
+          "%%entity Patient icon: stethoscope",
           "%%entity Order audited: true",
           "%%entity Account prefix: bus",
           "%%entity Session softDelete: false"
-        ]
+        ],
+        iconNaming: "`icon:` is a lucide icon name (https://lucide.dev/icons). PascalCase, kebab-case and snake_case all resolve to the same icon - LayoutGrid, layout-grid and layout_grid are one. A name lucide does not have is NOT a diagnostic (the checker does not carry lucide's catalogue) and renders a placeholder instead: `icon: flask` is the common trap, because lucide has `flask-conical` and no `flask`. Compiled to sys_table.icon, which is what the entity's dashboard card, its window heading and the navigation all draw. An administrator can override it afterwards in Table and Column, including by uploading an image - the same column holds both. In the browser (--standalone) stack the value is carried into model.json and served by /model, but that interface draws a text glyph and does not render it."
       },
       {
         keyword: "%%field",
@@ -7011,6 +7048,8 @@ var appwithai_language_default = {
       {
         keyword: "%%category",
         form: "%%category name: <Name>; code: <id>; description: <text>; icon: <LucideIcon>; color: <#hex>; seq: <n>; default: true; entities: <A>, <B>",
+        dashboardScope: "A category block appears on the dashboard only when the reader may read at least one entity in it: the entity list is filtered by `%%rbac ... .read` and line items are excluded, because a child is reached through its parent. The Application Dictionary block beside the categories is the admin windows the reader is granted through sys_access, so it differs by role too.",
+        iconNaming: "A lucide icon name (https://lucide.dev/icons). PascalCase, kebab-case and snake_case all resolve to the same icon - LayoutGrid, layout-grid and layout_grid are one. A name lucide does not have is NOT a diagnostic (the checker does not carry lucide's catalogue) and renders a placeholder instead: `icon: flask` is the common trap, because lucide has `flask-conical` and no `flask`. Compiled to sys_category.icon and drawn beside the category heading on the dashboard.",
         status: "compiled",
         consumedBy: ["packages/generator/src/parsers/category.parser.ts"],
         purpose: 'Group business entities into a named Application Dictionary category. The dashboard renders one block per category, ordered by name; the admin dictionary maintains them. Only `name` is required; the rest are `;`-separated and may appear in any order. `code` is a stable short identifier, slugified from `name` when omitted — it is the dictionary row\'s key, so setting it explicitly keeps that key stable across a rename. A directive may span several lines by ending each continued line with `\\`. A model that declares none gets a single "General" default holding every entity.',
@@ -7064,7 +7103,8 @@ var appwithai_language_default = {
           "packages/generator/src/rbac/index.ts (compiles both forms)",
           "packages/generator/src/rbac/roles.ts (derives the roles, one seeded account each, and per-entity visibility)",
           "seeded into sys_operation_access / sys_transition_access",
-          "enforced by the generated EntityAccessGuard on /bus CRUD"
+          "enforced by the generated EntityAccessGuard on /bus CRUD",
+          "app-and-report-with-ai-tanstack: common/build/reporting-pack.ts -> one reporting role per declared role, scoped to the tables that role may read"
         ],
         purpose: "Restrict a CRUD operation or a state transition to named roles. It restricts rather than grants: a target no directive mentions is open to any authenticated caller, so a model declaring no %%rbac generates what it always did. A target with one or more directives requires the union of the roles they name. A master role bypasses. That bypass is over access — who may do a thing — and not over the shape of the model: a state machine's topology is enforced for the master role too, because an edge the diagram never drew is a move that does not exist rather than a permission anyone is missing (see workflowConstructs.stateForm.enforcement). Role names are matched case-insensitively, because seeded roles are title-cased (Manager) and directives are written lower-case (role:manager) - an exact match would make such a rule unsatisfiable, locking out exactly the people it was written to admit. Spelled %%guard until that keyword was needed unambiguously for automation conditions.",
         examples: [
@@ -7079,7 +7119,8 @@ var appwithai_language_default = {
           transitions: "A name that is not a CRUD operation is resolved against the entity's stateDiagram-v2 transitions. There is no named-transition endpoint in a generated application - moving a record along an edge is a status update - so the rule is stored as the (from_state, to_state) pair it covers and the guard recognises the move by the states the write crosses. Both ends are kept because one event can sit on several edges and two events can reach the same state. This directive decides *who* may cross an edge; whether the edge exists at all is decided by the state diagram itself and enforced separately, so an edge no %%rbac names is open to any authenticated caller but an edge the diagram omits is refused to everyone.",
           notSysAccess: "A restriction on any operation other than read deliberately does not write sys_access. That is a grant table feeding sys_refresh_dictionary_scope(), where the first row added narrows a window to one role; a restriction on deleting must not become a restriction on looking. read is the one exception, and it is the exception on purpose - see functionalRoles.",
           functionalRoles: "read is the operation that decides which functional role an entity belongs to, and the only one that changes what a role sees. An entity a role may not read is absent from that role's navigation entirely - no menu entry, no dashboard card, no lookup - because a menu full of entries that answer 403 is a worse application than a shorter one. A model is expected to name every entity on at least one `%%rbac ... .read` directive, so that every entity belongs to somebody. Declaring none leaves every entity visible to every signed-in caller, which is what every model did before this rule existed.",
-          seededAccounts: "Every role a directive names is created, and one account is seeded holding it, beside the administrator who bypasses everything and a role-less User. An application whose only account is the administrator cannot demonstrate its own access control, because the administrator is exempt from all of it. Both stacks derive the same list from rbac/roles.ts, and both sign-in screens print it with the number of entities each role can see."
+          seededAccounts: "Every role a directive names is created, and one account is seeded holding it, beside the administrator who bypasses everything and a role-less User. An application whose only account is the administrator cannot demonstrate its own access control, because the administrator is exempt from all of it. Both stacks derive the same list from rbac/roles.ts, and both sign-in screens print it with the number of entities each role can see.",
+          reportingRoles: "Deployed beside the Enterprise Reporting platform (app-and-report-with-ai-tanstack, ./start.sh), the same directive also shapes that platform's roles: one reporting role per declared role, permitted to read exactly the bus_ tables the role's `read` rules admit. It is a mirror, not a shared system. The two products have separate databases, separate user tables and separate sign-in screens, and a role name means different things on each side: in the application it decides what a user may do to a record, in the reporting platform which tables their queries may read. The accounts differ deliberately - sales.manager@<app>.example.com against sales.manager@<app>.reports.example.com - so neither is mistaken for the other, and the front door at / lists both pairs. Only `read` rules narrow a reporting role; create, update and delete restrictions mean nothing to a reader who cannot write through that product at all."
         }
       },
       {
@@ -7106,6 +7147,30 @@ var appwithai_language_default = {
           "%%workflow OrderFulfillment entity: Order kind: state",
           "%%workflow name: Escalate critical deviations"
         ]
+      },
+      {
+        keyword: "%%report",
+        form: "%%report <name> title: <Title> [entity: <Entity>] [chart: bar|line|pie|area x: <col> y: <col>] [help: <why it is asked>] sql: <query>",
+        status: "compiled",
+        consumedBy: [
+          "packages/generator/src/reports/index.ts -> sys_report (NestJS) and model.json reports (browser)",
+          "language/cli/src/parser.ts -> model.reports",
+          "language/checker.ts (shape only: EML290-EML296)"
+        ],
+        purpose: "Declare a question the application's users actually ask, as the SQL that answers it. The reporting pack already derives a baseline from structure alone - a register per entity, a breakdown per %%enum-bound column, a lifecycle per state machine, children per oneToMany - and that baseline describes the shape of the data and nothing about the business running on it. Nothing in an ERD says that a dispatcher's first question every morning is which jobs have no engineer assigned. This directive is where that knowledge is written down, so it travels with the model rather than being rebuilt by hand in the reporting tool after every regeneration.",
+        examples: [
+          "%%report unassigned-jobs title: Jobs with no engineer help: The dispatcher's first question every morning. sql: SELECT reference, scheduled_for FROM bus_job WHERE engineer_id IS NULL AND status = 'scheduled' AND deleted_at IS NULL ORDER BY scheduled_for",
+          "%%report pipeline-by-owner title: Pipeline by owner entity: Opportunity chart: bar x: owner y: total help: What each rep is carrying, for the weekly review. sql: SELECT u.first_name AS owner, SUM(o.amount) AS total FROM bus_opportunity o JOIN bus_user u ON u.id = o.owner_id WHERE o.deleted_at IS NULL GROUP BY 1 ORDER BY total DESC"
+        ],
+        notes: {
+          sqlIsLast: "`sql:` takes the rest of the line, because a query contains spaces and colons and would otherwise be shredded by the key scan. Every other key is read from the head, ahead of it.",
+          readOnly: "A report may only read, and this is refused three times: by the checker at authoring time (EML293), by the compiler before the query can reach a seed file or model.json, and by each runtime before it executes - because sys_report is an ordinary table and model.json an ordinary file, so neither reader trusts what it is handed. A single trailing semicolon is allowed; a second statement behind it is not. Anything that writes belongs in a rule or a hook.",
+          foreignKeysAreUuid: "A foreign key and a primary key are both UUID, in both stacks, so a join is written plainly: ON c.account_id = p.id. Do not cast. `::text` was needed while the browser stack typed a foreign key as VARCHAR; it does not any more, and PostgreSQL has no implicit cast back, so a cast that is no longer needed is now the thing that breaks the query.",
+          chartNeedsAxes: "`chart:` without both `x:` and `y:` is an error (EML294) rather than a silent fall back to a table: a chart that cannot say what it plots renders empty, which reads as no data rather than as a missing declaration.",
+          namesAreKeys: "The name is the pack key, so a duplicate silently replaces the earlier report. Declared twice is an error (EML292).",
+          againstWhichSchema: "The query runs against the *generated application's* database, so it names `bus_` tables. It is not checked against a live schema at author time - the checker has no database - but `check-reporting-pack.ts in the orchestrator` executes every query in the pack against a real generated schema in CI.",
+          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. That platform is composed beside a deployed application by docker-compose; it is not in the browser application and not in the downloadable zip."
+        }
       }
     ],
     statusVocabulary: {
@@ -7173,7 +7238,7 @@ var appwithai_language_default = {
       core: "erDiagram entities, attributes with PK/FK/UK/OPTIONAL/NULL/UNIQUE, and all 8 relationship cardinalities. Plus the directives the same parse pass reads: %%index (real DDL indexes), %%enum and %%field enum: (bound enums), and %%category (dashboard grouping). Fully compiled.",
       rules: "flowchart decision flows converted to JDM by shape semantics, and %%action directives compiled to a GoRules decision table. Fully compiled.",
       workflows: "%%hook directives in both forms (all 13 hook types), stateDiagram-v2 state machines, and %%workflow kind: saga with its %%step and %%loop directives. All three forms are compiled and seeded; the automation dialect is the same saga machinery authored through the builder.",
-      help: "%%field <Entity>.<column> help: and %%entity <Name> help: (or description:). Both are compiled: the parser hangs the text on the attribute and the entity, the dictionary generator writes it to sys_column.description and sys_table.description, and the generated application shows it under the field and beside the table. It has a second consumer: packages/generator/src/manual/index.ts renders manual.html from the same parsed model, where this text is the entire 'what it is for' column — a field with no help prints a dash there. Write help on every column, not only the ambiguous ones. Fully compiled.",
+      help: "%%field <Entity>.<column> help: and %%entity <Name> help: (or description:). Both are compiled: the parser hangs the text on the attribute and the entity, the dictionary generator writes it to sys_column.description and sys_table.description, and the generated application shows it under the field and beside the table. It has a second consumer: packages/generator/src/manual/index.ts renders manual.html from the same parsed model, where this text is the entire 'what it is for' column — a field with no help prints a dash there. Write help on every entity and every column, and write domain knowledge rather than the name again: EML151, EML152 and EML153 report the three ways a model fails to. See applicationDictionary.helpText. Fully compiled.",
       validated: "%%rule and %%trigger, and the %%entity keys other than help:/description:. No compiler reads these yet, but language/checker.ts enforces their syntax and cross-references, so a malformed one fails validation instead of being silently dropped.",
       reserved: "The %%field keys other than enum: and help:. Renderer-safe and documented, with no reader. Writing one is legal and inert.",
       access: "%%rbac, in both its CRUD and state-transition forms. Compiled to sys_operation_access / sys_transition_access and enforced by the generated EntityAccessGuard."
@@ -7204,7 +7269,7 @@ var appwithai_language_default = {
       "EML001-EML099": "Document level: metadata, emptiness, section structure.",
       "EML100-EML119": "Entities and attributes.",
       "EML120-EML129": "Relationships.",
-      "EML130-EML199": "Directives attached to the ERD: %%enum, %%field, %%entity, %%index.",
+      "EML130-EML199": "Directives attached to the ERD: %%enum, %%field, %%entity, %%index, %%category — including the line-item pair EML149 and EML150.",
       "EML200-EML299": "Hooks, guards, triggers, workflows and rules as declared by directives.",
       "EML300-EML399": "Business-rule flowcharts.",
       "EML400-EML449": "Workflow sections: hook, state and saga.",
@@ -7216,6 +7281,7 @@ var appwithai_language_default = {
       EML112: "Duplicate attribute - deletes the later line, keeping the stronger constraints.",
       EML114: "Foreign key not ending in _id - appends the suffix.",
       EML117: "Entity has no primary key - prepends `string id PK`.",
+      EML287: "Rule condition names a camelCase identifier - rewrites it as the snake_case column.",
       EML421: "State workflow has no initial transition - inserts `[*] --> <firstState>`.",
       EML422: "State workflow has no terminal state - appends `<lastState> --> [*]`."
     },
@@ -12329,7 +12395,7 @@ function attributeTypeToReferenceId(type) {
   };
   return typeMapping[type];
 }
-function entityToBusEntity(entity) {
+function entityToBusEntity(entity, declared) {
   const tableName = entity.tableName.startsWith(BUS_TABLE_PREFIX) ? entity.tableName : `${BUS_TABLE_PREFIX}${entity.tableName}`;
   return {
     ...entity,
@@ -12338,7 +12404,7 @@ function entityToBusEntity(entity) {
     displayName: formatDisplayName(entity.name),
     windowOwner: entity.parentEntity ?? entity.name,
     indexes: mergeIndexes(entity),
-    attributes: withIdentifiers(entity.attributes.map((attr, index) => attributeToBusAttribute(attr, index, entity.primaryKey)), entity.primaryKey)
+    attributes: withIdentifiers(entity.attributes.map((attr, index) => attributeToBusAttribute(attr, index, entity.primaryKey, declared)), entity.primaryKey)
   };
 }
 function withIdentifiers(attributes, primaryKey) {
@@ -12398,7 +12464,21 @@ function attributeReferenceId(attr, entityPrimaryKey) {
     return attr.enumReferenceId;
   if (attr.semanticType)
     return SEMANTIC_REFERENCE[attr.semanticType];
+  const byName = referenceFromColumnName(attr);
+  if (byName !== undefined)
+    return byName;
   return attributeTypeToReferenceId(attr.type);
+}
+function referenceFromColumnName(attr) {
+  if (attr.type !== "string" && attr.type !== "text")
+    return;
+  if (/email/i.test(attr.name))
+    return ReferenceType.EMAIL;
+  if (/phone|mobile|tel/i.test(attr.name))
+    return ReferenceType.PHONE;
+  if (/url|website|link/i.test(attr.name))
+    return ReferenceType.URL;
+  return;
 }
 function isForeignKeyColumnName(columnName) {
   return columnName.endsWith("_id") || columnName.endsWith("_by");
@@ -12410,11 +12490,23 @@ function foreignKeyLabelStem(attr, entityPrimaryKey) {
   }
   return attr.name;
 }
-function attributeToBusAttribute(attr, index, entityPrimaryKey) {
+function declaredEntityNames(entities) {
+  return new Map(entities.map((entity) => [entity.name.toLowerCase().replace(/_/g, ""), entity.name]));
+}
+function attributeDisplayName(attr, entityPrimaryKey, declared) {
+  const stem = foreignKeyLabelStem(attr, entityPrimaryKey);
+  if (stem !== attr.name) {
+    const resolved = declared?.get(stem.toLowerCase().replace(/_/g, ""));
+    if (resolved)
+      return formatDisplayName(resolved);
+  }
+  return formatDisplayName(stem);
+}
+function attributeToBusAttribute(attr, index, entityPrimaryKey, declared) {
   return {
     ...attr,
     columnName: attr.name,
-    displayName: formatDisplayName(foreignKeyLabelStem(attr, entityPrimaryKey)),
+    displayName: attributeDisplayName(attr, entityPrimaryKey, declared),
     referenceId: attributeReferenceId(attr, entityPrimaryKey),
     seqNo: (index + 1) * 10,
     isIdentifier: false
@@ -12584,10 +12676,13 @@ function generateSysFieldGroups(entityName, config = defaultDictionaryConfig) {
   ];
 }
 function formatDisplayName(name) {
-  if (/^[A-Z_]+$|^[a-z_]+$/.test(name)) {
-    return name.replace(/_/g, " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
-  }
-  return name.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  return splitWords(name).map(titleWord).join(" ");
+}
+function splitWords(name) {
+  return name.replace(/[_\s-]+/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").trim().split(/\s+/).filter(Boolean);
+}
+function titleWord(word) {
+  return /^[A-Z0-9]+$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1);
 }
 function generateEntityDictionary(entity, config = defaultDictionaryConfig) {
   const busEntity = entityToBusEntity(entity);
@@ -12638,7 +12733,8 @@ var EntitySchema = exports_external.object({
   description: exports_external.string().optional(),
   attributes: exports_external.array(EntityAttributeSchema),
   primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean()
+  timestamps: exports_external.boolean(),
+  icon: exports_external.string().optional()
 });
 // packages/generator/src/hooks/index.ts
 var HOOK_TYPES = [
@@ -14262,7 +14358,7 @@ function snakeCase(str) {
   if (/^[A-Z0-9_]+$/.test(str)) {
     return str.toLowerCase();
   }
-  return str.replace(/([A-Z])/g, "_$1").replace(/[-\s]+/g, "_").toLowerCase().replace(/_{2,}/g, "_").replace(/^_/, "");
+  return str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[-\s]+/g, "_").toLowerCase().replace(/_{2,}/g, "_").replace(/^_/, "");
 }
 function kebabCase(str) {
   if (!str)
@@ -15095,6 +15191,13 @@ function cleanJsonContent(jsonStr) {
     return jsonStr.replace(/,(\s*[}\]])/g, "$1").replace(/(\[\s*),/g, "$1");
   }
 }
+var COMMON_TEMPLATES = [
+  "src/common/filters/http-exception.filter.ts",
+  "src/common/guards/user-throttler.guard.ts",
+  "src/common/interceptors/transform.interceptor.ts",
+  "src/common/logging/logger.service.ts",
+  "src/common/pipes/zod-validation.pipe.ts"
+];
 
 class NestJsBackendGenerator extends BaseGenerator {
   options;
@@ -15124,6 +15227,7 @@ class NestJsBackendGenerator extends BaseGenerator {
     await this.generateElectricModule(outputDir, context);
     await this.generateBusEntities(outputDir, context);
     await this.generateAuditModule(outputDir);
+    await this.generateNotificationsModule(outputDir);
     await this.generateWorkflowDefinitionsModule(outputDir);
     await this.generateModelContextModule(outputDir, context);
     await this.generateMigrations(outputDir, context);
@@ -15155,7 +15259,6 @@ class NestJsBackendGenerator extends BaseGenerator {
   }
   async createAdditionalDirectories(outputDir) {
     const dirs2 = [
-      "src/common/decorators",
       "src/common/filters",
       "src/common/guards",
       "src/common/interceptors",
@@ -15172,6 +15275,7 @@ class NestJsBackendGenerator extends BaseGenerator {
       "src/modules/rules/dto",
       "src/modules/rules/jdm",
       "src/modules/audit",
+      "src/modules/notifications",
       "src/modules/workflow",
       "src/modules/workflow-definitions",
       "src/trigger",
@@ -15186,7 +15290,8 @@ class NestJsBackendGenerator extends BaseGenerator {
     }
   }
   prepareContext(entities, relationships) {
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2)).sort((a, b) => Number(!!a.parentEntity) - Number(!!b.parentEntity));
+    const declared = declaredEntityNames(entities);
+    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared)).sort((a, b) => Number(!!a.parentEntity) - Number(!!b.parentEntity));
     const dictionaryEntries = entities.map((entity2) => generateEntityDictionary(entity2));
     const sysTables = dictionaryEntries.map((entry) => entry.dictionaryPlaceholders.table);
     const modelEnums = this.options.modelEnums ?? [];
@@ -15386,21 +15491,10 @@ class NestJsBackendGenerator extends BaseGenerator {
         console.warn(`Static app file not found: ${file}`);
       }
     }
-    const commonFiles = [
-      "src/common/decorators/etag.decorator.ts",
-      "src/common/filters/http-exception.filter.ts",
-      "src/common/guards/etag.guard.ts",
-      "src/common/interceptors/logging.interceptor.ts",
-      "src/common/interceptors/transform.interceptor.ts",
-      "src/common/logging/logger.service.ts",
-      "src/common/pipes/zod-validation.pipe.ts"
-    ];
-    for (const file of commonFiles) {
-      try {
-        const content = await this.renderTemplate(`${file}.hbs`, context);
-        await mkdir(dirname(join(outputDir, file)), { recursive: true });
-        await writeFile(join(outputDir, file), content);
-      } catch (_e) {}
+    for (const file of COMMON_TEMPLATES) {
+      const content = await this.renderTemplate(`${file}.hbs`, context);
+      await mkdir(dirname(join(outputDir, file)), { recursive: true });
+      await writeFile(join(outputDir, file), content);
     }
     await mkdir(join(outputDir, "src/common/logging"), { recursive: true });
     await writeFile(join(outputDir, "src/common/logging/log-spec.json"), generatedLogSpec());
@@ -15490,7 +15584,13 @@ class NestJsBackendGenerator extends BaseGenerator {
     } catch (_e) {
       console.warn("Trigger.dev config template not found");
     }
-    const triggerTasks = ["email", "report", "sync", "entity-lifecycle-workflow"];
+    const triggerTasks = [
+      "email",
+      "report",
+      "sync",
+      "entity-lifecycle-workflow",
+      "entity-promotion"
+    ];
     for (const task of triggerTasks) {
       try {
         const taskContent = await this.renderTemplate(`src/trigger/${task}.task.ts.hbs`, context);
@@ -15498,6 +15598,12 @@ class NestJsBackendGenerator extends BaseGenerator {
       } catch (_e) {
         console.warn(`Trigger task template not found: ${task}`);
       }
+    }
+    try {
+      const workerModule = await this.renderTemplate("src/trigger/promotion-worker.module.ts.hbs", context);
+      await writeFile(join(outputDir, "src/trigger/promotion-worker.module.ts"), workerModule);
+    } catch (_e) {
+      console.warn("Promotion worker module template not found");
     }
     const jobQueueFiles = [
       {
@@ -15595,6 +15701,10 @@ class NestJsBackendGenerator extends BaseGenerator {
     await writeFile(join(outputDir, "src/modules/sys/services/system-config.service.ts"), systemConfigServiceContent);
     const categoryControllerContent = await this.renderTemplate("src/modules/sys/controllers/sys-category.controller.ts.hbs", context);
     await writeFile(join(outputDir, "src/modules/sys/controllers/sys-category.controller.ts"), categoryControllerContent);
+    const reportServiceContent = await this.renderTemplate("src/modules/sys/services/sys-report.service.ts.hbs", context);
+    await writeFile(join(outputDir, "src/modules/sys/services/sys-report.service.ts"), reportServiceContent);
+    const reportControllerContent = await this.renderTemplate("src/modules/sys/controllers/sys-report.controller.ts.hbs", context);
+    await writeFile(join(outputDir, "src/modules/sys/controllers/sys-report.controller.ts"), reportControllerContent);
   }
   async generateElectricModule(outputDir, context) {
     const electricDir = join(outputDir, "src/modules/electric");
@@ -16031,6 +16141,18 @@ export async function executeCustomValidateHooks(
       {
         slug: "add_window_list_defaults",
         template: "src/migrations/016_add_window_list_defaults.ts.hbs"
+      },
+      {
+        slug: "add_notification_reads",
+        template: "src/migrations/017_add_notification_reads.ts.hbs"
+      },
+      {
+        slug: "add_reports",
+        template: "src/migrations/018_add_reports.ts.hbs"
+      },
+      {
+        slug: "add_dictionary_icons",
+        template: "src/migrations/019_add_dictionary_icons.ts.hbs"
       }
     ];
     const scaffoldSlugs = new Set(scaffold.map((m) => m.slug));
@@ -16090,6 +16212,7 @@ export async function executeCustomValidateHooks(
     await writeFile(join(outputDir, "seeds/06_report_designs.ts"), reportDesignsSeedContent);
     const systemConfigContent = await this.renderTemplate("../../common/seeds/system-config.ts.hbs", context);
     await writeFile(join(outputDir, "seeds/07_system_config.ts"), systemConfigContent);
+    await writeFile(join(outputDir, "seeds/08_reports.ts"), this.renderReportsSeed(context));
   }
   renderWorkflowDefinitionsSeed(context) {
     const byEntity = new Map;
@@ -16286,6 +16409,78 @@ export async function seed(db: Kysely<any>): Promise<void> {
     ].join(`
 `);
   }
+  renderReportsSeed(context) {
+    const reports = this.options.compiledReports ?? [];
+    if (reports.length === 0) {
+      return `// No %%report directives in this model — sys_report will be empty, and
+` + `// the reports screen says so rather than showing an empty table.
+` + `import type { Kysely } from 'kysely';
+` + `export async function seed(_db: Kysely<any>): Promise<void> {}
+`;
+    }
+    const tableByEntity = new Map;
+    for (const entity2 of context.entities ?? []) {
+      if (entity2.name)
+        tableByEntity.set(entity2.name, entity2.tableName);
+      if (entity2.className)
+        tableByEntity.set(entity2.className, entity2.tableName);
+    }
+    const rows = reports.map((report, index) => {
+      const value = {
+        name: report.name,
+        title: report.title,
+        entity_name: report.entity ?? null,
+        table_name: report.entity && tableByEntity.get(report.entity) || null,
+        chart: report.chart ?? null,
+        x_axis: report.x ?? null,
+        y_axis: report.y ?? null,
+        help: report.help ?? null,
+        sql_text: report.sql,
+        sort_order: index
+      };
+      return `  ${JSON.stringify(value)},`;
+    });
+    return [
+      `import type { Kysely } from 'kysely';`,
+      ``,
+      `/**`,
+      ` * The questions this model declared with %%report.`,
+      ` *`,
+      ` * Replaced on every seed rather than merged: the model is the source of`,
+      ` * truth for what these say, so a report edited in the database and then`,
+      ` * re-seeded should come back as the model declares it. Reports added in the`,
+      ` * application are not in this list and are left alone.`,
+      ` */`,
+      `const REPORTS = [`,
+      ...rows,
+      `];`,
+      ``,
+      `export async function seed(db: Kysely<any>): Promise<void> {`,
+      `  for (const report of REPORTS) {`,
+      `    await db`,
+      `      .insertInto('sys_report')`,
+      `      .values({ ...report, updated_at: new Date() })`,
+      `      .onConflict((oc) =>`,
+      `        oc.constraint('sys_report_name_unique').doUpdateSet({`,
+      `          title: report.title,`,
+      `          entity_name: report.entity_name,`,
+      `          table_name: report.table_name,`,
+      `          chart: report.chart,`,
+      `          x_axis: report.x_axis,`,
+      `          y_axis: report.y_axis,`,
+      `          help: report.help,`,
+      `          sql_text: report.sql_text,`,
+      `          sort_order: report.sort_order,`,
+      `          updated_at: new Date(),`,
+      `        })`,
+      `      )`,
+      `      .execute();`,
+      `  }`,
+      `  console.log(\`  ✓ \${REPORTS.length} report\${REPORTS.length === 1 ? '' : 's'} seeded\`);`,
+      `}`
+    ].join(`
+`);
+  }
   async updateConfigFiles(outputDir, context) {
     const packageJsonContent = await this.renderTemplate("package.json.hbs", context);
     await writeFile(join(outputDir, "package.json"), typeof packageJsonContent === "string" ? packageJsonContent : JSON.stringify(packageJsonContent, null, 2));
@@ -16446,6 +16641,24 @@ export async function seed(db: Kysely<any>): Promise<void> {
       }
     }
   }
+  async generateNotificationsModule(outputDir) {
+    const templateDir = join(resolveTemplateDir("tanstack-start-nestjs/backend"), "src/modules/notifications");
+    const notificationsOutputDir = join(outputDir, "src/modules/notifications");
+    await mkdir(notificationsOutputDir, { recursive: true });
+    const files2 = [
+      "notifications.controller.ts",
+      "notifications.module.ts",
+      "notifications.service.ts",
+      "notifications.types.ts"
+    ];
+    for (const file of files2) {
+      try {
+        await copyFile(join(templateDir, file), join(notificationsOutputDir, file));
+      } catch (e) {
+        console.warn(`Notifications module file not found, skipping: ${file} — ${e.message}`);
+      }
+    }
+  }
   async generateAuditModule(outputDir) {
     const auditTemplateDir = join(resolveTemplateDir("tanstack-start-nestjs/backend"), "src/modules/audit");
     const auditOutputDir = join(outputDir, "src/modules/audit");
@@ -16468,7 +16681,7 @@ export async function seed(db: Kysely<any>): Promise<void> {
     }
   }
   async generateSingleEntity(entity2, relationships, outputDir, _allEntities, opts) {
-    const busEntity = entityToBusEntity(entity2);
+    const busEntity = entityToBusEntity(entity2, declaredEntityNames(_allEntities));
     const toSnake = (name) => name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
     await mkdir(join(outputDir, "src/modules/rules/jdm"), { recursive: true });
     await this.writeEntityJdm(busEntity, outputDir);
@@ -16637,6 +16850,9 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       "src/lib/automation",
       "src/components/automation",
       "src/components/reports",
+      "src/components/notifications",
+      "src/components/help",
+      "src/components/theme",
       "test"
     ];
     for (const dir of dirs2) {
@@ -16644,13 +16860,8 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     }
   }
   prepareContext(entities, relationships) {
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2));
-    const mainEntities = busEntities.filter((e) => !e.tableName.includes("_") || e.tableName.match(/^bus_[a-z]+$/)).slice(0, 10).map((entity2) => ({
-      ...entity2,
-      title: entity2.displayName || entity2.name,
-      description: `Manage ${entity2.displayName || entity2.name}`,
-      icon: this.getIconForEntity(entity2.tableName)
-    }));
+    const declared = declaredEntityNames(entities);
+    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared));
     const access2 = deriveAccess(this.options.compiledRbac ?? { operations: [], transitions: [] }, {
       projectId: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       entities: busEntities.map((entity2) => entity2.name)
@@ -16680,35 +16891,9 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       projectSnake: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
       projectKebab: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       entities: busEntities,
-      mainEntities,
       relationships,
       now: new Date().toISOString()
     };
-  }
-  getIconForEntity(tableName) {
-    const iconMap = {
-      bus_patient: "UserCircle",
-      bus_patient_insurance: "FileCheck",
-      bus_patient_document: "FileText",
-      bus_patient_allergy: "Activity",
-      bus_insurance_provider: "Building2",
-      bus_insurance_claim: "FileCheck",
-      bus_appointment: "Calendar",
-      bus_admission: "ClipboardList",
-      bus_prescription: "Pill",
-      bus_medication: "Pill",
-      bus_lab_order: "TestTube",
-      bus_lab_result: "FileCheck",
-      bus_radiology_order: "Activity",
-      bus_radiology_report: "FileText",
-      bus_department: "Building2",
-      bus_staff: "Users",
-      bus_customer: "Building2",
-      bus_product: "Package",
-      bus_order: "ShoppingCart",
-      bus_sales_order: "Receipt"
-    };
-    return iconMap[tableName] || "FileText";
   }
   async generateCoreFiles(outputDir, context) {
     const templateDir = this.resolvedTemplateDir;
@@ -16758,6 +16943,12 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       await writeFile(join(outputDir, "src/routes/auth/login.tsx"), loginPageContent);
     } catch (_e) {
       console.warn("Login page template not found");
+    }
+    try {
+      const loginRedirect = await this.component("src/routes/login.tsx");
+      await writeFile(join(outputDir, "src/routes/login.tsx"), loginRedirect);
+    } catch (_e) {
+      console.warn("Login redirect template not found");
     }
     try {
       await copyFile(join(templateDir, "src/lib/auth.ts"), join(outputDir, "src/lib/auth.ts"));
@@ -17000,12 +17191,32 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
         dest: "src/hooks/use-bus-entity-level.ts"
       },
       {
-        src: "src/components/admin/window-help-dialog.tsx",
-        dest: "src/components/admin/window-help-dialog.tsx"
+        src: "src/components/help/help-toaster.tsx",
+        dest: "src/components/help/help-toaster.tsx"
+      },
+      {
+        src: "src/components/theme/theme-provider.tsx",
+        dest: "src/components/theme/theme-provider.tsx"
+      },
+      {
+        src: "src/components/theme/theme-toggle.tsx",
+        dest: "src/components/theme/theme-toggle.tsx"
+      },
+      {
+        src: "src/components/admin/window-help-button.tsx",
+        dest: "src/components/admin/window-help-button.tsx"
       },
       {
         src: "src/components/admin/ad-detail-shell.tsx",
         dest: "src/components/admin/ad-detail-shell.tsx"
+      },
+      {
+        src: "src/components/admin/entity-icon-field.tsx",
+        dest: "src/components/admin/entity-icon-field.tsx"
+      },
+      {
+        src: "src/components/admin/model-assistant.tsx",
+        dest: "src/components/admin/model-assistant.tsx"
       },
       {
         src: "src/components/reports/ReportPrintModal.tsx",
@@ -17014,6 +17225,10 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       {
         src: "src/components/reports/ReportDesigner.tsx",
         dest: "src/components/reports/ReportDesigner.tsx"
+      },
+      {
+        src: "src/components/notifications/notification-bell.tsx",
+        dest: "src/components/notifications/notification-bell.tsx"
       },
       {
         src: "src/components/admin/ad-list-shell.tsx",
@@ -17127,7 +17342,7 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     }
   }
   async generateSingleEntityRoutes(busEntity, context, outputDir) {
-    const displayName = busEntity.displayName || busEntity.name.charAt(0).toUpperCase() + busEntity.name.slice(1).toLowerCase().replace(/_([a-z])/g, (_, c) => ` ${c.toUpperCase()}`);
+    const displayName = busEntity.displayName || formatDisplayName(busEntity.name);
     const entityContext = { ...context, entity: { ...busEntity, displayName } };
     await mkdir(join(outputDir, "src/routes"), { recursive: true });
     const listPageFilename = `${kebabCase(busEntity.name)}.tsx`;
@@ -17206,6 +17421,12 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       await writeFile(join(adminDir, "reports.tsx"), reportsContent);
     } catch (_e) {
       console.warn("Admin reports page template not found");
+    }
+    try {
+      const analysisContent = await this.component("src/routes/admin/analysis.tsx");
+      await writeFile(join(adminDir, "analysis.tsx"), analysisContent);
+    } catch (_e) {
+      console.warn("Admin analysis page template not found");
     }
     try {
       const usersContent = await this.component("src/routes/admin/users.tsx");
@@ -17306,9 +17527,15 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     const envLocalContent = `VITE_API_URL=
 VITE_BACKEND_URL=${context.config.baseUrl}
 VITE_MASTRA_URL=http://localhost:4111
-# Set VITE_ELECTRIC_URL to enable ElectricSQL real-time sync (requires ELECTRIC_URL on backend)
-# Leave empty to use HTTP API fallback
-VITE_ELECTRIC_URL=
+# Dictionary sync over ElectricSQL. The client reads VITE_ELECTRIC_SYNC, not
+# VITE_ELECTRIC_URL — the shape request goes to this application's own
+# /api/v1/shape proxy, and it is the backend's ELECTRIC_URL that names the
+# Electric server behind it.
+#
+# Left on: with no ELECTRIC_URL on the backend the proxy answers 503 once, the
+# client records that this deployment has no Electric server, and every screen
+# reads the dictionary over HTTP. Set it to false to skip that one discovery.
+VITE_ELECTRIC_SYNC=true
 # Where a built server forwards /api/*. Only read outside \`vinxi dev\`, which
 # proxies through Vite instead.
 BACKEND_URL=${context.config.baseUrl}
@@ -17391,6 +17618,8 @@ var SHARED_SUITES = [
   "16-api-contract.test.ts",
   "17-display-identifier.test.ts",
   "19-window-list-defaults.test.ts",
+  "20-transaction-notifications.test.ts",
+  "21-reports.test.ts",
   "10-benchmark.test.ts",
   "18-write-benchmark.test.ts",
   "11-performance-budget.test.ts"
@@ -17408,7 +17637,8 @@ class BunE2ETestGenerator extends BaseGenerator {
     const testsDir = node_path_default.join(outputDir, "tests");
     await promises.mkdir(node_path_default.join(testsDir, "harness"), { recursive: true });
     await promises.mkdir(node_path_default.join(testsDir, "suites"), { recursive: true });
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2));
+    const declared = declaredEntityNames(entities);
+    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared));
     const context = this.buildContext(busEntities, relationships);
     await this.writeRootFiles(testsDir, context);
     await this.writeHarness(testsDir, context);
@@ -17434,6 +17664,14 @@ class BunE2ETestGenerator extends BaseGenerator {
       relationships,
       fkOverrides: this.buildFkOverrides(entities, relationships),
       modelEnums: this.options.modelEnums ?? [],
+      modelReports: (this.options.compiledReports ?? []).map((report) => ({
+        name: report.name,
+        title: report.title,
+        entity: report.entity ?? "",
+        chart: report.chart ?? "",
+        x: report.x ?? "",
+        y: report.y ?? ""
+      })),
       stateMachines: this.stateMachines(entities),
       ...this.accessContext(entities),
       now: new Date().toISOString()
@@ -17651,6 +17889,7 @@ class FullStackGenerator {
       compiledWorkflows: this.options.compiledWorkflows,
       compiledSagas: this.options.compiledSagas,
       compiledRbac: this.options.compiledRbac,
+      compiledReports: this.options.compiledReports,
       ...aiConfig,
       ...this.options.tanstackStartNestjs?.backend
     };
@@ -17670,6 +17909,7 @@ class FullStackGenerator {
         stackOption: this.options.stackOption,
         skipCliScaffold: this.options.skipCliScaffold,
         compiledRbac: this.options.compiledRbac,
+        compiledReports: this.options.compiledReports,
         ...aiConfig,
         ...this.options.tanstackStartNestjs?.frontend
       };
@@ -17688,7 +17928,8 @@ class FullStackGenerator {
         recordsPerEntity: this.options.recordsPerEntity,
         modelEnums: this.options.modelEnums,
         compiledWorkflows: this.options.compiledWorkflows,
-        compiledRbac: this.options.compiledRbac
+        compiledRbac: this.options.compiledRbac,
+        compiledReports: this.options.compiledReports
       });
       await testGenerator.generate(entities, relationships, outputDir);
     }
@@ -17777,6 +18018,7 @@ tests/.e2e-seed-manifest.json
 `;
     await writeFile(join(outputDir, ".gitignore"), gitignore);
     await this.writeContainerFiles(outputDir);
+    await this.writeReportingFiles(outputDir);
     await this.copyGitHubWorkflows(outputDir);
   }
   async writeContainerFiles(outputDir) {
@@ -17810,6 +18052,48 @@ tests/.e2e-seed-manifest.json
         console.warn(`${file.output} generation skipped: ${error.message}`);
       }
     }
+  }
+  async writeReportingFiles(outputDir) {
+    const pack = this.options.reportingPack;
+    if (!pack)
+      return;
+    const reportingDir = join(outputDir, "reporting");
+    await mkdir(join(reportingDir, "pg-init"), { recursive: true });
+    await writeFile(join(reportingDir, "reporting-pack.json"), `${JSON.stringify(pack, null, 2)}
+`);
+    const templates2 = [
+      { template: "reporting/Dockerfile.hbs", output: "reporting/Dockerfile" },
+      {
+        template: "reporting/pg-init/01-reporting-database.sh.hbs",
+        output: "reporting/pg-init/01-reporting-database.sh",
+        executable: true
+      },
+      { template: "reporting/README.md.hbs", output: "reporting/README.md" }
+    ];
+    for (const file of templates2) {
+      try {
+        const templateDir = await this.findTemplatesDir();
+        const source = join(templateDir, "tanstack-start-nestjs", file.template);
+        const rendered = this.renderReportingTemplate(await readFile(source, "utf-8"), pack);
+        const destination = join(outputDir, file.output);
+        await writeFile(destination, rendered);
+        if (file.executable)
+          await chmod(destination, 493).catch(() => {});
+      } catch (error) {
+        console.warn(`${file.output} generation skipped: ${error.message}`);
+      }
+    }
+  }
+  renderReportingTemplate(content, pack) {
+    const projectId = this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const projectSnake = this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const frontendPort = this.options.frontendPort ?? DEFAULT_FRONTEND_PORT;
+    const accounts = pack.access.roles.map((role) => {
+      const tables = role.isAdmin ? `all ${pack.access.entityTotal}` : `${role.tables.length} of ${pack.access.entityTotal}`;
+      return `| \`${role.name}\` | \`${role.appEmail}\` | \`${role.email}\` | ${tables} |`;
+    }).join(`
+`);
+    return content.replace(/\{\{reporting\.accounts\}\}/g, accounts).replace(/\{\{reporting\.queries\}\}/g, String(pack.queries.length)).replace(/\{\{reporting\.reports\}\}/g, String(pack.reports.length)).replace(/\{\{reporting\.charts\}\}/g, String(pack.charts.length)).replace(/\{\{reporting\.dashboards\}\}/g, String(pack.dashboards.length)).replace(/\{\{reporting\.roles\}\}/g, String(pack.access.roles.length)).replace(/\{\{reporting\.appPassword\}\}/g, pack.access.appPassword).replace(/\{\{reporting\.reportPassword\}\}/g, pack.access.reportPassword).replace(/\{\{project\.name \| replace '-' '_'\}\}/g, projectSnake).replace(/\{\{project\.name\}\}/g, this.options.projectName).replace(/\{\{project\.id\}\}/g, projectId).replace(/\{\{project\.frontendPort\}\}/g, String(frontendPort));
   }
   async findTemplatesDir() {
     const cwd = process.cwd();
@@ -17908,6 +18192,25 @@ ${this.options.projectDescription}
 
 ${stackInfo}
 
+## Two applications
+
+\`docker compose up --build\` brings up **two** applications, not one:
+
+| | |
+|---|---|
+| http://localhost:${this.options.frontendPort ?? DEFAULT_FRONTEND_PORT} | **${this.options.projectName}** — this application |
+| http://localhost:3100 | **Enterprise Reporting** — its reports, charts and dashboard |
+
+The second is the Enterprise Reporting platform, pointed at this application's
+database and seeded with the reporting layer derived from the same model. It has
+**its own sign-in and its own accounts**: a role here decides which of this
+application's tables your queries may *read*, where a role in the application
+decides what you may *do* to a record. The names line up; neither password works
+on the other side.
+
+\`reporting/README.md\` names both sets of accounts, says what is in the pack,
+and explains what to set before the first start.
+
 ## Features
 
 - **Compiere-style Application Dictionary**: Runtime-configurable UI via sys_field metadata
@@ -17999,6 +18302,514 @@ MIT
   }
 }
 
+// packages/generator/src/naming/tables.ts
+var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
+function tableNameFor(entity2) {
+  const base = snake(entity2.tableName || entity2.name);
+  return base.startsWith("bus_") || base.startsWith("sys_") ? base : `bus_${base}`;
+}
+
+// packages/generator/src/reporting/pack.ts
+var APP_PASSWORD = "admin123";
+var REPORT_PASSWORD = "admin";
+function titleOf(e) {
+  return e.name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+function pluralTitle(e) {
+  const t = titleOf(e);
+  if (/[^aeiou]y$/i.test(t))
+    return `${t.slice(0, -1)}ies`;
+  if (/(s|x|z|ch|sh)$/i.test(t))
+    return `${t}es`;
+  return `${t}s`;
+}
+function labelOf(column) {
+  return column.replace(/_id$/, "").replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function helpOf(e) {
+  const h = e.description?.trim();
+  if (h)
+    return h.replace(/\s+/g, " ");
+  return `Rows of ${pluralTitle(e).toLowerCase()} held by the application.`;
+}
+function lit(value) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+function tablesIn(sql) {
+  const found = new Set;
+  for (const match of sql.matchAll(/\bbus_[a-z0-9_]+\b/g))
+    found.add(match[0]);
+  return [...found].sort();
+}
+function kebabName(value) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app";
+}
+var AUDIT_COLUMNS = new Set([
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "created_by",
+  "updated_by",
+  "deleted_by",
+  "version"
+]);
+function businessColumns(e) {
+  return e.attributes.filter((a) => a.name !== e.primaryKey && !AUDIT_COLUMNS.has(a.name));
+}
+function displayColumn(e) {
+  const cols = businessColumns(e).filter((a) => !a.isForeignKey);
+  const byName = cols.find((a) => /^(name|title|label|code|reference|subject)$/.test(a.name));
+  if (byName)
+    return byName.name;
+  const unique = cols.find((a) => a.unique && (a.type === "string" || a.type === "text"));
+  if (unique)
+    return unique.name;
+  const email = cols.find((a) => /email/.test(a.name));
+  if (email)
+    return email.name;
+  const firstString = cols.find((a) => a.type === "string");
+  return firstString?.name ?? e.primaryKey;
+}
+function enumColumns(e) {
+  const bound = businessColumns(e).filter((a) => a.enumRef);
+  const rank = (a) => {
+    if (/^(status|state)$/.test(a.name))
+      return 0;
+    if (/(stage|phase|priority)/.test(a.name))
+      return 1;
+    if (/(type|tier|category|kind)/.test(a.name))
+      return 2;
+    return 3;
+  };
+  return [...bound].sort((x, y) => rank(x) - rank(y) || x.name.localeCompare(y.name));
+}
+function measureColumns(e) {
+  return businessColumns(e).filter((a) => !a.isForeignKey && (a.type === "integer" || a.type === "decimal"));
+}
+function declaredStates(w) {
+  const seen = [];
+  const push = (s) => {
+    const v = s.trim();
+    if (!v || v === "[*]" || seen.includes(v))
+      return;
+    seen.push(v);
+  };
+  for (const s of w.states)
+    push(s.name);
+  for (const t of w.transitions) {
+    push(t.from);
+    push(t.to);
+  }
+  return seen;
+}
+function linkColumn(parent, child, relForeignKey) {
+  const expected = `${tableNameFor(parent).replace(/^bus_/, "")}_id`;
+  return child.attributes.find((a) => a.name === expected) ?? (relForeignKey ? child.attributes.find((a) => a.name === relForeignKey) : undefined);
+}
+function addQuery(ctx, spec) {
+  ctx.queries.push({ ...spec, tables: tablesIn(spec.sql) });
+  return spec.key;
+}
+function deriveEntity(ctx, e) {
+  const table = tableNameFor(e);
+  const slug = table.replace(/^bus_/, "");
+  const display = displayColumn(e);
+  const help = helpOf(e);
+  const live = "deleted_at IS NULL";
+  const registerCols = [
+    display,
+    ...enumColumns(e).slice(0, 2).map((a) => a.name),
+    ...measureColumns(e).slice(0, 2).map((a) => a.name)
+  ].filter((c, i, all) => all.indexOf(c) === i);
+  const registerSelect = [...registerCols, "created_at", "updated_at"].join(", ");
+  const qRegister = addQuery(ctx, {
+    key: `${slug}__register`,
+    name: `${pluralTitle(e)} — register`,
+    description: `${help} Newest first.`,
+    sql: `SELECT ${registerSelect}
+FROM ${table}
+WHERE ${live}
+ORDER BY created_at DESC
+LIMIT 500`
+  });
+  ctx.reports.push({
+    key: `${slug}__register`,
+    name: `${pluralTitle(e)} — register`,
+    description: help,
+    queryKey: qRegister,
+    columns: [...registerCols, "created_at", "updated_at"].map((c) => ({
+      field: c,
+      label: labelOf(c)
+    })),
+    pageSize: 50
+  });
+  for (const col of enumColumns(e).slice(0, 2)) {
+    const values = col.enumValues ?? ctx.model.enums.find((en) => en.name === col.enumRef)?.values ?? [];
+    const key = `${slug}__by_${col.name}`;
+    const q = addQuery(ctx, {
+      key,
+      name: `${pluralTitle(e)} by ${labelOf(col.name).toLowerCase()}`,
+      description: col.description?.trim() ?? `How ${pluralTitle(e).toLowerCase()} divide across ${labelOf(col.name).toLowerCase()}.`,
+      sql: `SELECT COALESCE(${col.name}, '(unset)') AS bucket, COUNT(*) AS records
+FROM ${table}
+WHERE ${live}
+GROUP BY 1
+ORDER BY records DESC`
+    });
+    ctx.charts.push({
+      key,
+      name: `${pluralTitle(e)} by ${labelOf(col.name).toLowerCase()}`,
+      description: col.description?.trim() ?? `${help} Grouped by ${labelOf(col.name).toLowerCase()}.`,
+      queryKey: q,
+      chartType: values.length > 0 && values.length <= 6 ? "pie" : "bar",
+      xField: "bucket",
+      yField: "records"
+    });
+    ctx.reports.push({
+      key,
+      name: `${pluralTitle(e)} by ${labelOf(col.name).toLowerCase()}`,
+      description: `Counts of ${pluralTitle(e).toLowerCase()} per ${labelOf(col.name).toLowerCase()}.`,
+      queryKey: q,
+      columns: [
+        { field: "bucket", label: labelOf(col.name) },
+        { field: "records", label: "Records" }
+      ],
+      pageSize: 50
+    });
+  }
+  const qVolume = addQuery(ctx, {
+    key: `${slug}__volume_by_month`,
+    name: `${pluralTitle(e)} created per month`,
+    description: `New ${pluralTitle(e).toLowerCase()} per month over the last two years.`,
+    sql: `SELECT date_trunc('month', created_at)::date AS month, COUNT(*) AS records
+FROM ${table}
+WHERE ${live} AND created_at >= now() - interval '24 months'
+GROUP BY 1
+ORDER BY 1`
+  });
+  ctx.charts.push({
+    key: `${slug}__volume_by_month`,
+    name: `${pluralTitle(e)} created per month`,
+    description: `${help} Counted by the month the record was created.`,
+    queryKey: qVolume,
+    chartType: "line",
+    xField: "month",
+    yField: "records"
+  });
+  const wf = ctx.model.workflows.find((w) => w.entity === e.name);
+  const statusCol = enumColumns(e).find((a) => /^(status|state)$/.test(a.name))?.name;
+  if (wf && statusCol) {
+    const states = declaredStates(wf);
+    if (states.length > 0) {
+      const valuesList = states.map((s, i) => `(${lit(s)}, ${i})`).join(", ");
+      const key = `${slug}__lifecycle`;
+      const q = addQuery(ctx, {
+        key,
+        name: `${titleOf(e)} lifecycle — ${wf.name}`,
+        description: `Where ${pluralTitle(e).toLowerCase()} sit in the ${wf.name} state machine. Every state the model declares appears, including the ones nothing has reached.`,
+        sql: `WITH declared(state, position) AS (
+  VALUES ${valuesList}
+)
+SELECT d.state, COALESCE(c.records, 0) AS records
+FROM declared d
+LEFT JOIN (
+  SELECT ${statusCol} AS state, COUNT(*) AS records
+  FROM ${table}
+  WHERE ${live}
+  GROUP BY 1
+) c ON c.state = d.state
+ORDER BY d.position`
+      });
+      ctx.reports.push({
+        key,
+        name: `${titleOf(e)} lifecycle — ${wf.name}`,
+        description: `Where ${pluralTitle(e).toLowerCase()} sit in the ${wf.name} state machine, in the order the diagram draws it.`,
+        queryKey: q,
+        columns: [
+          { field: "state", label: "State" },
+          { field: "records", label: "Records" }
+        ],
+        pageSize: 50
+      });
+      ctx.charts.push({
+        key,
+        name: `${titleOf(e)} lifecycle`,
+        description: `${pluralTitle(e)} per declared state of ${wf.name}.`,
+        queryKey: q,
+        chartType: "bar",
+        xField: "state",
+        yField: "records"
+      });
+    }
+  }
+  const measures = measureColumns(e);
+  if (measures.length > 0) {
+    const groupCol = enumColumns(e)[0]?.name;
+    const aggregates = measures.slice(0, 4).flatMap((m) => [
+      `SUM(${m.name}) AS total_${m.name}`,
+      `ROUND(AVG(${m.name})::numeric, 2) AS avg_${m.name}`
+    ]);
+    const key = `${slug}__measures`;
+    const sql = groupCol ? `SELECT COALESCE(${groupCol}, '(unset)') AS bucket, COUNT(*) AS records, ${aggregates.join(", ")}
+FROM ${table}
+WHERE ${live}
+GROUP BY 1
+ORDER BY records DESC` : `SELECT COUNT(*) AS records, ${aggregates.join(", ")}
+FROM ${table}
+WHERE ${live}`;
+    const q = addQuery(ctx, {
+      key,
+      name: `${pluralTitle(e)} — measures`,
+      description: `Totals and averages over the numeric columns of ${pluralTitle(e).toLowerCase()}${groupCol ? `, by ${labelOf(groupCol).toLowerCase()}` : ""}.`,
+      sql
+    });
+    ctx.reports.push({
+      key,
+      name: `${pluralTitle(e)} — measures`,
+      description: `Totals and averages${groupCol ? ` by ${labelOf(groupCol).toLowerCase()}` : ""}. ${help}`,
+      queryKey: q,
+      columns: [
+        ...groupCol ? [{ field: "bucket", label: labelOf(groupCol) }] : [],
+        { field: "records", label: "Records" },
+        ...measures.slice(0, 4).flatMap((m) => [
+          { field: `total_${m.name}`, label: `Total ${labelOf(m.name).toLowerCase()}` },
+          { field: `avg_${m.name}`, label: `Average ${labelOf(m.name).toLowerCase()}` }
+        ])
+      ],
+      pageSize: 50
+    });
+  }
+}
+function addAuthoredReports(ctx) {
+  for (const r of ctx.model.reports) {
+    const key = `authored__${r.name}`;
+    const description = r.help?.trim() ?? `Declared in the model as %%report ${r.name}.`;
+    addQuery(ctx, { key, name: r.title, description, sql: r.sql });
+    const columns = r.chart && r.x && r.y ? [
+      { field: r.x, label: labelOf(r.x) },
+      { field: r.y, label: labelOf(r.y) }
+    ] : [];
+    ctx.reports.push({ key, name: r.title, description, queryKey: key, columns, pageSize: 50 });
+    if (r.chart && r.x && r.y) {
+      ctx.charts.push({
+        key,
+        name: r.title,
+        description,
+        queryKey: key,
+        chartType: r.chart,
+        xField: r.x,
+        yField: r.y
+      });
+    }
+  }
+}
+function deriveRelationships(ctx) {
+  const byName = new Map(ctx.model.entities.map((e) => [e.name, e]));
+  for (const rel of ctx.model.relationships) {
+    if (rel.cardinality !== "oneToMany")
+      continue;
+    const parent = byName.get(rel.sourceEntity);
+    const child = byName.get(rel.targetEntity);
+    if (!parent || !child)
+      continue;
+    const fk = linkColumn(parent, child, rel.foreignKey);
+    if (!fk)
+      continue;
+    const parentDisplay = displayColumn(parent);
+    const parentSlug = tableNameFor(parent).replace(/^bus_/, "");
+    const childSlug = tableNameFor(child).replace(/^bus_/, "");
+    const key = `${childSlug}__per_${parentSlug}`;
+    const sameType = fk.isForeignKey && (fk.name.endsWith("_id") || fk.name.endsWith("_by"));
+    const parentKey = sameType ? `p.${parent.primaryKey}` : `p.${parent.primaryKey}::text`;
+    const q = addQuery(ctx, {
+      key,
+      name: `${pluralTitle(child)} per ${titleOf(parent).toLowerCase()}`,
+      description: `How many ${pluralTitle(child).toLowerCase()} each ${titleOf(parent).toLowerCase()} has, most first. Derived from the ${rel.name.replace(/_/g, " ")} relationship the model draws.`,
+      sql: `SELECT p.${parentDisplay} AS ${parentSlug}, COUNT(c.${child.primaryKey}) AS records
+FROM ${tableNameFor(parent)} p
+LEFT JOIN ${tableNameFor(child)} c
+  ON c.${fk.name} = ${parentKey} AND c.deleted_at IS NULL
+WHERE p.deleted_at IS NULL
+GROUP BY 1
+ORDER BY records DESC
+LIMIT 50`
+    });
+    ctx.reports.push({
+      key,
+      name: `${pluralTitle(child)} per ${titleOf(parent).toLowerCase()}`,
+      description: `${helpOf(parent)} Counted by the ${pluralTitle(child).toLowerCase()} attached to each.`,
+      queryKey: q,
+      columns: [
+        { field: parentSlug, label: titleOf(parent) },
+        { field: "records", label: pluralTitle(child) }
+      ],
+      pageSize: 50
+    });
+    ctx.charts.push({
+      key,
+      name: `${pluralTitle(child)} per ${titleOf(parent).toLowerCase()}`,
+      description: `The ${titleOf(parent).toLowerCase()} records carrying the most ${pluralTitle(child).toLowerCase()}.`,
+      queryKey: q,
+      chartType: "bar",
+      xField: parentSlug,
+      yField: "records"
+    });
+  }
+}
+function centrality(model, e) {
+  const incoming = model.relationships.filter((r) => r.sourceEntity === e.name).length;
+  const outgoing = model.relationships.filter((r) => r.targetEntity === e.name).length;
+  const hasState = model.workflows.some((w) => w.entity === e.name) ? 3 : 0;
+  const hasMeasures = measureColumns(e).length > 0 ? 1 : 0;
+  return incoming * 2 + outgoing + hasState + hasMeasures;
+}
+function deriveDashboards(ctx, appName, appDescription) {
+  const model = ctx.model;
+  const ranked = [...model.entities].sort((a, b) => centrality(model, b) - centrality(model, a));
+  const headline = ranked.slice(0, 6);
+  const widgets = [];
+  let x = 0;
+  let y = 0;
+  const place = (title, chartKey) => {
+    widgets.push({ chartKey, title, x, y, w: 6, h: 4 });
+    x += 6;
+    if (x >= 12) {
+      x = 0;
+      y += 4;
+    }
+  };
+  for (const c of ctx.charts.filter((c2) => c2.key.startsWith("authored__")).slice(0, 4)) {
+    place(c.name, c.key);
+  }
+  for (const e of headline) {
+    const slug = tableNameFor(e).replace(/^bus_/, "");
+    const lifecycle = ctx.charts.find((c) => c.key === `${slug}__lifecycle`);
+    const breakdown = ctx.charts.find((c) => c.key.startsWith(`${slug}__by_`));
+    const volume = ctx.charts.find((c) => c.key === `${slug}__volume_by_month`);
+    const chosen = lifecycle ?? breakdown ?? volume;
+    if (chosen)
+      place(chosen.name, chosen.key);
+  }
+  return [
+    {
+      key: "overview",
+      name: `${appName} — overview`,
+      description: appDescription?.trim() || `The ${headline.length} entities this model puts at the centre of ${appName}, one tile each.`,
+      widgets
+    }
+  ];
+}
+function dropDerivedDuplicatesOfAuthored(ctx) {
+  const authoredNames = new Set([...ctx.reports, ...ctx.charts, ...ctx.queries].filter((x) => x.key.startsWith("authored__")).map((x) => x.name));
+  if (authoredNames.size === 0)
+    return;
+  const keep = (items) => items.filter((x) => x.key.startsWith("authored__") || !authoredNames.has(x.name));
+  const droppedQueryKeys = new Set(ctx.queries.filter((q) => !q.key.startsWith("authored__") && authoredNames.has(q.name)).map((q) => q.key));
+  ctx.queries = keep(ctx.queries);
+  ctx.reports = keep(ctx.reports).filter((r) => !droppedQueryKeys.has(r.queryKey));
+  ctx.charts = keep(ctx.charts).filter((c) => !droppedQueryKeys.has(c.queryKey));
+}
+function assertNamesUnique(ctx, dashboards) {
+  const collections = [
+    ["queries", ctx.queries],
+    ["reports", ctx.reports],
+    ["charts", ctx.charts],
+    ["dashboards", dashboards]
+  ];
+  const problems = [];
+  for (const [label, items] of collections) {
+    const byName = new Map;
+    for (const item of items) {
+      byName.set(item.name, [...byName.get(item.name) ?? [], item.key]);
+    }
+    for (const [name, keys] of byName) {
+      if (keys.length > 1)
+        problems.push(`  ${label}: "${name}" ← ${keys.join(", ")}`);
+    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`The reporting pack has items sharing a name. The reporting platform upserts by name, so these would collapse into one row:
+${problems.join(`
+`)}`);
+  }
+}
+function deriveAccessSpec(model, options) {
+  const projectId = kebabName(options.projectName);
+  const access2 = deriveAccess(model.rbac, {
+    projectId,
+    adminEmail: options.adminEmail,
+    adminName: options.adminName,
+    entities: model.entities.map((e) => e.name)
+  });
+  const reportDomain = `${projectId || "app"}.reports.example.com`;
+  const roles = access2.roles.map((role) => {
+    const appUser = access2.users.find((u) => u.roleName === role.name);
+    const tables = role.isAdmin ? [] : model.entities.filter((entity2) => {
+      const admitted = access2.entityVisibility[entity2.name];
+      if (!admitted || admitted.length === 0)
+        return true;
+      return admitted.some((r) => r.toLowerCase() === role.declaredAs.toLowerCase());
+    }).map((entity2) => tableNameFor(entity2));
+    return {
+      name: role.name,
+      declaredAs: role.declaredAs,
+      description: role.isAdmin ? "Reads every table of the attached application" : `Reads what ${role.name} may see in the application`,
+      isAdmin: role.isAdmin,
+      email: role.isAdmin ? appUser?.email ?? "admin@admin.com" : `${role.declaredAs.toLowerCase().split(/[\s_-]+/).filter(Boolean).join(".")}@${reportDomain}`,
+      appEmail: appUser?.email ?? "admin@admin.com",
+      tables
+    };
+  });
+  for (const role of roles) {
+    if (role.isAdmin)
+      continue;
+    const expected = access2.entityCounts[role.name];
+    if (expected !== undefined && expected !== role.tables.length) {
+      throw new Error(`Reporting role "${role.name}" resolved ${role.tables.length} readable tables, ` + `but the application derives ${expected} for the same role. ` + `These must agree — the reporting side is mirroring %%rbac, not reinterpreting it.`);
+    }
+  }
+  return {
+    roles,
+    scoped: roles.some((role) => !role.isAdmin && role.tables.length < model.entities.length),
+    entityTotal: model.entities.length,
+    appPassword: APP_PASSWORD,
+    reportPassword: REPORT_PASSWORD
+  };
+}
+function buildReportingPack(model, options) {
+  if (model.entities.length === 0) {
+    throw new Error("Cannot derive a reporting pack: the model declares no entities.");
+  }
+  const ctx = { model, queries: [], reports: [], charts: [] };
+  addAuthoredReports(ctx);
+  for (const e of model.entities)
+    deriveEntity(ctx, e);
+  deriveRelationships(ctx);
+  dropDerivedDuplicatesOfAuthored(ctx);
+  const appName = options.applicationName?.trim() || options.projectName;
+  const dashboards = deriveDashboards(ctx, appName, options.projectDescription);
+  assertNamesUnique(ctx, dashboards);
+  return {
+    application: {
+      name: appName,
+      description: options.projectDescription?.trim() || `${appName}: ${model.entities.length} entities, ${model.workflows.length + model.sagas.length} workflows.`,
+      model: options.modelFileName ?? `${kebabName(appName)}.eml.mmd`,
+      databaseName: options.databaseName,
+      ...options.generatedAt ? { generatedAt: options.generatedAt } : {}
+    },
+    dataSource: {
+      name: `${appName} (application database)`,
+      description: "The generated application's own PostgreSQL database, read directly. Every report and chart below is a query against its bus_ tables.",
+      clientType: "pg"
+    },
+    queries: ctx.queries,
+    reports: ctx.reports,
+    charts: ctx.charts,
+    dashboards,
+    access: deriveAccessSpec(model, options)
+  };
+}
+
 // packages/generator/src/generators/wasm/model-bundle.ts
 var SEMANTIC_REFERENCE2 = {
   email: ReferenceType.EMAIL,
@@ -18017,14 +18828,9 @@ function referenceIdFor(attribute, isPrimaryKey) {
   }
   if (attribute.semanticType)
     return SEMANTIC_REFERENCE2[attribute.semanticType];
-  if (attribute.type === "string" || attribute.type === "text") {
-    if (/email/i.test(attribute.name))
-      return ReferenceType.EMAIL;
-    if (/phone|mobile|tel/i.test(attribute.name))
-      return ReferenceType.PHONE;
-    if (/url|website|link/i.test(attribute.name))
-      return ReferenceType.URL;
-  }
+  const byName = referenceFromColumnName(attribute);
+  if (byName !== undefined)
+    return byName;
   switch (attribute.type) {
     case "integer":
       return ReferenceType.INTEGER;
@@ -18043,11 +18849,6 @@ function referenceIdFor(attribute, isPrimaryKey) {
     default:
       return ReferenceType.STRING;
   }
-}
-var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
-function tableNameFor(entity2) {
-  const base = snake(entity2.tableName || entity2.name);
-  return base.startsWith("bus_") || base.startsWith("sys_") ? base : `bus_${base}`;
 }
 var MANAGED_COLUMN_NAMES = new Set([
   "id",
@@ -18079,9 +18880,7 @@ function escapeHtml(value) {
 function slug(value) {
   return String(value).replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
-function title(value) {
-  return String(value).replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[\s_-]+/).filter(Boolean).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-}
+var title = (value) => formatDisplayName(String(value));
 var REFERENCE_NAMES = {
   [ReferenceType.STRING]: "Text",
   [ReferenceType.INTEGER]: "Whole number",
@@ -18106,15 +18905,19 @@ function controlFor(attribute, referenceId) {
     return "Choice";
   return REFERENCE_NAMES[referenceId] ?? "Text";
 }
-function referenceTarget(column) {
+function referenceTarget(column, declared) {
   const name = column.toLowerCase();
   if (name.endsWith("_by") || name.endsWith("_by_id"))
     return "User";
   if (!name.endsWith("_id"))
     return null;
-  return title(name.slice(0, -3)).replace(/\s+/g, "");
+  const stem = name.slice(0, -3);
+  return declared.get(stem.replace(/_/g, "")) ?? title(stem).replace(/\s+/g, "");
 }
-function fieldRows(entity2) {
+function declaredNames(model) {
+  return new Map(model.entities.map((entity2) => [entity2.name.toLowerCase().replace(/_/g, ""), entity2.name]));
+}
+function fieldRows(entity2, declared) {
   const primaryKey = entity2.primaryKey || "id";
   return entity2.attributes.map((attribute) => {
     const isPrimary = attribute.name === primaryKey;
@@ -18135,7 +18938,7 @@ function fieldRows(entity2) {
       detail.push(`One of: ${attribute.enumValues.map((value) => `<code>${escapeHtml(value)}</code>`).join(", ")}`);
     }
     if (attribute.isForeignKey) {
-      const target = referenceTarget(attribute.name);
+      const target = referenceTarget(attribute.name, declared);
       if (target)
         detail.push(`Points at <b>${escapeHtml(title(target))}</b>`);
     }
@@ -18250,6 +19053,7 @@ function renderManual(model, options) {
       categoryOf.set(name, category.name);
   }
   const entities = [...model.entities].sort((a, b) => a.name.localeCompare(b.name));
+  const declared = declaredNames(model);
   const contents = `
       <nav class="toc" aria-label="Contents">
         <h2>Contents</h2>
@@ -18279,7 +19083,7 @@ ${entity2.attributes.some((attribute) => attribute.description) ? "" : `      <p
 `}      <table>
         <thead><tr><th>Field</th><th>Shown as</th><th></th><th>What it is for</th></tr></thead>
         <tbody>
-${fieldRows(entity2)}
+${fieldRows(entity2, declared)}
         </tbody>
       </table>
 ${[
@@ -18641,6 +19445,7 @@ class MermaidParser {
     const enumBindings = [];
     const fieldHelpText = [];
     const entityHelpText = new Map;
+    const entityIcons = new Map;
     const entityParents = new Map;
     for (let i = 0;i < lines.length; i++) {
       const line = lines[i] ?? "";
@@ -18665,6 +19470,9 @@ class MermaidParser {
         const entityHelp = this.parseEntityHelpDirective(trimmed);
         if (entityHelp)
           entityHelpText.set(entityHelp.entity, entityHelp.help);
+        const entityIcon = this.parseEntityIconDirective(trimmed);
+        if (entityIcon)
+          entityIcons.set(entityIcon.entity, entityIcon.icon);
         const entityParent = this.parseEntityParentDirective(trimmed);
         if (entityParent)
           entityParents.set(entityParent.entity, entityParent.parent);
@@ -18708,6 +19516,7 @@ class MermaidParser {
     }
     this.attachIndexes(entities, declaredIndexes);
     this.attachHelp(entities, fieldHelpText, entityHelpText);
+    this.attachIcons(entities, entityIcons);
     this.attachParents(entities, entityParents);
     const enums = this.attachEnums(entities, declaredEnums, enumBindings);
     return { entities, relationships, enums };
@@ -18724,13 +19533,20 @@ class MermaidParser {
         attribute.description = help;
     }
   }
+  attachIcons(entities, icons) {
+    for (const [name, icon] of icons) {
+      const entity2 = entities.find((candidate) => candidate.name === name);
+      if (entity2)
+        entity2.icon = icon;
+    }
+  }
   attachParents(entities, parents) {
     for (const [childName, parentName] of parents) {
       const child = entities.find((candidate) => candidate.name === childName);
       const parent = entities.find((candidate) => candidate.name === parentName);
       if (!child || !parent)
         continue;
-      const snake2 = parent.name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+      const snake2 = snakeCase(parent.name);
       const link = child.attributes.find((a) => a.isForeignKey && a.name === `${snake2}_id`) ?? child.attributes.find((a) => a.isForeignKey && a.name.startsWith(`${snake2}_`));
       if (!link)
         continue;
@@ -18785,6 +19601,13 @@ class MermaidParser {
       return null;
     const help = match[2].trim();
     return help ? { entity: match[1], help } : null;
+  }
+  parseEntityIconDirective(line) {
+    const match = line.match(/^%%entity\s+([A-Za-z_]\w*)\s+icon\s*:\s*(.+)$/);
+    if (!match?.[1] || !match[2])
+      return null;
+    const icon = match[2].trim();
+    return icon ? { entity: match[1], icon } : null;
   }
   parseEntityParentDirective(line) {
     const match = line.match(/^%%entity\s+([A-Za-z_]\w*)\s+parent\s*:\s*([A-Za-z_]\w*)\s*$/);
@@ -18905,10 +19728,7 @@ class MermaidParser {
     };
   }
   toSnakeCase(str) {
-    if (/^[A-Z0-9_]+$/.test(str)) {
-      return str.toLowerCase();
-    }
-    return str.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
+    return snakeCase(str);
   }
   normalizeRelationshipName(name) {
     return name.trim().replace(/\s+/g, "_").toLowerCase();
@@ -18919,6 +19739,102 @@ class MermaidParser {
     const cleanName = snakeName.replace(/^bus_/, "");
     return `${cleanName}_id`;
   }
+}
+
+// packages/generator/src/reports/index.ts
+var REPORT_CHART_TYPES = ["bar", "line", "pie", "area"];
+var CHART_TYPE_SET = new Set(REPORT_CHART_TYPES);
+var KEYS = ["title", "entity", "chart", "x", "y", "help"];
+var READ_ONLY = /^\s*(?:with|select)\b/i;
+function hasStatementBreak(sql) {
+  const body = sql.replace(/;\s*$/, "");
+  let quote = null;
+  for (let i = 0;i < body.length; i++) {
+    const ch = body[i];
+    if (quote) {
+      if (ch === quote) {
+        if (body[i + 1] === quote)
+          i += 1;
+        else
+          quote = null;
+      }
+      continue;
+    }
+    if (ch === "'" || ch === '"')
+      quote = ch;
+    else if (ch === ";")
+      return true;
+  }
+  return false;
+}
+function parseReportDirective(line) {
+  const directive = line.trim().match(/^%%+report\s+(.+)$/is);
+  if (!directive?.[1])
+    return { error: "not a %%report directive" };
+  const rest = directive[1];
+  const split = rest.match(/^(.*?)\bsql:\s*(.+)$/is);
+  if (!split?.[2])
+    return { error: "has no sql: clause" };
+  const head = split[1] ?? "";
+  const sql = split[2].trim();
+  const nameMatch = head.match(/^([A-Za-z_][\w-]*)\s*/);
+  if (!nameMatch?.[1])
+    return { error: "has no name" };
+  const name = nameMatch[1];
+  const keys = head.slice(nameMatch[0].length);
+  const read = (key) => {
+    const stop = KEYS.join("|");
+    const found = keys.match(new RegExp(`\\b${key}:\\s*(.*?)(?=\\s+(?:${stop}):|$)`, "is"));
+    return found?.[1]?.trim() || undefined;
+  };
+  if (!READ_ONLY.test(sql))
+    return { error: `sql: is not a SELECT or WITH query` };
+  if (hasStatementBreak(sql))
+    return { error: `sql: contains more than one statement` };
+  const chartRaw = read("chart");
+  if (chartRaw && !CHART_TYPE_SET.has(chartRaw)) {
+    return { error: `has unknown chart type "${chartRaw}"` };
+  }
+  const chart = chartRaw;
+  const x = read("x");
+  const y = read("y");
+  if (chart && (!x || !y)) {
+    return { error: `declares chart: ${chart} but not both x: and y:` };
+  }
+  return {
+    name,
+    title: read("title") ?? name.replace(/[_-]+/g, " "),
+    entity: read("entity"),
+    chart,
+    x,
+    y,
+    help: read("help"),
+    sql
+  };
+}
+function compileReports(source, entityNames, warn = () => {}) {
+  const known = new Set(entityNames);
+  const byName = new Map;
+  for (const line of source.split(`
+`)) {
+    if (!/^\s*%%+report\b/i.test(line))
+      continue;
+    const parsed = parseReportDirective(line);
+    if ("error" in parsed) {
+      warn(`%%report ${parsed.error} — skipped: ${line.trim().slice(0, 120)}`);
+      continue;
+    }
+    if (byName.has(parsed.name)) {
+      warn(`%%report "${parsed.name}" is declared more than once — keeping the first`);
+      continue;
+    }
+    if (parsed.entity && !known.has(parsed.entity)) {
+      warn(`%%report "${parsed.name}" names entity "${parsed.entity}", which the model does not declare — ungrouped`);
+      parsed.entity = undefined;
+    }
+    byName.set(parsed.name, parsed);
+  }
+  return [...byName.values()];
 }
 
 // packages/generator/src/rules/flowchart-parser.ts
@@ -19289,7 +20205,19 @@ function parseModel(sources) {
   const workflows = compileWorkflows(joined, entities.map((entity2) => entity2.name), warn);
   const sagas = compileSagaWorkflows(joined, entities.map((entity2) => entity2.name), warn);
   const rbac2 = compileRbac(joined, entities.map((entity2) => entity2.name), workflows, warn);
-  return { entities, relationships, categories, enums, rules, hooks, workflows, sagas, rbac: rbac2 };
+  const reports = compileReports(joined, entities.map((entity2) => entity2.name), warn);
+  return {
+    entities,
+    relationships,
+    categories,
+    enums,
+    rules,
+    hooks,
+    workflows,
+    sagas,
+    rbac: rbac2,
+    reports
+  };
 }
 
 // packages/generator/src/pipeline/generate-application.ts
@@ -19329,7 +20257,13 @@ function buildGeneratorOptions(model, settings) {
     compiledHooks: model.hooks,
     compiledWorkflows: model.workflows,
     compiledSagas: model.sagas,
-    compiledRbac: model.rbac
+    compiledRbac: model.rbac,
+    compiledReports: model.reports,
+    reportingPack: buildReportingPack(model, {
+      projectName: settings.projectName,
+      projectDescription: settings.projectDescription,
+      databaseName: settings.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "_")
+    })
   };
 }
 async function writeManifest(outputDir, model, settings, extras = {}, log = NO_LOG) {
@@ -19466,6 +20400,7 @@ function emptyModel() {
     enums: [],
     indexes: [],
     rules: [],
+    reports: [],
     workflows: [],
     hooks: [],
     guards: [],
@@ -19506,6 +20441,7 @@ var SECTION_OPENERS = /^(erDiagram|flowchart|graph|stateDiagram-v2|stateDiagram)
 function parseEml(source) {
   const model = emptyModel();
   fieldEnumRefs.length = 0;
+  fieldHelp.length = 0;
   const diags = model.diagnostics;
   const normalized = source.replace(/\r\n/g, `
 `);
@@ -19567,6 +20503,7 @@ function parseEml(source) {
   return model;
 }
 var fieldEnumRefs = [];
+var fieldHelp = [];
 function parseDirective(line, n, model) {
   const body = line.replace(/^%%/, "").trim();
   const { head: keyword, rest } = splitHead(body);
@@ -19628,7 +20565,59 @@ function parseDirective(line, n, model) {
         const [entity2, attr, key, value] = caps(m, 4);
         if (key === "enum")
           fieldEnumRefs.push({ entity: entity2, attr, enumName: value.trim() });
+        else if (key === "help" || key === "description")
+          fieldHelp.push({ entity: entity2, attr, text: value.trim() });
       }
+      return;
+    }
+    case "report": {
+      const split = rest.match(/^(.*?)\bsql:\s*(.+)$/s);
+      if (!split) {
+        model.diagnostics.push({
+          severity: "error",
+          code: "EML290",
+          message: `%%report has no sql: clause: "${line}"`,
+          line: n
+        });
+        return;
+      }
+      const [head, sql] = caps(split, 2);
+      const nameMatch = head.match(/^([A-Za-z_][\w-]*)\s*/);
+      if (!nameMatch) {
+        model.diagnostics.push({
+          severity: "error",
+          code: "EML291",
+          message: `%%report has no name: "${line}"`,
+          line: n
+        });
+        return;
+      }
+      const [name] = caps(nameMatch, 1);
+      const keys = head.slice(nameMatch[0].length);
+      const read = (key) => {
+        const m2 = keys.match(new RegExp(`\\b${key}:\\s*(.*?)(?=\\s+(?:title|entity|chart|x|y|help):|$)`, "s"));
+        return m2?.[1]?.trim() || undefined;
+      };
+      const chartRaw = read("chart");
+      const chart = chartRaw === "bar" || chartRaw === "line" || chartRaw === "pie" || chartRaw === "area" ? chartRaw : undefined;
+      if (chartRaw && !chart) {
+        model.diagnostics.push({
+          severity: "error",
+          code: "EML296",
+          message: `%%report "${name}" has unknown chart type "${chartRaw}".`,
+          line: n
+        });
+      }
+      model.reports.push({
+        name,
+        title: read("title") ?? name.replace(/[_-]+/g, " "),
+        entity: read("entity"),
+        chart,
+        x: read("x"),
+        y: read("y"),
+        help: read("help"),
+        sql: sql.trim()
+      });
       return;
     }
     case "enum": {
@@ -19728,6 +20717,8 @@ function applyEntityMeta(model, name, key, value) {
     e.prefix = value;
   else if (key === "label")
     e.label = value;
+  else if (key === "help" || key === "description")
+    e.help = value;
 }
 function parseErdSection(section, model, diags) {
   let currentEntity = null;
@@ -20017,6 +21008,13 @@ function applyFieldEnumRefs(model) {
       attr.enumRef = ref.enumName;
   }
   fieldEnumRefs.length = 0;
+  for (const h of fieldHelp) {
+    const entity2 = model.entities.find((e) => e.name === h.entity);
+    const attr = entity2?.attributes.find((a) => a.name === h.attr);
+    if (attr)
+      attr.description = h.text;
+  }
+  fieldHelp.length = 0;
 }
 
 // language/checker.ts
@@ -20123,6 +21121,9 @@ var PERSON_ROLE_COLUMN_NAMES = new Set([
 function isPersonRoleColumn(columnName) {
   return columnName.endsWith("_by") || columnName.endsWith("_by_id") || PERSON_ROLE_COLUMN_NAMES.has(columnName);
 }
+function escapeRe(literal) {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function isForeignKeyColumnName2(columnName) {
   return columnName.endsWith("_id") || columnName.endsWith("_by");
 }
@@ -20186,6 +21187,9 @@ class CheckEngine {
     this.checkFieldDirectives();
     this.checkIndexDirectives();
     this.checkEntityDirectives();
+    this.checkCategoryDirectives();
+    this.checkLineItems();
+    this.checkHelpText();
     this.checkHooks();
     this.checkAutomationTriggers();
     this.checkGuards();
@@ -20194,6 +21198,7 @@ class CheckEngine {
     this.checkWorkflowDirectives();
     this.checkStepDirectives();
     this.checkActionDirectives();
+    this.checkReportDirectives();
     this.checkRuleDirectives();
     this.checkRules();
     this.checkWorkflows();
@@ -20295,7 +21300,7 @@ class CheckEngine {
     }
   }
   checkAttributes(entity2, entityLine) {
-    const declaredEntityNames = new Set(this.model.entities.map((e) => e.name));
+    const declaredEntityNames2 = new Set(this.model.entities.map((e) => e.name));
     const seenAttrNames = new Map;
     const lastLineByName = new Map;
     let pkCount = 0;
@@ -20342,7 +21347,7 @@ class CheckEngine {
       }
       if (!attr.isForeignKey && !attr.isPrimaryKey && isForeignKeyColumnName2(attr.name)) {
         const target = this.fkToEntityName(attr.name);
-        if (declaredEntityNames.has(target) && attr.name !== entity2.primaryKey) {
+        if (declaredEntityNames2.has(target) && attr.name !== entity2.primaryKey) {
           this.warn("EML119", `Column "${entity2.name}.${attr.name}" looks like a reference to "${target}" but is not marked FK.`, {
             line: attrLine,
             hint: `Add FK:  ${attr.rawType ?? "string"} ${attr.name} FK. Without it the Application Dictionary records the column as String and the form shows the raw id instead of a "${target}" lookup.`
@@ -20636,14 +21641,179 @@ class CheckEngine {
             hint: "A line item belongs to a different entity. Remove the directive if it has no owner."
           });
         } else if (child) {
-          const snake2 = parentName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-          const link = child.attributes.find((attribute) => attribute.isForeignKey && (attribute.name === `${snake2}_id` || attribute.name.startsWith(`${snake2}_`)));
+          const link = this.linkColumnTo(child, parentName);
           if (!link) {
             this.error("EML148", `%%entity ${entityName} parent: ${parentName}, but ${entityName} has no foreign key to it.`, {
               line: lineNo,
-              hint: `Add \`string ${snake2}_id FK\` to ${entityName}. The tab links its rows to the open ${parentName} on that column.`
+              hint: `Add \`string ${this.entityToFkName(parentName)} FK\` to ${entityName}. The tab links its rows to the open ${parentName} on that column.`
             });
           }
+        }
+      }
+    }
+  }
+  declaredParents() {
+    const parents = new Map;
+    for (const { text } of this.src.findAll(/^\s*%%entity\b/)) {
+      const m = text.trim().match(/^%%entity\s+(\w+)\s+parent\s*:\s*(\S+)\s*$/);
+      if (m?.[1] && m[2])
+        parents.set(m[1], m[2]);
+    }
+    return parents;
+  }
+  categorisedEntities() {
+    const named = new Map;
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%category\b/)) {
+      const m = text.match(/entities\s*:\s*([^;]*)/);
+      if (!m?.[1])
+        continue;
+      for (const raw of m[1].split(",")) {
+        const name = raw.trim();
+        if (name && !named.has(name))
+          named.set(name, lineNo);
+      }
+    }
+    return named;
+  }
+  linkColumnTo(entity2, parentName) {
+    const snake2 = parentName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
+    return entity2.attributes.find((attribute) => attribute.isForeignKey && (attribute.name === `${snake2}_id` || attribute.name.startsWith(`${snake2}_`)));
+  }
+  checkCategoryDirectives() {
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%category\b/)) {
+      const body = text.trim().replace(/^%%\s*category\b\s*/i, "");
+      if (!body)
+        continue;
+      const keys = body.split(";").map((segment) => segment.trim()).filter(Boolean).map((segment) => segment.slice(0, segment.indexOf(":")).trim().toLowerCase());
+      if (!keys.includes("name")) {
+        const shorthand = body.match(/^([^:;]+):\s*(.+)$/);
+        this.warn("EML154", "%%category has no `name:` key, so nothing is declared.", {
+          line: lineNo,
+          hint: shorthand ? `Write it as \`%%category name: ${shorthand[1]?.trim()}; entities: ${shorthand[2]?.trim()}\`. Without \`name:\` the parser skips the line and every entity in it falls into the default General category.` : "Syntax: %%category name: <Name>; description: …; icon: …; entities: <A>, <B>. `name` is the only required key, and a directive without it is dropped."
+        });
+      }
+    }
+  }
+  checkLineItems() {
+    const parents = this.declaredParents();
+    const categorised = this.categorisedEntities();
+    const declared = new Map(this.model.entities.map((e) => [e.name, e]));
+    for (const [child, parent] of parents) {
+      const line = categorised.get(child);
+      if (line === undefined || !declared.has(child))
+        continue;
+      this.warn("EML150", `"${child}" is a line item of "${parent}" but is named in a %%category.`, {
+        line,
+        hint: `A category lists what the dashboard shows, and a child has no card — it is reached by opening a ${parent}. Remove "${child}" from the entities: list.`
+      });
+    }
+    const LINE_ITEM_NOUNS = /(Line|LineItem|Item|Detail|Entry|Row)s?$/;
+    for (const entity2 of this.model.entities) {
+      if (parents.has(entity2.name))
+        continue;
+      let candidate;
+      for (const other of declared.keys()) {
+        if (other === entity2.name || other.length < 3)
+          continue;
+        if (!entity2.name.startsWith(other) || entity2.name.length <= other.length)
+          continue;
+        if (!this.linkColumnTo(entity2, other))
+          continue;
+        if (!candidate || other.length > candidate.length)
+          candidate = other;
+      }
+      if (!candidate && LINE_ITEM_NOUNS.test(entity2.name)) {
+        for (const attribute of entity2.attributes) {
+          if (!attribute.isForeignKey || attribute.isPrimaryKey)
+            continue;
+          if (!isForeignKeyColumnName2(attribute.name))
+            continue;
+          if (isPersonRoleColumn(attribute.name))
+            continue;
+          const target = this.fkToEntityName(attribute.name);
+          const match = [...declared.keys()].find((name) => name !== entity2.name && (name === target || name.endsWith(target)));
+          if (match && this.linkColumnTo(entity2, match)) {
+            candidate = match;
+            break;
+          }
+        }
+      }
+      if (!candidate)
+        continue;
+      const link = this.linkColumnTo(entity2, candidate);
+      this.info("EML149", `"${entity2.name}" looks like a line item of "${candidate}" but declares no parent.`, {
+        line: this.src.findLine(new RegExp(`^\\s*${entity2.name}\\s*\\{`)),
+        hint: `If a list of every ${entity2.name} away from its ${candidate} is not a screen anyone opens, ` + `declare \`%%entity ${entity2.name} parent: ${candidate}\` — the dictionary then drops its dashboard ` + `card and gives it a tab inside the ${candidate} window, linked on ${link?.name}. ` + `If it is a thing in its own right, leave it: a reference is the opposite on all three questions (§3.5.1).`
+      });
+    }
+  }
+  nameAsWords(name) {
+    return name.replace(/[_.]+/g, " ").trim().toLowerCase();
+  }
+  restatedHelp(subject, text) {
+    const [entity2 = "", column = ""] = subject.split(".");
+    const body = text.trim().replace(/\.+$/, "").trim().toLowerCase();
+    const own = this.nameAsWords(column || entity2);
+    const of = entity2.toLowerCase();
+    if (/^unique identifier( for \w+)?$/.test(body))
+      return "restates the key";
+    if (new RegExp(`^(the )?${escapeRe(own)}( for ${escapeRe(of)})?$`).test(body)) {
+      return "is the name again, in prose";
+    }
+    if (new RegExp(`^${escapeRe(of)} is an? [\\w -]*(record|entity|table|object)\\b`).test(body)) {
+      return "is a template sentence, not a description";
+    }
+    return;
+  }
+  checkHelpText() {
+    const entityHelp = new Map;
+    const fieldHelp2 = new Map;
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%entity\b/)) {
+      const m = text.trim().match(/^%%entity\s+(\w+)\s+(?:help|description)\s*:\s*(.+)$/);
+      if (m?.[1] && m[2])
+        entityHelp.set(m[1], { text: m[2], line: lineNo });
+    }
+    for (const { lineNo, text } of this.src.findAll(/^\s*%%field\b/)) {
+      const m = text.trim().match(/^%%field\s+([\w.]+)\s+help\s*:\s*(.+)$/);
+      if (m?.[1] && m[2])
+        fieldHelp2.set(m[1], { text: m[2], line: lineNo });
+    }
+    for (const entity2 of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity2.name}\\s*\\{`));
+      const help = entityHelp.get(entity2.name);
+      if (!help) {
+        this.warn("EML152", `Entity "${entity2.name}" has no %%entity help:.`, {
+          line: entityLine,
+          hint: `Add \`%%entity ${entity2.name} help: …\` — what this record is for in the business, when one is created, and what distinguishes it from the entities it sounds like. It becomes sys_table.description and opens the entity's section of the manual.`
+        });
+      } else {
+        const why = this.restatedHelp(entity2.name, help.text);
+        if (why) {
+          this.warn("EML151", `%%entity ${entity2.name} help: ${why}.`, {
+            line: help.line,
+            hint: `"${help.text.trim().slice(0, 60)}" tells a reader nothing the entity name did not. Say what the business does with these records — the domain knowledge behind the name is the whole reason this line exists.`
+          });
+        }
+      }
+      const undocumented = entity2.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES2.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp2.has(`${entity2.name}.${attribute.name}`)).map((attribute) => attribute.name);
+      if (undocumented.length > 0) {
+        const shown = undocumented.slice(0, 6).join(", ");
+        const rest = undocumented.length > 6 ? `, and ${undocumented.length - 6} more` : "";
+        this.warn("EML153", `${entity2.name} has ${undocumented.length} column${undocumented.length === 1 ? "" : "s"} with no %%field help:.`, {
+          line: entityLine,
+          hint: `Add \`%%field ${entity2.name}.<column> help: …\` for ${shown}${rest}. Each becomes sys_column.description — the hint under the control and the column's row in the manual — and a column without one prints a dash.`
+        });
+      }
+      for (const attribute of entity2.attributes) {
+        const field = fieldHelp2.get(`${entity2.name}.${attribute.name}`);
+        if (!field)
+          continue;
+        const why = this.restatedHelp(`${entity2.name}.${attribute.name}`, field.text);
+        if (why) {
+          this.warn("EML151", `%%field ${entity2.name}.${attribute.name} help: ${why}.`, {
+            line: field.line,
+            hint: `"${field.text.trim().slice(0, 60)}" repeats the column name. Say why the value matters, what is expected in it, and what happens downstream — a reference column should say what the reference is *for*, not that it is one.`
+          });
         }
       }
     }
@@ -20772,6 +21942,39 @@ class CheckEngine {
         line: lineNo,
         hint: events.size ? `Use one of create, read, update, delete, * — or a transition of ${entity2}: ${[...events].join(", ")}.` : `Use one of create, read, update, delete, * — ${entity2} declares no state machine to take a transition from.`
       });
+    }
+  }
+  checkReportDirectives() {
+    const entityNames = new Set(this.model.entities.map((e) => e.name));
+    const seen = new Map;
+    for (const report of this.model.reports) {
+      const lineNo = this.src.findLine(new RegExp(`%%report\\s+${report.name}\\b`));
+      const previous = seen.get(report.name);
+      if (previous !== undefined) {
+        this.error("EML292", `%%report "${report.name}" is declared more than once.`, {
+          line: lineNo,
+          hint: "Report names are keys. Give the second one its own name."
+        });
+      }
+      seen.set(report.name, lineNo ?? 0);
+      if (!/^\s*(select|with)\b/i.test(report.sql)) {
+        this.error("EML293", `%%report "${report.name}" does not begin with SELECT or WITH.`, {
+          line: lineNo,
+          hint: "A report reads. Anything that writes belongs in a rule or a hook, not in a report the platform will run on a schedule."
+        });
+      }
+      if (report.chart && (!report.x || !report.y)) {
+        this.error("EML294", `%%report "${report.name}" declares chart: ${report.chart} but not both x: and y:.`, {
+          line: lineNo,
+          hint: "A chart needs the two result columns it draws: x: <column> y: <column>. Drop chart: to keep it as a table."
+        });
+      }
+      if (report.entity && !entityNames.has(report.entity)) {
+        this.warn("EML295", `%%report "${report.name}" names entity "${report.entity}", which this model does not declare.`, {
+          line: lineNo,
+          hint: "entity: is used to group the report with its entity. Correct the name, or drop the key if the report spans several."
+        });
+      }
     }
   }
   checkGuards() {
@@ -20934,6 +22137,21 @@ class CheckEngine {
           line: lineNo,
           hint: `Declare it with %%workflow ${workflow} entity: <Entity> kind: saga trigger: rule, or correct the name.`
         });
+      }
+      const condition = props.when?.trim();
+      if (condition) {
+        const camel = [
+          ...new Set((condition.match(/\b[a-z][A-Za-z0-9]*\b/g) ?? []).filter((identifier) => /[a-z][A-Z]/.test(identifier)))
+        ];
+        if (camel.length > 0) {
+          const snake2 = (identifier) => identifier.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+          const tested = camel.map((c) => `"${c}"`).join(", ");
+          const meant = camel.map(snake2).join(", ");
+          this.error("EML287", `%%action "${name}" tests ${tested}, which no column is named.`, {
+            line: lineNo,
+            hint: `A rule reads the record being written, and every column is snake_case. ` + `Write ${meant}. A camelCase name is undefined at evaluation: the rule ` + `never fires, or — against == null — fires on every write and the entity ` + `cannot be created.`
+          });
+        }
       }
       const known = new Set(["when", ...contract.required, ...contract.optional ?? []]);
       for (const key of Object.keys(props)) {
@@ -21577,15 +22795,15 @@ class CheckEngine {
         }
       }
     }
-    const declaredNames = new Set(this.model.entities.map((candidate) => candidate.name));
+    const declaredNames2 = new Set(this.model.entities.map((candidate) => candidate.name));
     for (const entity2 of this.model.entities) {
-      const claimed = new Set(entity2.attributes.filter((candidate) => candidate.isForeignKey && candidate.name.endsWith("_id")).map((candidate) => this.fkToEntityName(candidate.name)).filter((name) => declaredNames.has(name)));
-      const spareParents = this.model.relationships.filter((r) => r.target === entity2.name && r.source !== entity2.name).map((r) => r.source).filter((name) => declaredNames.has(name) && !claimed.has(name));
+      const claimed = new Set(entity2.attributes.filter((candidate) => candidate.isForeignKey && candidate.name.endsWith("_id")).map((candidate) => this.fkToEntityName(candidate.name)).filter((name) => declaredNames2.has(name)));
+      const spareParents = this.model.relationships.filter((r) => r.target === entity2.name && r.source !== entity2.name).map((r) => r.source).filter((name) => declaredNames2.has(name) && !claimed.has(name));
       for (const attr of entity2.attributes) {
         if (attr.isForeignKey && attr.name.endsWith("_id")) {
           const parentEntityName = this.fkToEntityName(attr.name);
           const hasRelationship = this.model.relationships.some((r) => (r.source === entity2.name || r.target === entity2.name) && (r.source === parentEntityName || r.target === parentEntityName));
-          const resolvedByRelationship = !declaredNames.has(parentEntityName) && spareParents.length > 0;
+          const resolvedByRelationship = !declaredNames2.has(parentEntityName) && spareParents.length > 0;
           if (resolvedByRelationship)
             spareParents.shift();
           if (!hasRelationship && !resolvedByRelationship) {
@@ -21647,7 +22865,8 @@ var AUTO_FIXABLE_CODES = new Set([
   "EML001",
   "EML114",
   "EML112",
-  "EML103"
+  "EML103",
+  "EML287"
 ]);
 if (false) {}
 
@@ -21691,6 +22910,8 @@ function applyFix(lines, issue) {
       return fixMissingInitialTransition(lines, issue, base);
     case "EML422":
       return fixMissingTerminalTransition(lines, issue, base);
+    case "EML287":
+      return fixCamelCaseRuleCondition(lines, issue, base);
     default:
       base.description = `No auto-fix strategy for ${issue.code}.`;
       return base;
@@ -21724,6 +22945,51 @@ function fixMissingMetaName(lines, _issue, base) {
   base.changes.push({ lineNo: insertAt + 1, before: "", after: newLine, action: "insert" });
   return base;
 }
+function fixCamelCaseRuleCondition(lines, issue, base) {
+  const lineNo = issue.line ? issue.line - 1 : -1;
+  if (lineNo < 0 || lineNo >= lines.length) {
+    base.description = "EML287 carries no line to repair.";
+    return base;
+  }
+  const original = lines[lineNo] ?? "";
+  if (!/^\s*%%action\b/.test(original)) {
+    base.description = `Line ${issue.line} is not a %%action directive.`;
+    return base;
+  }
+  const WHEN = /^(.*?\bwhen:\s*)(.*?)(\s+(?:message|field|value|workflow|to|target):\s.*)?$/;
+  const match = original.match(WHEN);
+  if (!match) {
+    base.description = "Could not isolate the when: condition.";
+    return base;
+  }
+  const [, head, condition, tail] = match;
+  const renamed = [];
+  const repaired = condition.replace(/'[^']*'|"[^"]*"|\b[a-z][A-Za-z0-9]*\b/g, (token) => {
+    if (token.startsWith("'") || token.startsWith('"'))
+      return token;
+    if (!/[a-z][A-Z]/.test(token))
+      return token;
+    const snake2 = token.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+    renamed.push(`${token} → ${snake2}`);
+    return snake2;
+  });
+  if (renamed.length === 0) {
+    base.description = "No camelCase identifier found in the condition.";
+    return base;
+  }
+  lines[lineNo] = `${head}${repaired}${tail ?? ""}`;
+  base.applied = true;
+  base.description = `Rewrote ${renamed.join(", ")} in the rule condition.`;
+  base.changes = [
+    {
+      lineNo: issue.line ?? lineNo + 1,
+      before: original,
+      after: lines[lineNo] ?? "",
+      action: "replace"
+    }
+  ];
+  return base;
+}
 function fixForeignKeyNaming(lines, issue, base) {
   const match = issue.message.match(/Foreign key "([^".]+)\.([^"]+)"/);
   if (!match) {
@@ -21741,7 +23007,7 @@ function fixForeignKeyNaming(lines, issue, base) {
     return base;
   }
   const before = lines[lineNo];
-  const attrRe = new RegExp(`^(\\s*[A-Za-z][A-Za-z0-9_()]*\\s+)${escapeRe(columnName)}\\b`);
+  const attrRe = new RegExp(`^(\\s*[A-Za-z][A-Za-z0-9_()]*\\s+)${escapeRe2(columnName)}\\b`);
   if (!attrRe.test(before)) {
     base.description = `Line ${lineNo + 1} does not look like the "${columnName}" attribute; left alone.`;
     return base;
@@ -21758,11 +23024,11 @@ function fixForeignKeyNaming(lines, issue, base) {
   base.changes.push({ lineNo: lineNo + 1, before, after, action: "replace" });
   return base;
 }
-function escapeRe(s) {
+function escapeRe2(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function findAttributeLine(lines, entityName, columnName) {
-  const openRe = new RegExp(`^\\s*${escapeRe(entityName)}\\s*\\{`);
+  const openRe = new RegExp(`^\\s*${escapeRe2(entityName)}\\s*\\{`);
   let inEntity = false;
   for (let i = 0;i < lines.length; i++) {
     const line = lines[i];
@@ -21773,7 +23039,7 @@ function findAttributeLine(lines, entityName, columnName) {
     }
     if (/^\s*\}/.test(line))
       return -1;
-    if (new RegExp(`\\b${escapeRe(columnName)}\\b`).test(line))
+    if (new RegExp(`\\b${escapeRe2(columnName)}\\b`).test(line))
       return i;
   }
   return -1;
@@ -21794,7 +23060,7 @@ function fixDuplicateAttribute(lines, issue, base) {
   }
   const duplicate = lines[duplicateNo];
   const first = lines[firstNo];
-  const nameRe = new RegExp(`^\\s*[A-Za-z][A-Za-z0-9_()]*\\s+${escapeRe(columnName)}\\b`);
+  const nameRe = new RegExp(`^\\s*[A-Za-z][A-Za-z0-9_()]*\\s+${escapeRe2(columnName)}\\b`);
   if (!nameRe.test(duplicate) || !nameRe.test(first)) {
     base.description = `Lines ${firstNo + 1} and ${duplicateNo + 1} do not both declare "${columnName}"; left alone.`;
     return base;
@@ -21833,7 +23099,7 @@ function fixManagedColumn(lines, issue, base) {
     base.description = `Could not locate "${entityName}.${columnName}" in the source.`;
     return base;
   }
-  const nameRe = new RegExp(`^\\s*[A-Za-z][A-Za-z0-9_()]*\\s+${escapeRe(columnName)}\\b`);
+  const nameRe = new RegExp(`^\\s*[A-Za-z][A-Za-z0-9_()]*\\s+${escapeRe2(columnName)}\\b`);
   if (!nameRe.test(lines[lineNo])) {
     base.description = `Line ${lineNo + 1} does not declare "${columnName}"; left alone.`;
     return base;
