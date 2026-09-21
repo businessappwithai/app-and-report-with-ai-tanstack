@@ -481,7 +481,8 @@ var appwithai_language_default = {
       "%%category becomes the dashboard grouping; a model declaring none gets a single General category holding every entity.",
       "%%field <Entity>.<column> help: and %%entity <Name> help: become sys_column.description and sys_table.description - the help a reader sees under the field and beside the table. %%entity description: is the same key under its other name.",
       "%%entity <Child> parent: <Parent> makes the child a line item: no window and no dashboard card, a tab inside the parent's window instead. See masterDetail.",
-      "The remaining %%entity keys (label, icon, prefix, softDelete, audited) are validated but not yet compiled."
+      "%%entity <Name> icon: becomes sys_table.icon — the entity's dashboard card, its window heading and its navigation entry all draw it. It is a lucide name, and an administrator may override it afterwards in Table and Column, including by uploading an image; the same column holds both. %%category carries an icon the same way, for its heading.",
+      "The remaining %%entity keys (label, prefix, softDelete, audited) are validated but not yet compiled."
     ],
     helpText: {
       description: "The only explanation a generated application has. `%%entity <Name> help:` becomes sys_table.description and opens that entity's section of manual.html; `%%field <Entity>.<column> help:` becomes sys_column.description, the hint under the control, and the column's row in the manual. There is no second source — no hand-written tooltip, no README beside the form, no designer to ask — so a model that skips it produces an application whose manual is a table of dashes.",
@@ -1224,16 +1225,18 @@ var appwithai_language_default = {
         form: "%%entity <Name> <key>: <value>",
         status: "compiled",
         consumedBy: [
-          "packages/generator/src/parsers/mermaid.parser.ts (the help: / description: key only; the rest are validated)",
+          "packages/generator/src/parsers/mermaid.parser.ts (help:/description:, icon: and parent: are compiled; prefix:, softDelete:, label: and audited: are validated only)",
           "language/checker.ts (EML160, EML161, EML162)"
         ],
-        purpose: "Attach entity-level metadata not expressible in the ERD block: the sentence that explains the entity to whoever opens its screen, plus table prefix (bus/sys), soft delete, label, icon, audited.",
+        purpose: "Attach entity-level metadata not expressible in the ERD block: the sentence that explains the entity to whoever opens its screen, the icon that represents it, the parent it is a line item of, plus table prefix (bus/sys), soft delete, label, audited.",
         examples: [
           "%%entity Account help: A company you sell to. One account holds many contacts and every deal you run with them.",
+          "%%entity Patient icon: stethoscope",
           "%%entity Order audited: true",
           "%%entity Account prefix: bus",
           "%%entity Session softDelete: false"
-        ]
+        ],
+        iconNaming: "`icon:` is a lucide icon name (https://lucide.dev/icons). PascalCase, kebab-case and snake_case all resolve to the same icon - LayoutGrid, layout-grid and layout_grid are one. A name lucide does not have is NOT a diagnostic (the checker does not carry lucide's catalogue) and renders a placeholder instead: `icon: flask` is the common trap, because lucide has `flask-conical` and no `flask`. Compiled to sys_table.icon, which is what the entity's dashboard card, its window heading and the navigation all draw. An administrator can override it afterwards in Table and Column, including by uploading an image - the same column holds both. In the browser (--standalone) stack the value is carried into model.json and served by /model, but that interface draws a text glyph and does not render it."
       },
       {
         keyword: "%%field",
@@ -1261,6 +1264,8 @@ var appwithai_language_default = {
       {
         keyword: "%%category",
         form: "%%category name: <Name>; code: <id>; description: <text>; icon: <LucideIcon>; color: <#hex>; seq: <n>; default: true; entities: <A>, <B>",
+        dashboardScope: "A category block appears on the dashboard only when the reader may read at least one entity in it: the entity list is filtered by `%%rbac ... .read` and line items are excluded, because a child is reached through its parent. The Application Dictionary block beside the categories is the admin windows the reader is granted through sys_access, so it differs by role too.",
+        iconNaming: "A lucide icon name (https://lucide.dev/icons). PascalCase, kebab-case and snake_case all resolve to the same icon - LayoutGrid, layout-grid and layout_grid are one. A name lucide does not have is NOT a diagnostic (the checker does not carry lucide's catalogue) and renders a placeholder instead: `icon: flask` is the common trap, because lucide has `flask-conical` and no `flask`. Compiled to sys_category.icon and drawn beside the category heading on the dashboard.",
         status: "compiled",
         consumedBy: ["packages/generator/src/parsers/category.parser.ts"],
         purpose: 'Group business entities into a named Application Dictionary category. The dashboard renders one block per category, ordered by name; the admin dictionary maintains them. Only `name` is required; the rest are `;`-separated and may appear in any order. `code` is a stable short identifier, slugified from `name` when omitted — it is the dictionary row\'s key, so setting it explicitly keeps that key stable across a rename. A directive may span several lines by ending each continued line with `\\`. A model that declares none gets a single "General" default holding every entity.',
@@ -1492,6 +1497,7 @@ var appwithai_language_default = {
       EML112: "Duplicate attribute - deletes the later line, keeping the stronger constraints.",
       EML114: "Foreign key not ending in _id - appends the suffix.",
       EML117: "Entity has no primary key - prepends `string id PK`.",
+      EML287: "Rule condition names a camelCase identifier - rewrites it as the snake_case column.",
       EML421: "State workflow has no initial transition - inserts `[*] --> <firstState>`.",
       EML422: "State workflow has no terminal state - appends `<lastState> --> [*]`."
     },
@@ -6152,6 +6158,7 @@ class MermaidParser {
     const enumBindings = [];
     const fieldHelpText = [];
     const entityHelpText = new Map;
+    const entityIcons = new Map;
     const entityParents = new Map;
     for (let i = 0;i < lines.length; i++) {
       const line = lines[i] ?? "";
@@ -6176,6 +6183,9 @@ class MermaidParser {
         const entityHelp = this.parseEntityHelpDirective(trimmed);
         if (entityHelp)
           entityHelpText.set(entityHelp.entity, entityHelp.help);
+        const entityIcon = this.parseEntityIconDirective(trimmed);
+        if (entityIcon)
+          entityIcons.set(entityIcon.entity, entityIcon.icon);
         const entityParent = this.parseEntityParentDirective(trimmed);
         if (entityParent)
           entityParents.set(entityParent.entity, entityParent.parent);
@@ -6219,6 +6229,7 @@ class MermaidParser {
     }
     this.attachIndexes(entities, declaredIndexes);
     this.attachHelp(entities, fieldHelpText, entityHelpText);
+    this.attachIcons(entities, entityIcons);
     this.attachParents(entities, entityParents);
     const enums = this.attachEnums(entities, declaredEnums, enumBindings);
     return { entities, relationships, enums };
@@ -6233,6 +6244,13 @@ class MermaidParser {
       const attribute = entities.find((candidate) => candidate.name === name)?.attributes.find((candidate) => candidate.name === column);
       if (attribute)
         attribute.description = help;
+    }
+  }
+  attachIcons(entities, icons) {
+    for (const [name, icon] of icons) {
+      const entity = entities.find((candidate) => candidate.name === name);
+      if (entity)
+        entity.icon = icon;
     }
   }
   attachParents(entities, parents) {
@@ -6296,6 +6314,13 @@ class MermaidParser {
       return null;
     const help = match[2].trim();
     return help ? { entity: match[1], help } : null;
+  }
+  parseEntityIconDirective(line) {
+    const match = line.match(/^%%entity\s+([A-Za-z_]\w*)\s+icon\s*:\s*(.+)$/);
+    if (!match?.[1] || !match[2])
+      return null;
+    const icon = match[2].trim();
+    return icon ? { entity: match[1], icon } : null;
   }
   parseEntityParentDirective(line) {
     const match = line.match(/^%%entity\s+([A-Za-z_]\w*)\s+parent\s*:\s*([A-Za-z_]\w*)\s*$/);
@@ -9131,6 +9156,21 @@ class CheckEngine {
           hint: `Declare it with %%workflow ${workflow} entity: <Entity> kind: saga trigger: rule, or correct the name.`
         });
       }
+      const condition = props.when?.trim();
+      if (condition) {
+        const camel = [
+          ...new Set((condition.match(/\b[a-z][A-Za-z0-9]*\b/g) ?? []).filter((identifier) => /[a-z][A-Z]/.test(identifier)))
+        ];
+        if (camel.length > 0) {
+          const snake = (identifier) => identifier.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+          const tested = camel.map((c) => `"${c}"`).join(", ");
+          const meant = camel.map(snake).join(", ");
+          this.error("EML287", `%%action "${name}" tests ${tested}, which no column is named.`, {
+            line: lineNo,
+            hint: `A rule reads the record being written, and every column is snake_case. ` + `Write ${meant}. A camelCase name is undefined at evaluation: the rule ` + `never fires, or — against == null — fires on every write and the entity ` + `cannot be created.`
+          });
+        }
+      }
       const known = new Set(["when", ...contract.required, ...contract.optional ?? []]);
       for (const key of Object.keys(props)) {
         if (!known.has(key)) {
@@ -9843,7 +9883,8 @@ var AUTO_FIXABLE_CODES = new Set([
   "EML001",
   "EML114",
   "EML112",
-  "EML103"
+  "EML103",
+  "EML287"
 ]);
 if (false) {}
 
@@ -9887,6 +9928,8 @@ function applyFix(lines, issue) {
       return fixMissingInitialTransition(lines, issue, base);
     case "EML422":
       return fixMissingTerminalTransition(lines, issue, base);
+    case "EML287":
+      return fixCamelCaseRuleCondition(lines, issue, base);
     default:
       base.description = `No auto-fix strategy for ${issue.code}.`;
       return base;
@@ -9918,6 +9961,51 @@ function fixMissingMetaName(lines, _issue, base) {
   base.applied = true;
   base.description = `Inserted  ${newLine}  at line ${insertAt + 1}.`;
   base.changes.push({ lineNo: insertAt + 1, before: "", after: newLine, action: "insert" });
+  return base;
+}
+function fixCamelCaseRuleCondition(lines, issue, base) {
+  const lineNo = issue.line ? issue.line - 1 : -1;
+  if (lineNo < 0 || lineNo >= lines.length) {
+    base.description = "EML287 carries no line to repair.";
+    return base;
+  }
+  const original = lines[lineNo] ?? "";
+  if (!/^\s*%%action\b/.test(original)) {
+    base.description = `Line ${issue.line} is not a %%action directive.`;
+    return base;
+  }
+  const WHEN = /^(.*?\bwhen:\s*)(.*?)(\s+(?:message|field|value|workflow|to|target):\s.*)?$/;
+  const match = original.match(WHEN);
+  if (!match) {
+    base.description = "Could not isolate the when: condition.";
+    return base;
+  }
+  const [, head, condition, tail] = match;
+  const renamed = [];
+  const repaired = condition.replace(/'[^']*'|"[^"]*"|\b[a-z][A-Za-z0-9]*\b/g, (token) => {
+    if (token.startsWith("'") || token.startsWith('"'))
+      return token;
+    if (!/[a-z][A-Z]/.test(token))
+      return token;
+    const snake = token.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+    renamed.push(`${token} → ${snake}`);
+    return snake;
+  });
+  if (renamed.length === 0) {
+    base.description = "No camelCase identifier found in the condition.";
+    return base;
+  }
+  lines[lineNo] = `${head}${repaired}${tail ?? ""}`;
+  base.applied = true;
+  base.description = `Rewrote ${renamed.join(", ")} in the rule condition.`;
+  base.changes = [
+    {
+      lineNo: issue.line ?? lineNo + 1,
+      before: original,
+      after: lines[lineNo] ?? "",
+      action: "replace"
+    }
+  ];
   return base;
 }
 function fixForeignKeyNaming(lines, issue, base) {
@@ -17027,6 +17115,19 @@ a { color: var(--primary); }
   margin: 18px 0 20px; font-size: 12.5px; line-height: 1.55; color: var(--text-soft);
 }
 
+/* The second application, named on the first screen. \`.btn\` is an <a> here, so
+   it needs the decoration and line-height a <button> got for free. */
+.login__other {
+  margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border);
+}
+.login__other h2 { margin: 0 0 4px; font-size: 18px; }
+.login__other .login__aside-note { margin: 10px 0 16px; }
+.btn--report {
+  background: var(--reporting); border-color: var(--reporting); color: #fff;
+  text-decoration: none; line-height: 1.2;
+}
+.btn--report:hover:not(:disabled) { background: #313a47; border-color: #313a47; }
+
 .masthead--report { border-bottom: 2px solid var(--reporting); }
 .masthead__badge {
   padding: 4px 9px; border-radius: 999px; background: var(--reporting); color: #fff;
@@ -18372,22 +18473,25 @@ import { setHelp } from "../main.js";
  * the dictionary and none of the part that decides what a screen looks like.
  * The reference type on a column is why a field is a dropdown rather than a
  * text box; the reference lists are the dropdown's values; the windows and tabs
- * are how the screens are grouped. All of it is seeded at first boot and all of
- * it is readable, so all of it is shown.
+ * are how the screens are grouped; the fields are what each tab actually draws.
+ * All of it is seeded at first boot and all of it is readable, so all of it is
+ * shown.
  *
- * Picking a table opens its columns. That is one request per table rather than
- * one for every table at load, because a seventeen-entity model has several
- * hundred columns and nobody reads them all at once.
+ * Picking a table opens its columns, and picking a tab opens its fields. That is
+ * one request per table rather than one for every table at load, because a
+ * seventeen-entity model has several hundred columns and nobody reads them all at
+ * once.
  */
 export async function dictionaryView(root) {
   mount(root, spinner("Reading the dictionary"));
-  const [tables, summary, references, refLists, windows, tabs] = await Promise.all([
+  const [tables, summary, references, refLists, windows, tabs, fields] = await Promise.all([
     api.get("/sys/tables"),
     api.get("/sys/model-summary"),
     api.get("/sys/references"),
     api.get("/sys/ref-list"),
     api.get("/sys/windows"),
     api.get("/sys/tabs"),
+    api.get("/sys/fields"),
   ]);
 
   const columnsByTable = new Map();
@@ -18405,14 +18509,122 @@ export async function dictionaryView(root) {
 
   const detail = el("div.dict__detail", el("p.muted", "Select a table to see its columns."));
 
-  async function showColumns(table) {
-    if (!columnsByTable.has(table.sys_table_id)) {
-      columnsByTable.set(
-        table.sys_table_id,
-        await api.get(\`/sys/columns?tableId=\${table.sys_table_id}\`)
-      );
+  /*
+   * A field is not a column, and this screen used to stop one short of saying so.
+   *
+   * \`sys_column\` is where a value is stored; \`sys_field\` is where it is *placed* —
+   * whether it appears on the form at all, whether it appears in the grid, in
+   * what order, under what label, and whether it can be edited. That is the third
+   * leg of the window/tab/field triple the rest of this section already shows, and
+   * the application reads it on every screen it draws: \`/bus/<entity>/fields/form\`
+   * and \`.../fields/grid\` are both queries over these rows. They were seeded (323
+   * of them on the hospital model), served by \`/sys/fields\`, and rendered nowhere,
+   * so the one part of the dictionary that decides what a form looks like was the
+   * one part a reader could not look at.
+   */
+  const fieldsByTab = new Map();
+  for (const field of fields) {
+    if (!fieldsByTab.has(field.sys_tab_id)) fieldsByTab.set(field.sys_tab_id, []);
+    fieldsByTab.get(field.sys_tab_id).push(field);
+  }
+
+  const fieldDetail = el("div.dict__detail", el("p.muted", "Select a tab to see its fields."));
+
+  /* The stat counts what this caller can actually open, for the same reason the
+     Tables list is scoped: a count of 323 above a list offering eight of them
+     reads as a broken screen rather than as access control working. */
+  const readableTabIds = new Set(
+    tabs
+      .filter((tab) => tables.some((row) => row.sys_table_id === tab.sys_table_id))
+      .map((tab) => tab.sys_tab_id)
+  );
+  const visibleFieldCount = fields.filter((field) => readableTabIds.has(field.sys_tab_id)).length;
+
+  /* Columns are fetched per table and cached; the fields view needs the same rows
+     to name the column each field sits on, so it goes through the same cache
+     rather than adding a second request for what is already in hand. */
+  async function columnsFor(tableId) {
+    if (!columnsByTable.has(tableId)) {
+      columnsByTable.set(tableId, await api.get(\`/sys/columns?tableId=\${tableId}\`));
     }
-    const columns = columnsByTable.get(table.sys_table_id);
+    return columnsByTable.get(tableId);
+  }
+
+  const yesNo = (value) => (value ? "Yes" : "No");
+
+  async function showFields(tab) {
+    const table = tables.find((row) => row.sys_table_id === tab.sys_table_id);
+    /* \`/sys/tables\` is scoped to what this caller's roles may read; \`/sys/tabs\`
+       and \`/sys/fields\` are not. Showing the fields of a table absent from that
+       scoped list would make this screen name columns of an entity the rest of
+       the application refuses to show — so the tab is listed and its fields are
+       not, which is the same rule the Tables list above already follows. */
+    if (!table) {
+      mount(
+        fieldDetail,
+        el(
+          "div",
+          el("h3.section-title", tab.name),
+          el("p.muted", "This tab belongs to an entity your roles cannot read.")
+        )
+      );
+      return;
+    }
+    const rows = fieldsByTab.get(tab.sys_tab_id) ?? [];
+    const columnName = new Map(
+      (await columnsFor(table.sys_table_id)).map((c) => [c.sys_column_id, c.column_name])
+    );
+    mount(
+      fieldDetail,
+      el(
+        "div",
+        el("h3.section-title", \`\${tab.name} — \${rows.length} fields\`),
+        el(
+          "p.lede",
+          "“On form” and “In grid” are what the application asks for when it draws this " +
+            "entity’s record screen and its list. Sequence is the order it draws them in."
+        ),
+        rows.length === 0
+          ? el("p.muted", "No fields are seeded against this tab.")
+          : el(
+              "div.table-wrap",
+              el(
+                "table.table",
+                el(
+                  "thead",
+                  el(
+                    "tr",
+                    ["Field", "Column", "On form", "In grid", "Form seq", "Grid seq", "Required", "Read only", "Type", "Help"].map(
+                      (heading) => el("th", heading)
+                    )
+                  )
+                ),
+                el(
+                  "tbody",
+                  rows.map((field) =>
+                    el(
+                      "tr",
+                      el("td", field.name || "—"),
+                      el("td", el("code", columnName.get(field.sys_column_id) || "—")),
+                      el("td", yesNo(field.is_displayed)),
+                      el("td", yesNo(field.is_displayed_grid)),
+                      el("td", displayValue(field.seq_no ?? "—")),
+                      el("td", displayValue(field.seq_no_grid ?? "—")),
+                      el("td", yesNo(field.is_mandatory)),
+                      el("td", yesNo(field.is_read_only)),
+                      el("td", field.field_type || "—"),
+                      el("td.dict__help", field.description || "—")
+                    )
+                  )
+                )
+              )
+            )
+      )
+    );
+  }
+
+  async function showColumns(table) {
+    const columns = await columnsFor(table.sys_table_id);
     mount(
       detail,
       el(
@@ -18471,6 +18683,7 @@ export async function dictionaryView(root) {
           ["List values", refLists.length],
           ["Windows", windows.length],
           ["Tabs", tabs.length],
+          ["Fields", visibleFieldCount],
           ["Rules", summary.counts.rules],
         ]),
 
@@ -18549,26 +18762,34 @@ export async function dictionaryView(root) {
             "table.table",
             el(
               "thead",
-              el("tr", ["Window", "Tab", "Table", "Sequence"].map((heading) => el("th", heading)))
+              el("tr", ["Window", "Tab", "Table", "Sequence", "Fields"].map((heading) => el("th", heading)))
             ),
             el(
               "tbody",
               tabs.length === 0
-                ? [el("tr", el("td", { colspan: 4 }, "No tabs seeded."))]
+                ? [el("tr", el("td", { colspan: 5 }, "No tabs seeded."))]
                 : tabs.map((tab) => {
                     const window = windows.find((row) => row.sys_window_id === tab.sys_window_id);
                     const table = tables.find((row) => row.sys_table_id === tab.sys_table_id);
                     return el(
-                      "tr",
+                      "tr.dict__row",
+                      {
+                        onclick: () => showFields(tab),
+                        title: \`Show the fields of \${tab.name}\`,
+                      },
                       el("td", window?.name || "—"),
                       el("td", tab.name),
                       el("td", table ? el("code", table.table_name) : "—"),
-                      el("td", displayValue(tab.seq_no ?? "—"))
+                      el("td", displayValue(tab.seq_no ?? "—")),
+                      el("td", table ? displayValue((fieldsByTab.get(tab.sys_tab_id) ?? []).length) : "—")
                     );
                   })
             )
           )
-        )
+        ),
+
+        el("h3.section-title", "Fields"),
+        fieldDetail
       )
     )
   );
@@ -20623,6 +20844,31 @@ export async function loginView(root, { project, onSignedIn }) {
           el("li", el("strong", "The application server"), " on a Worker with a Node-API runtime"),
           el("li", el("strong", "A Service Worker"), " answering this page's own /api requests"),
           el("li", el("strong", "No network"), " after load, and no data leaves the browser")
+        ),
+        /*
+         * The other application, named on the first screen rather than behind
+         * this one's sign-in.
+         *
+         * One model generates two applications, and the reporting one keeps its
+         * own accounts — \`render()\` in main.js matches \`#/report\` *before* the
+         * sign-in gate for exactly that reason, so it has never needed a session
+         * in this application. Until now the only way to it was the dashboard
+         * card, which is on the far side of a sign-in the reporting platform does
+         * not share: a reader who stopped at this screen was never told the
+         * second application existed. A plain anchor, because \`hashchange\` is
+         * already wired to the router.
+         */
+        el(
+          "div.login__other",
+          el("h2", "The reporting application"),
+          el(
+            "p.login__aside-note",
+            "The same model also generated an Enterprise Reporting application — its reports, " +
+              "charts and dashboard over this application's data, with one reporting role per " +
+              "role the model declares. It has its own accounts and its own sign-in, so you do " +
+              "not need to sign in here first."
+          ),
+          el("a.btn.btn--report", { href: "#/report" }, "Open Enterprise Reporting →")
         )
       ),
       el(
@@ -21656,7 +21902,7 @@ export async function reportsView(root) {
 }
 `
 });
-var RUNTIME_BYTES = 431343;
+var RUNTIME_BYTES = 438458;
 
 // packages/core/src/types/bus-entity.types.ts
 function attributeTypeToReferenceId(type) {
@@ -22073,8 +22319,212 @@ var EntitySchema = exports_external.object({
   description: exports_external.string().optional(),
   attributes: exports_external.array(EntityAttributeSchema),
   primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean()
+  timestamps: exports_external.boolean(),
+  icon: exports_external.string().optional()
 });
+// packages/generator/src/generators/dictionary.generator.ts
+class DictionaryGenerator {
+  config;
+  constructor(options) {
+    this.config = {
+      ...defaultDictionaryConfig,
+      randomizeFieldOrder: options.randomizeFieldOrder
+    };
+  }
+  generateDictionaryContext(entities, relationships) {
+    const busEntities = [];
+    const busAttributesMap = new Map;
+    const sysTables = [];
+    const sysColumns = [];
+    const sysWindows = [];
+    const sysTabs = [];
+    const sysFields = [];
+    const sysFieldGroups = [];
+    let tableCounter = 0;
+    let columnCounter = 0;
+    let windowCounter = 0;
+    let tabCounter = 0;
+    let fieldCounter = 0;
+    let fieldGroupCounter = 0;
+    const windowByEntity = new Map;
+    const childTabs = [];
+    const declared = declaredEntityNames(entities);
+    for (const entity2 of entities) {
+      const busEntity = entityToBusEntity(entity2, declared);
+      busEntities.push(busEntity);
+      const busAttrs = entity2.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
+      busAttributesMap.set(busEntity.tableName, busAttrs);
+      const tableId = `table_${++tableCounter}`;
+      const sysTable = {
+        ...generateSysTable(busEntity, this.config),
+        _tempId: tableId
+      };
+      sysTables.push(sysTable);
+      const identifiers = new Set(identifierColumnNames(busAttrs, entity2.primaryKey));
+      const columnEntries = busAttrs.map((attr, _index) => {
+        const colId = `col_${++columnCounter}`;
+        return {
+          sys_table_id: tableId,
+          column_name: attr.columnName,
+          name: attr.displayName,
+          description: attr.description,
+          sys_reference_id: attr.referenceId,
+          sys_val_rule_id: undefined,
+          field_length: attr.maxLength,
+          default_value: attr.default?.toString(),
+          value_min: undefined,
+          value_max: undefined,
+          is_key: attr.name === entity2.primaryKey,
+          is_parent: false,
+          is_mandatory: attr.required,
+          is_updateable: attr.name !== entity2.primaryKey,
+          is_identifier: identifiers.has(attr.name),
+          is_selection_column: ["name", "email", "title", "description", "status"].includes(attr.name) || attr.unique === true,
+          is_translated: false,
+          is_encrypted: false,
+          is_allow_logging: true,
+          is_allow_copy: attr.name !== entity2.primaryKey,
+          seq_no: attr.seqNo,
+          callout: undefined,
+          read_only_logic: undefined,
+          mandatory_logic: undefined,
+          format_pattern: undefined,
+          entity_type: this.config.defaultEntityType,
+          is_active: true,
+          created_by: this.config.createdBy,
+          updated_by: this.config.createdBy,
+          _tempId: colId,
+          _tableRef: tableId
+        };
+      });
+      sysColumns.push(...columnEntries);
+      const isChild = !!entity2.parentEntity;
+      const windowId = `win_${++windowCounter}`;
+      if (!isChild) {
+        sysWindows.push({
+          ...generateSysWindow(busEntity, this.config),
+          _tempId: windowId,
+          _tableRef: tableId
+        });
+      }
+      const tabId = `tab_${++tabCounter}`;
+      const sysTab = {
+        ...generateSysTab(windowId, tableId, busEntity, isChild ? 1 : 0, this.config),
+        _tempId: tabId,
+        _windowRef: windowId,
+        _tableRef: tableId
+      };
+      sysTabs.push(sysTab);
+      if (isChild) {
+        const link = columnEntries.find((col) => col.column_name === entity2.parentLinkColumn);
+        if (link)
+          link.is_parent = true;
+        childTabs.push({
+          tab: sysTab,
+          table: sysTable,
+          parentEntity: entity2.parentEntity,
+          linkColumnRef: link?._tempId
+        });
+      } else {
+        windowByEntity.set(entity2.name, windowId);
+      }
+      const groups = generateSysFieldGroups(busEntity.displayName, this.config);
+      const groupEntries = groups.map((group) => ({
+        ...group,
+        _tempId: `fg_${++fieldGroupCounter}`
+      }));
+      sysFieldGroups.push(...groupEntries);
+      const columnRefs = columnEntries.map((col) => ({
+        sys_column_id: col._tempId,
+        column_name: col.column_name,
+        name: col.name,
+        description: col.description
+      }));
+      const fields = generateSysFields(tabId, columnRefs, this.config);
+      const fieldEntries = fields.map((field, idx) => ({
+        ...field,
+        _tempId: `field_${++fieldCounter}`,
+        _tabRef: tabId,
+        _columnRef: columnEntries[idx]?._tempId ?? ""
+      }));
+      sysFields.push(...fieldEntries);
+    }
+    let childSeq = 20;
+    for (const child of childTabs) {
+      const parentWindow = windowByEntity.get(child.parentEntity);
+      if (!parentWindow)
+        continue;
+      child.tab._windowRef = parentWindow;
+      child.tab.sys_window_id = parentWindow;
+      child.tab.seq_no = childSeq;
+      childSeq += 10;
+      if (child.linkColumnRef)
+        child.tab.link_column_id = child.linkColumnRef;
+      child.table.sys_window_id = parentWindow;
+    }
+    return {
+      entities: busEntities,
+      busAttributes: busAttributesMap,
+      sysTables,
+      sysColumns,
+      sysWindows,
+      sysTabs,
+      sysFields,
+      sysFieldGroups,
+      references: ReferenceType,
+      relationships
+    };
+  }
+  getSystemTableNames() {
+    return [
+      "sys_table",
+      "sys_column",
+      "sys_window",
+      "sys_tab",
+      "sys_field",
+      "sys_field_group",
+      "sys_reference",
+      "sys_ref_list",
+      "sys_ref_table",
+      "sys_val_rule",
+      "sys_user",
+      "sys_role",
+      "sys_user_roles",
+      "sys_access"
+    ];
+  }
+  getStandardReferences() {
+    return [
+      { id: ReferenceType.STRING, name: "String", description: "String/Varchar field" },
+      { id: ReferenceType.INTEGER, name: "Integer", description: "Integer number" },
+      { id: ReferenceType.AMOUNT, name: "Amount", description: "Decimal/Amount" },
+      { id: ReferenceType.ID, name: "ID", description: "Identifier (UUID)" },
+      { id: ReferenceType.TEXT, name: "Text", description: "Long text/memo" },
+      { id: ReferenceType.DATE, name: "Date", description: "Date only" },
+      { id: ReferenceType.DATETIME, name: "DateTime", description: "Date and time" },
+      { id: ReferenceType.LIST, name: "List", description: "Dropdown list" },
+      { id: ReferenceType.TABLE, name: "Table", description: "Table reference" },
+      {
+        id: ReferenceType.TABLE_DIRECT,
+        name: "Table Direct",
+        description: "Direct table reference"
+      },
+      { id: ReferenceType.YES_NO, name: "Yes-No", description: "Boolean (Yes/No)" },
+      { id: ReferenceType.LOCATION, name: "Location", description: "Location/Address" },
+      { id: ReferenceType.LOCATOR, name: "Locator", description: "Warehouse locator" },
+      { id: ReferenceType.ACCOUNT, name: "Account", description: "Account reference" },
+      { id: ReferenceType.URL, name: "URL", description: "URL/Web address" },
+      { id: ReferenceType.IMAGE, name: "Image", description: "Image file" },
+      { id: ReferenceType.FILE, name: "File", description: "File attachment" },
+      { id: ReferenceType.COLOR, name: "Color", description: "Color picker" },
+      { id: ReferenceType.JSON, name: "JSON", description: "JSON data" },
+      { id: ReferenceType.PASSWORD, name: "Password", description: "Masked password" },
+      { id: ReferenceType.EMAIL, name: "Email", description: "Email address" },
+      { id: ReferenceType.PHONE, name: "Phone", description: "Phone number" }
+    ];
+  }
+}
+
 // packages/generator/src/naming/tables.ts
 var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
 function tableNameFor(entity2) {
@@ -22678,209 +23128,6 @@ function buildReportingPack(model, options) {
   };
 }
 
-// packages/generator/src/generators/dictionary.generator.ts
-class DictionaryGenerator {
-  config;
-  constructor(options) {
-    this.config = {
-      ...defaultDictionaryConfig,
-      randomizeFieldOrder: options.randomizeFieldOrder
-    };
-  }
-  generateDictionaryContext(entities, relationships) {
-    const busEntities = [];
-    const busAttributesMap = new Map;
-    const sysTables = [];
-    const sysColumns = [];
-    const sysWindows = [];
-    const sysTabs = [];
-    const sysFields = [];
-    const sysFieldGroups = [];
-    let tableCounter = 0;
-    let columnCounter = 0;
-    let windowCounter = 0;
-    let tabCounter = 0;
-    let fieldCounter = 0;
-    let fieldGroupCounter = 0;
-    const windowByEntity = new Map;
-    const childTabs = [];
-    const declared = declaredEntityNames(entities);
-    for (const entity2 of entities) {
-      const busEntity = entityToBusEntity(entity2, declared);
-      busEntities.push(busEntity);
-      const busAttrs = entity2.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
-      busAttributesMap.set(busEntity.tableName, busAttrs);
-      const tableId = `table_${++tableCounter}`;
-      const sysTable = {
-        ...generateSysTable(busEntity, this.config),
-        _tempId: tableId
-      };
-      sysTables.push(sysTable);
-      const identifiers = new Set(identifierColumnNames(busAttrs, entity2.primaryKey));
-      const columnEntries = busAttrs.map((attr, _index) => {
-        const colId = `col_${++columnCounter}`;
-        return {
-          sys_table_id: tableId,
-          column_name: attr.columnName,
-          name: attr.displayName,
-          description: attr.description,
-          sys_reference_id: attr.referenceId,
-          sys_val_rule_id: undefined,
-          field_length: attr.maxLength,
-          default_value: attr.default?.toString(),
-          value_min: undefined,
-          value_max: undefined,
-          is_key: attr.name === entity2.primaryKey,
-          is_parent: false,
-          is_mandatory: attr.required,
-          is_updateable: attr.name !== entity2.primaryKey,
-          is_identifier: identifiers.has(attr.name),
-          is_selection_column: ["name", "email", "title", "description", "status"].includes(attr.name) || attr.unique === true,
-          is_translated: false,
-          is_encrypted: false,
-          is_allow_logging: true,
-          is_allow_copy: attr.name !== entity2.primaryKey,
-          seq_no: attr.seqNo,
-          callout: undefined,
-          read_only_logic: undefined,
-          mandatory_logic: undefined,
-          format_pattern: undefined,
-          entity_type: this.config.defaultEntityType,
-          is_active: true,
-          created_by: this.config.createdBy,
-          updated_by: this.config.createdBy,
-          _tempId: colId,
-          _tableRef: tableId
-        };
-      });
-      sysColumns.push(...columnEntries);
-      const isChild = !!entity2.parentEntity;
-      const windowId = `win_${++windowCounter}`;
-      if (!isChild) {
-        sysWindows.push({
-          ...generateSysWindow(busEntity, this.config),
-          _tempId: windowId,
-          _tableRef: tableId
-        });
-      }
-      const tabId = `tab_${++tabCounter}`;
-      const sysTab = {
-        ...generateSysTab(windowId, tableId, busEntity, isChild ? 1 : 0, this.config),
-        _tempId: tabId,
-        _windowRef: windowId,
-        _tableRef: tableId
-      };
-      sysTabs.push(sysTab);
-      if (isChild) {
-        const link = columnEntries.find((col) => col.column_name === entity2.parentLinkColumn);
-        if (link)
-          link.is_parent = true;
-        childTabs.push({
-          tab: sysTab,
-          table: sysTable,
-          parentEntity: entity2.parentEntity,
-          linkColumnRef: link?._tempId
-        });
-      } else {
-        windowByEntity.set(entity2.name, windowId);
-      }
-      const groups = generateSysFieldGroups(busEntity.displayName, this.config);
-      const groupEntries = groups.map((group) => ({
-        ...group,
-        _tempId: `fg_${++fieldGroupCounter}`
-      }));
-      sysFieldGroups.push(...groupEntries);
-      const columnRefs = columnEntries.map((col) => ({
-        sys_column_id: col._tempId,
-        column_name: col.column_name,
-        name: col.name,
-        description: col.description
-      }));
-      const fields = generateSysFields(tabId, columnRefs, this.config);
-      const fieldEntries = fields.map((field, idx) => ({
-        ...field,
-        _tempId: `field_${++fieldCounter}`,
-        _tabRef: tabId,
-        _columnRef: columnEntries[idx]?._tempId ?? ""
-      }));
-      sysFields.push(...fieldEntries);
-    }
-    let childSeq = 20;
-    for (const child of childTabs) {
-      const parentWindow = windowByEntity.get(child.parentEntity);
-      if (!parentWindow)
-        continue;
-      child.tab._windowRef = parentWindow;
-      child.tab.sys_window_id = parentWindow;
-      child.tab.seq_no = childSeq;
-      childSeq += 10;
-      if (child.linkColumnRef)
-        child.tab.link_column_id = child.linkColumnRef;
-      child.table.sys_window_id = parentWindow;
-    }
-    return {
-      entities: busEntities,
-      busAttributes: busAttributesMap,
-      sysTables,
-      sysColumns,
-      sysWindows,
-      sysTabs,
-      sysFields,
-      sysFieldGroups,
-      references: ReferenceType,
-      relationships
-    };
-  }
-  getSystemTableNames() {
-    return [
-      "sys_table",
-      "sys_column",
-      "sys_window",
-      "sys_tab",
-      "sys_field",
-      "sys_field_group",
-      "sys_reference",
-      "sys_ref_list",
-      "sys_ref_table",
-      "sys_val_rule",
-      "sys_user",
-      "sys_role",
-      "sys_user_roles",
-      "sys_access"
-    ];
-  }
-  getStandardReferences() {
-    return [
-      { id: ReferenceType.STRING, name: "String", description: "String/Varchar field" },
-      { id: ReferenceType.INTEGER, name: "Integer", description: "Integer number" },
-      { id: ReferenceType.AMOUNT, name: "Amount", description: "Decimal/Amount" },
-      { id: ReferenceType.ID, name: "ID", description: "Identifier (UUID)" },
-      { id: ReferenceType.TEXT, name: "Text", description: "Long text/memo" },
-      { id: ReferenceType.DATE, name: "Date", description: "Date only" },
-      { id: ReferenceType.DATETIME, name: "DateTime", description: "Date and time" },
-      { id: ReferenceType.LIST, name: "List", description: "Dropdown list" },
-      { id: ReferenceType.TABLE, name: "Table", description: "Table reference" },
-      {
-        id: ReferenceType.TABLE_DIRECT,
-        name: "Table Direct",
-        description: "Direct table reference"
-      },
-      { id: ReferenceType.YES_NO, name: "Yes-No", description: "Boolean (Yes/No)" },
-      { id: ReferenceType.LOCATION, name: "Location", description: "Location/Address" },
-      { id: ReferenceType.LOCATOR, name: "Locator", description: "Warehouse locator" },
-      { id: ReferenceType.ACCOUNT, name: "Account", description: "Account reference" },
-      { id: ReferenceType.URL, name: "URL", description: "URL/Web address" },
-      { id: ReferenceType.IMAGE, name: "Image", description: "Image file" },
-      { id: ReferenceType.FILE, name: "File", description: "File attachment" },
-      { id: ReferenceType.COLOR, name: "Color", description: "Color picker" },
-      { id: ReferenceType.JSON, name: "JSON", description: "JSON data" },
-      { id: ReferenceType.PASSWORD, name: "Password", description: "Masked password" },
-      { id: ReferenceType.EMAIL, name: "Email", description: "Email address" },
-      { id: ReferenceType.PHONE, name: "Phone", description: "Phone number" }
-    ];
-  }
-}
-
 // packages/generator/src/generators/wasm/model-bundle.ts
 function sqlType(attribute) {
   if (attribute.isForeignKey)
@@ -23085,6 +23332,7 @@ function buildModelBundle(parsed, project) {
       description: entity2.description,
       primaryKey: entity2.primaryKey,
       category: categoryOf.get(entity2.name) ?? "General",
+      icon: entity2.icon,
       parentEntity: entity2.parentEntity,
       parentLinkColumn: entity2.parentLinkColumn ? snake2(entity2.parentLinkColumn) : undefined,
       attributes: entity2.attributes.map((attribute, index) => ({
@@ -23239,8 +23487,15 @@ function buildModelBundle(parsed, project) {
   };
   return { model, schema };
 }
-var NOISE = new Set(["id", "created_by", "updated_by", "deleted_by", "deleted_at", "version"]);
-var isNoise = (column) => NOISE.has(column);
+var GRID_NOISE = new Set([
+  "id",
+  "created_by",
+  "updated_by",
+  "deleted_by",
+  "deleted_at",
+  "version"
+]);
+var isNoise = (column) => GRID_NOISE.has(column);
 function entityNameFor(entities, tableName) {
   return entities.find((entity2) => entity2.tableName === tableName)?.name ?? tableName;
 }
@@ -23376,6 +23631,78 @@ function relationshipsFor(model, entity2) {
           ${items}
       </ul>`;
 }
+function screensFor(dictionary2, entity2) {
+  const layout = dictionary2.get(entity2.name);
+  if (!layout)
+    return "";
+  const rows = layout.fields.map((field) => `          <tr>
+            <td><code>${escapeHtml(field.column)}</code></td>
+            <td>${escapeHtml(field.label)}</td>
+            <td>${field.onForm ? "Yes" : "No"}</td>
+            <td>${field.inGrid ? "Yes" : "No"}</td>
+            <td>${field.formSeq}</td>
+            <td>${field.readOnly ? "Yes" : "No"}</td>
+          </tr>`).join(`
+`);
+  return `      <h4>Where it appears</h4>
+      <p>The application opens this record in the <b>${escapeHtml(layout.window)}</b> window, on the <b>${escapeHtml(layout.tab)}</b> tab. These are its ${layout.fields.length} field${layout.fields.length === 1 ? "" : "s"} &mdash; what the screen draws, in the order it draws them. An administrator can change any of this in Application Dictionary &rarr; Fields without regenerating the application.</p>
+      <table>
+        <thead><tr><th>Column</th><th>Label</th><th>On the form</th><th>In the list</th><th>Order</th><th>Read only</th></tr></thead>
+        <tbody>
+${rows}
+        </tbody>
+      </table>`;
+}
+function manualDictionary(model) {
+  const context = new DictionaryGenerator({
+    databaseType: "postgresql",
+    includeRbac: true,
+    randomizeFieldOrder: false
+  }).generateDictionaryContext(model.entities, model.relationships);
+  const tableOf = new Map(context.sysTables.map((table) => [table._tempId, table.table_name]));
+  const windowOf = new Map(context.sysWindows.map((w) => [w._tempId, w.name]));
+  const columnOf = new Map(context.sysColumns.map((c) => [c._tempId, c.column_name]));
+  const tabOf = new Map(context.sysTabs.map((tab) => [
+    tab._tempId,
+    {
+      name: tab.name,
+      window: windowOf.get(tab._windowRef) ?? tab.name,
+      table: tableOf.get(tab._tableRef) ?? ""
+    }
+  ]));
+  const byTable = new Map;
+  for (const tab of tabOf.values()) {
+    if (tab.table && !byTable.has(tab.table)) {
+      byTable.set(tab.table, { window: tab.window, tab: tab.name, fields: [] });
+    }
+  }
+  for (const field of context.sysFields) {
+    const tab = tabOf.get(field._tabRef);
+    if (!tab?.table)
+      continue;
+    const layout = byTable.get(tab.table);
+    if (!layout)
+      continue;
+    const column = columnOf.get(field._columnRef) ?? "";
+    layout.fields.push({
+      column,
+      label: field.name,
+      onForm: field.is_displayed !== false,
+      inGrid: field.is_displayed_grid !== false && !GRID_NOISE.has(column),
+      formSeq: field.seq_no ?? 0,
+      readOnly: !!field.is_read_only
+    });
+  }
+  for (const layout of byTable.values())
+    layout.fields.sort((a, b) => a.formSeq - b.formSeq);
+  const byEntity = new Map;
+  for (const entity2 of model.entities) {
+    const layout = byTable.get(tableNameFor(entity2));
+    if (layout)
+      byEntity.set(entity2.name, layout);
+  }
+  return byEntity;
+}
 function workflowFor(model, entity2) {
   const workflows = model.workflows.filter((workflow) => workflow.entity === entity2.name);
   if (workflows.length === 0)
@@ -23453,6 +23780,7 @@ function renderManual(model, options) {
   }
   const entities = [...model.entities].sort((a, b) => a.name.localeCompare(b.name));
   const declared = declaredNames(model);
+  const dictionary2 = manualDictionary(model);
   const contents = `
       <nav class="toc" aria-label="Contents">
         <h2>Contents</h2>
@@ -23486,6 +23814,7 @@ ${fieldRows(entity2, declared)}
         </tbody>
       </table>
 ${[
+      screensFor(dictionary2, entity2),
       relationshipsFor(model, entity2),
       workflowFor(model, entity2),
       rulesFor(model, entity2),

@@ -4148,6 +4148,7 @@ function formatIssueDetail(issue) {
 }
 function formatNextSteps(report) {
   const { errors, warnings } = report.counts;
+  const dictionary = report.issues.filter((issue) => DICTIONARY_COMPLETENESS.has(issue.code));
   const fixable = report.issues.filter((issue) => issue.autoFixable);
   const manual = report.issues.filter((issue) => !issue.autoFixable);
   const first = manual.find((issue) => issue.severity === "error") ?? manual[0];
@@ -4162,10 +4163,26 @@ function formatNextSteps(report) {
     steps.push(`Match each one on the line shown above it rather than on its number. If the text ` + `there is not what you expect, the file you are editing is not the file that was checked.`);
   }
   steps.push(`Re-run the checker over the whole file from zero after every round. A repair can ` + `uncover a problem an earlier error was masking, so a report from before your edit ` + `describes a document that no longer exists.`);
-  steps.push(errors > 0 ? `Repeat until the last line reads OK. The generator refuses this model while any error stands.` : `The generator accepts this model now. Clearing the ${warnings} warning${warnings === 1 ? "" : "s"} is optional, but each one names something it accepts and quietly gets wrong.`);
+  if (errors > 0) {
+    steps.push(`Repeat until the last line reads OK. The generator refuses this model while any error stands.`);
+  } else if (dictionary.length > 0) {
+    const codes = [...new Set(dictionary.map((issue) => issue.code))].sort().join(", ");
+    const other = warnings - dictionary.filter((issue) => issue.severity === "warning").length;
+    steps.push(`The generator accepts this model, and it is not finished. ${dictionary.length} of these ` + `(${codes}) are Application Dictionary gaps: the dictionary is what the application ` + `draws every screen from, and each one leaves it recording less than the model knows — ` + `a reference as text rather than a lookup, a closed vocabulary as a free text box, a ` + `field and its manual entry with nothing under it. Clear them. \`node audit-model.mjs ` + `<file>.mmd\` fails while any stand, and the authoring protocol requires it to exit 0.` + (other > 0 ? ` The remaining ${other} warning${other === 1 ? " is" : "s are"} advisory.` : ""));
+  } else {
+    steps.push(`The generator accepts this model now. Clearing the ${warnings} warning${warnings === 1 ? "" : "s"} is optional, but each one names something it accepts and quietly gets wrong.`);
+  }
   return ["next steps", ...steps.map((step, index) => `  ${index + 1}. ${wrap(step)}`)].join(`
 `);
 }
+var DICTIONARY_COMPLETENESS = new Set([
+  "EML119",
+  "EML146",
+  "EML151",
+  "EML152",
+  "EML153",
+  "EML154"
+]);
 function wrap(text, width = 74) {
   const out = [];
   let line = "";
@@ -4189,7 +4206,8 @@ function formatReport(report) {
     count(warnings, "warning"),
     ...infos > 0 ? [count(infos, "note")] : []
   ].join(", ");
-  const advisory = report.ok && report.issues.length > 0 ? " — notes and warnings are advisory; the generator accepts this model" : "";
+  const dictionaryGaps = report.issues.filter((issue) => DICTIONARY_COMPLETENESS.has(issue.code)).length;
+  const advisory = !report.ok ? "" : dictionaryGaps > 0 ? ` — the generator accepts this model, but ${dictionaryGaps} Application Dictionary gap${dictionaryGaps === 1 ? "" : "s"} above must still be cleared (audit-model.mjs fails while they stand)` : report.issues.length > 0 ? " — notes and warnings are advisory; the generator accepts this model" : "";
   const verdict = report.ok ? `OK — ${counted} (EML ${report.languageVersion})${advisory}` : `FAILED — ${counted} (EML ${report.languageVersion})`;
   if (report.issues.length === 0)
     return verdict;

@@ -39,7 +39,7 @@
       "repository": "businessappwithai/enterprise_reporting_tanstack",
       "path": "enterprise_reporting_tanstack",
       "branch": "main",
-      "ref": "4a161c75eedd64f618230dca58b5007d5b34be47",
+      "ref": "a3a0ae0a98078b4f5c2755419a1b97b329657c66",
       "install": false,
       "install_note": "Nothing local reads this checkout's node_modules \u2014 it is a Docker build context, and the image build runs its own install inside the image, so `./deps.sh --install` skips it.",
       "needed_for": [
