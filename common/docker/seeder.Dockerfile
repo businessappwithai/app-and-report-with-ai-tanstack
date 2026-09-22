@@ -43,11 +43,14 @@ COPY package.json bun.lock tsconfig.json ./
 # upstream regenerates the lock.
 RUN bun install && bun pm cache rm
 
-COPY src/lib/db ./src/lib/db
-COPY src/lib/security ./src/lib/security
-COPY src/lib/sql ./src/lib/sql
-COPY src/lib/mastra ./src/lib/mastra
-COPY src/types ./src/types
+# The whole of src/, not the five directories the seeder imports today. That
+# list was kept by hand and it went stale the first time the platform added an
+# import to a file already on it: `src/lib/db/bootstrap.ts` began importing
+# `@/lib/auth/bcrypt-cost`, nothing copied `src/lib/auth`, and the seeder
+# exited 1 on `Cannot find module` — at run time, since nothing resolves `@/`
+# until it runs. `src/` is about four megabytes beside a `node_modules` this
+# image already installs.
+COPY src ./src
 
 # The seeder itself, from the reporting application's own tree.
 COPY scripts/seed-reporting-pack.ts ./scripts/seed-reporting-pack.ts
