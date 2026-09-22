@@ -8,10 +8,10 @@
 #      build, setting the bundler's `base`, the router's `basepath` and the
 #      static wrapper's file lookup to /report. See that file for why all three
 #      are needed and why the proxy in front does not strip the prefix.
-#   2. The seeder's dependencies — `src/lib/sql` and `src/lib/mastra` — are
-#      carried into the runtime image. The upstream image ships only `src/lib/db`
-#      and `src/lib/security`, which is right for serving and one directory short
-#      of introspecting a data source.
+#   2. The seeder's dependencies are carried into the runtime image. It runs
+#      from source and resolves through `@/`, so the whole of `src/` comes
+#      across — see the note on that COPY for why it is not the handful of
+#      directories it imports today.
 #
 # The overlay writes into the build container's copy. Nothing under
 # enterprise_reporting_tanstack/ is modified.
@@ -60,13 +60,18 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 # The patched wrapper, not the original: it is the copy that knows the prefix.
 COPY --from=builder /app/server-static-wrapper.mjs ./server-static-wrapper.mjs
 
-# Enough of src/ for the seeder to use this project's own encryption, schema
-# introspection and cache shape rather than a second implementation of each.
-COPY --from=builder /app/src/lib/db ./src/lib/db
-COPY --from=builder /app/src/lib/security ./src/lib/security
-COPY --from=builder /app/src/lib/sql ./src/lib/sql
-COPY --from=builder /app/src/lib/mastra ./src/lib/mastra
-COPY --from=builder /app/src/types ./src/types
+# src/, so the seeder uses this project's own encryption, schema introspection
+# and cache shape rather than a second implementation of each.
+#
+# The whole directory, not the five that `scripts/seed-reporting-pack.ts`
+# imports today. That list was kept by hand and it went stale the first time
+# the platform added an import to a file already on it: `src/lib/db/bootstrap.ts`
+# began importing `@/lib/auth/bcrypt-cost`, nothing copied `src/lib/auth`, and
+# the seeder exited 1 on `Cannot find module` — after the image had built and
+# the platform had started serving, because nothing here resolves `@/` until
+# the seeder runs. `src/` is about four megabytes beside a `node_modules`
+# already copied above, and the enumeration bought nothing but that failure.
+COPY --from=builder /app/src ./src
 
 EXPOSE 3000
 
