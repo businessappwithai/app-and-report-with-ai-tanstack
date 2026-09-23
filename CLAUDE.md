@@ -469,6 +469,18 @@ application's browser build carries the same reports and the same roles behind a
 sign-in of its own, and its deployable archive brings the real platform up
 beside it. One derivation feeds all three.
 
+**What each surface runs, and what it may claim.** The orchestrator and the
+deployable archive both build `enterprise_reporting_tanstack` from its own
+source and change nothing a reader sees — here `subpath-overlay.ts` rewrites
+only URLs so it can live under `/report`, in the build container's copy; the
+archive clones it at `REPORT_REF` and builds it as is. The browser build cannot
+run a server, so its reporting app is a **preview drawn in the platform's own
+layout and tokens**, labelled as one on every screen, with a working
+Administration (users, roles, per-role table grants, the data source, an
+activity log) and a page naming where the real one is for every screen that
+needs the platform's servers. It lives in `app-with-ai-tanstack`, under
+`packages/generator/templates/wasm/ui/views/{er-kit,report-app,report-admin}.js`.
+
 The table counts on the front door are asserted against `deriveAccess`'s own
 `entityCounts` before the pack is written — two readings of one fact is how the
 products come to disagree about what a role may see, so the second is checked
