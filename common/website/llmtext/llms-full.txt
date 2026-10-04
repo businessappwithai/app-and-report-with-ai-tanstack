@@ -307,10 +307,12 @@ Analysis in the NestJS stack, a `model.json` entry under Reports in the browser
 one. Separately `common/build/reporting-pack.ts`, over the generator's own
 `buildReportingPack`, turns the same directive into a saved query, a report
 definition and — where `chart:` is set — a chart, seeded into the Enterprise
-Reporting platform ahead of the derived baseline. That platform is composed
-beside a *deployed* application by docker-compose, which is why the generated
-application compiles the directive too rather than leaving its reports answered
-by nothing.
+Reporting platform ahead of the derived baseline. That platform runs beside a
+*deployed* application — under this repository's docker-compose, or as the
+`report` service of the deployable archive — and the browser application only
+previews it, which is why the generated application compiles the directive too
+rather than leaving its reports answered by a second product. §5.8 says what the
+reporting application holds.
 
 **A foreign key and a primary key are both `UUID`, in both stacks, so a join is
 written plainly: `ON c.account_id = p.id`.** Do not cast. `::text` was needed
@@ -1447,6 +1449,94 @@ the entity's column list; customisation is done through the Admin UI at runtime.
 
 ---
 
+### 5.8 The reporting application — what Enterprise Reporting makes of the same model
+
+One model generates two applications. The first is everything above. The
+second is **Enterprise Reporting** (`businessappwithai/enterprise_reporting_tanstack`)
+— a multi-datasource analytics platform with its own server, its own database,
+its own users and its own sign-in — loaded with a **reporting pack** derived from
+the same `.mmd`: saved queries over the application's `bus_` tables, report and
+chart definitions over those queries, an overview dashboard, and one reporting
+role per `%%rbac` role. Nothing in the pack is written by hand and nothing in it
+is invented. `buildReportingPack` (`packages/generator/src/reporting/pack.ts`) is
+the single derivation, and every surface that serves reports reads its output —
+three derivations would be three answers to "what reports does this model have".
+
+**Three surfaces, one pack.**
+
+| Surface | What runs | Where a reader finds it |
+|---|---|---|
+| The orchestrator — `./start.sh` in this repository, `common/build/reporting-pack.ts` over the same function | The real platform, built from its own source, beside the deployed application, both behind nginx | `/app` and `/report` on one origin; `/` lists both sets of accounts |
+| The deployable archive — the NestJS stack's `reporting/` directory | The real platform as the `report` service in the archive's own `docker-compose.yml`, cloned at `REPORT_REF` and seeded once by `report-seeder` from `reporting/reporting-pack.json` | Port 3100, beside the application's front end |
+| The browser application — `--standalone` | A **preview** drawn in the platform's own layout and colour tokens, over the same pack carried in `model.json`, labelled as a preview on every screen. Its Administration — users, roles, per-role table grants, the data source, an activity log — is real and enforced on the next query; the SQL editor, NL query, jobs and the report generator need the platform's servers and each says where the real one is | `#/report`, linked from the sign-in screen and from the dashboard |
+
+On the CRM model the browser build and the archive carry the same pack byte for
+byte — 133 queries, 116 reports, 84 charts, a ten-widget dashboard, nine roles —
+because neither derives its own.
+
+**What the model decides.** Every item in the pack comes from something the
+model declares, and a model that declares less gets a smaller pack:
+
+| The model declares | The pack gets |
+|---|---|
+| An entity | A **register** — its display column, up to two enum columns and two numeric columns, newest first |
+| An `%%enum`-bound column | A **breakdown** — rows per value, drawn as a pie at six values or fewer and a bar above that. Two per entity at most: `status`/`state` first, then stage, phase or priority, then type, tier, category or kind |
+| `created_at` — every generated table | **Volume per month** over two years, as a line |
+| A `kind: state` workflow over a `status` or `state` column | A **lifecycle** over the states the diagram declares, in the diagram's order, zeroes included |
+| `integer` and `decimal` columns | **Measures** — totals and averages, grouped by the entity's primary enum column |
+| A `oneToMany` relationship | **Children per parent**, ranked |
+| A `%%report` | The author's own question, listed first and placed at the top of the dashboard |
+| `%%rbac … .read` | One reporting role per declared role, reading exactly the tables those lines admit |
+| `%%entity … help:` and `%%field … help:` | The name and description of every report, chart and query |
+
+The overview dashboard takes up to four authored charts, then one tile for each
+of the six most central entities — most referenced, carrying a lifecycle,
+carrying measures — showing the lifecycle where there is one, else the primary
+breakdown, else the volume line.
+
+**So every gap in a model shows up in its reporting layer first.**
+
+- **No help text means reports named after tables** — "bus_account by status"
+  rather than "Accounts by status" over a sentence saying what an account is in
+  this business. It still runs; nobody wants to read it.
+- **A closed vocabulary left as free text is a missing chart.** Only a column
+  bound with `%%field … enum:` earns a breakdown — the same binding the
+  Application Dictionary needs to draw a select (§5.3).
+- **A reference without the `FK` modifier joins as `uuid = varchar`**, so the
+  children-per-parent report has to cast the parent's key to text to run at all.
+  Mark it `FK` and end its name `_id` or `_by` and the join is typed.
+- **A state machine over a column not called `status` or `state` earns no
+  lifecycle report.**
+- **The platform keys reports by name.** An authored `%%report` whose title
+  matches a derived one replaces it — that is the precedence, on purpose — and
+  two items of one kind sharing a name fail generation outright rather than
+  silently overwrite each other.
+- **Write `%%report` for what structure cannot answer** — the overdue, the
+  unassigned, the ten largest. The derived baseline describes the shape of the
+  data; only the author knows the business running on it.
+
+**Two applications, two sign-ins, and they are not merged.**
+
+| | The generated application | The reporting platform |
+|---|---|---|
+| Database | The application's own | Its own (`enterprise_config` when deployed) |
+| A role decides | What you may **do** to a record | Which tables your queries may **read** |
+| `sales_manager` signs in as | `sales.manager@<app>.example.com` | `sales.manager@<app>.reports.example.com` |
+
+The administrator keeps `admin@admin.com` on both sides — the same address, two
+different accounts in two different user tables. Each sign-in screen states its
+own seeded password, and they differ. Nothing is federated and neither password
+works on the other side. **Only `read` rules narrow a reporting role**: nobody
+writes through the reporting platform, so a create, update or delete
+restriction has nothing to restrict there — and an entity no role may read is
+an entity no reporting role can see either.
+
+**What is verified, and what is not.** The checker holds a `%%report` to its
+shape (`EML290`–`EML296`) and cannot know whether a column it names exists.
+`common/scripts/check-reporting-pack.ts`, in this repository, is what runs every derived and
+authored query against a schema the generator actually emitted, so a renamed
+column fails CI rather than every report at run time.
+
 ## 6. The modelling tool (`packages/web`)
 
 Port 3000. TanStack Start on Vite 8, React 19, Tailwind v4, Zustand.
@@ -2169,7 +2259,8 @@ The user should be able to take that one file straight to `appwithai generate`.
    (:4000/4001), or the reporting platform (:4050)? Most ambiguity in questions
    about "the app" is this. If the question names reports, charts, dashboards,
    data sources, NL query, saved queries or scheduled jobs, it is the reporting
-   platform and the answer is in `llms-reporting.txt`, not here.
+   platform: what a model puts into it is §5.8, and the platform itself is in
+   `llms-reporting.txt`.
 2. **Check a directive's `status` before promising behaviour.** `%%rule` and
    `%%trigger` are validated but not compiled — they will not change a
    generated application. `%%entity` is **compiled** for `help:`/`description:`

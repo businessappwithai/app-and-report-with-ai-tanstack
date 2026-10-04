@@ -1375,7 +1375,7 @@ var appwithai_language_default = {
           namesAreKeys: "The name is the pack key, so a duplicate silently replaces the earlier report. Declared twice is an error (EML292).",
           againstWhichSchema: "The query runs against the *generated application's* database, so it names `bus_` tables. It is not checked against a live schema at author time - the checker has no database - but `common/scripts/check-reporting-pack.ts` executes every query in the pack against a real generated schema in CI.",
           foreignKeysAreUuid: "A foreign key and a primary key are both UUID, in both stacks, so a join is written plainly: ON c.account_id = p.id. Do not cast. `::text` was needed while the browser stack typed a foreign key as VARCHAR; it does not any more, and PostgreSQL has no implicit cast back, so a cast that is no longer needed is now the thing that breaks the query.",
-          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. That platform is composed beside a deployed application by docker-compose; it is not in the browser application and not in the downloadable zip."
+          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. The real platform runs beside a deployed application, under the orchestrator's docker-compose or as the report service of the deployable archive's own compose file, and the browser application previews the same pack; see generatorContract.reportingApplication."
         }
       }
     ],
@@ -1448,6 +1448,75 @@ var appwithai_language_default = {
           }
         }
       ]
+    },
+    reportingApplication: {
+      description: "One model generates two applications. The second is the Enterprise Reporting platform (businessappwithai/enterprise_reporting_tanstack): its own server, database, users and sign-in, loaded with a reporting pack derived from the model. Nothing in the pack is written by hand. packages/generator/src/reporting/pack.ts (buildReportingPack) in app-with-ai-tanstack is the single derivation, and every surface that serves reports reads its output, so the surfaces cannot disagree about what reports a model has.",
+      derivation: "packages/generator/src/reporting/pack.ts -> buildReportingPack(parsedModel, { projectName, databaseName, ... }). Pure: no filesystem, no clock, no database.",
+      pack: {
+        dataSource: "The generated application's database, registered as a PostgreSQL data source.",
+        queries: "Saved SQL over the application's bus_ tables, each carrying the tables it reads.",
+        reports: "Report definitions over those queries.",
+        charts: "Chart definitions (bar, line, pie, area) over those queries.",
+        dashboards: "One overview dashboard: up to four authored charts first, then one tile for each of the six most central entities.",
+        access: "One reporting role per declared %%rbac role, plus the administrator, each with the bus_ tables it may read."
+      },
+      derivedFrom: [
+        {
+          declares: "an entity",
+          yields: "a register: its display column, up to two enum columns and two numeric columns, newest first"
+        },
+        {
+          declares: "an %%enum-bound column",
+          yields: "a breakdown chart and report, pie at six values or fewer, bar above; at most two per entity, status/state first"
+        },
+        {
+          declares: "created_at",
+          yields: "volume per month over two years, as a line"
+        },
+        {
+          declares: "a kind: state workflow over a status or state column",
+          yields: "a lifecycle over the declared states, in the diagram's order, zeroes included"
+        },
+        {
+          declares: "integer and decimal columns",
+          yields: "measures: totals and averages, grouped by the entity's primary enum column"
+        },
+        {
+          declares: "a oneToMany relationship",
+          yields: "children per parent, ranked"
+        },
+        {
+          declares: "%%report",
+          yields: "the author's own query, report and (with chart:) chart, listed first and placed at the top of the dashboard; a derived item with the same name is dropped in its favour"
+        },
+        {
+          declares: "%%rbac ... .read",
+          yields: "the tables each reporting role may read"
+        },
+        {
+          declares: "%%entity help: / %%field help:",
+          yields: "the names and descriptions of every report, chart and query"
+        }
+      ],
+      surfaces: [
+        {
+          id: "orchestrator",
+          where: "businessappwithai/app-and-report-with-ai-tanstack: ./start.sh, common/build/reporting-pack.ts",
+          runs: "the real platform built from its own source, beside the deployed application, behind nginx at /report (the application at /app, both sets of accounts at /)"
+        },
+        {
+          id: "deployable-archive",
+          where: "the NestJS stack's reporting/ directory and the report and report-seeder services of its docker-compose.yml",
+          runs: "the real platform, cloned at REPORT_REF and seeded once from reporting/reporting-pack.json, on port 3100"
+        },
+        {
+          id: "browser-application",
+          where: "--standalone: model.json carries the pack; #/report in the running application",
+          runs: "a preview drawn in the platform's own layout and tokens, labelled as one on every screen; its Administration (users, roles, per-role table grants, data source, activity log) is real, and the screens that need the platform's servers say where the real ones are"
+        }
+      ],
+      signIn: "Two applications, two sign-ins, never merged. The application's account for a role is <role>@<app>.example.com and the reporting account is <role>@<app>.reports.example.com; the administrator is admin@admin.com on both sides, as two different accounts in two different user tables. Neither password works on the other side. A role in the application decides what a user may do to a record; a reporting role decides which tables their queries may read. Only read rules narrow a reporting role.",
+      verification: "The checker holds %%report to its shape (EML290-EML296) and cannot see whether a column exists. common/scripts/check-reporting-pack.ts in app-and-report-with-ai-tanstack runs every derived and authored query against a schema the generator actually emitted."
     },
     pipeline: [
       "1. ERD section -> MermaidParser -> Entity[] + Relationship[] -> migrations, DTOs, services, controllers, forms, tables. The same pass reads %%index into entity.indexes and %%enum / %%field enum: into bound enums.",

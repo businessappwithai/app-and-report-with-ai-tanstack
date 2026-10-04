@@ -675,6 +675,16 @@ http://localhost/report   this platform, holding that application's schema,
                           reports, charts and dashboard
 ```
 
+**This is one of three surfaces that load the same pack.** The deployable
+archive a generated NestJS application ships carries it in `reporting/`, with
+this platform as its compose file's `report` service (port 3100), cloned at
+`REPORT_REF` and seeded by `report-seeder` running
+`scripts/seed-reporting-pack.ts` — the same script `start.sh`'s seeder runs. The
+browser application carries the pack in `model.json` and draws a labelled
+preview of this platform's screens over it. All three read one derivation,
+`buildReportingPack` in the generator; `llms-full.txt` §5.8 tabulates what each
+declaration in a model becomes here.
+
 ### What start.sh does before Docker
 
 1. Checks the model. A model with errors stops here.

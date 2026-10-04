@@ -572,6 +572,13 @@ the difference between a report called "bus_account by status" and one called
 with no help text still produces a working pack; it just produces one named
 after tables.
 
+**The same table is in the language and in every protocol document now.**
+`generatorContract.reportingApplication` in `common/language/appwithai-language.json`
+and §5.8 of `llms-full.txt` / `llmdetailed.txt` (§7.1 of the site's language-only
+edition) describe the pack, the three surfaces that serve it and the two sign-ins, and
+both enhancement protocols follow an edit into it. Change `pack.ts` and those change
+with it.
+
 A model can also carry `%%report` directives — a question its users actually
 ask, written as the SQL that answers it. Those are listed first and take the top
 of the dashboard. See `website/llmtext/llmdetailed.txt` §10.5.1.
