@@ -277,6 +277,18 @@ the enhancement editions inherit whichever drift their base carries — which is
 correct, and is why each repository derives from its own base rather than copying
 the site's output.
 
+**All four protocol sections require a complete Application Dictionary**, as
+the copies in `app-with-ai-tanstack` and on the site do. Each carries three
+blocks: plan every dictionary value in writing before the first line of
+Mermaid (an enhancement also fills the gaps the original carries); the six
+dictionary-completeness codes (`EML119`, `EML146`, `EML151`–`EML154`) as gaps the
+delivered file carries none of; and a review that re-runs the checker and the
+audit from zero until a full pass finds nothing to change. A change to those
+blocks is a change in three repositories — here, `app-with-ai-tanstack`'s
+`website/llmtext/`, and the site's bases and `scripts/llmtext/` sources — and
+the site's sources must still derive each repository's enhancement editions
+from its own bases.
+
 ### The published host is written in full
 
 Every mention of the host in the five `llmtext/*.txt` documents is
@@ -402,6 +414,15 @@ in the `app-with-ai-tanstack` checkout and imports *that* repository's language 
 after the checks and fails on any tracked modification. A check that rewrites a
 file it read is a bug in the check. The dependency checkouts are gitignored, so
 they cannot trip it.
+
+**`check:pack` looks for PostgreSQL on the Unix socket by default.** A server
+listening only on TCP — the usual case in a container — reads as "no PostgreSQL",
+and the check skips. Point it there to run it:
+
+```bash
+PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGPASSWORD=… \
+  bun scripts/check-reporting-pack.ts --require-server
+```
 
 **`check:pack` skips itself when no PostgreSQL is reachable** and says so. CI
 passes `--require-server` so a database that never came up fails instead: a
@@ -556,6 +577,17 @@ ask, written as the SQL that answers it. Those are listed first and take the top
 of the dashboard. See `website/llmtext/llmdetailed.txt` §10.5.1.
 
 ---
+
+### What the website takes, and from where
+
+The site (`businessappwithai.github.io`) vendors from **`app-with-ai-tanstack`**,
+not from this repository and not from `enterprise_reporting_tanstack`: the
+checker, fixer, both browser generators, the stack templates and the viewers'
+reader (its `CLAUDE.md` lists them). The reporting preview reaches the site
+inside `appwithai-wasm.js`, drawn in the platform's own shell. So after moving
+the pins here, bringing the site level means re-vendoring those files from the
+`app-with-ai-tanstack` commit this repository now pins, then running the site's
+`website-e2e.mjs`.
 
 ## CI
 

@@ -2037,6 +2037,36 @@ file leaves the user with nothing to correct; a question raised beside a file
 they can already run costs them one sentence to answer. Deliver the file either
 way.
 
+**Plan the Application Dictionary for the change before you edit — this is
+mandatory, and it is where the thinking goes.** For every entity and column the
+enhancement adds or touches, decide in writing, before the first edit: its help
+text (domain knowledge, not its name in a sentence); for a reference, the entity
+it points at and its `FK` modifier; for a status, state or stage, the `%%enum` and
+the `%%field … enum:` binding; its `%%category` and that category's `name:`; and,
+for a step that writes to another entity, which of its rows it aims at
+(`targetSource` or `targetField`; `EML265` otherwise). Then read the model you
+were given for the same six gaps listed below: **a dictionary value the original
+is missing is filled as part of this enhancement**, and each one is named in the
+delivery. It is the one addition you make without being asked, because nothing
+else in the pipeline will ever make it.
+
+**Every Application Dictionary value is mandatory, and all of them are filled in
+the `.mmd`.** Six checker codes mean a dictionary value is missing, and the audit
+fails a model that carries any of them. None is advisory, whatever the severity
+of the warning says:
+
+| Code | The value that is missing |
+|---|---|
+| `EML119` | the `FK` modifier on a reference column (`_id` / `_by` resolving to an entity) — without it the lookup is lost |
+| `EML146` | the `%%field … enum:` binding on a status, state or stage column — without it the dropdown is lost |
+| `EML151` | help that describes its subject rather than restating its name |
+| `EML152` | `%%entity <Name> help:` on an entity |
+| `EML153` | `%%field <Entity>.<column> help:` on every column but the primary key |
+| `EML154` | `name:` on a `%%category` — without it the grouping is dropped |
+
+The delivered file carries none of these six. Not "a few", not "only on the
+obvious columns": none.
+
 ### 10.4 Apply the enhancement — in place, and additively
 
 Now edit the document. Work from the original bytes, in the original order, and
@@ -2161,6 +2191,23 @@ again — the fix is a new edit and the file must be re-validated after it.
 counts cannot see: a reference to something you renamed that you did not follow,
 and a new entity or column with no help text. Both check clean.
 
+**Review until the model is perfect, not until a count runs out.** A clean checker
+run starts the review; it does not end it. After every clean run:
+
+1. Re-read the file against the plan, entity by entity and column by column:
+   every value the plan decided is in the file, as planned.
+2. Confirm there is no `EML119`, `EML146`, `EML151`, `EML152`, `EML153` or
+   `EML154`, and that `audit-model.mjs` ends `22 passed, 0 failed`.
+3. Read every help line as the person using the generated screen would, and
+   rewrite any line that would not tell a new employee something true about this
+   business.
+4. If anything was found, fix it, run the checker and the audit again **from
+   zero**, and review again.
+
+Repeat until a full review finds nothing to change. The ten-cycle bound is for
+diagnostics that will not clear; it is never a reason to hand over a dictionary
+value you could have filled, or a review finding you did not act on.
+
 ### 10.6 Deliver
 
 **Run the loop one last time, over the exact bytes you are about to hand over.**
@@ -2196,6 +2243,9 @@ Alongside the file — in the reply, never inside it — give:
 - **the checker result** — errors, warnings and infos, with counts — for the
   original as received *and* for the file you are delivering, or the plain
   statement that the checker could not be run here and what you verified by hand;
+- **the dictionary values filled**, including every one the original was
+  missing, and the count of the six dictionary codes — zero — with the audit's
+  last line;
 - **anything still unresolved**, and any pre-existing diagnostic you deliberately
   left alone;
 - **what to do next**: upload the file at
