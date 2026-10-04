@@ -1864,6 +1864,29 @@ two plausible businesses, materially different models — ask, rather than picki
 silently. Where it leaves an ordinary gap, fill it the way a careful analyst
 would and say what you filled.
 
+**Plan the Application Dictionary before you write a line of Mermaid — this is
+mandatory, and it is where the thinking goes.** The generated application has no
+screen, label, lookup, dropdown or explanation that the model does not declare, so
+every dictionary value is decided here, deliberately, and not improvised while the
+ERD is being typed. Work it out entity by entity, in writing, and do not start the
+file until the plan is complete:
+
+1. **Every entity** — what it is in this business, in one or two sentences of
+   domain knowledge (its `%%entity … help:`); the `%%category` it belongs to and
+   that category's `name:`; and whether it is a line item (`parent:`).
+2. **Every column** — its type and modifiers; for a reference, the entity it
+   points at and its `FK` modifier; for a status, state or stage, the `%%enum`
+   that closes its vocabulary and the `%%field … enum:` binding; and its help
+   text: what the value means here, where it comes from, and what depends on it.
+3. **Every behaviour the columns imply** — which rule reads which column, which
+   workflow moves which status, which step writes which field, and, for a write
+   to another entity, which of its rows the step aims at (`targetSource` or
+   `targetField`; `EML265` otherwise).
+
+Think each value through before you write it. Help is not the column's name in a
+sentence; a status with no enum is a text box; a reference with no `FK` is a
+string. If you cannot say what a value is for, planning that entity is not done.
+
 ### 10.2 Write the model
 
 Only now write the document, following §3 in full: the ERD section, the rules
@@ -1880,6 +1903,23 @@ Check a directive's `status` before relying on it (§3.2). `%%rule` and
 `%%trigger` are validated but not compiled — they will not change a generated
 application, so do not promise the user behaviour that rides on them. `%%entity`
 is compiled for `help:`/`description:` and for `parent:`, validated otherwise.
+
+**Every Application Dictionary value is mandatory, and all of them are filled in
+the `.mmd`.** Six checker codes mean a dictionary value is missing, and the audit
+fails a model that carries any of them. None is advisory, whatever the severity
+of the warning says:
+
+| Code | The value that is missing |
+|---|---|
+| `EML119` | the `FK` modifier on a reference column (`_id` / `_by` resolving to an entity) — without it the lookup is lost |
+| `EML146` | the `%%field … enum:` binding on a status, state or stage column — without it the dropdown is lost |
+| `EML151` | help that describes its subject rather than restating its name |
+| `EML152` | `%%entity <Name> help:` on an entity |
+| `EML153` | `%%field <Entity>.<column> help:` on every column but the primary key |
+| `EML154` | `name:` on a `%%category` — without it the grouping is dropped |
+
+The delivered file carries none of these six. Not "a few", not "only on the
+obvious columns": none.
 
 **Two things are not optional, and both are usually what is missing when a model
 checks clean and the application still disappoints:**
@@ -2043,6 +2083,23 @@ outcome worse than not finishing.
 and quietly gets wrong — a dropped modifier, a state no enum backs, a rule that
 can decide but cannot act. Clear them, or say why you left one.
 
+**Review until the model is perfect, not until a count runs out.** A clean checker
+run starts the review; it does not end it. After every clean run:
+
+1. Re-read the file against the plan, entity by entity and column by column:
+   every value the plan decided is in the file, as planned.
+2. Confirm there is no `EML119`, `EML146`, `EML151`, `EML152`, `EML153` or
+   `EML154`, and that `audit-model.mjs` ends `22 passed, 0 failed`.
+3. Read every help line as the person using the generated screen would, and
+   rewrite any line that would not tell a new employee something true about this
+   business.
+4. If anything was found, fix it, run the checker and the audit again **from
+   zero**, and review again.
+
+Repeat until a full review finds nothing to change. The ten-cycle bound is for
+diagnostics that will not clear; it is never a reason to hand over a dictionary
+value you could have filled, or a review finding you did not act on.
+
 **If rung 5 is where you land** — no shell, no network, no JavaScript engine —
 that changes what you may *claim*, not what you deliver. Walk this table against
 the file's actual bytes. It is the mechanical half of what `check()` does, and
@@ -2066,6 +2123,7 @@ traceable to a line you did or did not check.
 | Every `%%rbac` target is a CRUD operation or a transition that machine declares | `EML214` |
 | Every `kind: saga` marked `trigger: rule` is named by some `%%action` | `EML286` |
 | Every `%%rule` is bound with `on <Entity> event: <hookType>` | `EML506` |
+| Every Update or Delete step on another entity says which row — `targetSource` or `targetField` (the builder writes `target:`) | `EML265` |
 | `fields:` is the last key on its `%%step` line | — |
 
 Then hand the file over with one plain sentence: the checker could not be run
@@ -2097,6 +2155,8 @@ fenced block the user has to copy out of a chat log. Alongside it, give:
 - the final checker result — errors, warnings and infos, with counts; or, where
   §10.3's ladder reached rung 5, the plain statement that the checker was not
   run, what was verified by hand, and where the user can run it themselves;
+- the dictionary count — zero `EML119`, `EML146`, `EML151`, `EML152`,
+  `EML153` and `EML154` — and the audit's last line;
 - anything you assumed, and anything still unresolved.
 
 The user should be able to take that one file straight to `appwithai generate`.
