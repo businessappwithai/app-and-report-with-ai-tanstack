@@ -1214,7 +1214,7 @@ Global prefix `/api`. Controllers:
 
 | Route | Purpose |
 |---|---|
-| `GET/POST/PUT/DELETE /api/bus/:entity[/:id]` | generic CRUD for every entity |
+| `GET/POST/PUT/PATCH/DELETE /api/bus/:entity[/:id]` | generic CRUD for every entity; a save takes `If-Match` (see 5.4.1) |
 | `GET /api/bus/:entity/meta` | dictionary metadata for the entity |
 | `GET /api/bus/:entity/fields/{form,grid}` | field definitions driving the UI |
 | `POST /api/bus/:entity/:id/promote` | entity promotion |
@@ -1229,6 +1229,56 @@ Global prefix `/api`. Controllers:
 
 Accounts are **administrator-created by design** — a generated back-office app
 has no self-service signup.
+
+### 5.4.1 Two people, one record — optimistic locking
+
+Every generated table carries a managed `version` column (see the managed
+columns: a model never declares it). It starts at 1 and the application raises
+it by one on every save; a `version` sent in a request body is ignored. That
+counter is what stops the *lost update*: two people open the same record, both
+edit it, and the second save silently replaces the first.
+
+| Step | What the API does |
+|---|---|
+| Read one record | `GET /api/bus/:entity/:id` answers with the record (its `version` included) and `ETag: "<version>"` |
+| Save | `PUT`/`PATCH /api/bus/:entity/:id` with `If-Match: "<version you read>"` — `"3"`, `3`, `W/"3"` and `v3` are all accepted |
+| Someone saved first | **409**, body `details: { code: "VERSION_CONFLICT", entity, id, expectedVersion, currentVersion }`. The record is not in the body; re-read it through `GET`, which applies field access |
+| Malformed header | **400** — a value that names no version is refused rather than read as `NaN`, which every save would then "conflict" with |
+| No header, or `*` | An unconditional save, as before. An API client that never read a version is not opted in |
+
+The comparison and the write are **one step**, so two saves of one version
+produce exactly one 200 and one 409, never two 200s: the NestJS stack locks the
+row (`SELECT … FOR UPDATE`) inside the update transaction and writes
+`WHERE version = <the version it read>`; the browser stack's update carries the
+same `WHERE version = …`; the zero-dependency `node-rest` runtime checks and
+writes without yielding in between.
+
+**The record form does this for the user.** It sends the version it opened. On
+`VERSION_CONFLICT` it lists the fields the other save changed — their value
+beside yours, the fields you *both* changed marked and listed first — and
+offers three choices:
+
+| Choice | Effect |
+|---|---|
+| **Reload their version** | Discards your unsaved edits and shows the record as it now stands |
+| **Overwrite with mine** | Saves your values again against the version just read — itself checked, so a third save in the meantime is caught the same way |
+| **Keep editing** | Saves nothing; the form stays open with your edits |
+
+The deployable build draws this as a dialog
+(`frontend/src/components/admin/version-conflict-dialog.tsx`, logic in
+`frontend/src/lib/version-conflict.ts`); the browser build as an inline panel in
+the form, because it runs inside an iframe where a modal is not guaranteed to
+appear. Both read the same 409 body. The generated manual carries a section,
+*When two people change the same record*, that says this to the person using
+the application, and the generated test suite holds the API to it
+(`22-optimistic-locking`: stale save, parallel saves, overwrite, malformed
+header, ETag).
+
+The same contract holds on every target the CLI writes: `--stack node-rest`
+answers with the same `ETag`, `If-Match` and 409 body, and
+`--stack enterprise-reporting` emits an update server function that takes the
+version the form read and refuses a stale one with `VERSION_CONFLICT`, plus a
+detail page offering the same three choices.
 
 ### 5.5 Frontend
 
