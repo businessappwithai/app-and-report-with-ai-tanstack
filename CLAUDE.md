@@ -352,6 +352,20 @@ an NL→SQL pipeline, a job runner and a UI shell, so the target emits only what
 new entity needs. It does **not** compile workflows or `%%rbac`. See
 `language/README.md` for the coverage table.
 
+**All three carry optimistic locking, the same contract the product's stacks
+do.** Every record has a `version` the application raises on each save; a save
+naming an older one is refused with `VERSION_CONFLICT` instead of overwriting
+somebody else's change. `node-rest` speaks it over HTTP — `ETag` on a read,
+`If-Match` on `PUT`, 409 with `details.code` — in
+`language/cli/runtime/src/{services,server}.js`; `enterprise-reporting` emits a
+`version` column, an update server function whose `UPDATE … WHERE version = …`
+refuses a stale save, and a detail page offering Reload their version /
+Overwrite with mine / Keep editing; `tanstack-nestjs` gets it from the product.
+`applicationDictionary.optimisticLocking` in `appwithai-language.json` and §5.4.1
+of `llms-full.txt` / `llmdetailed.txt` describe it. The runtime under
+`language/cli/runtime/` is byte-identical to the product's and to the reporting
+platform's — change all three or none.
+
 ---
 
 ## Conventions that bite

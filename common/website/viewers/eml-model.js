@@ -474,6 +474,24 @@ var appwithai_language_default = {
         EML103: "A column the generator manages, declared in the model - the declaration is ignored."
       }
     },
+    optimisticLocking: {
+      description: "Every generated stack refuses a save made against a record version someone else has already moved past, instead of letting the second save silently overwrite the first. It rides on the managed `version` column, so a model declares nothing to get it.",
+      contract: {
+        version: "Starts at 1 on insert and is raised by one on every update, by the application - a `version` supplied in a request body is ignored.",
+        read: 'GET of one record answers with `ETag: "<version>"`; the record body carries `version` too.',
+        write: 'PUT and PATCH take `If-Match: "<version>"` - the version the caller read. `"3"`, `3`, `W/"3"` and `v3` are accepted; a value naming no version is a 400. With no header, or `*`, the save is unconditional.',
+        conflict: 'A save whose If-Match is older than the stored version is refused with 409 and `details: { code: "VERSION_CONFLICT", entity, id, expectedVersion, currentVersion }`. The record itself is not in the body: the client re-reads it through GET, which applies field access.',
+        atomicity: "The comparison and the write are one step - the NestJS stack locks the row (SELECT ... FOR UPDATE) and updates WHERE version = the version it read, the browser stack updates WHERE version = ..., and the node-rest runtime checks and writes synchronously. Two saves of one version therefore produce exactly one 200 and one 409, never two 200s."
+      },
+      form: "The record form sends the version it opened. On VERSION_CONFLICT it lists the fields the other save changed - theirs beside yours, marking fields both changed - and offers Reload their version (discard my edits), Overwrite with mine (save again against the version just read, itself checked) or Keep editing. The NestJS front end draws it as a dialog; the browser build as an inline panel, because it runs inside an iframe where a modal is not guaranteed.",
+      stacks: {
+        "tanstack-nestjs": "bus.controller (If-Match, ETag) and bus.service (row lock + versioned UPDATE); frontend lib/version-conflict.ts and components/admin/version-conflict-dialog.tsx; generated test suite 22-optimistic-locking.",
+        browser: "server/modules/bus.routes.js and ui/views/entity-form.js in the standalone runtime; the same 409 body as the NestJS stack.",
+        "node-rest": "services.js and server.js in the zero-dependency runtime: version, ETag, If-Match and the same 409 body.",
+        "enterprise-reporting": "The generated update server function takes the version the form read and refuses a stale one with VERSION_CONFLICT."
+      },
+      manual: "The generated manual carries a section, When two people change the same record, naming the three choices."
+    },
     alsoDerived: [
       "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
       "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
@@ -500,6 +518,20 @@ var appwithai_language_default = {
         EML152: "warning — an entity with no `%%entity ... help:` at all.",
         EML153: "warning — the columns of one entity with no `%%field ... help:`, reported once per entity and naming them. One diagnostic per column would bury every other finding on a model that skipped help entirely, which is the common case."
       }
+    },
+    completeness: {
+      description: "Every Application Dictionary value is mandatory, in the model itself. The generated application has no screen, label, lookup, dropdown or explanation the model does not declare, and nothing after authoring adds one — so a value the model leaves out is a gap in every application generated from it.",
+      codes: {
+        EML119: "the FK modifier on a reference column — without it the lookup is lost",
+        EML146: "the %%field ... enum: binding on a status, state or stage column — without it the dropdown is lost",
+        EML151: "help that describes its subject rather than restating its name",
+        EML152: "%%entity <Name> help: on an entity",
+        EML153: "%%field <Entity>.<column> help: on every column but the primary key",
+        EML154: "name: on a %%category — without it the grouping is dropped"
+      },
+      required: "A delivered model carries none of these six. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
+      planFirst: "Decide every value before writing the document — per entity its help, category and parent; per column its type, modifiers, FK target, enum binding and help; per cross-entity step the row it aims at (targetSource or targetField, else EML265). A value improvised while typing the ERD is the one that comes out as a restatement.",
+      reviewUntilClean: "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the six codes and a 22/0 audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
     },
     masterDetail: {
       description: "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
@@ -1091,8 +1123,8 @@ var appwithai_language_default = {
         },
         {
           type: "UpdateEntity",
-          purpose: "Write a field, by default on the triggering record.",
-          properties: ["entity", "field", "value"],
+          purpose: "Write a field, by default on the triggering record. To write another entity, name it and say which row: `target: {{id}}` (a value an earlier step published) or `target: <fk_column>` (a column on that entity matched against the triggering record).",
+          properties: ["entity", "target", "field", "value"],
           example: `%%step s3 type: UpdateEntity
 %%step s3 field: status
 %%step s3 value: {{tier}}`
@@ -1384,7 +1416,7 @@ var appwithai_language_default = {
           chartNeedsAxes: "`chart:` without both `x:` and `y:` is an error (EML294) rather than a silent fall back to a table: a chart that cannot say what it plots renders empty, which reads as no data rather than as a missing declaration.",
           namesAreKeys: "The name is the pack key, so a duplicate silently replaces the earlier report. Declared twice is an error (EML292).",
           againstWhichSchema: "The query runs against the *generated application's* database, so it names `bus_` tables. It is not checked against a live schema at author time - the checker has no database - but `check-reporting-pack.ts in the orchestrator` executes every query in the pack against a real generated schema in CI.",
-          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. That platform is composed beside a deployed application by docker-compose; it is not in the browser application and not in the downloadable zip."
+          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. The real platform runs beside a deployed application, under the orchestrator's docker-compose or as the report service of the deployable archive's own compose file, and the browser application previews the same pack; see generatorContract.reportingApplication."
         }
       }
     ],
@@ -1408,6 +1440,75 @@ var appwithai_language_default = {
   },
   generatorContract: {
     description: "How each section feeds the generator pipeline.",
+    reportingApplication: {
+      description: "One model generates two applications. The second is the Enterprise Reporting platform (businessappwithai/enterprise_reporting_tanstack): its own server, database, users and sign-in, loaded with a reporting pack derived from the model. Nothing in the pack is written by hand. packages/generator/src/reporting/pack.ts (buildReportingPack) in app-with-ai-tanstack is the single derivation, and every surface that serves reports reads its output, so the surfaces cannot disagree about what reports a model has.",
+      derivation: "packages/generator/src/reporting/pack.ts -> buildReportingPack(parsedModel, { projectName, databaseName, ... }). Pure: no filesystem, no clock, no database.",
+      pack: {
+        dataSource: "The generated application's database, registered as a PostgreSQL data source.",
+        queries: "Saved SQL over the application's bus_ tables, each carrying the tables it reads.",
+        reports: "Report definitions over those queries.",
+        charts: "Chart definitions (bar, line, pie, area) over those queries.",
+        dashboards: "One overview dashboard: up to four authored charts first, then one tile for each of the six most central entities.",
+        access: "One reporting role per declared %%rbac role, plus the administrator, each with the bus_ tables it may read."
+      },
+      derivedFrom: [
+        {
+          declares: "an entity",
+          yields: "a register: its display column, up to two enum columns and two numeric columns, newest first"
+        },
+        {
+          declares: "an %%enum-bound column",
+          yields: "a breakdown chart and report, pie at six values or fewer, bar above; at most two per entity, status/state first"
+        },
+        {
+          declares: "created_at",
+          yields: "volume per month over two years, as a line"
+        },
+        {
+          declares: "a kind: state workflow over a status or state column",
+          yields: "a lifecycle over the declared states, in the diagram's order, zeroes included"
+        },
+        {
+          declares: "integer and decimal columns",
+          yields: "measures: totals and averages, grouped by the entity's primary enum column"
+        },
+        {
+          declares: "a oneToMany relationship",
+          yields: "children per parent, ranked"
+        },
+        {
+          declares: "%%report",
+          yields: "the author's own query, report and (with chart:) chart, listed first and placed at the top of the dashboard; a derived item with the same name is dropped in its favour"
+        },
+        {
+          declares: "%%rbac ... .read",
+          yields: "the tables each reporting role may read"
+        },
+        {
+          declares: "%%entity help: / %%field help:",
+          yields: "the names and descriptions of every report, chart and query"
+        }
+      ],
+      surfaces: [
+        {
+          id: "orchestrator",
+          where: "businessappwithai/app-and-report-with-ai-tanstack: ./start.sh, common/build/reporting-pack.ts",
+          runs: "the real platform built from its own source, beside the deployed application, behind nginx at /report (the application at /app, both sets of accounts at /)"
+        },
+        {
+          id: "deployable-archive",
+          where: "the NestJS stack's reporting/ directory and the report and report-seeder services of its docker-compose.yml",
+          runs: "the real platform, cloned at REPORT_REF and seeded once from reporting/reporting-pack.json, on port 3100"
+        },
+        {
+          id: "browser-application",
+          where: "--standalone: model.json carries the pack; #/report in the running application",
+          runs: "a preview drawn in the platform's own layout and tokens, labelled as one on every screen; its Administration (users, roles, per-role table grants, data source, activity log) is real, and the screens that need the platform's servers say where the real ones are"
+        }
+      ],
+      signIn: "Two applications, two sign-ins, never merged. The application's account for a role is <role>@<app>.example.com and the reporting account is <role>@<app>.reports.example.com; the administrator is admin@admin.com on both sides, as two different accounts in two different user tables. Neither password works on the other side. A role in the application decides what a user may do to a record; a reporting role decides which tables their queries may read. Only read rules narrow a reporting role.",
+      verification: "The checker holds %%report to its shape (EML290-EML296) and cannot see whether a column exists. common/scripts/check-reporting-pack.ts in app-and-report-with-ai-tanstack runs every derived and authored query against a schema the generator actually emitted."
+    },
     pipeline: [
       "1. ERD section -> MermaidParser -> Entity[] + Relationship[] -> migrations, DTOs, services, controllers, forms, tables. The same pass reads %%index into entity.indexes and %%enum / %%field enum: into bound enums.",
       "2. %%category directives -> category.parser -> resolveCategories -> Application Dictionary groups on the generated dashboard. A model declaring none gets a single 'General' category holding every entity.",

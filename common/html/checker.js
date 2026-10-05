@@ -464,6 +464,24 @@ var appwithai_language_default = {
         EML103: "A column the generator manages, declared in the model - the declaration is ignored."
       }
     },
+    optimisticLocking: {
+      description: "Every generated stack refuses a save made against a record version someone else has already moved past, instead of letting the second save silently overwrite the first. It rides on the managed `version` column, so a model declares nothing to get it.",
+      contract: {
+        version: "Starts at 1 on insert and is raised by one on every update, by the application - a `version` supplied in a request body is ignored.",
+        read: 'GET of one record answers with `ETag: "<version>"`; the record body carries `version` too.',
+        write: 'PUT and PATCH take `If-Match: "<version>"` - the version the caller read. `"3"`, `3`, `W/"3"` and `v3` are accepted; a value naming no version is a 400. With no header, or `*`, the save is unconditional.',
+        conflict: 'A save whose If-Match is older than the stored version is refused with 409 and `details: { code: "VERSION_CONFLICT", entity, id, expectedVersion, currentVersion }`. The record itself is not in the body: the client re-reads it through GET, which applies field access.',
+        atomicity: "The comparison and the write are one step - the NestJS stack locks the row (SELECT ... FOR UPDATE) and updates WHERE version = the version it read, the browser stack updates WHERE version = ..., and the node-rest runtime checks and writes synchronously. Two saves of one version therefore produce exactly one 200 and one 409, never two 200s."
+      },
+      form: "The record form sends the version it opened. On VERSION_CONFLICT it lists the fields the other save changed - theirs beside yours, marking fields both changed - and offers Reload their version (discard my edits), Overwrite with mine (save again against the version just read, itself checked) or Keep editing. The NestJS front end draws it as a dialog; the browser build as an inline panel, because it runs inside an iframe where a modal is not guaranteed.",
+      stacks: {
+        "tanstack-nestjs": "bus.controller (If-Match, ETag) and bus.service (row lock + versioned UPDATE); frontend lib/version-conflict.ts and components/admin/version-conflict-dialog.tsx; generated test suite 22-optimistic-locking.",
+        browser: "server/modules/bus.routes.js and ui/views/entity-form.js in the standalone runtime; the same 409 body as the NestJS stack.",
+        "node-rest": "services.js and server.js in the zero-dependency runtime: version, ETag, If-Match and the same 409 body.",
+        "enterprise-reporting": "The generated update server function takes the version the form read and refuses a stale one with VERSION_CONFLICT."
+      },
+      manual: "The generated manual carries a section, When two people change the same record, naming the three choices."
+    },
     alsoDerived: [
       "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
       "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
