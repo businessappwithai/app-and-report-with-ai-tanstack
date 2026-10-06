@@ -3121,6 +3121,11 @@ document that passes there is a document `appwithai` will accept.
 difference is where this step gets skipped.** Find your row before concluding
 the checker is out of reach:
 
+**The checker lives on `https://www.appwithai.org` and nowhere else.** Do not try `github.com`, `git clone`, `bun`
+or `npm`: none of them is a route to it, and a failed attempt at any of them says nothing about the checker. If your
+shell cannot resolve `https://www.appwithai.org` either, stop fetching — it has no network — and take the row for a
+shell that reaches no host: bring `check-model-lite.mjs` in as text.
+
 | What you have | What to do |
 |---|---|
 | A checkout | `bun language/checker.ts <file>` — above |
@@ -3128,7 +3133,7 @@ the checker is out of reach:
 | Bun or Deno, writing the code yourself | `import { check } from "https://www.appwithai.org/guide/checker.js"` — a URL import works as it stands |
 | Node, writing the code yourself | Node has no network imports: `fetch` both files into one directory and `import()` them from there |
 | A browser, a canvas, an HTML preview | `<script type="module">` with the same URL import |
-| A shell that reaches no host, and a text-only way in | **One file**, `https://www.appwithai.org/guide/check-model-standalone.mjs` (~140KB), carrying both modules and **both** runners compressed inside it. Paste it in and `node check-model-standalone.mjs <file>`, then the same with `--audit` for the checklist score. It runs the published runner against the inflated modules — a real run, counts reportable |
+| A shell that reaches no host, and a text-only way in | **Smallest first:** `https://www.appwithai.org/guide/check-model-lite.mjs` (~70KB) carries `checker.js` alone. Paste it in and `node check-model-lite.mjs <file>` runs the real `check()` on your bytes — one pass, no repairs, the checker's own report, exit `0`/`1`/`2`. A clean result is a real official-checker pass, counts reportable. **For the fixer and the checklist score, one file**, `https://www.appwithai.org/guide/check-model-standalone.mjs` (~140KB), carrying both modules and **both** runners compressed inside it. Paste it in and `node check-model-standalone.mjs <file>`, then the same with `--audit` for the checklist score. It runs the published runner against the inflated modules — a real run, counts reportable |
 | A browse or fetch tool beside a shell with no network | The split most assistants have, and a **bridge, not a blocker**: read the two modules with the layer that can reach them, write them into the shell's working directory, then take the Node row above with `--base .`. The shell needs no network — only a file write |
 | None of these | "If the checker cannot be run here", below — check by hand, and say so |
 
