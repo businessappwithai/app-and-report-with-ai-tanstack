@@ -2151,6 +2151,14 @@ from its own directory, then from the published site. GitHub is in none of those
 paths. "I could not obtain the repository, therefore I could not validate" is a
 wrong inference, not an honest limitation.
 
+**The checker lives on `https://www.appwithai.org` and nowhere else.** Do not try `github.com`, `git clone`, `bun`
+or `npm`: none of them is a route to it, and a failed attempt at any of them says nothing about the checker. If your
+shell cannot resolve `https://www.appwithai.org` either, stop fetching — it has no network — and take the row for a
+shell that reaches no host: bring `check-model-lite.mjs` in as text.
+`https://www.appwithai.org/guide/check-model-lite.mjs` is about 70KB, carries `checker.js` alone, and `node check-model-lite.mjs <file>`
+runs the real `check()` on your bytes — one pass, no repairs, the checker's own report, exit `0`/`1`/`2`; a clean result is a real
+official-checker pass. `https://www.appwithai.org/guide/check-model-standalone.mjs` (about 150KB) adds the fixer and the audit.
+
 **The same mistake generalises, and it has now been made three ways.** Not
 reaching GitHub, not reaching `llmdetailed.txt` itself, and Node refusing a URL
 import are each one address or one call failing. None of them is a statement
