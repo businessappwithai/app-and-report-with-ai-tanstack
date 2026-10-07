@@ -84,10 +84,15 @@ function models(): string[] {
   return MODELS.flatMap((dir) => {
     const abs = path.join(ROOT, dir);
     if (!existsSync(abs)) return [];
-    return readdirSync(abs)
-      .filter((f) => f.endsWith(".eml.mmd"))
-      .sort()
-      .map((f) => path.join(dir, f));
+    return (
+      readdirSync(abs)
+        .filter((f) => f.endsWith(".eml.mmd"))
+        // PACK_ONLY=wealth runs the models whose file name contains it — for iterating
+        // on one model's %%report SQL without regenerating every other model first.
+        .filter((f) => !process.env.PACK_ONLY || f.includes(process.env.PACK_ONLY))
+        .sort()
+        .map((f) => path.join(dir, f))
+    );
   });
 }
 
@@ -193,7 +198,7 @@ function main(): number {
           `  ok    ${name.padEnd(42)} ${String(pack.queries.length).padStart(3)} queries · ${busTables} tables`
         );
       }
-      psql(["-c", `DROP DATABASE IF EXISTS ${db}`], "postgres");
+      if (!process.env.PACK_KEEP) psql(["-c", `DROP DATABASE IF EXISTS ${db}`], "postgres");
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
