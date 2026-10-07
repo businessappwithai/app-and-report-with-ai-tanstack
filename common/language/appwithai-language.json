@@ -412,6 +412,20 @@
         "EML153": "warning \u2014 the columns of one entity with no `%%field ... help:`, reported once per entity and naming them. One diagnostic per column would bury every other finding on a model that skipped help entirely, which is the common case."
       }
     },
+    "completeness": {
+      "description": "Every Application Dictionary value is mandatory, in the model itself. The generated application has no screen, label, lookup, dropdown or explanation the model does not declare, and nothing after authoring adds one \u2014 so a value the model leaves out is a gap in every application generated from it.",
+      "codes": {
+        "EML119": "the FK modifier on a reference column \u2014 without it the lookup is lost",
+        "EML146": "the %%field ... enum: binding on a status, state or stage column \u2014 without it the dropdown is lost",
+        "EML151": "help that describes its subject rather than restating its name",
+        "EML152": "%%entity <Name> help: on an entity",
+        "EML153": "%%field <Entity>.<column> help: on every column but the primary key",
+        "EML154": "name: on a %%category \u2014 without it the grouping is dropped"
+      },
+      "required": "A delivered model carries none of these six. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
+      "planFirst": "Decide every value before writing the document \u2014 per entity its help, category and parent; per column its type, modifiers, FK target, enum binding and help; per cross-entity step the row it aims at (targetSource or targetField, else EML265). A value improvised while typing the ERD is the one that comes out as a restatement.",
+      "reviewUntilClean": "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the six codes and a 22/0 audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
+    },
     "masterDetail": {
       "description": "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
       "directive": "%%entity <Child> parent: <Parent>",
@@ -1000,8 +1014,8 @@
         },
         {
           "type": "UpdateEntity",
-          "purpose": "Write a field, by default on the triggering record.",
-          "properties": ["entity", "field", "value"],
+          "purpose": "Write a field, by default on the triggering record. To write another entity, name it and say which row: `target: {{id}}` (a value an earlier step published) or `target: <fk_column>` (a column on that entity matched against the triggering record).",
+          "properties": ["entity", "target", "field", "value"],
           "example": "%%step s3 type: UpdateEntity\n%%step s3 field: status\n%%step s3 value: {{tier}}"
         },
         {
