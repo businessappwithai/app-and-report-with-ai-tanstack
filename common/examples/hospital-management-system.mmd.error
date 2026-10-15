@@ -1,12 +1,28 @@
 {
-  "file": "/Users/pramodkoshy/projects/dynamic/test/app-with-ai-tanstack/examples/hospital-management-system.mmd",
-  "checkedAt": "2026-09-04T13:19:52.703Z",
+  "file": "/home/user/app-and-report-with-ai-tanstack/common/examples/hospital-management-system.mmd",
+  "checkedAt": "2026-10-15T23:42:43.651Z",
   "languageVersion": "1.2.0",
   "summary": {
     "errors": 0,
     "warnings": 0,
-    "infos": 0,
+    "infos": 2,
     "ok": true
   },
-  "issues": []
+  "issues": [
+    {
+      "severity": "info",
+      "code": "EML149",
+      "message": "\"InventoryItem\" looks like a line item of \"Supplier\" but declares no parent.",
+      "line": 405,
+      "hint": "If a list of every InventoryItem away from its Supplier is not a screen anyone opens, declare `%%entity InventoryItem parent: Supplier` — the dictionary then drops its dashboard card and gives it a tab inside the Supplier window, linked on supplier_id. If it is a thing in its own right, leave it: a reference is the opposite on all three questions (§3.5.1).",
+      "autoFixable": false
+    },
+    {
+      "severity": "info",
+      "code": "EML502",
+      "message": "FK attribute \"Department.doctor_id\" has no relationship to \"Doctor\".",
+      "hint": "Add:  Doctor ||--o{ Department : \"...\"  (or reverse for manyToOne).",
+      "autoFixable": false
+    }
+  ]
 }

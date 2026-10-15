@@ -2064,10 +2064,17 @@ class CheckEngine {
         .map(({ text }) => text.match(/\bworkflow:\s*(\S+)/)?.[1])
         .filter((name): name is string => !!name)
     );
+    // A rule drawn in the graph editor names its process inside the graph's JSON
+    // (`%%jdm-graph`) or a table's cells (`%%decision-table`), not on an %%action
+    // line — so a mention there counts as naming it.
+    const drawnRules = this.src
+      .findAll(/^\s*%%(?:jdm-graph|decision-table)\s/)
+      .map(({ text }) => text);
     for (const { lineNo, text } of this.src.findAll(/^%%workflow\b/)) {
       const m = text.match(/^%%workflow\s+(\w+)[^\n]*kind:\s*saga/);
       if (!m || !/\btrigger:\s*rule\b/.test(text)) continue;
       if (triggered.has(m[1]!)) continue;
+      if (drawnRules.some((line) => new RegExp(`\\b${m[1]}\\b`).test(line))) continue;
       this.warn("EML286", `Saga "${m[1]}" is rule-triggered but no %%action names it.`, {
         line: lineNo,
         hint: `Add %%action <name> trigger-workflow when: <condition> workflow: ${m[1]} to a %%rule section, or change it to trigger: automatic.`,

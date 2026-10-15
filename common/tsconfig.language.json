@@ -28,6 +28,9 @@
       ],
       "@appwithai/core": [
         "../app-with-ai-tanstack/packages/core/src"
+      ],
+      "@appwithai/editors/*": [
+        "../app-with-ai-tanstack/packages/editors/src/*"
       ]
     }
   },

@@ -560,9 +560,21 @@ function fail(html) {
  * whole point is that it has no dependencies. A single self-extracting shell
  * script is the honest trade: it is readable before it is run, which a zip is
  * not.
+ *
+ * It cannot carry PGlite's seventeen megabytes of WebAssembly, so the download
+ * is generated again without this page's PGlite URL — which would point the
+ * application at this host — and is started with `npm install && npm start`:
+ * the application's own server then serves the installed package.
  */
 $("download").addEventListener("click", () => {
   if (!state.files) return;
+  const { files } = generateFromSource({
+    source: state.source,
+    name: $("app-name").value.trim() || "Generated App",
+    adminEmail: $("admin-email").value.trim() || "admin@admin.com",
+    adminPassword: $("admin-password").value || "admin",
+    adminName: ($("admin-email").value.split("@")[0] || "admin").trim(),
+  });
   const name = ($("app-name").value.trim() || "generated-app")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -576,16 +588,16 @@ $("download").addEventListener("click", () => {
     `mkdir -p "${name}"`,
     `cd "${name}"`,
     "",
-    ...Object.entries(state.files).flatMap(([path, contents]) => [
+    ...Object.entries(files).flatMap(([path, contents]) => [
       `mkdir -p "$(dirname "${path}")"`,
       `cat > "${path}" <<'ERDWITHAI_EOF'`,
       contents.replace(/\r/g, ""),
       "ERDWITHAI_EOF",
       "",
     ]),
-    `echo "Wrote ${Object.keys(state.files).length} files into ${name}/"`,
-    `echo "Serve it over http (a Service Worker cannot start from file://):"`,
-    `echo "  npx serve ${name}"`,
+    `echo "Wrote ${Object.keys(files).length} files into ${name}/"`,
+    `echo "Start it (npm install fetches PostgreSQL, which ships as an npm package):"`,
+    `echo "  cd ${name} && npm install && npm start"`,
     "",
   ].join("\n");
 
@@ -605,6 +617,13 @@ $("reset").addEventListener("click", () => run(true));
 async function run(fresh) {
   if (!state.files) {
     fail("Generate the application first.");
+    return;
+  }
+  if (!state.pgliteUrl) {
+    fail(
+      "PostgreSQL (PGlite) is not beside this page, and it is never fetched from a CDN. " +
+        "Run `bun run vendor:pglite`, reload, and run again — or download the application."
+    );
     return;
   }
 
@@ -678,10 +697,18 @@ async function run(fresh) {
 /**
  * The sub-steps the application announces while it starts.
  *
- * Booting is sixty per cent of the bar and ten seconds of wall clock, almost all
- * of it Postgres. The application already narrates that on its own boot screen;
- * `boot.js` now posts the same lines to whoever embedded it, so this bar can
- * move through the wait instead of sitting still until the frame paints.
+ * Booting is sixty per cent of the bar, and the marks below are where its
+ * sub-steps fall. The application already narrates them on its own boot screen;
+ * `boot.js` posts the same lines to whoever embedded it, so this bar can move
+ * through the wait instead of sitting still until the frame paints.
+ *
+ * The fractions come from measuring, and they were badly wrong. Opening
+ * Postgres and running the DDL took 6 of the 251 seconds a thirty-entity model
+ * spent booting, and seeding took the other 245 — yet the marks gave the first
+ * two 70% of the bar and seeding a tenth. That ratio is structural rather than
+ * a property of the machine: opening PGlite and running DDL is a fixed cost,
+ * while seeding inserts a row at a time and grows with the model. So seeding
+ * now owns most of the bar.
  *
  * Matching on the status text is a soft coupling, and deliberately so: an
  * unrecognised status still shows in the detail line and simply does not advance
@@ -689,14 +716,33 @@ async function run(fresh) {
  * runtime — buys nothing that a stalled bar does not already communicate.
  */
 const BOOT_MARKS = [
-  [/http layer|service worker/i, 0.15],
-  [/backend worker|node-api/i, 0.3],
-  [/request pipe/i, 0.4],
-  [/postgres/i, 0.55],
-  [/migrat|schema/i, 0.7],
-  [/seed/i, 0.85],
-  [/interface/i, 0.95],
+  [/http layer|service worker/i, 0.05],
+  [/backend worker|node-api/i, 0.1],
+  [/request pipe/i, 0.15],
+  [/postgres/i, 0.25],
+  [/migrat|schema/i, 0.45],
+  [/seed/i, 0.6],
+  [/interface/i, 0.98],
 ];
+
+/**
+ * Seeding, reported as a fraction rather than as a single mark.
+ *
+ * The marks above are milestones, and one of them was hiding almost the whole
+ * wait: `seed` put the bar at 85% and nothing moved it again until the frame
+ * was ready. Measured on the thirty-entity hospital model, that was 246 of the
+ * 253 seconds the boot took — a bar sitting still for 97% of the wait, which is
+ * what the phase weighting exists to prevent. It is not a slow-machine problem;
+ * a faster machine shortens the same frozen stretch.
+ *
+ * `migrate.js` now counts the rows it seeds and says so. This reads that count
+ * and spreads it across the band between the `seed` mark and the one after it,
+ * so the bar moves for the part of the boot that actually takes the time. A
+ * runtime that does not report a count still matches `/seed/i` above and
+ * behaves exactly as before.
+ */
+const SEED_COUNT = /seeding\s*[—-]\s*(\d+)\s+of\s+(\d+)/i;
+const SEED_BAND = [0.6, 0.97];
 
 window.addEventListener("message", (event) => {
   const message = event.data;
@@ -706,6 +752,17 @@ window.addEventListener("message", (event) => {
     const text = message.status ?? message.message ?? "";
     if (message.type === "log") say(`  ${text}`);
     else say(text);
+    const counted = SEED_COUNT.exec(text);
+    if (counted) {
+      const done = Number(counted[1]);
+      const total = Number(counted[2]);
+      if (total > 0) {
+        const [from, to] = SEED_BAND;
+        build.advance(from + (to - from) * Math.min(1, done / total), text);
+        return;
+      }
+    }
+
     for (const [pattern, fraction] of BOOT_MARKS) {
       if (pattern.test(text)) build.advance(fraction, text);
     }
@@ -813,24 +870,31 @@ function escapeHtml(value) {
 const titleCase = (value) => value.replace(/\b\w/g, (character) => character.toUpperCase());
 
 /**
- * Prefer a locally served PGlite when one has been placed beside this page.
+ * Find the PGlite served beside this page.
  *
- * Seventeen megabytes of WebAssembly does not belong in a documentation folder,
- * so the default is the CDN — but `bun run vendor:pglite` puts a copy under
- * `assets/vendor/`, and a page that finds one should use it: it is faster, and
- * it makes the whole demonstration work with the network off.
+ * Postgres is never fetched from a CDN. `bun run vendor:pglite` puts a copy
+ * under `assets/vendor/pglite/` — not in git, it is seventeen megabytes — and a
+ * deployment of this page carries it the same way. Without it the page still
+ * generates an application, and says before the run step why it cannot start
+ * one here.
  */
 async function findLocalPglite() {
+  const url = new URL("assets/vendor/pglite/index.js", window.location.href).href;
   try {
-    const url = new URL("assets/vendor/pglite/index.js", window.location.href).href;
     const response = await fetch(url, { method: "HEAD" });
     if (response.ok) {
       state.pgliteUrl = url;
       say(`Using the local PostgreSQL build at ${url}`);
+      return;
     }
   } catch {
-    // The CDN default stands.
+    // Reported below, the same as a 404.
   }
+  say(
+    `PostgreSQL (PGlite) is not beside this page at ${url}. Run \`bun run vendor:pglite\` ` +
+      "to put it there; until then an application can be generated and downloaded, not run here.",
+    "warn"
+  );
 }
 
 await findLocalPglite();

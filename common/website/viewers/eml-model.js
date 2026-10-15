@@ -3493,11 +3493,14 @@ class CheckEngine {
       }
     }
     const triggered = new Set(this.src.findAll(/^\s*%%action\b/).map(({ text }) => text.match(/\bworkflow:\s*(\S+)/)?.[1]).filter((name) => !!name));
+    const drawnRules = this.src.findAll(/^\s*%%(?:jdm-graph|decision-table)\s/).map(({ text }) => text);
     for (const { lineNo, text } of this.src.findAll(/^%%workflow\b/)) {
       const m = text.match(/^%%workflow\s+(\w+)[^\n]*kind:\s*saga/);
       if (!m || !/\btrigger:\s*rule\b/.test(text))
         continue;
       if (triggered.has(m[1]))
+        continue;
+      if (drawnRules.some((line) => new RegExp(`\\b${m[1]}\\b`).test(line)))
         continue;
       this.warn("EML286", `Saga "${m[1]}" is rule-triggered but no %%action names it.`, {
         line: lineNo,
@@ -9512,6 +9515,132 @@ function parseDecisionTableDirective(flowchart) {
     return null;
   }
 }
+var JDM_GRAPH_DIRECTIVE = "%%jdm-graph ";
+var GRAPH_NODE_TYPES = new Set([
+  "inputNode",
+  "outputNode",
+  "decisionTableNode",
+  "expressionNode",
+  "functionNode",
+  "switchNode"
+]);
+var FORBIDDEN_FUNCTION_SOURCE = /\b(?:import|require|fetch|eval|process|globalThis)\b/;
+function parseJdmGraphDirective(flowchart) {
+  const line = (flowchart ?? "").split(`
+`).map((l) => l.trim()).find((l) => l.startsWith(JDM_GRAPH_DIRECTIVE));
+  if (!line)
+    return null;
+  try {
+    const parsed = JSON.parse(line.slice(JDM_GRAPH_DIRECTIVE.length));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function validateJdmGraph(graph) {
+  const problems = [];
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const edges = Array.isArray(graph.edges) ? graph.edges : [];
+  const ids = new Set;
+  if (!nodes.length)
+    return ["the graph has no nodes"];
+  for (const node of nodes) {
+    const label = String(node.name ?? node.id);
+    ids.add(String(node.id));
+    if (typeof node.type !== "string" || !GRAPH_NODE_TYPES.has(node.type)) {
+      problems.push(`node "${label}" has an unsupported type "${String(node.type)}"`);
+      continue;
+    }
+    if (node.type === "inputNode" || node.type === "outputNode")
+      continue;
+    if (node.content === undefined || node.content === null) {
+      problems.push(`${node.type} "${label}" has no content, so the engine would reject it`);
+    }
+    if (node.type === "functionNode") {
+      const content = node.content;
+      const source = typeof content === "string" ? content : typeof content?.source === "string" ? content.source : "";
+      if (!/\bhandler\b/.test(source)) {
+        problems.push(`functionNode "${label}" defines no handler; write export const handler = async (input) => ({ ... })`);
+      }
+      if (FORBIDDEN_FUNCTION_SOURCE.test(source)) {
+        problems.push(`functionNode "${label}" uses import, require, fetch, eval, process or globalThis, which the sandbox does not allow`);
+      }
+    }
+  }
+  if (!nodes.some((n) => n.type === "inputNode"))
+    problems.push("the graph has no input node");
+  if (!nodes.some((n) => n.type === "outputNode"))
+    problems.push("the graph has no output node");
+  for (const edge of edges) {
+    if (!ids.has(String(edge.sourceId)) || !ids.has(String(edge.targetId))) {
+      problems.push(`edge "${String(edge.id)}" joins a node that is not in the graph`);
+    }
+  }
+  return problems;
+}
+function normalizeGraphActions(graph) {
+  const rewrite = (cell) => typeof cell === "string" ? cell.replace(/(["'])validation-error\1/g, "$1prevent$1") : cell;
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      const content = node.content;
+      if (node.type === "functionNode" && typeof content === "string") {
+        return { ...node, content: { source: content } };
+      }
+      const table = content;
+      if (node.type !== "decisionTableNode" || !Array.isArray(table?.rules)) {
+        return node;
+      }
+      const inputIds = new Set((table.inputs ?? []).map((column) => column.id));
+      return {
+        ...node,
+        content: withTransformData({
+          ...table,
+          rules: table.rules.map((row) => Object.fromEntries(Object.entries(row).map(([key, cell]) => [
+            key,
+            inputIds.has(key) ? emptyMeansBlank(rewrite(cell)) : rewrite(cell)
+          ])))
+        })
+      };
+    })
+  };
+}
+function emptyMeansBlank(cell) {
+  if (typeof cell !== "string")
+    return cell;
+  const text = cell.trim();
+  if (text === "null")
+    return 'null, ""';
+  if (text === "!= null")
+    return '!= null and != ""';
+  return cell;
+}
+function literalText(cell) {
+  const match = String(cell ?? "").trim().match(/^(?:'(.*)'|"(.*)")$/s);
+  return match ? match[1] ?? match[2] ?? "" : null;
+}
+function withTransformData(content) {
+  const outputs = content.outputs ?? [];
+  const fieldColumn = outputs.find((column) => column.field === "field");
+  const valueColumn = outputs.find((column) => column.field === "value");
+  const actionColumn = outputs.find((column) => column.field === "action");
+  if (!fieldColumn || !valueColumn || !actionColumn || outputs.some((column) => column.field === "transformData")) {
+    return content;
+  }
+  const dataColumn = { id: "transformData-auto", name: "Transform Data", field: "transformData" };
+  return {
+    ...content,
+    outputs: [...outputs, dataColumn],
+    rules: (content.rules ?? []).map((row) => {
+      const target = literalText(row[fieldColumn.id])?.trim();
+      const isTransform = literalText(row[actionColumn.id])?.trim() === "transform";
+      if (!isTransform || !target)
+        return { ...row, [dataColumn.id]: row[dataColumn.id] ?? "" };
+      const value = literalText(row[valueColumn.id]) ?? String(row[valueColumn.id] ?? "");
+      return { ...row, [dataColumn.id]: zenLiteral(JSON.stringify({ [target]: value })) };
+    })
+  };
+}
 function isBareLiteral(value) {
   return value === "true" || value === "false" || value === "null" || value !== "" && !Number.isNaN(Number(value));
 }
@@ -9532,12 +9661,12 @@ function zenInputCell(raw) {
     return "";
   const match = value.match(/^(>=|<=|!=|=|>|<)\s*(.*)$/);
   if (!match)
-    return zenCell(value);
+    return emptyMeansBlank(zenCell(value));
   const [, operator, operand] = match;
   const cell = zenCell(operand);
   if (!cell)
     return "";
-  return operator === "=" ? cell : `${operator} ${cell}`;
+  return emptyMeansBlank(operator === "=" ? cell : `${operator} ${cell}`);
 }
 function buildEditorDecisionTable(ruleName, table) {
   const inputs = (table.inputs ?? []).filter((column) => (column.field ?? "").trim() !== "");
@@ -9558,7 +9687,7 @@ function buildEditorDecisionTable(ruleName, table) {
         id: tableId,
         name: ruleName,
         type: "decisionTableNode",
-        content: {
+        content: withTransformData({
           hitPolicy: table.hitPolicy === "collect" ? "collect" : "first",
           inputs: inputs.map((column) => ({
             id: column.id,
@@ -9571,7 +9700,7 @@ function buildEditorDecisionTable(ruleName, table) {
             field: column.field ?? ""
           })),
           rules: rows
-        }
+        })
       },
       { id: "output", name: "Output", type: "outputNode" }
     ],
@@ -9653,6 +9782,24 @@ function compileRules(sections, onWarn = () => {}) {
     }
     try {
       const editorTable = parseDecisionTableDirective(section.flowchart);
+      const editorGraph = parseJdmGraphDirective(section.flowchart);
+      if (editorGraph) {
+        const problems = validateJdmGraph(editorGraph);
+        if (problems.length) {
+          onWarn(`Rule "${section.name}" has a graph that cannot run: ${problems.join("; ")}.`);
+          continue;
+        }
+        compiled.push({
+          name: section.name,
+          entity: section.entity,
+          tableName: toTableName(section.entity),
+          event: section.event,
+          operation: eventToOperation(section.event),
+          priority: section.priority ?? 100,
+          jdmContent: JSON.stringify(normalizeGraphActions(editorGraph))
+        });
+        continue;
+      }
       const ast = parseMermaidFlowchart(section.flowchart);
       if (!editorTable && !ast.nodes.size) {
         onWarn(`Rule "${section.name}" has no nodes; skipping.`);

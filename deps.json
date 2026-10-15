@@ -24,10 +24,10 @@
       "repository": "businessappwithai/app-with-ai-tanstack",
       "path": "app-with-ai-tanstack",
       "branch": "main",
-      "ref": "2ebb5bd53449bb25be49b6ed5e7c076454858d39",
+      "ref": "1c1b492bad13e83f85ed55473c104536e1300bf9",
       "install": true,
       "needed_for": [
-        "language/cli/src/generate/jdm.ts imports packages/web/src/lib/jdm-converter.ts and mermaid-flowchart-parser.ts across the repository boundary, on every generation path — so every --stack target needs this checkout, not just the heavy one",
+        "language/cli/src/generate/jdm.ts imports packages/web/src/lib/jdm-converter.ts and packages/editors/src/lib/mermaid-flowchart-parser.ts across the repository boundary, on every generation path — so every --stack target needs this checkout, not just the heavy one",
         "language/cli/src/generate/tanstack.ts resolves packages/generator/src/pipeline/generate-application.ts at runtime, which is what --stack tanstack-nestjs drives",
         "build/reporting-pack.ts imports packages/generator/src/reporting/pack.ts — the pack derivation lives there now, because the generated application's browser build and its deployable archive read the same one",
         "that pipeline needs this repository's own dependencies installed, so the checkout is followed by `bun install --frozen-lockfile` in it",

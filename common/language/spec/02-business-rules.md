@@ -3,7 +3,7 @@
 A **business rule** in EML is a directed **decision flow**: a `flowchart` whose
 **node shapes** encode decision roles and whose **edge labels** carry branch
 conditions. The generator compiles it to a **GoRules JDM** decision graph via
-`packages/web/src/lib/mermaid-flowchart-parser.ts` →
+`packages/editors/src/lib/mermaid-flowchart-parser.ts` →
 `packages/web/src/lib/jdm-converter.ts`.
 
 Use business rules for declarative logic: pricing, discounts, eligibility,

@@ -20,12 +20,12 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { convertToJdm } from "../../../../../app-with-ai-tanstack/packages/web/src/lib/jdm-converter.ts";
 import type {
   FlowAST,
   FlowNode,
   NodeShape,
-} from "../../../../../app-with-ai-tanstack/packages/web/src/lib/mermaid-flowchart-parser.ts";
+} from "../../../../../app-with-ai-tanstack/packages/editors/src/lib/mermaid-flowchart-parser.ts";
+import { convertToJdm } from "../../../../../app-with-ai-tanstack/packages/web/src/lib/jdm-converter.ts";
 import type { EmlModel, EmlRule, RuleNodeShape } from "../model.ts";
 import { kebabCase } from "../util.ts";
 
