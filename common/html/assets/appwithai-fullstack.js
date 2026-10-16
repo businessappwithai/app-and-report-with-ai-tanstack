@@ -32,7 +32,7 @@ var __toESM = (mod, isNodeMode, target) => {
       return cached;
   }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
-  const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+  const to = isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
   if (mod && typeof mod === "object" || typeof mod === "function") {
     for (let key of __getOwnPropNames(mod))
       if (!__hasOwnProp.call(to, key))
@@ -76,7 +76,17 @@ var __export = (target, all) => {
       set: __exportSetter.bind(all, name)
     });
 };
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+var __esm = (fn, res, err) => () => {
+  if (fn)
+    try {
+      res = fn(fn = 0);
+    } catch (e) {
+      err = [e];
+    }
+  if (err)
+    throw err[0];
+  return res;
+};
 
 // packages/generator/src/browser/memory-fs.ts
 var exports_memory_fs = {};
@@ -480,7 +490,7 @@ var require_utils = __commonJS(function(exports) {
   }
   var toString = Object.prototype.toString;
   exports.toString = toString;
-  var isFunction = function isFunction2(value) {
+  var isFunction = function isFunction(value) {
     return typeof value === "function";
   };
   if (isFunction(/x/)) {
@@ -591,7 +601,7 @@ var require_block_helper_missing = __commonJS(function(exports, module) {
   var _utils = require_utils();
   exports.default = function(instance) {
     instance.registerHelper("blockHelperMissing", function(context, options) {
-      var { inverse, fn } = options;
+      var inverse = options.inverse, fn = options.fn;
       if (context === true) {
         return fn(this);
       } else if (context === false || context == null) {
@@ -878,12 +888,12 @@ var require_inline = __commonJS(function(exports, module) {
       var ret = fn;
       if (!props.partials) {
         props.partials = {};
-        ret = function(context, options2) {
+        ret = function(context, options) {
           var original = container.partials;
           container.partials = _utils.extend({}, original, props.partials);
-          var ret2 = fn(context, options2);
+          var ret = fn(context, options);
           container.partials = original;
-          return ret2;
+          return ret;
         };
       }
       props.partials[options.args[0]] = options.fn;
@@ -1042,7 +1052,7 @@ var require_base = __commonJS(function(exports) {
     8: ">= 4.3.0"
   };
   exports.REVISION_CHANGES = REVISION_CHANGES;
-  var objectType2 = "[object Object]";
+  var objectType = "[object Object]";
   function HandlebarsEnvironment(helpers, partials, decorators) {
     this.helpers = helpers || {};
     this.partials = partials || {};
@@ -1055,7 +1065,7 @@ var require_base = __commonJS(function(exports) {
     logger: _logger2["default"],
     log: _logger2["default"].log,
     registerHelper: function registerHelper(name, fn) {
-      if (_utils.toString.call(name) === objectType2) {
+      if (_utils.toString.call(name) === objectType) {
         if (fn) {
           throw new _exception2["default"]("Arg not supported with multiple helpers");
         }
@@ -1068,7 +1078,7 @@ var require_base = __commonJS(function(exports) {
       delete this.helpers[name];
     },
     registerPartial: function registerPartial(name, partial) {
-      if (_utils.toString.call(name) === objectType2) {
+      if (_utils.toString.call(name) === objectType) {
         _utils.extend(this.partials, name);
       } else {
         if (typeof partial === "undefined") {
@@ -1081,7 +1091,7 @@ var require_base = __commonJS(function(exports) {
       delete this.partials[name];
     },
     registerDecorator: function registerDecorator(name, fn) {
-      if (_utils.toString.call(name) === objectType2) {
+      if (_utils.toString.call(name) === objectType) {
         if (fn) {
           throw new _exception2["default"]("Arg not supported with multiple decorators");
         }
@@ -1124,7 +1134,7 @@ var require_wrapHelper = __commonJS(function(exports) {
     if (typeof helper !== "function") {
       return helper;
     }
-    var wrapper = function wrapper2() {
+    var wrapper = function wrapper() {
       var options = arguments[arguments.length - 1];
       arguments[arguments.length - 1] = transformOptionsFn(options);
       return helper.apply(this, arguments);
@@ -1260,9 +1270,9 @@ var require_runtime = __commonJS(function(exports) {
       escapeExpression: Utils.escapeExpression,
       invokePartial: invokePartialWrapper,
       fn: function fn(i) {
-        var ret2 = templateSpec[i];
-        ret2.decorator = templateSpec[i + "_d"];
-        return ret2;
+        var ret = templateSpec[i];
+        ret.decorator = templateSpec[i + "_d"];
+        return ret;
       },
       programs: [],
       program: function program(i, data, declaredBlockParams, blockParams, depths) {
@@ -1306,8 +1316,8 @@ var require_runtime = __commonJS(function(exports) {
           depths = [context];
         }
       }
-      function main(context2) {
-        return "" + templateSpec.main(container, context2, container.helpers, container.partials, data, blockParams, depths);
+      function main(context) {
+        return "" + templateSpec.main(container, context, container.helpers, container.partials, data, blockParams, depths);
       }
       main = executeDecorators(templateSpec.main, main, container, options.depths || [], data, blockParams);
       return main(context, options);
@@ -1388,11 +1398,11 @@ var require_runtime = __commonJS(function(exports) {
       (function() {
         options.data = _base.createFrame(options.data);
         var fn = options.fn;
-        partialBlock = options.data["partial-block"] = function partialBlockWrapper(context2) {
-          var options2 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-          options2.data = _base.createFrame(options2.data);
-          options2.data["partial-block"] = currentPartialBlock;
-          return fn(context2, options2);
+        partialBlock = options.data["partial-block"] = function partialBlockWrapper(context) {
+          var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+          options.data = _base.createFrame(options.data);
+          options.data["partial-block"] = currentPartialBlock;
+          return fn(context, options);
         };
         if (fn.partials) {
           options.partials = Utils.extend({}, options.partials, fn.partials);
@@ -1913,7 +1923,7 @@ Expecting ` + expected.join(", ") + ", got '" + (this.terminals_[symbol] || symb
       }
     };
     var lexer = function() {
-      var lexer2 = {
+      var lexer = {
         EOF: 1,
         parseError: function parseError(str, hash) {
           if (this.yy.parser) {
@@ -2080,8 +2090,8 @@ Expecting ` + expected.join(", ") + ", got '" + (this.terminals_[symbol] || symb
           this.begin(condition);
         }
       };
-      lexer2.options = {};
-      lexer2.performAction = function anonymous(yy, yy_, $avoiding_name_collisions, YY_START) {
+      lexer.options = {};
+      lexer.performAction = function anonymous(yy, yy_, $avoiding_name_collisions, YY_START) {
         function strip(start, end) {
           return yy_.yytext = yy_.yytext.substring(start, yy_.yyleng - end + start);
         }
@@ -2254,9 +2264,9 @@ Expecting ` + expected.join(", ") + ", got '" + (this.terminals_[symbol] || symb
             break;
         }
       };
-      lexer2.rules = [/^(?:[^\x00]*?(?=(\{\{)))/, /^(?:[^\x00]+)/, /^(?:[^\x00]{2,}?(?=(\{\{|\\\{\{|\\\\\{\{|$)))/, /^(?:\{\{\{\{(?=[^\/]))/, /^(?:\{\{\{\{\/[^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=[=}\s\/.])\}\}\}\})/, /^(?:[^\x00]+?(?=(\{\{\{\{)))/, /^(?:[\s\S]*?--(~)?\}\})/, /^(?:\()/, /^(?:\))/, /^(?:\{\{\{\{)/, /^(?:\}\}\}\})/, /^(?:\{\{(~)?>)/, /^(?:\{\{(~)?#>)/, /^(?:\{\{(~)?#\*?)/, /^(?:\{\{(~)?\/)/, /^(?:\{\{(~)?\^\s*(~)?\}\})/, /^(?:\{\{(~)?\s*else\s*(~)?\}\})/, /^(?:\{\{(~)?\^)/, /^(?:\{\{(~)?\s*else\b)/, /^(?:\{\{(~)?\{)/, /^(?:\{\{(~)?&)/, /^(?:\{\{(~)?!--)/, /^(?:\{\{(~)?![\s\S]*?\}\})/, /^(?:\{\{(~)?\*?)/, /^(?:=)/, /^(?:\.\.)/, /^(?:\.(?=([=~}\s\/.)|])))/, /^(?:[\/.])/, /^(?:\s+)/, /^(?:\}(~)?\}\})/, /^(?:(~)?\}\})/, /^(?:"(\\["]|[^"])*")/, /^(?:'(\\[']|[^'])*')/, /^(?:@)/, /^(?:true(?=([~}\s)])))/, /^(?:false(?=([~}\s)])))/, /^(?:undefined(?=([~}\s)])))/, /^(?:null(?=([~}\s)])))/, /^(?:-?[0-9]+(?:\.[0-9]+)?(?=([~}\s)])))/, /^(?:as\s+\|)/, /^(?:\|)/, /^(?:([^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=([=~}\s\/.)|]))))/, /^(?:\[(\\\]|[^\]])*\])/, /^(?:.)/, /^(?:$)/];
-      lexer2.conditions = { mu: { rules: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44], inclusive: false }, emu: { rules: [2], inclusive: false }, com: { rules: [6], inclusive: false }, raw: { rules: [3, 4, 5], inclusive: false }, INITIAL: { rules: [0, 1, 44], inclusive: true } };
-      return lexer2;
+      lexer.rules = [/^(?:[^\x00]*?(?=(\{\{)))/, /^(?:[^\x00]+)/, /^(?:[^\x00]{2,}?(?=(\{\{|\\\{\{|\\\\\{\{|$)))/, /^(?:\{\{\{\{(?=[^\/]))/, /^(?:\{\{\{\{\/[^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=[=}\s\/.])\}\}\}\})/, /^(?:[^\x00]+?(?=(\{\{\{\{)))/, /^(?:[\s\S]*?--(~)?\}\})/, /^(?:\()/, /^(?:\))/, /^(?:\{\{\{\{)/, /^(?:\}\}\}\})/, /^(?:\{\{(~)?>)/, /^(?:\{\{(~)?#>)/, /^(?:\{\{(~)?#\*?)/, /^(?:\{\{(~)?\/)/, /^(?:\{\{(~)?\^\s*(~)?\}\})/, /^(?:\{\{(~)?\s*else\s*(~)?\}\})/, /^(?:\{\{(~)?\^)/, /^(?:\{\{(~)?\s*else\b)/, /^(?:\{\{(~)?\{)/, /^(?:\{\{(~)?&)/, /^(?:\{\{(~)?!--)/, /^(?:\{\{(~)?![\s\S]*?\}\})/, /^(?:\{\{(~)?\*?)/, /^(?:=)/, /^(?:\.\.)/, /^(?:\.(?=([=~}\s\/.)|])))/, /^(?:[\/.])/, /^(?:\s+)/, /^(?:\}(~)?\}\})/, /^(?:(~)?\}\})/, /^(?:"(\\["]|[^"])*")/, /^(?:'(\\[']|[^'])*')/, /^(?:@)/, /^(?:true(?=([~}\s)])))/, /^(?:false(?=([~}\s)])))/, /^(?:undefined(?=([~}\s)])))/, /^(?:null(?=([~}\s)])))/, /^(?:-?[0-9]+(?:\.[0-9]+)?(?=([~}\s)])))/, /^(?:as\s+\|)/, /^(?:\|)/, /^(?:([^\s!"#%-,\.\/;->@\[-\^`\{-~]+(?=([=~}\s\/.)|]))))/, /^(?:\[(\\\]|[^\]])*\])/, /^(?:.)/, /^(?:$)/];
+      lexer.conditions = { mu: { rules: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44], inclusive: false }, emu: { rules: [2], inclusive: false }, com: { rules: [6], inclusive: false }, raw: { rules: [3, 4, 5], inclusive: false }, INITIAL: { rules: [0, 1, 44], inclusive: true } };
+      return lexer;
     }();
     parser.lexer = lexer;
     function Parser() {
@@ -2843,7 +2853,7 @@ var require_compiler = __commonJS(function(exports) {
       return true;
     },
     guid: 0,
-    compile: function compile2(program, options) {
+    compile: function compile(program, options) {
       this.sourceNode = [];
       this.opcodes = [];
       this.children = [];
@@ -3362,7 +3372,7 @@ var require_util = __commonJS(function(exports) {
     return url;
   }
   exports.urlGenerate = urlGenerate;
-  function normalize2(aPath) {
+  function normalize(aPath) {
     var path = aPath;
     var url = urlParse(aPath);
     if (url) {
@@ -3371,7 +3381,7 @@ var require_util = __commonJS(function(exports) {
       }
       path = url.path;
     }
-    var isAbsolute2 = exports.isAbsolute(path);
+    var isAbsolute = exports.isAbsolute(path);
     var parts = path.split(/\/+/);
     for (var part, up = 0, i = parts.length - 1;i >= 0; i--) {
       part = parts[i];
@@ -3391,7 +3401,7 @@ var require_util = __commonJS(function(exports) {
     }
     path = parts.join("/");
     if (path === "") {
-      path = isAbsolute2 ? "/" : ".";
+      path = isAbsolute ? "/" : ".";
     }
     if (url) {
       url.path = path;
@@ -3399,8 +3409,8 @@ var require_util = __commonJS(function(exports) {
     }
     return path;
   }
-  exports.normalize = normalize2;
-  function join2(aRoot, aPath) {
+  exports.normalize = normalize;
+  function join(aRoot, aPath) {
     if (aRoot === "") {
       aRoot = ".";
     }
@@ -3425,18 +3435,18 @@ var require_util = __commonJS(function(exports) {
       aRootUrl.host = aPath;
       return urlGenerate(aRootUrl);
     }
-    var joined = aPath.charAt(0) === "/" ? aPath : normalize2(aRoot.replace(/\/+$/, "") + "/" + aPath);
+    var joined = aPath.charAt(0) === "/" ? aPath : normalize(aRoot.replace(/\/+$/, "") + "/" + aPath);
     if (aRootUrl) {
       aRootUrl.path = joined;
       return urlGenerate(aRootUrl);
     }
     return joined;
   }
-  exports.join = join2;
+  exports.join = join;
   exports.isAbsolute = function(aPath) {
     return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
   };
-  function relative2(aRoot, aPath) {
+  function relative(aRoot, aPath) {
     if (aRoot === "") {
       aRoot = ".";
     }
@@ -3455,7 +3465,7 @@ var require_util = __commonJS(function(exports) {
     }
     return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
   }
-  exports.relative = relative2;
+  exports.relative = relative;
   var supportsNullProto = function() {
     var obj = Object.create(null);
     return !("__proto__" in obj);
@@ -3605,16 +3615,16 @@ var require_util = __commonJS(function(exports) {
           parsed.path = parsed.path.substring(0, index + 1);
         }
       }
-      sourceURL = join2(urlGenerate(parsed), sourceURL);
+      sourceURL = join(urlGenerate(parsed), sourceURL);
     }
-    return normalize2(sourceURL);
+    return normalize(sourceURL);
   }
   exports.computeSourceURL = computeSourceURL;
 });
 
 // node_modules/.bun/source-map@0.6.1/node_modules/source-map/lib/array-set.js
 var require_array_set = __commonJS(function(exports) {
-  var util3 = require_util();
+  var util = require_util();
   var has = Object.prototype.hasOwnProperty;
   var hasNativeMap = typeof Map !== "undefined";
   function ArraySet() {
@@ -3632,7 +3642,7 @@ var require_array_set = __commonJS(function(exports) {
     return hasNativeMap ? this._set.size : Object.getOwnPropertyNames(this._set).length;
   };
   ArraySet.prototype.add = function ArraySet_add(aStr, aAllowDuplicates) {
-    var sStr = hasNativeMap ? aStr : util3.toSetString(aStr);
+    var sStr = hasNativeMap ? aStr : util.toSetString(aStr);
     var isDuplicate = hasNativeMap ? this.has(aStr) : has.call(this._set, sStr);
     var idx = this._array.length;
     if (!isDuplicate || aAllowDuplicates) {
@@ -3650,7 +3660,7 @@ var require_array_set = __commonJS(function(exports) {
     if (hasNativeMap) {
       return this._set.has(aStr);
     } else {
-      var sStr = util3.toSetString(aStr);
+      var sStr = util.toSetString(aStr);
       return has.call(this._set, sStr);
     }
   };
@@ -3661,7 +3671,7 @@ var require_array_set = __commonJS(function(exports) {
         return idx;
       }
     } else {
-      var sStr = util3.toSetString(aStr);
+      var sStr = util.toSetString(aStr);
       if (has.call(this._set, sStr)) {
         return this._set[sStr];
       }
@@ -3682,13 +3692,13 @@ var require_array_set = __commonJS(function(exports) {
 
 // node_modules/.bun/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js
 var require_mapping_list = __commonJS(function(exports) {
-  var util3 = require_util();
+  var util = require_util();
   function generatedPositionAfter(mappingA, mappingB) {
     var lineA = mappingA.generatedLine;
     var lineB = mappingB.generatedLine;
     var columnA = mappingA.generatedColumn;
     var columnB = mappingB.generatedColumn;
-    return lineB > lineA || lineB == lineA && columnB >= columnA || util3.compareByGeneratedPositionsInflated(mappingA, mappingB) <= 0;
+    return lineB > lineA || lineB == lineA && columnB >= columnA || util.compareByGeneratedPositionsInflated(mappingA, mappingB) <= 0;
   }
   function MappingList() {
     this._array = [];
@@ -3709,7 +3719,7 @@ var require_mapping_list = __commonJS(function(exports) {
   };
   MappingList.prototype.toArray = function MappingList_toArray() {
     if (!this._sorted) {
-      this._array.sort(util3.compareByGeneratedPositionsInflated);
+      this._array.sort(util.compareByGeneratedPositionsInflated);
       this._sorted = true;
     }
     return this._array;
@@ -3720,16 +3730,16 @@ var require_mapping_list = __commonJS(function(exports) {
 // node_modules/.bun/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js
 var require_source_map_generator = __commonJS(function(exports) {
   var base64VLQ = require_base64_vlq();
-  var util3 = require_util();
+  var util = require_util();
   var ArraySet = require_array_set().ArraySet;
   var MappingList = require_mapping_list().MappingList;
   function SourceMapGenerator(aArgs) {
     if (!aArgs) {
       aArgs = {};
     }
-    this._file = util3.getArg(aArgs, "file", null);
-    this._sourceRoot = util3.getArg(aArgs, "sourceRoot", null);
-    this._skipValidation = util3.getArg(aArgs, "skipValidation", false);
+    this._file = util.getArg(aArgs, "file", null);
+    this._sourceRoot = util.getArg(aArgs, "sourceRoot", null);
+    this._skipValidation = util.getArg(aArgs, "skipValidation", false);
     this._sources = new ArraySet;
     this._names = new ArraySet;
     this._mappings = new MappingList;
@@ -3752,7 +3762,7 @@ var require_source_map_generator = __commonJS(function(exports) {
       if (mapping.source != null) {
         newMapping.source = mapping.source;
         if (sourceRoot != null) {
-          newMapping.source = util3.relative(sourceRoot, newMapping.source);
+          newMapping.source = util.relative(sourceRoot, newMapping.source);
         }
         newMapping.original = {
           line: mapping.originalLine,
@@ -3767,7 +3777,7 @@ var require_source_map_generator = __commonJS(function(exports) {
     aSourceMapConsumer.sources.forEach(function(sourceFile) {
       var sourceRelative = sourceFile;
       if (sourceRoot !== null) {
-        sourceRelative = util3.relative(sourceRoot, sourceFile);
+        sourceRelative = util.relative(sourceRoot, sourceFile);
       }
       if (!generator._sources.has(sourceRelative)) {
         generator._sources.add(sourceRelative);
@@ -3780,10 +3790,10 @@ var require_source_map_generator = __commonJS(function(exports) {
     return generator;
   };
   SourceMapGenerator.prototype.addMapping = function SourceMapGenerator_addMapping(aArgs) {
-    var generated = util3.getArg(aArgs, "generated");
-    var original = util3.getArg(aArgs, "original", null);
-    var source = util3.getArg(aArgs, "source", null);
-    var name = util3.getArg(aArgs, "name", null);
+    var generated = util.getArg(aArgs, "generated");
+    var original = util.getArg(aArgs, "original", null);
+    var source = util.getArg(aArgs, "source", null);
+    var name = util.getArg(aArgs, "name", null);
     if (!this._skipValidation) {
       this._validateMapping(generated, original, source, name);
     }
@@ -3811,15 +3821,15 @@ var require_source_map_generator = __commonJS(function(exports) {
   SourceMapGenerator.prototype.setSourceContent = function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
     var source = aSourceFile;
     if (this._sourceRoot != null) {
-      source = util3.relative(this._sourceRoot, source);
+      source = util.relative(this._sourceRoot, source);
     }
     if (aSourceContent != null) {
       if (!this._sourcesContents) {
         this._sourcesContents = Object.create(null);
       }
-      this._sourcesContents[util3.toSetString(source)] = aSourceContent;
+      this._sourcesContents[util.toSetString(source)] = aSourceContent;
     } else if (this._sourcesContents) {
-      delete this._sourcesContents[util3.toSetString(source)];
+      delete this._sourcesContents[util.toSetString(source)];
       if (Object.keys(this._sourcesContents).length === 0) {
         this._sourcesContents = null;
       }
@@ -3835,7 +3845,7 @@ var require_source_map_generator = __commonJS(function(exports) {
     }
     var sourceRoot = this._sourceRoot;
     if (sourceRoot != null) {
-      sourceFile = util3.relative(sourceRoot, sourceFile);
+      sourceFile = util.relative(sourceRoot, sourceFile);
     }
     var newSources = new ArraySet;
     var newNames = new ArraySet;
@@ -3848,10 +3858,10 @@ var require_source_map_generator = __commonJS(function(exports) {
         if (original.source != null) {
           mapping.source = original.source;
           if (aSourceMapPath != null) {
-            mapping.source = util3.join(aSourceMapPath, mapping.source);
+            mapping.source = util.join(aSourceMapPath, mapping.source);
           }
           if (sourceRoot != null) {
-            mapping.source = util3.relative(sourceRoot, mapping.source);
+            mapping.source = util.relative(sourceRoot, mapping.source);
           }
           mapping.originalLine = original.line;
           mapping.originalColumn = original.column;
@@ -3871,16 +3881,16 @@ var require_source_map_generator = __commonJS(function(exports) {
     }, this);
     this._sources = newSources;
     this._names = newNames;
-    aSourceMapConsumer.sources.forEach(function(sourceFile2) {
-      var content = aSourceMapConsumer.sourceContentFor(sourceFile2);
+    aSourceMapConsumer.sources.forEach(function(sourceFile) {
+      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
       if (content != null) {
         if (aSourceMapPath != null) {
-          sourceFile2 = util3.join(aSourceMapPath, sourceFile2);
+          sourceFile = util.join(aSourceMapPath, sourceFile);
         }
         if (sourceRoot != null) {
-          sourceFile2 = util3.relative(sourceRoot, sourceFile2);
+          sourceFile = util.relative(sourceRoot, sourceFile);
         }
-        this.setSourceContent(sourceFile2, content);
+        this.setSourceContent(sourceFile, content);
       }
     }, this);
   };
@@ -3925,7 +3935,7 @@ var require_source_map_generator = __commonJS(function(exports) {
         }
       } else {
         if (i > 0) {
-          if (!util3.compareByGeneratedPositionsInflated(mapping, mappings[i - 1])) {
+          if (!util.compareByGeneratedPositionsInflated(mapping, mappings[i - 1])) {
             continue;
           }
           next += ",";
@@ -3957,9 +3967,9 @@ var require_source_map_generator = __commonJS(function(exports) {
         return null;
       }
       if (aSourceRoot != null) {
-        source = util3.relative(aSourceRoot, source);
+        source = util.relative(aSourceRoot, source);
       }
-      var key = util3.toSetString(source);
+      var key = util.toSetString(source);
       return Object.prototype.hasOwnProperty.call(this._sourcesContents, key) ? this._sourcesContents[key] : null;
     }, this);
   };
@@ -4069,7 +4079,7 @@ var require_quick_sort = __commonJS(function(exports) {
 
 // node_modules/.bun/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js
 var require_source_map_consumer = __commonJS(function(exports) {
-  var util3 = require_util();
+  var util = require_util();
   var binarySearch = require_binary_search();
   var ArraySet = require_array_set().ArraySet;
   var base64VLQ = require_base64_vlq();
@@ -4077,7 +4087,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
   function SourceMapConsumer(aSourceMap, aSourceMapURL) {
     var sourceMap = aSourceMap;
     if (typeof aSourceMap === "string") {
-      sourceMap = util3.parseSourceMapInput(aSourceMap);
+      sourceMap = util.parseSourceMapInput(aSourceMap);
     }
     return sourceMap.sections != null ? new IndexedSourceMapConsumer(sourceMap, aSourceMapURL) : new BasicSourceMapConsumer(sourceMap, aSourceMapURL);
   }
@@ -4135,7 +4145,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
     var sourceRoot = this.sourceRoot;
     mappings.map(function(mapping) {
       var source = mapping.source === null ? null : this._sources.at(mapping.source);
-      source = util3.computeSourceURL(sourceRoot, source, this._sourceMapURL);
+      source = util.computeSourceURL(sourceRoot, source, this._sourceMapURL);
       return {
         source,
         generatedLine: mapping.generatedLine,
@@ -4147,27 +4157,27 @@ var require_source_map_consumer = __commonJS(function(exports) {
     }, this).forEach(aCallback, context);
   };
   SourceMapConsumer.prototype.allGeneratedPositionsFor = function SourceMapConsumer_allGeneratedPositionsFor(aArgs) {
-    var line = util3.getArg(aArgs, "line");
+    var line = util.getArg(aArgs, "line");
     var needle = {
-      source: util3.getArg(aArgs, "source"),
+      source: util.getArg(aArgs, "source"),
       originalLine: line,
-      originalColumn: util3.getArg(aArgs, "column", 0)
+      originalColumn: util.getArg(aArgs, "column", 0)
     };
     needle.source = this._findSourceIndex(needle.source);
     if (needle.source < 0) {
       return [];
     }
     var mappings = [];
-    var index = this._findMapping(needle, this._originalMappings, "originalLine", "originalColumn", util3.compareByOriginalPositions, binarySearch.LEAST_UPPER_BOUND);
+    var index = this._findMapping(needle, this._originalMappings, "originalLine", "originalColumn", util.compareByOriginalPositions, binarySearch.LEAST_UPPER_BOUND);
     if (index >= 0) {
       var mapping = this._originalMappings[index];
       if (aArgs.column === undefined) {
         var originalLine = mapping.originalLine;
         while (mapping && mapping.originalLine === originalLine) {
           mappings.push({
-            line: util3.getArg(mapping, "generatedLine", null),
-            column: util3.getArg(mapping, "generatedColumn", null),
-            lastColumn: util3.getArg(mapping, "lastGeneratedColumn", null)
+            line: util.getArg(mapping, "generatedLine", null),
+            column: util.getArg(mapping, "generatedColumn", null),
+            lastColumn: util.getArg(mapping, "lastGeneratedColumn", null)
           });
           mapping = this._originalMappings[++index];
         }
@@ -4175,9 +4185,9 @@ var require_source_map_consumer = __commonJS(function(exports) {
         var originalColumn = mapping.originalColumn;
         while (mapping && mapping.originalLine === line && mapping.originalColumn == originalColumn) {
           mappings.push({
-            line: util3.getArg(mapping, "generatedLine", null),
-            column: util3.getArg(mapping, "generatedColumn", null),
-            lastColumn: util3.getArg(mapping, "lastGeneratedColumn", null)
+            line: util.getArg(mapping, "generatedLine", null),
+            column: util.getArg(mapping, "generatedColumn", null),
+            lastColumn: util.getArg(mapping, "lastGeneratedColumn", null)
           });
           mapping = this._originalMappings[++index];
         }
@@ -4189,28 +4199,28 @@ var require_source_map_consumer = __commonJS(function(exports) {
   function BasicSourceMapConsumer(aSourceMap, aSourceMapURL) {
     var sourceMap = aSourceMap;
     if (typeof aSourceMap === "string") {
-      sourceMap = util3.parseSourceMapInput(aSourceMap);
+      sourceMap = util.parseSourceMapInput(aSourceMap);
     }
-    var version = util3.getArg(sourceMap, "version");
-    var sources = util3.getArg(sourceMap, "sources");
-    var names = util3.getArg(sourceMap, "names", []);
-    var sourceRoot = util3.getArg(sourceMap, "sourceRoot", null);
-    var sourcesContent = util3.getArg(sourceMap, "sourcesContent", null);
-    var mappings = util3.getArg(sourceMap, "mappings");
-    var file = util3.getArg(sourceMap, "file", null);
+    var version = util.getArg(sourceMap, "version");
+    var sources = util.getArg(sourceMap, "sources");
+    var names = util.getArg(sourceMap, "names", []);
+    var sourceRoot = util.getArg(sourceMap, "sourceRoot", null);
+    var sourcesContent = util.getArg(sourceMap, "sourcesContent", null);
+    var mappings = util.getArg(sourceMap, "mappings");
+    var file = util.getArg(sourceMap, "file", null);
     if (version != this._version) {
       throw new Error("Unsupported version: " + version);
     }
     if (sourceRoot) {
-      sourceRoot = util3.normalize(sourceRoot);
+      sourceRoot = util.normalize(sourceRoot);
     }
-    sources = sources.map(String).map(util3.normalize).map(function(source) {
-      return sourceRoot && util3.isAbsolute(sourceRoot) && util3.isAbsolute(source) ? util3.relative(sourceRoot, source) : source;
+    sources = sources.map(String).map(util.normalize).map(function(source) {
+      return sourceRoot && util.isAbsolute(sourceRoot) && util.isAbsolute(source) ? util.relative(sourceRoot, source) : source;
     });
     this._names = ArraySet.fromArray(names.map(String), true);
     this._sources = ArraySet.fromArray(sources, true);
     this._absoluteSources = this._sources.toArray().map(function(s) {
-      return util3.computeSourceURL(sourceRoot, s, aSourceMapURL);
+      return util.computeSourceURL(sourceRoot, s, aSourceMapURL);
     });
     this.sourceRoot = sourceRoot;
     this.sourcesContent = sourcesContent;
@@ -4223,7 +4233,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
   BasicSourceMapConsumer.prototype._findSourceIndex = function(aSource) {
     var relativeSource = aSource;
     if (this.sourceRoot != null) {
-      relativeSource = util3.relative(this.sourceRoot, relativeSource);
+      relativeSource = util.relative(this.sourceRoot, relativeSource);
     }
     if (this._sources.has(relativeSource)) {
       return this._sources.indexOf(relativeSource);
@@ -4245,7 +4255,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
     smc.file = aSourceMap._file;
     smc._sourceMapURL = aSourceMapURL;
     smc._absoluteSources = smc._sources.toArray().map(function(s) {
-      return util3.computeSourceURL(smc.sourceRoot, s, aSourceMapURL);
+      return util.computeSourceURL(smc.sourceRoot, s, aSourceMapURL);
     });
     var generatedMappings = aSourceMap._mappings.toArray().slice();
     var destGeneratedMappings = smc.__generatedMappings = [];
@@ -4266,7 +4276,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
       }
       destGeneratedMappings.push(destMapping);
     }
-    quickSort(smc.__originalMappings, util3.compareByOriginalPositions);
+    quickSort(smc.__originalMappings, util.compareByOriginalPositions);
     return smc;
   };
   BasicSourceMapConsumer.prototype._version = 3;
@@ -4353,9 +4363,9 @@ var require_source_map_consumer = __commonJS(function(exports) {
         }
       }
     }
-    quickSort(generatedMappings, util3.compareByGeneratedPositionsDeflated);
+    quickSort(generatedMappings, util.compareByGeneratedPositionsDeflated);
     this.__generatedMappings = generatedMappings;
-    quickSort(originalMappings, util3.compareByOriginalPositions);
+    quickSort(originalMappings, util.compareByOriginalPositions);
     this.__originalMappings = originalMappings;
   };
   BasicSourceMapConsumer.prototype._findMapping = function SourceMapConsumer_findMapping(aNeedle, aMappings, aLineName, aColumnName, aComparator, aBias) {
@@ -4382,26 +4392,26 @@ var require_source_map_consumer = __commonJS(function(exports) {
   };
   BasicSourceMapConsumer.prototype.originalPositionFor = function SourceMapConsumer_originalPositionFor(aArgs) {
     var needle = {
-      generatedLine: util3.getArg(aArgs, "line"),
-      generatedColumn: util3.getArg(aArgs, "column")
+      generatedLine: util.getArg(aArgs, "line"),
+      generatedColumn: util.getArg(aArgs, "column")
     };
-    var index = this._findMapping(needle, this._generatedMappings, "generatedLine", "generatedColumn", util3.compareByGeneratedPositionsDeflated, util3.getArg(aArgs, "bias", SourceMapConsumer.GREATEST_LOWER_BOUND));
+    var index = this._findMapping(needle, this._generatedMappings, "generatedLine", "generatedColumn", util.compareByGeneratedPositionsDeflated, util.getArg(aArgs, "bias", SourceMapConsumer.GREATEST_LOWER_BOUND));
     if (index >= 0) {
       var mapping = this._generatedMappings[index];
       if (mapping.generatedLine === needle.generatedLine) {
-        var source = util3.getArg(mapping, "source", null);
+        var source = util.getArg(mapping, "source", null);
         if (source !== null) {
           source = this._sources.at(source);
-          source = util3.computeSourceURL(this.sourceRoot, source, this._sourceMapURL);
+          source = util.computeSourceURL(this.sourceRoot, source, this._sourceMapURL);
         }
-        var name = util3.getArg(mapping, "name", null);
+        var name = util.getArg(mapping, "name", null);
         if (name !== null) {
           name = this._names.at(name);
         }
         return {
           source,
-          line: util3.getArg(mapping, "originalLine", null),
-          column: util3.getArg(mapping, "originalColumn", null),
+          line: util.getArg(mapping, "originalLine", null),
+          column: util.getArg(mapping, "originalColumn", null),
           name
         };
       }
@@ -4431,10 +4441,10 @@ var require_source_map_consumer = __commonJS(function(exports) {
     }
     var relativeSource = aSource;
     if (this.sourceRoot != null) {
-      relativeSource = util3.relative(this.sourceRoot, relativeSource);
+      relativeSource = util.relative(this.sourceRoot, relativeSource);
     }
     var url;
-    if (this.sourceRoot != null && (url = util3.urlParse(this.sourceRoot))) {
+    if (this.sourceRoot != null && (url = util.urlParse(this.sourceRoot))) {
       var fileUriAbsPath = relativeSource.replace(/^file:\/\//, "");
       if (url.scheme == "file" && this._sources.has(fileUriAbsPath)) {
         return this.sourcesContent[this._sources.indexOf(fileUriAbsPath)];
@@ -4450,7 +4460,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
     }
   };
   BasicSourceMapConsumer.prototype.generatedPositionFor = function SourceMapConsumer_generatedPositionFor(aArgs) {
-    var source = util3.getArg(aArgs, "source");
+    var source = util.getArg(aArgs, "source");
     source = this._findSourceIndex(source);
     if (source < 0) {
       return {
@@ -4461,17 +4471,17 @@ var require_source_map_consumer = __commonJS(function(exports) {
     }
     var needle = {
       source,
-      originalLine: util3.getArg(aArgs, "line"),
-      originalColumn: util3.getArg(aArgs, "column")
+      originalLine: util.getArg(aArgs, "line"),
+      originalColumn: util.getArg(aArgs, "column")
     };
-    var index = this._findMapping(needle, this._originalMappings, "originalLine", "originalColumn", util3.compareByOriginalPositions, util3.getArg(aArgs, "bias", SourceMapConsumer.GREATEST_LOWER_BOUND));
+    var index = this._findMapping(needle, this._originalMappings, "originalLine", "originalColumn", util.compareByOriginalPositions, util.getArg(aArgs, "bias", SourceMapConsumer.GREATEST_LOWER_BOUND));
     if (index >= 0) {
       var mapping = this._originalMappings[index];
       if (mapping.source === needle.source) {
         return {
-          line: util3.getArg(mapping, "generatedLine", null),
-          column: util3.getArg(mapping, "generatedColumn", null),
-          lastColumn: util3.getArg(mapping, "lastGeneratedColumn", null)
+          line: util.getArg(mapping, "generatedLine", null),
+          column: util.getArg(mapping, "generatedColumn", null),
+          lastColumn: util.getArg(mapping, "lastGeneratedColumn", null)
         };
       }
     }
@@ -4485,10 +4495,10 @@ var require_source_map_consumer = __commonJS(function(exports) {
   function IndexedSourceMapConsumer(aSourceMap, aSourceMapURL) {
     var sourceMap = aSourceMap;
     if (typeof aSourceMap === "string") {
-      sourceMap = util3.parseSourceMapInput(aSourceMap);
+      sourceMap = util.parseSourceMapInput(aSourceMap);
     }
-    var version = util3.getArg(sourceMap, "version");
-    var sections = util3.getArg(sourceMap, "sections");
+    var version = util.getArg(sourceMap, "version");
+    var sections = util.getArg(sourceMap, "sections");
     if (version != this._version) {
       throw new Error("Unsupported version: " + version);
     }
@@ -4502,9 +4512,9 @@ var require_source_map_consumer = __commonJS(function(exports) {
       if (s.url) {
         throw new Error("Support for url field in sections not implemented.");
       }
-      var offset = util3.getArg(s, "offset");
-      var offsetLine = util3.getArg(offset, "line");
-      var offsetColumn = util3.getArg(offset, "column");
+      var offset = util.getArg(s, "offset");
+      var offsetLine = util.getArg(offset, "line");
+      var offsetColumn = util.getArg(offset, "column");
       if (offsetLine < lastOffset.line || offsetLine === lastOffset.line && offsetColumn < lastOffset.column) {
         throw new Error("Section offsets must be ordered and non-overlapping.");
       }
@@ -4514,7 +4524,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
           generatedLine: offsetLine + 1,
           generatedColumn: offsetColumn + 1
         },
-        consumer: new SourceMapConsumer(util3.getArg(s, "map"), aSourceMapURL)
+        consumer: new SourceMapConsumer(util.getArg(s, "map"), aSourceMapURL)
       };
     });
   }
@@ -4534,15 +4544,15 @@ var require_source_map_consumer = __commonJS(function(exports) {
   });
   IndexedSourceMapConsumer.prototype.originalPositionFor = function IndexedSourceMapConsumer_originalPositionFor(aArgs) {
     var needle = {
-      generatedLine: util3.getArg(aArgs, "line"),
-      generatedColumn: util3.getArg(aArgs, "column")
+      generatedLine: util.getArg(aArgs, "line"),
+      generatedColumn: util.getArg(aArgs, "column")
     };
-    var sectionIndex = binarySearch.search(needle, this._sections, function(needle2, section2) {
-      var cmp = needle2.generatedLine - section2.generatedOffset.generatedLine;
+    var sectionIndex = binarySearch.search(needle, this._sections, function(needle, section) {
+      var cmp = needle.generatedLine - section.generatedOffset.generatedLine;
       if (cmp) {
         return cmp;
       }
-      return needle2.generatedColumn - section2.generatedOffset.generatedColumn;
+      return needle.generatedColumn - section.generatedOffset.generatedColumn;
     });
     var section = this._sections[sectionIndex];
     if (!section) {
@@ -4581,7 +4591,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
   IndexedSourceMapConsumer.prototype.generatedPositionFor = function IndexedSourceMapConsumer_generatedPositionFor(aArgs) {
     for (var i = 0;i < this._sections.length; i++) {
       var section = this._sections[i];
-      if (section.consumer._findSourceIndex(util3.getArg(aArgs, "source")) === -1) {
+      if (section.consumer._findSourceIndex(util.getArg(aArgs, "source")) === -1) {
         continue;
       }
       var generatedPosition = section.consumer.generatedPositionFor(aArgs);
@@ -4607,7 +4617,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
       for (var j = 0;j < sectionMappings.length; j++) {
         var mapping = sectionMappings[j];
         var source = section.consumer._sources.at(mapping.source);
-        source = util3.computeSourceURL(section.consumer.sourceRoot, source, this._sourceMapURL);
+        source = util.computeSourceURL(section.consumer.sourceRoot, source, this._sourceMapURL);
         this._sources.add(source);
         source = this._sources.indexOf(source);
         var name = null;
@@ -4630,8 +4640,8 @@ var require_source_map_consumer = __commonJS(function(exports) {
         }
       }
     }
-    quickSort(this.__generatedMappings, util3.compareByGeneratedPositionsDeflated);
-    quickSort(this.__originalMappings, util3.compareByOriginalPositions);
+    quickSort(this.__generatedMappings, util.compareByGeneratedPositionsDeflated);
+    quickSort(this.__originalMappings, util.compareByOriginalPositions);
   };
   exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
 });
@@ -4639,7 +4649,7 @@ var require_source_map_consumer = __commonJS(function(exports) {
 // node_modules/.bun/source-map@0.6.1/node_modules/source-map/lib/source-node.js
 var require_source_node = __commonJS(function(exports) {
   var SourceMapGenerator = require_source_map_generator().SourceMapGenerator;
-  var util3 = require_util();
+  var util = require_util();
   var REGEX_NEWLINE = /(\r?\n)/;
   var NEWLINE_CODE = 10;
   var isSourceNode = "$$$isSourceNode$$$";
@@ -4706,7 +4716,7 @@ var require_source_node = __commonJS(function(exports) {
       var content = aSourceMapConsumer.sourceContentFor(sourceFile);
       if (content != null) {
         if (aRelativePath != null) {
-          sourceFile = util3.join(aRelativePath, sourceFile);
+          sourceFile = util.join(aRelativePath, sourceFile);
         }
         node.setSourceContent(sourceFile, content);
       }
@@ -4716,7 +4726,7 @@ var require_source_node = __commonJS(function(exports) {
       if (mapping === null || mapping.source === undefined) {
         node.add(code);
       } else {
-        var source = aRelativePath ? util3.join(aRelativePath, mapping.source) : mapping.source;
+        var source = aRelativePath ? util.join(aRelativePath, mapping.source) : mapping.source;
         node.add(new SourceNode(mapping.originalLine, mapping.originalColumn, source, code, mapping.name));
       }
     }
@@ -4792,7 +4802,7 @@ var require_source_node = __commonJS(function(exports) {
     return this;
   };
   SourceNode.prototype.setSourceContent = function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
-    this.sourceContents[util3.toSetString(aSourceFile)] = aSourceContent;
+    this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
   };
   SourceNode.prototype.walkSourceContents = function SourceNode_walkSourceContents(aFn) {
     for (var i = 0, len = this.children.length;i < len; i++) {
@@ -4802,7 +4812,7 @@ var require_source_node = __commonJS(function(exports) {
     }
     var sources = Object.keys(this.sourceContents);
     for (var i = 0, len = sources.length;i < len; i++) {
-      aFn(util3.fromSetString(sources[i]), this.sourceContents[sources[i]]);
+      aFn(util.fromSetString(sources[i]), this.sourceContents[sources[i]]);
     }
   };
   SourceNode.prototype.toString = function SourceNode_toString() {
@@ -5358,9 +5368,9 @@ var require_javascript_compiler = __commonJS(function(exports, module) {
         return;
       }
       var len = parts.length;
-      var _loop = function(i2) {
+      var _loop = function(i) {
         _this2.replaceStack(function(current) {
-          var lookup = _this2.nameLookup(current, parts[i2], type);
+          var lookup = _this2.nameLookup(current, parts[i], type);
           if (!falsy) {
             return [" != null ? ", lookup, " : ", current];
           } else {
@@ -5706,7 +5716,7 @@ var require_javascript_compiler = __commonJS(function(exports, module) {
       };
     },
     setupParams: function setupParams(helper, paramSize, params) {
-      var options = {}, contexts = [], types2 = [], ids = [], objectArgs = !params, param = undefined;
+      var options = {}, contexts = [], types = [], ids = [], objectArgs = !params, param = undefined;
       if (objectArgs) {
         params = [];
       }
@@ -5732,7 +5742,7 @@ var require_javascript_compiler = __commonJS(function(exports, module) {
           ids[i] = this.popStack();
         }
         if (this.stringParams) {
-          types2[i] = this.popStack();
+          types[i] = this.popStack();
           contexts[i] = this.popStack();
         }
       }
@@ -5743,7 +5753,7 @@ var require_javascript_compiler = __commonJS(function(exports, module) {
         options.ids = this.source.generateArray(ids);
       }
       if (this.stringParams) {
-        options.types = this.source.generateArray(types2);
+        options.types = this.source.generateArray(types);
         options.contexts = this.source.generateArray(contexts);
       }
       if (this.options.data) {
@@ -5843,18 +5853,14 @@ var require_handlebars = __commonJS(function(exports, module) {
 });
 
 // packages/generator/src/browser/model-check-error.ts
-var exports_model_check_error = {};
-__export(exports_model_check_error, {
-  ModelCheckError: () => ModelCheckError
-});
 var ModelCheckError;
 var init_model_check_error = __esm(() => {
   ModelCheckError = class ModelCheckError extends Error {
     issues;
     review;
     constructor(review) {
-      const errors2 = review.counts.errors;
-      super(`This model has ${errors2} error${errors2 === 1 ? "" : "s"}.`);
+      const errors = review.counts.errors;
+      super(`This model has ${errors} error${errors === 1 ? "" : "s"}.`);
       this.name = "ModelCheckError";
       this.issues = review.issues;
       this.review = review;
@@ -8271,149 +8277,37 @@ init_node_path();
 init_memory_fs();
 init_node_path();
 
-// node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
-var exports_external = {};
-__export(exports_external, {
-  BRAND: () => BRAND,
-  DIRTY: () => DIRTY,
-  EMPTY_PATH: () => EMPTY_PATH,
-  INVALID: () => INVALID,
-  NEVER: () => NEVER,
-  OK: () => OK,
-  ParseStatus: () => ParseStatus,
-  Schema: () => ZodType,
-  ZodAny: () => ZodAny,
-  ZodArray: () => ZodArray,
-  ZodBigInt: () => ZodBigInt,
-  ZodBoolean: () => ZodBoolean,
-  ZodBranded: () => ZodBranded,
-  ZodCatch: () => ZodCatch,
-  ZodDate: () => ZodDate,
-  ZodDefault: () => ZodDefault,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodEffects: () => ZodEffects,
-  ZodEnum: () => ZodEnum,
-  ZodError: () => ZodError,
-  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
-  ZodFunction: () => ZodFunction,
-  ZodIntersection: () => ZodIntersection,
-  ZodIssueCode: () => ZodIssueCode,
-  ZodLazy: () => ZodLazy,
-  ZodLiteral: () => ZodLiteral,
-  ZodMap: () => ZodMap,
-  ZodNaN: () => ZodNaN,
-  ZodNativeEnum: () => ZodNativeEnum,
-  ZodNever: () => ZodNever,
-  ZodNull: () => ZodNull,
-  ZodNullable: () => ZodNullable,
-  ZodNumber: () => ZodNumber,
-  ZodObject: () => ZodObject,
-  ZodOptional: () => ZodOptional,
-  ZodParsedType: () => ZodParsedType,
-  ZodPipeline: () => ZodPipeline,
-  ZodPromise: () => ZodPromise,
-  ZodReadonly: () => ZodReadonly,
-  ZodRecord: () => ZodRecord,
-  ZodSchema: () => ZodType,
-  ZodSet: () => ZodSet,
-  ZodString: () => ZodString,
-  ZodSymbol: () => ZodSymbol,
-  ZodTransformer: () => ZodEffects,
-  ZodTuple: () => ZodTuple,
-  ZodType: () => ZodType,
-  ZodUndefined: () => ZodUndefined,
-  ZodUnion: () => ZodUnion,
-  ZodUnknown: () => ZodUnknown,
-  ZodVoid: () => ZodVoid,
-  addIssueToContext: () => addIssueToContext,
-  any: () => anyType,
-  array: () => arrayType,
-  bigint: () => bigIntType,
-  boolean: () => booleanType,
-  coerce: () => coerce,
-  custom: () => custom,
-  date: () => dateType,
-  datetimeRegex: () => datetimeRegex,
-  defaultErrorMap: () => en_default,
-  discriminatedUnion: () => discriminatedUnionType,
-  effect: () => effectsType,
-  enum: () => enumType,
-  function: () => functionType,
-  getErrorMap: () => getErrorMap,
-  getParsedType: () => getParsedType,
-  instanceof: () => instanceOfType,
-  intersection: () => intersectionType,
-  isAborted: () => isAborted,
-  isAsync: () => isAsync,
-  isDirty: () => isDirty,
-  isValid: () => isValid,
-  late: () => late,
-  lazy: () => lazyType,
-  literal: () => literalType,
-  makeIssue: () => makeIssue,
-  map: () => mapType,
-  nan: () => nanType,
-  nativeEnum: () => nativeEnumType,
-  never: () => neverType,
-  null: () => nullType,
-  nullable: () => nullableType,
-  number: () => numberType,
-  object: () => objectType,
-  objectUtil: () => objectUtil,
-  oboolean: () => oboolean,
-  onumber: () => onumber,
-  optional: () => optionalType,
-  ostring: () => ostring,
-  pipeline: () => pipelineType,
-  preprocess: () => preprocessType,
-  promise: () => promiseType,
-  quotelessJson: () => quotelessJson,
-  record: () => recordType,
-  set: () => setType,
-  setErrorMap: () => setErrorMap,
-  strictObject: () => strictObjectType,
-  string: () => stringType,
-  symbol: () => symbolType,
-  transformer: () => effectsType,
-  tuple: () => tupleType,
-  undefined: () => undefinedType,
-  union: () => unionType,
-  unknown: () => unknownType,
-  util: () => util,
-  void: () => voidType
-});
-
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
-(function(util2) {
-  util2.assertEqual = (_) => {};
+(function(util) {
+  util.assertEqual = (_) => {};
   function assertIs(_arg) {}
-  util2.assertIs = assertIs;
+  util.assertIs = assertIs;
   function assertNever(_x) {
     throw new Error;
   }
-  util2.assertNever = assertNever;
-  util2.arrayToEnum = (items) => {
+  util.assertNever = assertNever;
+  util.arrayToEnum = (items) => {
     const obj = {};
     for (const item of items) {
       obj[item] = item;
     }
     return obj;
   };
-  util2.getValidEnumValues = (obj) => {
-    const validKeys = util2.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
+  util.getValidEnumValues = (obj) => {
+    const validKeys = util.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
     const filtered = {};
     for (const k of validKeys) {
       filtered[k] = obj[k];
     }
-    return util2.objectValues(filtered);
+    return util.objectValues(filtered);
   };
-  util2.objectValues = (obj) => {
-    return util2.objectKeys(obj).map(function(e) {
+  util.objectValues = (obj) => {
+    return util.objectKeys(obj).map(function(e) {
       return obj[e];
     });
   };
-  util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
+  util.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
     const keys = [];
     for (const key in object) {
       if (Object.prototype.hasOwnProperty.call(object, key)) {
@@ -8422,19 +8316,19 @@ var util;
     }
     return keys;
   };
-  util2.find = (arr, checker) => {
+  util.find = (arr, checker) => {
     for (const item of arr) {
       if (checker(item))
         return item;
     }
     return;
   };
-  util2.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
+  util.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
   function joinValues(array, separator = " | ") {
     return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
-  util2.joinValues = joinValues;
-  util2.jsonStringifyReplacer = (_, value) => {
+  util.joinValues = joinValues;
+  util.jsonStringifyReplacer = (_, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -8442,8 +8336,8 @@ var util;
   };
 })(util || (util = {}));
 var objectUtil;
-(function(objectUtil2) {
-  objectUtil2.mergeShapes = (first, second) => {
+(function(objectUtil) {
+  objectUtil.mergeShapes = (first, second) => {
     return {
       ...first,
       ...second
@@ -8533,11 +8427,6 @@ var ZodIssueCode = util.arrayToEnum([
   "not_multiple_of",
   "not_finite"
 ]);
-var quotelessJson = (obj) => {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"]+)":/g, "$1:");
-};
-
 class ZodError extends Error {
   get errors() {
     return this.issues;
@@ -8738,12 +8627,10 @@ var en_default = errorMap;
 
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
-function setErrorMap(map) {
-  overrideErrorMap = map;
-}
 function getErrorMap() {
   return overrideErrorMap;
 }
+
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path, errorMaps, issueData } = params;
@@ -8770,7 +8657,6 @@ var makeIssue = (params) => {
     message: errorMessage
   };
 };
-var EMPTY_PATH = [];
 function addIssueToContext(ctx, issueData) {
   const overrideMap = getErrorMap();
   const issue = makeIssue({
@@ -8850,11 +8736,12 @@ var isAborted = (x) => x.status === "aborted";
 var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
+
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
-(function(errorUtil2) {
-  errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
-  errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
+(function(errorUtil) {
+  errorUtil.errToObj = (message) => typeof message === "string" ? { message } : message || {};
+  errorUtil.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/types.js
@@ -8899,12 +8786,12 @@ var handleResult = (ctx, result) => {
 function processCreateParams(params) {
   if (!params)
     return {};
-  const { errorMap: errorMap2, invalid_type_error, required_error, description } = params;
-  if (errorMap2 && (invalid_type_error || required_error)) {
+  const { errorMap, invalid_type_error, required_error, description } = params;
+  if (errorMap && (invalid_type_error || required_error)) {
     throw new Error(`Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`);
   }
-  if (errorMap2)
-    return { errorMap: errorMap2, description };
+  if (errorMap)
+    return { errorMap, description };
   const customMap = (iss, ctx) => {
     const { message } = params;
     if (iss.code === "invalid_enum_value") {
@@ -9291,11 +9178,11 @@ class ZodString extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.string) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.string,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -9849,11 +9736,11 @@ class ZodNumber extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.number) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.number,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -10275,17 +10162,17 @@ class ZodDate extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.date) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.date,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
     if (Number.isNaN(input.data.getTime())) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_date
       });
       return INVALID;
@@ -10573,8 +10460,8 @@ class ZodArray extends ZodType {
     if (ctx.common.async) {
       return Promise.all([...ctx.data].map((item, i) => {
         return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
-      })).then((result2) => {
-        return ParseStatus.mergeArray(status, result2);
+      })).then((result) => {
+        return ParseStatus.mergeArray(status, result);
       });
     }
     const result = [...ctx.data].map((item, i) => {
@@ -10662,11 +10549,11 @@ class ZodObject extends ZodType {
   _parse(input) {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.object) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.object,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -10970,7 +10857,7 @@ class ZodUnion extends ZodType {
         ctx.common.issues.push(...dirty.ctx.common.issues);
         return dirty.result;
       }
-      const unionErrors = issues.map((issues2) => new ZodError(issues2));
+      const unionErrors = issues.map((issues) => new ZodError(issues));
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_union,
         unionErrors
@@ -11410,9 +11297,9 @@ class ZodSet extends ZodType {
       }
     }
     const valueType = this._def.valueType;
-    function finalizeSet(elements2) {
+    function finalizeSet(elements) {
       const parsedSet = new Set;
-      for (const element of elements2) {
+      for (const element of elements) {
         if (element.status === "aborted")
           return INVALID;
         if (element.status === "dirty")
@@ -11423,7 +11310,7 @@ class ZodSet extends ZodType {
     }
     const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
     if (ctx.common.async) {
-      return Promise.all(elements).then((elements2) => finalizeSet(elements2));
+      return Promise.all(elements).then((elements) => finalizeSet(elements));
     } else {
       return finalizeSet(elements);
     }
@@ -11776,11 +11663,11 @@ class ZodEffects extends ZodType {
     if (effect.type === "preprocess") {
       const processed = effect.transform(ctx.data, checkCtx);
       if (ctx.common.async) {
-        return Promise.resolve(processed).then(async (processed2) => {
+        return Promise.resolve(processed).then(async (processed) => {
           if (status.value === "aborted")
             return INVALID;
           const result = await this._def.schema._parseAsync({
-            data: processed2,
+            data: processed,
             path: ctx.path,
             parent: ctx
           });
@@ -11972,10 +11859,10 @@ class ZodCatch extends ZodType {
       }
     });
     if (isAsync(result)) {
-      return result.then((result2) => {
+      return result.then((result) => {
         return {
           status: "valid",
-          value: result2.status === "valid" ? result2.value : this._def.catchValue({
+          value: result.status === "valid" ? result.value : this._def.catchValue({
             get error() {
               return new ZodError(newCtx.common.issues);
             },
@@ -12124,78 +12011,48 @@ ZodReadonly.create = (type, params) => {
     ...processCreateParams(params)
   });
 };
-function cleanParams(params, data) {
-  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
-  const p2 = typeof p === "string" ? { message: p } : p;
-  return p2;
-}
-function custom(check, _params = {}, fatal) {
-  if (check)
-    return ZodAny.create().superRefine((data, ctx) => {
-      const r = check(data);
-      if (r instanceof Promise) {
-        return r.then((r2) => {
-          if (!r2) {
-            const params = cleanParams(_params, data);
-            const _fatal = params.fatal ?? fatal ?? true;
-            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-          }
-        });
-      }
-      if (!r) {
-        const params = cleanParams(_params, data);
-        const _fatal = params.fatal ?? fatal ?? true;
-        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-      }
-      return;
-    });
-  return ZodAny.create();
-}
 var late = {
   object: ZodObject.lazycreate
 };
 var ZodFirstPartyTypeKind;
-(function(ZodFirstPartyTypeKind2) {
-  ZodFirstPartyTypeKind2["ZodString"] = "ZodString";
-  ZodFirstPartyTypeKind2["ZodNumber"] = "ZodNumber";
-  ZodFirstPartyTypeKind2["ZodNaN"] = "ZodNaN";
-  ZodFirstPartyTypeKind2["ZodBigInt"] = "ZodBigInt";
-  ZodFirstPartyTypeKind2["ZodBoolean"] = "ZodBoolean";
-  ZodFirstPartyTypeKind2["ZodDate"] = "ZodDate";
-  ZodFirstPartyTypeKind2["ZodSymbol"] = "ZodSymbol";
-  ZodFirstPartyTypeKind2["ZodUndefined"] = "ZodUndefined";
-  ZodFirstPartyTypeKind2["ZodNull"] = "ZodNull";
-  ZodFirstPartyTypeKind2["ZodAny"] = "ZodAny";
-  ZodFirstPartyTypeKind2["ZodUnknown"] = "ZodUnknown";
-  ZodFirstPartyTypeKind2["ZodNever"] = "ZodNever";
-  ZodFirstPartyTypeKind2["ZodVoid"] = "ZodVoid";
-  ZodFirstPartyTypeKind2["ZodArray"] = "ZodArray";
-  ZodFirstPartyTypeKind2["ZodObject"] = "ZodObject";
-  ZodFirstPartyTypeKind2["ZodUnion"] = "ZodUnion";
-  ZodFirstPartyTypeKind2["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
-  ZodFirstPartyTypeKind2["ZodIntersection"] = "ZodIntersection";
-  ZodFirstPartyTypeKind2["ZodTuple"] = "ZodTuple";
-  ZodFirstPartyTypeKind2["ZodRecord"] = "ZodRecord";
-  ZodFirstPartyTypeKind2["ZodMap"] = "ZodMap";
-  ZodFirstPartyTypeKind2["ZodSet"] = "ZodSet";
-  ZodFirstPartyTypeKind2["ZodFunction"] = "ZodFunction";
-  ZodFirstPartyTypeKind2["ZodLazy"] = "ZodLazy";
-  ZodFirstPartyTypeKind2["ZodLiteral"] = "ZodLiteral";
-  ZodFirstPartyTypeKind2["ZodEnum"] = "ZodEnum";
-  ZodFirstPartyTypeKind2["ZodEffects"] = "ZodEffects";
-  ZodFirstPartyTypeKind2["ZodNativeEnum"] = "ZodNativeEnum";
-  ZodFirstPartyTypeKind2["ZodOptional"] = "ZodOptional";
-  ZodFirstPartyTypeKind2["ZodNullable"] = "ZodNullable";
-  ZodFirstPartyTypeKind2["ZodDefault"] = "ZodDefault";
-  ZodFirstPartyTypeKind2["ZodCatch"] = "ZodCatch";
-  ZodFirstPartyTypeKind2["ZodPromise"] = "ZodPromise";
-  ZodFirstPartyTypeKind2["ZodBranded"] = "ZodBranded";
-  ZodFirstPartyTypeKind2["ZodPipeline"] = "ZodPipeline";
-  ZodFirstPartyTypeKind2["ZodReadonly"] = "ZodReadonly";
+(function(ZodFirstPartyTypeKind) {
+  ZodFirstPartyTypeKind["ZodString"] = "ZodString";
+  ZodFirstPartyTypeKind["ZodNumber"] = "ZodNumber";
+  ZodFirstPartyTypeKind["ZodNaN"] = "ZodNaN";
+  ZodFirstPartyTypeKind["ZodBigInt"] = "ZodBigInt";
+  ZodFirstPartyTypeKind["ZodBoolean"] = "ZodBoolean";
+  ZodFirstPartyTypeKind["ZodDate"] = "ZodDate";
+  ZodFirstPartyTypeKind["ZodSymbol"] = "ZodSymbol";
+  ZodFirstPartyTypeKind["ZodUndefined"] = "ZodUndefined";
+  ZodFirstPartyTypeKind["ZodNull"] = "ZodNull";
+  ZodFirstPartyTypeKind["ZodAny"] = "ZodAny";
+  ZodFirstPartyTypeKind["ZodUnknown"] = "ZodUnknown";
+  ZodFirstPartyTypeKind["ZodNever"] = "ZodNever";
+  ZodFirstPartyTypeKind["ZodVoid"] = "ZodVoid";
+  ZodFirstPartyTypeKind["ZodArray"] = "ZodArray";
+  ZodFirstPartyTypeKind["ZodObject"] = "ZodObject";
+  ZodFirstPartyTypeKind["ZodUnion"] = "ZodUnion";
+  ZodFirstPartyTypeKind["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
+  ZodFirstPartyTypeKind["ZodIntersection"] = "ZodIntersection";
+  ZodFirstPartyTypeKind["ZodTuple"] = "ZodTuple";
+  ZodFirstPartyTypeKind["ZodRecord"] = "ZodRecord";
+  ZodFirstPartyTypeKind["ZodMap"] = "ZodMap";
+  ZodFirstPartyTypeKind["ZodSet"] = "ZodSet";
+  ZodFirstPartyTypeKind["ZodFunction"] = "ZodFunction";
+  ZodFirstPartyTypeKind["ZodLazy"] = "ZodLazy";
+  ZodFirstPartyTypeKind["ZodLiteral"] = "ZodLiteral";
+  ZodFirstPartyTypeKind["ZodEnum"] = "ZodEnum";
+  ZodFirstPartyTypeKind["ZodEffects"] = "ZodEffects";
+  ZodFirstPartyTypeKind["ZodNativeEnum"] = "ZodNativeEnum";
+  ZodFirstPartyTypeKind["ZodOptional"] = "ZodOptional";
+  ZodFirstPartyTypeKind["ZodNullable"] = "ZodNullable";
+  ZodFirstPartyTypeKind["ZodDefault"] = "ZodDefault";
+  ZodFirstPartyTypeKind["ZodCatch"] = "ZodCatch";
+  ZodFirstPartyTypeKind["ZodPromise"] = "ZodPromise";
+  ZodFirstPartyTypeKind["ZodBranded"] = "ZodBranded";
+  ZodFirstPartyTypeKind["ZodPipeline"] = "ZodPipeline";
+  ZodFirstPartyTypeKind["ZodReadonly"] = "ZodReadonly";
 })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-var instanceOfType = (cls, params = {
-  message: `Input not instance of ${cls.name}`
-}) => custom((data) => data instanceof cls, params);
 var stringType = ZodString.create;
 var numberType = ZodNumber.create;
 var nanType = ZodNaN.create;
@@ -12230,20 +12087,6 @@ var optionalType = ZodOptional.create;
 var nullableType = ZodNullable.create;
 var preprocessType = ZodEffects.createWithPreprocess;
 var pipelineType = ZodPipeline.create;
-var ostring = () => stringType().optional();
-var onumber = () => numberType().optional();
-var oboolean = () => booleanType().optional();
-var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
-    ...arg,
-    coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
-};
-var NEVER = INVALID;
 // packages/core/src/types/sys-dictionary.types.ts
 var SYS_TABLE_PREFIX = "sys_";
 var BUS_TABLE_PREFIX = "bus_";
@@ -12283,197 +12126,197 @@ var ReferenceType = {
   EMAIL: 30,
   PHONE: 31
 };
-var SysTableSchema = exports_external.object({
-  sys_table_id: exports_external.string().uuid(),
-  table_name: exports_external.string().min(1).max(100),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  icon: exports_external.string().max(100).optional(),
-  access_level: exports_external.enum(["S", "C", "O", "CO", "A"]),
-  is_view: exports_external.boolean(),
-  is_document: exports_external.boolean(),
-  is_high_volume: exports_external.boolean(),
-  is_changelog: exports_external.boolean(),
-  replication_type: exports_external.string().optional(),
-  sys_window_id: exports_external.string().uuid().optional(),
-  po_window_id: exports_external.string().uuid().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysTableSchema = objectType({
+  sys_table_id: stringType().uuid(),
+  table_name: stringType().min(1).max(100),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  icon: stringType().max(100).optional(),
+  access_level: enumType(["S", "C", "O", "CO", "A"]),
+  is_view: booleanType(),
+  is_document: booleanType(),
+  is_high_volume: booleanType(),
+  is_changelog: booleanType(),
+  replication_type: stringType().optional(),
+  sys_window_id: stringType().uuid().optional(),
+  po_window_id: stringType().uuid().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysColumnSchema = exports_external.object({
-  sys_column_id: exports_external.string().uuid(),
-  sys_table_id: exports_external.string().uuid(),
-  column_name: exports_external.string().min(1).max(100),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  sys_reference_id: exports_external.number(),
-  sys_val_rule_id: exports_external.string().uuid().optional(),
-  field_length: exports_external.number().optional(),
-  default_value: exports_external.string().optional(),
-  value_min: exports_external.string().optional(),
-  value_max: exports_external.string().optional(),
-  is_key: exports_external.boolean(),
-  is_parent: exports_external.boolean(),
-  is_mandatory: exports_external.boolean(),
-  is_updateable: exports_external.boolean(),
-  is_identifier: exports_external.boolean(),
-  is_selection_column: exports_external.boolean(),
-  is_translated: exports_external.boolean(),
-  is_encrypted: exports_external.boolean(),
-  is_allow_logging: exports_external.boolean(),
-  is_allow_copy: exports_external.boolean(),
-  seq_no: exports_external.number(),
-  callout: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  mandatory_logic: exports_external.string().optional(),
-  format_pattern: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysColumnSchema = objectType({
+  sys_column_id: stringType().uuid(),
+  sys_table_id: stringType().uuid(),
+  column_name: stringType().min(1).max(100),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  sys_reference_id: numberType(),
+  sys_val_rule_id: stringType().uuid().optional(),
+  field_length: numberType().optional(),
+  default_value: stringType().optional(),
+  value_min: stringType().optional(),
+  value_max: stringType().optional(),
+  is_key: booleanType(),
+  is_parent: booleanType(),
+  is_mandatory: booleanType(),
+  is_updateable: booleanType(),
+  is_identifier: booleanType(),
+  is_selection_column: booleanType(),
+  is_translated: booleanType(),
+  is_encrypted: booleanType(),
+  is_allow_logging: booleanType(),
+  is_allow_copy: booleanType(),
+  seq_no: numberType(),
+  callout: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  mandatory_logic: stringType().optional(),
+  format_pattern: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysFieldSchema = exports_external.object({
-  sys_field_id: exports_external.string().uuid(),
-  sys_tab_id: exports_external.string().uuid(),
-  sys_column_id: exports_external.string().uuid(),
-  sys_field_group_id: exports_external.string().uuid().optional(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  seq_no: exports_external.number(),
-  seq_no_grid: exports_external.number(),
-  display_length: exports_external.number().optional(),
-  x_position: exports_external.number().optional(),
-  y_position: exports_external.number().optional(),
-  column_span: exports_external.number().optional(),
-  num_lines: exports_external.number().optional(),
-  is_displayed: exports_external.boolean(),
-  is_displayed_grid: exports_external.boolean(),
-  is_read_only: exports_external.boolean(),
-  is_encrypted: exports_external.boolean(),
-  is_same_line: exports_external.boolean(),
-  is_heading: exports_external.boolean(),
-  is_field_only: exports_external.boolean(),
-  display_logic: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  mandatory_logic: exports_external.string().optional(),
-  obscure_type: exports_external.string().optional(),
-  included_tab_id: exports_external.string().uuid().optional(),
-  default_value: exports_external.string().optional(),
-  sort_no: exports_external.number().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysFieldSchema = objectType({
+  sys_field_id: stringType().uuid(),
+  sys_tab_id: stringType().uuid(),
+  sys_column_id: stringType().uuid(),
+  sys_field_group_id: stringType().uuid().optional(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  seq_no: numberType(),
+  seq_no_grid: numberType(),
+  display_length: numberType().optional(),
+  x_position: numberType().optional(),
+  y_position: numberType().optional(),
+  column_span: numberType().optional(),
+  num_lines: numberType().optional(),
+  is_displayed: booleanType(),
+  is_displayed_grid: booleanType(),
+  is_read_only: booleanType(),
+  is_encrypted: booleanType(),
+  is_same_line: booleanType(),
+  is_heading: booleanType(),
+  is_field_only: booleanType(),
+  display_logic: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  mandatory_logic: stringType().optional(),
+  obscure_type: stringType().optional(),
+  included_tab_id: stringType().uuid().optional(),
+  default_value: stringType().optional(),
+  sort_no: numberType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysWindowSchema = exports_external.object({
-  sys_window_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  window_type: exports_external.enum(["M", "T", "Q"]),
-  is_sales_transaction: exports_external.boolean(),
-  is_default: exports_external.boolean(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysWindowSchema = objectType({
+  sys_window_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  window_type: enumType(["M", "T", "Q"]),
+  is_sales_transaction: booleanType(),
+  is_default: booleanType(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysTabSchema = exports_external.object({
-  sys_tab_id: exports_external.string().uuid(),
-  sys_window_id: exports_external.string().uuid(),
-  sys_table_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  tab_level: exports_external.number(),
-  seq_no: exports_external.number(),
-  is_single_row: exports_external.boolean(),
-  has_tree: exports_external.boolean(),
-  is_info_tab: exports_external.boolean(),
-  is_translation_tab: exports_external.boolean(),
-  is_read_only: exports_external.boolean(),
-  is_insert_record: exports_external.boolean(),
-  is_advanced_tab: exports_external.boolean(),
-  parent_column_id: exports_external.string().uuid().optional(),
-  link_column_id: exports_external.string().uuid().optional(),
-  order_by_clause: exports_external.string().optional(),
-  where_clause: exports_external.string().optional(),
-  display_logic: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  commit_warning: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysTabSchema = objectType({
+  sys_tab_id: stringType().uuid(),
+  sys_window_id: stringType().uuid(),
+  sys_table_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  tab_level: numberType(),
+  seq_no: numberType(),
+  is_single_row: booleanType(),
+  has_tree: booleanType(),
+  is_info_tab: booleanType(),
+  is_translation_tab: booleanType(),
+  is_read_only: booleanType(),
+  is_insert_record: booleanType(),
+  is_advanced_tab: booleanType(),
+  parent_column_id: stringType().uuid().optional(),
+  link_column_id: stringType().uuid().optional(),
+  order_by_clause: stringType().optional(),
+  where_clause: stringType().optional(),
+  display_logic: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  commit_warning: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysUserSchema = exports_external.object({
-  sys_user_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  email: exports_external.string().email(),
-  password_hash: exports_external.string(),
-  description: exports_external.string().optional(),
-  is_system_user: exports_external.boolean(),
-  is_sales_rep: exports_external.boolean(),
-  login_date: exports_external.date().optional(),
-  login_failure_count: exports_external.number(),
-  is_locked: exports_external.boolean(),
-  is_account_verified: exports_external.boolean(),
-  notification_type: exports_external.string().optional(),
-  supervisor_id: exports_external.string().uuid().optional(),
-  default_sys_role_id: exports_external.string().uuid().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysUserSchema = objectType({
+  sys_user_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  email: stringType().email(),
+  password_hash: stringType(),
+  description: stringType().optional(),
+  is_system_user: booleanType(),
+  is_sales_rep: booleanType(),
+  login_date: dateType().optional(),
+  login_failure_count: numberType(),
+  is_locked: booleanType(),
+  is_account_verified: booleanType(),
+  notification_type: stringType().optional(),
+  supervisor_id: stringType().uuid().optional(),
+  default_sys_role_id: stringType().uuid().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysRoleSchema = exports_external.object({
-  sys_role_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  user_level: exports_external.string(),
-  is_master_role: exports_external.boolean(),
-  is_can_export: exports_external.boolean(),
-  is_can_report: exports_external.boolean(),
-  is_personal_lock: exports_external.boolean(),
-  is_personal_access: exports_external.boolean(),
-  max_query_records: exports_external.number(),
-  connection_profile: exports_external.string().optional(),
-  preference_type: exports_external.string().optional(),
-  is_show_accounting: exports_external.boolean(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysRoleSchema = objectType({
+  sys_role_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  user_level: stringType(),
+  is_master_role: booleanType(),
+  is_can_export: booleanType(),
+  is_can_report: booleanType(),
+  is_personal_lock: booleanType(),
+  is_personal_access: booleanType(),
+  max_query_records: numberType(),
+  connection_profile: stringType().optional(),
+  preference_type: stringType().optional(),
+  is_show_accounting: booleanType(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysReferenceSchema = exports_external.object({
-  sys_reference_id: exports_external.number(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  validation_type: exports_external.enum(["S", "L", "T", "R"]),
-  vformat: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysReferenceSchema = objectType({
+  sys_reference_id: numberType(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  validation_type: enumType(["S", "L", "T", "R"]),
+  vformat: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
 function isSystemTable(tableName) {
   return tableName.startsWith(SYS_TABLE_PREFIX);
@@ -12874,44 +12717,44 @@ function generateEntityDictionary(entity, config = defaultDictionaryConfig) {
     }
   };
 }
-var BusEntitySchema = exports_external.object({
-  name: exports_external.string(),
-  tableName: exports_external.string().regex(/^bus_/, "Table name must start with bus_"),
-  originalName: exports_external.string(),
-  displayName: exports_external.string(),
-  description: exports_external.string().optional(),
-  attributes: exports_external.array(exports_external.any()),
-  primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean()
+var BusEntitySchema = objectType({
+  name: stringType(),
+  tableName: stringType().regex(/^bus_/, "Table name must start with bus_"),
+  originalName: stringType(),
+  displayName: stringType(),
+  description: stringType().optional(),
+  attributes: arrayType(anyType()),
+  primaryKey: stringType(),
+  timestamps: booleanType()
 });
-var DictionaryGenerationConfigSchema = exports_external.object({
-  defaultEntityType: exports_external.string(),
-  createdBy: exports_external.string(),
-  randomizeFieldOrder: exports_external.boolean(),
-  includeFieldGroups: exports_external.boolean(),
-  defaultAccessLevel: exports_external.enum(["S", "C", "O", "CO", "A"])
+var DictionaryGenerationConfigSchema = objectType({
+  defaultEntityType: stringType(),
+  createdBy: stringType(),
+  randomizeFieldOrder: booleanType(),
+  includeFieldGroups: booleanType(),
+  defaultAccessLevel: enumType(["S", "C", "O", "CO", "A"])
 });
 // packages/core/src/types/entity.types.ts
-var EntityAttributeSchema = exports_external.object({
-  name: exports_external.string(),
-  type: exports_external.enum(["string", "integer", "decimal", "boolean", "date", "datetime", "text", "json"]),
-  required: exports_external.boolean(),
-  description: exports_external.string().optional(),
-  semanticType: exports_external.enum(["email", "url", "phone", "password", "color"]).optional(),
-  unique: exports_external.boolean().optional(),
-  default: exports_external.any().optional(),
-  maxLength: exports_external.number().optional(),
-  minLength: exports_external.number().optional(),
-  pattern: exports_external.string().optional()
+var EntityAttributeSchema = objectType({
+  name: stringType(),
+  type: enumType(["string", "integer", "decimal", "boolean", "date", "datetime", "text", "json"]),
+  required: booleanType(),
+  description: stringType().optional(),
+  semanticType: enumType(["email", "url", "phone", "password", "color"]).optional(),
+  unique: booleanType().optional(),
+  default: anyType().optional(),
+  maxLength: numberType().optional(),
+  minLength: numberType().optional(),
+  pattern: stringType().optional()
 });
-var EntitySchema = exports_external.object({
-  name: exports_external.string(),
-  tableName: exports_external.string(),
-  description: exports_external.string().optional(),
-  attributes: exports_external.array(EntityAttributeSchema),
-  primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean(),
-  icon: exports_external.string().optional()
+var EntitySchema = objectType({
+  name: stringType(),
+  tableName: stringType(),
+  description: stringType().optional(),
+  attributes: arrayType(EntityAttributeSchema),
+  primaryKey: stringType(),
+  timestamps: booleanType(),
+  icon: stringType().optional()
 });
 // packages/generator/src/hooks/index.ts
 var HOOK_TYPES = [
@@ -13040,25 +12883,25 @@ function compileHooks(source, knownEntities = [], onWarn = () => {}) {
       onWarn(`Skipping malformed hook directive: ${line}`);
       continue;
     }
-    const [, type, handler, entity2, bracket] = match;
+    const [, type, handler, entity, bracket] = match;
     if (!HOOK_TYPE_SET.has(type)) {
-      onWarn(`Hook "${handler}" on ${entity2} uses unknown event "${type}" — skipped.`);
+      onWarn(`Hook "${handler}" on ${entity} uses unknown event "${type}" — skipped.`);
       continue;
     }
-    if (known.size && !known.has(entity2)) {
-      onWarn(`Hook "${handler}" targets unknown entity "${entity2}" — skipped.`);
+    if (known.size && !known.has(entity)) {
+      onWarn(`Hook "${handler}" targets unknown entity "${entity}" — skipped.`);
       continue;
     }
-    const key = `${entity2}:${type}:${handler}`;
+    const key = `${entity}:${type}:${handler}`;
     if (seen.has(key)) {
-      onWarn(`Hook "${handler}" is declared twice for ${entity2}.${type} — keeping the first.`);
+      onWarn(`Hook "${handler}" is declared twice for ${entity}.${type} — keeping the first.`);
       continue;
     }
     seen.add(key);
-    const order = perEntity.get(entity2) ?? 0;
-    perEntity.set(entity2, order + 1);
+    const order = perEntity.get(entity) ?? 0;
+    perEntity.set(entity, order + 1);
     hooks.push({
-      entity: entity2,
+      entity,
       type,
       handler,
       field: parseFields(bracket),
@@ -13067,26 +12910,26 @@ function compileHooks(source, knownEntities = [], onWarn = () => {}) {
   }
   const byName = new Map;
   const kept = [];
-  for (const hook2 of hooks) {
-    const nameKey = `${hook2.entity}:${hook2.handler}`;
+  for (const hook of hooks) {
+    const nameKey = `${hook.entity}:${hook.handler}`;
     const clash = byName.get(nameKey);
     if (clash) {
-      onWarn(`Hook "${hook2.handler}" on ${hook2.entity} is bound to both ${clash.type} and ` + `${hook2.type} — keeping ${clash.type}. Give each event its own handler name.`);
+      onWarn(`Hook "${hook.handler}" on ${hook.entity} is bound to both ${clash.type} and ` + `${hook.type} — keeping ${clash.type}. Give each event its own handler name.`);
       continue;
     }
-    byName.set(nameKey, hook2);
-    kept.push(hook2);
+    byName.set(nameKey, hook);
+    kept.push(hook);
   }
   return kept;
 }
 function hooksByEntity(hooks) {
   const grouped = new Map;
-  for (const hook2 of hooks) {
-    const list = grouped.get(hook2.entity);
+  for (const hook of hooks) {
+    const list = grouped.get(hook.entity);
     if (list)
-      list.push(hook2);
+      list.push(hook);
     else
-      grouped.set(hook2.entity, [hook2]);
+      grouped.set(hook.entity, [hook]);
   }
   for (const list of grouped.values())
     list.sort((a, b) => a.order - b.order);
@@ -13612,18 +13455,18 @@ function parseRoleExpression(expression) {
   }
   return roles;
 }
-function busTableName(entity2) {
-  const snake = entity2.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^_/, "");
+function busTableName(entity) {
+  const snake = entity.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^_/, "");
   return snake.startsWith("bus_") || snake.startsWith("sys_") ? snake : `bus_${snake}`;
 }
 function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = () => {}) {
   const known = new Set(knownEntities);
   const operations = new Map;
   const transitions = new Map;
-  const edgesFor = (entity2, event) => {
+  const edgesFor = (entity, event) => {
     const found = [];
     for (const machine of stateMachines) {
-      if (machine.entity !== entity2)
+      if (machine.entity !== entity)
         continue;
       for (const edge of machine.transitions) {
         if (!edge.trigger)
@@ -13645,55 +13488,55 @@ function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = ()
       onWarn(`Skipping malformed %%rbac directive: ${line}`);
       continue;
     }
-    const [, roleExpr, entity2, rawTarget] = match;
-    if (known.size && !known.has(entity2)) {
-      onWarn(`%%rbac targets unknown entity "${entity2}" — skipped.`);
+    const [, roleExpr, entity, rawTarget] = match;
+    if (known.size && !known.has(entity)) {
+      onWarn(`%%rbac targets unknown entity "${entity}" — skipped.`);
       continue;
     }
     const roles = parseRoleExpression(roleExpr);
     if (roles.length === 0) {
-      onWarn(`%%rbac on ${entity2}.${rawTarget} names no role — skipped.`);
+      onWarn(`%%rbac on ${entity}.${rawTarget} names no role — skipped.`);
       continue;
     }
     const resolved = OPERATION_ALIASES[rawTarget.toLowerCase()];
     if (resolved) {
       const ops = resolved === "*" ? [...RBAC_OPERATIONS] : [resolved];
       for (const operation of ops) {
-        const key2 = `${entity2}:${operation}`;
-        const existing2 = operations.get(key2);
-        if (existing2) {
+        const key = `${entity}:${operation}`;
+        const existing = operations.get(key);
+        if (existing) {
           for (const role of roles)
-            existing2.roles.add(role);
+            existing.roles.add(role);
         } else {
-          operations.set(key2, { entity: entity2, operation, roles: new Set(roles) });
+          operations.set(key, { entity, operation, roles: new Set(roles) });
         }
       }
       continue;
     }
-    const edges = edgesFor(entity2, rawTarget);
+    const edges = edgesFor(entity, rawTarget);
     if (edges.length === 0) {
-      onWarn(`%%rbac on ${entity2}.${rawTarget} names neither a CRUD operation ` + `(${RBAC_OPERATIONS.join(", ")}, *) nor a transition in ${entity2}'s state machine — skipped.`);
+      onWarn(`%%rbac on ${entity}.${rawTarget} names neither a CRUD operation ` + `(${RBAC_OPERATIONS.join(", ")}, *) nor a transition in ${entity}'s state machine — skipped.`);
       continue;
     }
-    const key = `${entity2}:${rawTarget.toLowerCase()}`;
+    const key = `${entity}:${rawTarget.toLowerCase()}`;
     const existing = transitions.get(key);
     if (existing) {
       for (const role of roles)
         existing.roles.add(role);
     } else {
-      transitions.set(key, { entity: entity2, transition: rawTarget, edges, roles: new Set(roles) });
+      transitions.set(key, { entity, transition: rawTarget, edges, roles: new Set(roles) });
     }
   }
   return {
-    operations: [...operations.values()].map(({ entity: entity2, operation, roles }) => ({
-      entity: entity2,
-      tableName: busTableName(entity2),
+    operations: [...operations.values()].map(({ entity, operation, roles }) => ({
+      entity,
+      tableName: busTableName(entity),
       operation,
       roles: [...roles].sort()
     })).sort((a, b) => a.tableName.localeCompare(b.tableName) || a.operation.localeCompare(b.operation)),
-    transitions: [...transitions.values()].map(({ entity: entity2, transition, edges, roles }) => ({
-      entity: entity2,
-      tableName: busTableName(entity2),
+    transitions: [...transitions.values()].map(({ entity, transition, edges, roles }) => ({
+      entity,
+      tableName: busTableName(entity),
       transition,
       edges,
       roles: [...roles].sort()
@@ -13703,8 +13546,8 @@ function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = ()
 function rbacRoleNames(compiled) {
   return [
     ...new Set([
-      ...compiled.operations.flatMap((rule2) => rule2.roles),
-      ...compiled.transitions.flatMap((rule2) => rule2.roles)
+      ...compiled.operations.flatMap((rule) => rule.roles),
+      ...compiled.transitions.flatMap((rule) => rule.roles)
     ])
   ].sort();
 }
@@ -13743,11 +13586,11 @@ function deriveAccess(compiled, options) {
     if (!declared.has(key))
       declared.set(key, role);
   };
-  for (const rule2 of compiled.operations)
-    for (const role of rule2.roles)
+  for (const rule of compiled.operations)
+    for (const role of rule.roles)
       remember(role);
-  for (const rule2 of compiled.transitions)
-    for (const role of rule2.roles)
+  for (const rule of compiled.transitions)
+    for (const role of rule.roles)
       remember(role);
   const roles = BUILT_IN.map((role) => ({ ...role }));
   const taken = new Set(roles.map((role) => role.name.toLowerCase()));
@@ -13781,21 +13624,21 @@ function deriveAccess(compiled, options) {
     isAdmin: false
   });
   const entityVisibility = {};
-  for (const rule2 of compiled.operations) {
-    if (rule2.operation !== "read")
+  for (const rule of compiled.operations) {
+    if (rule.operation !== "read")
       continue;
-    const existing = entityVisibility[rule2.entity] ?? [];
-    entityVisibility[rule2.entity] = [...new Set([...existing, ...rule2.roles])].sort();
+    const existing = entityVisibility[rule.entity] ?? [];
+    entityVisibility[rule.entity] = [...new Set([...existing, ...rule.roles])].sort();
   }
   const allEntities = options.entities && options.entities.length > 0 ? options.entities : Object.keys(entityVisibility);
-  const normalize2 = (value) => value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const normalize = (value) => value.trim().toLowerCase().replace(/[\s-]+/g, "_");
   const entityCounts = {};
   for (const role of roles) {
-    entityCounts[role.name] = role.isAdmin ? allEntities.length : allEntities.filter((entity2) => {
-      const allowed = entityVisibility[entity2];
+    entityCounts[role.name] = role.isAdmin ? allEntities.length : allEntities.filter((entity) => {
+      const allowed = entityVisibility[entity];
       if (!allowed || allowed.length === 0)
         return true;
-      return allowed.some((name) => normalize2(name) === normalize2(role.declaredAs));
+      return allowed.some((name) => normalize(name) === normalize(role.declaredAs));
     }).length;
   }
   return {
@@ -13834,7 +13677,7 @@ class CliExecutor {
     }
   }
   static async executeAsync(command, args, options = {}) {
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve, reject) => {
       const cwd = options.cwd || process.cwd();
       const env = { ...process.env, ...options.env };
       console.log(`  \uD83D\uDD27 Running: ${command} ${args.join(" ")}`);
@@ -13861,7 +13704,7 @@ class CliExecutor {
       child.on("close", (code) => {
         clearTimeout(timer);
         if (code === 0) {
-          resolve2(stdout);
+          resolve(stdout);
         } else {
           console.error(`  ❌ Command failed with code ${code}: ${command} ${args.join(" ")}`);
           if (stderr)
@@ -14215,32 +14058,32 @@ function compileSagas(sections, knownEntities = [], onWarn = () => {}) {
         continue;
       const autoType = line.match(AUTO_TYPE_DIRECTIVE);
       if (autoType?.[1] && autoType[2]) {
-        const [, nodeId2 = "", typeName2 = "", rest2 = ""] = autoType;
-        if (!STEP_TYPES.includes(typeName2)) {
-          onWarn(`Workflow "${section.name}": unknown step type "${typeName2}" on node ${nodeId2} — skipped.`);
+        const [, nodeId = "", typeName = "", rest = ""] = autoType;
+        if (!STEP_TYPES.includes(typeName)) {
+          onWarn(`Workflow "${section.name}": unknown step type "${typeName}" on node ${nodeId} — skipped.`);
           continue;
         }
-        const existing = declared.get(nodeId2);
-        declared.set(nodeId2, {
-          nodeId: nodeId2,
-          type: typeName2,
-          label: labels.get(nodeId2) ?? nodeId2,
-          props: { ...existing?.props, ...parseStepProps(rest2) }
+        const existing = declared.get(nodeId);
+        declared.set(nodeId, {
+          nodeId,
+          type: typeName,
+          label: labels.get(nodeId) ?? nodeId,
+          props: { ...existing?.props, ...parseStepProps(rest) }
         });
-        autoNodes.add(nodeId2);
+        autoNodes.add(nodeId);
         continue;
       }
       const autoProp = line.match(AUTO_PROP_DIRECTIVE);
       if (autoProp?.[1] && autoProp[2] && autoProp[2] !== "type") {
-        const [, nodeId2 = "", key = "", value = ""] = autoProp;
-        const existing = declared.get(nodeId2);
-        declared.set(nodeId2, {
-          nodeId: nodeId2,
+        const [, nodeId = "", key = "", value = ""] = autoProp;
+        const existing = declared.get(nodeId);
+        declared.set(nodeId, {
+          nodeId,
           type: existing?.type ?? "Formula",
-          label: labels.get(nodeId2) ?? nodeId2,
+          label: labels.get(nodeId) ?? nodeId,
           props: { ...existing?.props, [key]: value.trim() }
         });
-        autoNodes.add(nodeId2);
+        autoNodes.add(nodeId);
         continue;
       }
       const match = line.match(STEP_DIRECTIVE);
@@ -14311,7 +14154,7 @@ function compileSagas(sections, knownEntities = [], onWarn = () => {}) {
 function escapeXmlAttr(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function buildSagaBpmn(saga, tableName, resolveTable = (entity2) => entity2) {
+function buildSagaBpmn(saga, tableName, resolveTable = (entity) => entity) {
   const processId = `${tableName}_${saga.name.replace(/[^A-Za-z0-9_]/g, "_")}`;
   const tasks = saga.steps.map((step) => {
     const entries = [["nodeType", step.type]];
@@ -14863,12 +14706,12 @@ class TemplateLoader {
       };
       return mapping[referenceId] || "varchar(255)";
     });
-    import_handlebars.default.registerHelper("tanstackQueryKey", (entity2) => `['${entity2}', 'list']`);
-    import_handlebars.default.registerHelper("tanstackDetailKey", (entity2, id) => {
+    import_handlebars.default.registerHelper("tanstackQueryKey", (entity) => `['${entity}', 'list']`);
+    import_handlebars.default.registerHelper("tanstackDetailKey", (entity, id) => {
       const idVar = typeof id === "string" ? id : "id";
-      return `['${entity2}', 'detail', ${idVar}]`;
+      return `['${entity}', 'detail', ${idVar}]`;
     });
-    import_handlebars.default.registerHelper("tanstackMutationKey", (entity2, action) => `['${entity2}', '${action}']`);
+    import_handlebars.default.registerHelper("tanstackMutationKey", (entity, action) => `['${entity}', '${action}']`);
     import_handlebars.default.registerHelper("tanstackColumnType", (referenceId) => {
       const mapping = {
         [ReferenceType.STRING]: "text",
@@ -14899,10 +14742,10 @@ class TemplateLoader {
       };
       return mapping[referenceId] || "input";
     });
-    import_handlebars.default.registerHelper("nestControllerName", (entity2) => `${pascalCase(entity2)}Controller`);
-    import_handlebars.default.registerHelper("nestServiceName", (entity2) => `${pascalCase(entity2)}Service`);
-    import_handlebars.default.registerHelper("nestModuleName", (entity2) => `${pascalCase(entity2)}Module`);
-    import_handlebars.default.registerHelper("nestDtoName", (entity2, prefix = "") => `${prefix}${pascalCase(entity2)}Dto`);
+    import_handlebars.default.registerHelper("nestControllerName", (entity) => `${pascalCase(entity)}Controller`);
+    import_handlebars.default.registerHelper("nestServiceName", (entity) => `${pascalCase(entity)}Service`);
+    import_handlebars.default.registerHelper("nestModuleName", (entity) => `${pascalCase(entity)}Module`);
+    import_handlebars.default.registerHelper("nestDtoName", (entity, prefix = "") => `${prefix}${pascalCase(entity)}Dto`);
     import_handlebars.default.registerHelper("nestGuardName", (name) => `${pascalCase(name)}Guard`);
     import_handlebars.default.registerHelper("nestDecoratorName", (name) => `${pascalCase(name)}`);
     import_handlebars.default.registerHelper("shadcnInputType", (referenceId) => {
@@ -15315,7 +15158,7 @@ class BaseGenerator {
 
 // packages/generator/src/generators/tanstack-start-nestjs/fk-constraints.ts
 function buildFkConstraints(busEntities, relationships) {
-  const byName = new Map(busEntities.map((entity2) => [(entity2.originalName || entity2.name).toLowerCase(), entity2]));
+  const byName = new Map(busEntities.map((entity) => [(entity.originalName || entity.name).toLowerCase(), entity]));
   const constraints = [];
   const seen = new Set;
   for (const relationship of relationships) {
@@ -15352,8 +15195,8 @@ function resolveTemplateDir(subpath) {
   ];
   for (const possiblePath of possiblePaths) {
     try {
-      const stat2 = (init_memory_fs(), __toCommonJS(exports_memory_fs)).statSync(possiblePath);
-      if (stat2.isDirectory()) {
+      const stat = (init_memory_fs(), __toCommonJS(exports_memory_fs)).statSync(possiblePath);
+      if (stat.isDirectory()) {
         return possiblePath;
       }
     } catch {}
@@ -15372,10 +15215,10 @@ function normalizeJdmDecisionTables(jdm) {
     if (node?.type !== "decisionTableNode" || !node.content)
       continue;
     const inputIds = (node.content.inputs ?? []).map((input) => input.id);
-    for (const rule2 of node.content.rules ?? []) {
+    for (const rule of node.content.rules ?? []) {
       for (const inputId of inputIds) {
-        if (rule2[inputId] === undefined) {
-          rule2[inputId] = "";
+        if (rule[inputId] === undefined) {
+          rule[inputId] = "";
         }
       }
     }
@@ -15460,7 +15303,7 @@ class NestJsBackendGenerator extends BaseGenerator {
     }
   }
   async createAdditionalDirectories(outputDir) {
-    const dirs2 = [
+    const dirs = [
       "src/common/filters",
       "src/common/guards",
       "src/common/interceptors",
@@ -15487,14 +15330,14 @@ class NestJsBackendGenerator extends BaseGenerator {
       "test/modules/jobs",
       "test/trigger"
     ];
-    for (const dir of dirs2) {
+    for (const dir of dirs) {
       await mkdir(join(outputDir, dir), { recursive: true });
     }
   }
   prepareContext(entities, relationships) {
     const declared = declaredEntityNames(entities);
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared)).sort((a, b) => Number(!!a.parentEntity) - Number(!!b.parentEntity));
-    const dictionaryEntries = entities.map((entity2) => generateEntityDictionary(entity2));
+    const busEntities = entities.map((entity) => entityToBusEntity(entity, declared)).sort((a, b) => Number(!!a.parentEntity) - Number(!!b.parentEntity));
+    const dictionaryEntries = entities.map((entity) => generateEntityDictionary(entity));
     const sysTables = dictionaryEntries.map((entry) => entry.dictionaryPlaceholders.table);
     const modelEnums = this.options.modelEnums ?? [];
     const sysColumns = dictionaryEntries.flatMap((entry, entityIndex) => {
@@ -15527,10 +15370,10 @@ class NestJsBackendGenerator extends BaseGenerator {
         updated_by: "System"
       }));
     });
-    const rbac2 = this.options.compiledRbac ?? { operations: [], transitions: [] };
-    const access2 = deriveAccess(rbac2, {
+    const rbac = this.options.compiledRbac ?? { operations: [], transitions: [] };
+    const access = deriveAccess(rbac, {
       projectId: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      entities: busEntities.map((entity2) => entity2.name)
+      entities: busEntities.map((entity) => entity.name)
     });
     const dbUser = this.options.databaseType === "postgresql" ? process.env.USER || process.env.USERNAME || "postgres" : "postgres";
     const fkOverrides = this.buildFkOverrides(busEntities, relationships);
@@ -15565,24 +15408,24 @@ class NestJsBackendGenerator extends BaseGenerator {
       modelEnums,
       sysFields,
       categories: this.prepareCategories(busEntities),
-      compiledRules: (this.options.compiledRules ?? []).map((rule2) => ({
-        ...rule2,
-        jdmContentEscaped: jsQuote(rule2.jdmContent)
+      compiledRules: (this.options.compiledRules ?? []).map((rule) => ({
+        ...rule,
+        jdmContentEscaped: jsQuote(rule.jdmContent)
       })),
-      compiledRbac: rbac2.operations,
-      compiledRbacTransitions: rbac2.transitions.map((rule2) => ({
-        ...rule2,
-        statusField: this.statusFieldFor(rule2.tableName, busEntities)
+      compiledRbac: rbac.operations,
+      compiledRbacTransitions: rbac.transitions.map((rule) => ({
+        ...rule,
+        statusField: this.statusFieldFor(rule.tableName, busEntities)
       })),
-      rbacRoles: rbacRoleNames(rbac2),
-      hasRbac: hasRbacRules(rbac2),
-      access: access2,
+      rbacRoles: rbacRoleNames(rbac),
+      hasRbac: hasRbacRules(rbac),
+      access,
       now: new Date().toISOString()
     };
   }
   statusFieldFor(tableName, busEntities) {
-    const entity2 = busEntities.find((candidate) => candidate.tableName === tableName);
-    const columns = (entity2?.attributes ?? []).map((a) => a.columnName ?? a.name);
+    const entity = busEntities.find((candidate) => candidate.tableName === tableName);
+    const columns = (entity?.attributes ?? []).map((a) => a.columnName ?? a.name);
     return columns.includes("status") ? "status" : "workflow_status";
   }
   prepareCategories(busEntities) {
@@ -15595,10 +15438,10 @@ class NestJsBackendGenerator extends BaseGenerator {
         color: undefined,
         seqNo: 0,
         isDefault: true,
-        entities: busEntities.map((entity2) => entity2.name)
+        entities: busEntities.map((entity) => entity.name)
       }
     ];
-    const tableByName = new Map(busEntities.map((entity2) => [entity2.name.toLowerCase(), entity2.tableName]));
+    const tableByName = new Map(busEntities.map((entity) => [entity.name.toLowerCase(), entity.tableName]));
     return categories.map((category) => ({
       name: jsQuote(category.name),
       code: category.code,
@@ -15615,9 +15458,9 @@ class NestJsBackendGenerator extends BaseGenerator {
     const entityToTable = new Map(busEntities.map((e) => [(e.originalName || e.name).toLowerCase(), e.tableName]));
     const overrides = [];
     const seen = new Set;
-    for (const entity2 of busEntities) {
-      const entityName = (entity2.originalName || entity2.name).toLowerCase();
-      const fkAttrs = (entity2.attributes || []).filter((a) => a.isForeignKey);
+    for (const entity of busEntities) {
+      const entityName = (entity.originalName || entity.name).toLowerCase();
+      const fkAttrs = (entity.attributes || []).filter((a) => a.isForeignKey);
       const parentRels = relationships.filter((r) => r.targetEntity.toLowerCase() === entityName);
       for (const attr of fkAttrs) {
         const col = attr.columnName || attr.name;
@@ -15668,8 +15511,8 @@ class NestJsBackendGenerator extends BaseGenerator {
       overrides.push({ column: col, table: personTable });
       seen.add(col);
     }
-    for (const entity2 of busEntities) {
-      const fkAttrs = (entity2.attributes || []).filter((a) => a.isForeignKey);
+    for (const entity of busEntities) {
+      const fkAttrs = (entity.attributes || []).filter((a) => a.isForeignKey);
       for (const attr of fkAttrs) {
         const col = attr.columnName || attr.name;
         if (seen.has(col))
@@ -15927,21 +15770,21 @@ class NestJsBackendGenerator extends BaseGenerator {
     await mkdir(handlersDir, { recursive: true });
     const grouped = hooksByEntity(this.options.compiledHooks ?? []);
     const entities = [...grouped.keys()].sort();
-    for (const entity2 of entities) {
-      const hooks = grouped.get(entity2) ?? [];
-      const file = join(handlersDir, `${entity2}.ts`);
+    for (const entity of entities) {
+      const hooks = grouped.get(entity) ?? [];
+      const file = join(handlersDir, `${entity}.ts`);
       let existing = null;
       try {
         existing = await readFile(file, "utf-8");
       } catch {}
       if (existing === null) {
-        await writeFile(file, this.renderHookModule(entity2, hooks));
+        await writeFile(file, this.renderHookModule(entity, hooks));
         continue;
       }
-      const missing = hooks.filter((hook2) => !new RegExp(`\\b(function|const)\\s+${hook2.handler}\\b`).test(existing));
+      const missing = hooks.filter((hook) => !new RegExp(`\\b(function|const)\\s+${hook.handler}\\b`).test(existing));
       if (!missing.length)
         continue;
-      const additions = missing.map((hook2) => this.renderHookFunction(entity2, hook2)).join(`
+      const additions = missing.map((hook) => this.renderHookFunction(entity, hook)).join(`
 `);
       await writeFile(file, `${existing.trimEnd()}
 
@@ -15951,11 +15794,11 @@ ${additions}`);
     }
     await writeFile(join(handlersDir, "index.ts"), this.renderHookRegistry(grouped));
   }
-  renderHookFunction(entity2, hook2) {
-    const contract = HOOK_CONTRACTS[hook2.type];
-    const scope = hook2.field ? `
- * Scoped to \`${hook2.field}\`.` : "";
-    const async = `export async function ${hook2.handler}(${contract.param}: ${contract.paramType})`;
+  renderHookFunction(entity, hook) {
+    const contract = HOOK_CONTRACTS[hook.type];
+    const scope = hook.field ? `
+ * Scoped to \`${hook.field}\`.` : "";
+    const async = `export async function ${hook.handler}(${contract.param}: ${contract.paramType})`;
     const body = contract.returns === "void" ? `  // TODO: implement.
 ` : contract.returns === "boolean" ? `  // TODO: implement. Return false to block the delete.
   return true;
@@ -15963,7 +15806,7 @@ ${additions}`);
   return ${contract.param};
 `;
     return `/**
- * ${hook2.type} on ${entity2}.
+ * ${hook.type} on ${entity}.
  *
  * ${contract.summary}${scope}
  */
@@ -15971,9 +15814,9 @@ ${additions}`);
 ${body}}
 `;
   }
-  renderHookModule(entity2, hooks) {
+  renderHookModule(entity, hooks) {
     const header = `/**
- * Lifecycle handlers for ${entity2}.
+ * Lifecycle handlers for ${entity}.
  *
 ` + ` * Declared by the model's \`%%hook\` directives and wired up in ./index.ts.
 ` + ` * The bodies are yours: this file is generated once and then left alone, so
@@ -15981,7 +15824,7 @@ ${body}}
  */
 
 `;
-    return header + hooks.map((hook2) => this.renderHookFunction(entity2, hook2)).join(`
+    return header + hooks.map((hook) => this.renderHookFunction(entity, hook)).join(`
 `);
   }
   renderHookRegistry(grouped) {
@@ -16007,27 +15850,27 @@ ${body}}
 ` + `export const ENTITY_HOOKS: Record<string, Record<string, Record<string, any>>> = {};
 `;
     }
-    const imports = entities.map((entity2) => `import * as ${entity2}Hooks from './${entity2}';`).join(`
+    const imports = entities.map((entity) => `import * as ${entity}Hooks from './${entity}';`).join(`
 `);
-    const bindings = entities.map((entity2) => {
+    const bindings = entities.map((entity) => {
       const byType = new Map;
-      for (const hook2 of grouped.get(entity2) ?? []) {
-        const list = byType.get(hook2.type);
+      for (const hook of grouped.get(entity) ?? []) {
+        const list = byType.get(hook.type);
         if (list)
-          list.push(hook2.handler);
+          list.push(hook.handler);
         else
-          byType.set(hook2.type, [hook2.handler]);
+          byType.set(hook.type, [hook.handler]);
       }
       const events = [...byType.entries()].map(([type, handlers]) => {
-        const entries = handlers.map((handler) => `      ${handler}: ${entity2}Hooks.${handler},`).join(`
+        const entries = handlers.map((handler) => `      ${handler}: ${entity}Hooks.${handler},`).join(`
 `);
         return `    ${type}: {
 ${entries}
     },`;
       }).join(`
 `);
-      return `  // ${entity2}
-  [hookKey('${entity2}')]: {
+      return `  // ${entity}
+  [hookKey('${entity}')]: {
 ${events}
   },`;
     }).join(`
@@ -16429,12 +16272,12 @@ export async function executeCustomValidateHooks(
         byEntity.set(workflow.entity, workflow);
     }
     const rows = [];
-    for (const entity2 of context.entities ?? []) {
-      const tableName = entity2.tableName;
-      const workflow = byEntity.get(entity2.name) ?? byEntity.get(entity2.className);
-      const columns = (entity2.attributes ?? []).map((a) => a.columnName ?? a.name);
+    for (const entity of context.entities ?? []) {
+      const tableName = entity.tableName;
+      const workflow = byEntity.get(entity.name) ?? byEntity.get(entity.className);
+      const columns = (entity.attributes ?? []).map((a) => a.columnName ?? a.name);
       const statusField = columns.includes("status") ? "status" : "workflow_status";
-      const description = workflow ? describeWorkflow(workflow) : `No state machine declared for ${entity2.displayName ?? tableName}.`;
+      const description = workflow ? describeWorkflow(workflow) : `No state machine declared for ${entity.displayName ?? tableName}.`;
       for (const operation of ["create", "update"]) {
         const bpmn = workflow && operation === "create" ? buildStateEntryBpmn(workflow, tableName, statusField) : buildPassThroughBpmn(tableName);
         rows.push(`  {
@@ -16448,14 +16291,14 @@ export async function executeCustomValidateHooks(
       }
     }
     const tableFor = new Map;
-    for (const entity2 of context.entities ?? []) {
-      const table = entity2.tableName;
-      for (const spelling of [entity2.name, entity2.className, table, table.replace(/^bus_/, "")]) {
+    for (const entity of context.entities ?? []) {
+      const table = entity.tableName;
+      for (const spelling of [entity.name, entity.className, table, table.replace(/^bus_/, "")]) {
         if (spelling)
           tableFor.set(String(spelling).toLowerCase(), table);
       }
     }
-    const resolveTable = (entity2) => tableFor.get(entity2.trim().toLowerCase()) ?? entity2;
+    const resolveTable = (entity) => tableFor.get(entity.trim().toLowerCase()) ?? entity;
     for (const saga of this.options.compiledSagas ?? []) {
       const tableName = tableFor.get(saga.entity.toLowerCase());
       if (!tableName)
@@ -16553,17 +16396,17 @@ export async function seed(db: Kysely<any>): Promise<void> {
         byEntity.set(workflow.entity, workflow);
     }
     const rows = [];
-    for (const entity2 of context.entities ?? []) {
-      const workflow = byEntity.get(entity2.name) ?? byEntity.get(entity2.className);
+    for (const entity of context.entities ?? []) {
+      const workflow = byEntity.get(entity.name) ?? byEntity.get(entity.className);
       if (!workflow || workflow.transitions.length === 0)
         continue;
-      const columns = (entity2.attributes ?? []).map((a) => a.columnName ?? a.name);
+      const columns = (entity.attributes ?? []).map((a) => a.columnName ?? a.name);
       const statusField = columns.includes("status") ? "status" : "workflow_status";
       for (const t of workflow.transitions) {
         if (t.from === "[*]" || t.to === "[*]")
           continue;
         rows.push(`  {
-` + `    tableName: '${entity2.tableName}',
+` + `    tableName: '${entity.tableName}',
 ` + `    statusField: '${statusField}',
 ` + `    fromState: '${t.from}',
 ` + `    toState: '${t.to}',
@@ -16627,11 +16470,11 @@ export async function seed(db: Kysely<any>): Promise<void> {
 `;
     }
     const tableByEntity = new Map;
-    for (const entity2 of context.entities ?? []) {
-      if (entity2.name)
-        tableByEntity.set(entity2.name, entity2.tableName);
-      if (entity2.className)
-        tableByEntity.set(entity2.className, entity2.tableName);
+    for (const entity of context.entities ?? []) {
+      if (entity.name)
+        tableByEntity.set(entity.name, entity.tableName);
+      if (entity.className)
+        tableByEntity.set(entity.className, entity.tableName);
     }
     const rows = reports.map((report, index) => {
       const value = {
@@ -16855,13 +16698,13 @@ export async function seed(db: Kysely<any>): Promise<void> {
     const templateDir = join(resolveTemplateDir("tanstack-start-nestjs/backend"), "src/modules/notifications");
     const notificationsOutputDir = join(outputDir, "src/modules/notifications");
     await mkdir(notificationsOutputDir, { recursive: true });
-    const files2 = [
+    const files = [
       "notifications.controller.ts",
       "notifications.module.ts",
       "notifications.service.ts",
       "notifications.types.ts"
     ];
-    for (const file of files2) {
+    for (const file of files) {
       try {
         await copyFile(join(templateDir, file), join(notificationsOutputDir, file));
       } catch (e) {
@@ -16890,14 +16733,14 @@ export async function seed(db: Kysely<any>): Promise<void> {
       }
     }
   }
-  async generateSingleEntity(entity2, relationships, outputDir, _allEntities, opts) {
-    const busEntity = entityToBusEntity(entity2, declaredEntityNames(_allEntities));
+  async generateSingleEntity(entity, relationships, outputDir, _allEntities, opts) {
+    const busEntity = entityToBusEntity(entity, declaredEntityNames(_allEntities));
     const toSnake = (name) => name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
     await mkdir(join(outputDir, "src/modules/rules/jdm"), { recursive: true });
     await this.writeEntityJdm(busEntity, outputDir);
     console.log(`  ✓ backend/src/modules/rules/jdm/${busEntity.tableName}.jdm.json`);
     if (!opts?.skipMigration) {
-      const entityRels = relationships.filter((r) => r.sourceEntity === entity2.name || r.targetEntity === entity2.name).map((r) => ({
+      const entityRels = relationships.filter((r) => r.sourceEntity === entity.name || r.targetEntity === entity.name).map((r) => ({
         ...r,
         sourceTableName: `bus_${toSnake(r.sourceEntity)}`,
         targetTableName: `bus_${toSnake(r.targetEntity)}`
@@ -16906,7 +16749,7 @@ export async function seed(db: Kysely<any>): Promise<void> {
       await mkdir(migrationsDir, { recursive: true });
       try {
         const timestamp = Date.now();
-        const snake = toSnake(entity2.name);
+        const snake = toSnake(entity.name);
         const migrationContent = await this.renderTemplate("../../common/migrations/bus-table.migration.ts.hbs", {
           ...busEntity,
           relationships: entityRels,
@@ -16917,20 +16760,20 @@ export async function seed(db: Kysely<any>): Promise<void> {
         await writeFile(join(migrationsDir, migrationFile), migrationContent);
         console.log(`  ✓ backend/src/migrations/${migrationFile}`);
       } catch (e) {
-        console.warn(`  ⚠️  Migration template failed for ${entity2.name}: ${e.message}`);
+        console.warn(`  ⚠️  Migration template failed for ${entity.name}: ${e.message}`);
       }
     }
   }
   async generateModelContextModule(outputDir, context) {
     const moduleDir = join(outputDir, "src/modules/model-context");
     await mkdir(moduleDir, { recursive: true });
-    const files2 = [
+    const files = [
       "model-context.service.ts",
       "model-context.controller.ts",
       "model-context.module.ts",
       "rag.ts"
     ];
-    for (const file of files2) {
+    for (const file of files) {
       try {
         const content = await this.renderTemplate(`src/modules/model-context/${file}.hbs`, context);
         await writeFile(join(moduleDir, file), content);
@@ -16975,12 +16818,12 @@ async function exists(target) {
     return false;
   }
 }
-async function copyTree(source, destination, relative2 = "") {
+async function copyTree(source, destination, relative = "") {
   const entries = await readdir(source, { withFileTypes: true });
   await mkdir(destination, { recursive: true });
   let copied = 0;
   for (const entry of entries) {
-    const inner = relative2 ? `${relative2}/${entry.name}` : entry.name;
+    const inner = relative ? `${relative}/${entry.name}` : entry.name;
     if (SKIP.test(inner))
       continue;
     const from = join(source, entry.name);
@@ -17018,8 +16861,8 @@ function resolveTemplateDir2(subpath) {
   ];
   for (const possiblePath of possiblePaths) {
     try {
-      const stat2 = (init_memory_fs(), __toCommonJS(exports_memory_fs)).statSync(possiblePath);
-      if (stat2.isDirectory()) {
+      const stat = (init_memory_fs(), __toCommonJS(exports_memory_fs)).statSync(possiblePath);
+      if (stat.isDirectory()) {
         return possiblePath;
       }
     } catch {}
@@ -17085,7 +16928,7 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     }
   }
   async createAdditionalDirectories(outputDir) {
-    const dirs2 = [
+    const dirs = [
       "src/routes",
       "src/routes/admin",
       "src/routes/auth",
@@ -17116,19 +16959,19 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       "src/components/theme",
       "test"
     ];
-    for (const dir of dirs2) {
+    for (const dir of dirs) {
       await mkdir(join(outputDir, dir), { recursive: true });
     }
   }
   prepareContext(entities, relationships) {
     const declared = declaredEntityNames(entities);
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared));
-    const access2 = deriveAccess(this.options.compiledRbac ?? { operations: [], transitions: [] }, {
+    const busEntities = entities.map((entity) => entityToBusEntity(entity, declared));
+    const access = deriveAccess(this.options.compiledRbac ?? { operations: [], transitions: [] }, {
       projectId: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      entities: busEntities.map((entity2) => entity2.name)
+      entities: busEntities.map((entity) => entity.name)
     });
     return {
-      access: access2,
+      access,
       project: {
         name: this.options.projectName,
         version: this.options.projectVersion,
@@ -17605,13 +17448,13 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     const detailPageContent = await this.renderTemplate("src/routes/$entity/$id.tsx.hbs", entityContext);
     await writeFile(join(outputDir, "src/routes", detailPageFilename), detailPageContent);
   }
-  async generateSingleEntity(entity2, relationships, outputDir, allEntities) {
+  async generateSingleEntity(entity, relationships, outputDir, allEntities) {
     const context = this.prepareContext(allEntities, relationships);
     const busEntities = context.entities;
-    const busEntity = busEntities.find((e) => e.originalName === entity2.name || e.name === entity2.name) ?? busEntities[0];
+    const busEntity = busEntities.find((e) => e.originalName === entity.name || e.name === entity.name) ?? busEntities[0];
     await this.generateSingleEntityRoutes(busEntity, context, outputDir);
-    const listFile = `${kebabCase(entity2.name)}.tsx`;
-    const detailFile = `${kebabCase(entity2.name)}.$id.tsx`;
+    const listFile = `${kebabCase(entity.name)}.tsx`;
+    const detailFile = `${kebabCase(entity.name)}.$id.tsx`;
     console.log(`  ✓ frontend/src/routes/${listFile}`);
     console.log(`  ✓ frontend/src/routes/${detailFile}`);
   }
@@ -17893,7 +17736,7 @@ class BunE2ETestGenerator extends BaseGenerator {
     await promises.mkdir(node_path_default.join(testsDir, "harness"), { recursive: true });
     await promises.mkdir(node_path_default.join(testsDir, "suites"), { recursive: true });
     const declared = declaredEntityNames(entities);
-    const busEntities = entities.map((entity2) => entityToBusEntity(entity2, declared));
+    const busEntities = entities.map((entity) => entityToBusEntity(entity, declared));
     const context = this.buildContext(busEntities, relationships);
     await this.writeRootFiles(testsDir, context);
     await this.writeHarness(testsDir, context);
@@ -17904,10 +17747,10 @@ class BunE2ETestGenerator extends BaseGenerator {
   }
   withValueCeilings(entities) {
     const ceilings = new Map;
-    for (const rule2 of this.options.compiledRules ?? []) {
+    for (const rule of this.options.compiledRules ?? []) {
       let graph;
       try {
-        graph = JSON.parse(rule2.jdmContent);
+        graph = JSON.parse(rule.jdmContent);
       } catch {
         continue;
       }
@@ -17922,28 +17765,28 @@ class BunE2ETestGenerator extends BaseGenerator {
             continue;
           const [, column, operator, bound] = match;
           const ceiling = operator === ">=" ? Number(bound) - 0.01 : Number(bound);
-          const key = `${rule2.tableName}.${column}`;
+          const key = `${rule.tableName}.${column}`;
           ceilings.set(key, Math.min(ceilings.get(key) ?? ceiling, ceiling));
         }
       }
     }
     if (ceilings.size === 0)
       return entities;
-    return entities.map((entity2) => ({
-      ...entity2,
-      attributes: (entity2.attributes ?? []).map((attribute) => {
+    return entities.map((entity) => ({
+      ...entity,
+      attributes: (entity.attributes ?? []).map((attribute) => {
         const column = attribute.columnName ?? attribute.name;
-        const ceiling = ceilings.get(`${entity2.tableName}.${column}`);
+        const ceiling = ceilings.get(`${entity.tableName}.${column}`);
         return ceiling === undefined ? attribute : { ...attribute, maxValue: ceiling };
       })
     }));
   }
   refusals() {
     const found = [];
-    for (const rule2 of this.options.compiledRules ?? []) {
+    for (const rule of this.options.compiledRules ?? []) {
       let graph;
       try {
-        graph = JSON.parse(rule2.jdmContent);
+        graph = JSON.parse(rule.jdmContent);
       } catch {
         continue;
       }
@@ -17953,7 +17796,7 @@ class BunE2ETestGenerator extends BaseGenerator {
         for (const row of node.content?.rules ?? []) {
           const when = (row.i1 ?? "").trim();
           if (row.o1 === "'prevent'" && when && when !== "true") {
-            found.push({ tableName: rule2.tableName, when });
+            found.push({ tableName: rule.tableName, when });
           }
         }
       }
@@ -18001,23 +17844,23 @@ class BunE2ETestGenerator extends BaseGenerator {
     const projectId = this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const derived = deriveAccess(compiled, {
       projectId,
-      entities: entities.map((entity2) => entity2.originalName || entity2.name),
+      entities: entities.map((entity) => entity.originalName || entity.name),
       adminEmail: this.options.adminEmail
     });
-    const byName = new Map(entities.map((entity2) => [
-      String(entity2.originalName || entity2.name).toLowerCase(),
-      entity2
+    const byName = new Map(entities.map((entity) => [
+      String(entity.originalName || entity.name).toLowerCase(),
+      entity
     ]));
-    const rbacRules = compiled.operations.map((rule2) => {
-      const entity2 = byName.get(rule2.entity.toLowerCase());
+    const rbacRules = compiled.operations.map((rule) => {
+      const entity = byName.get(rule.entity.toLowerCase());
       return {
-        entity: rule2.entity,
-        tableName: rule2.tableName,
-        route: entity2 ? entity2.route || entity2.tableName : rule2.tableName,
-        operation: rule2.operation,
-        roles: rule2.roles
+        entity: rule.entity,
+        tableName: rule.tableName,
+        route: entity ? entity.route || entity.tableName : rule.tableName,
+        operation: rule.operation,
+        roles: rule.roles
       };
-    }).filter((rule2) => byName.has(rule2.entity.toLowerCase()));
+    }).filter((rule) => byName.has(rule.entity.toLowerCase()));
     const roleAccounts = derived.users.map((user) => ({
       email: user.email,
       name: user.name,
@@ -18032,9 +17875,9 @@ class BunE2ETestGenerator extends BaseGenerator {
     const entityToTable = new Map(busEntities.map((e) => [(e.originalName || e.name).toLowerCase(), e.tableName]));
     const overrides = [];
     const seen = new Set;
-    for (const entity2 of busEntities) {
-      const entityName = (entity2.originalName || entity2.name).toLowerCase();
-      const fkAttrs = (entity2.attributes || []).filter((a) => a.isForeignKey);
+    for (const entity of busEntities) {
+      const entityName = (entity.originalName || entity.name).toLowerCase();
+      const fkAttrs = (entity.attributes || []).filter((a) => a.isForeignKey);
       const parentRels = relationships.filter((r) => r.targetEntity.toLowerCase() === entityName);
       for (const attr of fkAttrs) {
         const col = attr.columnName || attr.name;
@@ -18085,8 +17928,8 @@ class BunE2ETestGenerator extends BaseGenerator {
       overrides.push({ column: col, table: personTable });
       seen.add(col);
     }
-    for (const entity2 of busEntities) {
-      const fkAttrs = (entity2.attributes || []).filter((a) => a.isForeignKey);
+    for (const entity of busEntities) {
+      const fkAttrs = (entity.attributes || []).filter((a) => a.isForeignKey);
       for (const attr of fkAttrs) {
         const col = attr.columnName || attr.name;
         if (seen.has(col))
@@ -18106,18 +17949,18 @@ class BunE2ETestGenerator extends BaseGenerator {
         byEntity.set(workflow.entity, workflow);
     }
     const machines = [];
-    for (const entity2 of entities) {
-      const workflow = byEntity.get(entity2.name) ?? byEntity.get(entity2.originalName);
+    for (const entity of entities) {
+      const workflow = byEntity.get(entity.name) ?? byEntity.get(entity.originalName);
       if (!workflow || workflow.transitions.length === 0)
         continue;
-      const columns = (entity2.attributes ?? []).map((attribute) => attribute.columnName ?? attribute.name);
+      const columns = (entity.attributes ?? []).map((attribute) => attribute.columnName ?? attribute.name);
       const statusField = columns.includes("status") ? "status" : "workflow_status";
       const edges = workflow.transitions.filter((t) => t.from !== "[*]" && t.to !== "[*]").map((t) => ({ from: t.from, to: t.to, trigger: t.trigger ?? "" }));
       if (edges.length === 0)
         continue;
       machines.push({
-        entity: entity2.name,
-        tableName: entity2.tableName,
+        entity: entity.name,
+        tableName: entity.tableName,
         statusField,
         initial: workflow.initial ?? "",
         terminal: (workflow.terminal ?? []).filter((state) => !edges.some((edge) => edge.from === state)),
@@ -18149,9 +17992,9 @@ class BunE2ETestGenerator extends BaseGenerator {
     }
   }
   async writePerEntitySuites(testsDir, entities, context) {
-    for (const entity2 of entities) {
-      const slug = entity2.tableName.replace(/^bus_/, "").replace(/[^a-z0-9]+/gi, "-");
-      const entityContext = { ...context, entity: entity2 };
+    for (const entity of entities) {
+      const slug = entity.tableName.replace(/^bus_/, "").replace(/[^a-z0-9]+/gi, "-");
+      const entityContext = { ...context, entity };
       const crud = await this.renderTemplate("suites/crud-entity.test.ts.hbs", entityContext);
       await promises.writeFile(node_path_default.join(testsDir, "suites", `03-crud.${slug}.test.ts`), crud);
       const rules = await this.renderTemplate("suites/rules-entity.test.ts.hbs", entityContext);
@@ -18339,7 +18182,7 @@ tests/.e2e-seed-manifest.json
     await this.copyGitHubWorkflows(outputDir);
   }
   async writeContainerFiles(outputDir) {
-    const files2 = [
+    const files = [
       { template: "docker-compose.yml.hbs", output: "docker-compose.yml" },
       { template: "Dockerfile.hbs", output: "Dockerfile" },
       { template: ".dockerignore.hbs", output: ".dockerignore" },
@@ -18356,7 +18199,7 @@ tests/.e2e-seed-manifest.json
     const projectId = this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const projectSnake = this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
     const render = (content) => content.replace(/\{\{project\.name \| replace '-' '_'\}\}/g, projectSnake).replace(/\{\{project\.name\}\}/g, this.options.projectName).replace(/\{\{project\.id\}\}/g, projectId).replace(/\{\{project\.backendPort\}\}/g, String(backendPort)).replace(/\{\{project\.frontendPort\}\}/g, String(frontendPort));
-    for (const file of files2) {
+    for (const file of files) {
       try {
         const templateDir = await this.findTemplatesDir();
         const source = join(templateDir, "tanstack-start-nestjs", file.template);
@@ -18378,7 +18221,7 @@ tests/.e2e-seed-manifest.json
     await mkdir(join(reportingDir, "pg-init"), { recursive: true });
     await writeFile(join(reportingDir, "reporting-pack.json"), `${JSON.stringify(pack, null, 2)}
 `);
-    const templates2 = [
+    const templates = [
       { template: "reporting/Dockerfile.hbs", output: "reporting/Dockerfile" },
       {
         template: "reporting/pg-init/01-reporting-database.sh.hbs",
@@ -18387,7 +18230,7 @@ tests/.e2e-seed-manifest.json
       },
       { template: "reporting/README.md.hbs", output: "reporting/README.md" }
     ];
-    for (const file of templates2) {
+    for (const file of templates) {
       try {
         const templateDir = await this.findTemplatesDir();
         const source = join(templateDir, "tanstack-start-nestjs", file.template);
@@ -18646,10 +18489,10 @@ class DictionaryGenerator {
     const windowByEntity = new Map;
     const childTabs = [];
     const declared = declaredEntityNames(entities);
-    for (const entity2 of entities) {
-      const busEntity = entityToBusEntity(entity2, declared);
+    for (const entity of entities) {
+      const busEntity = entityToBusEntity(entity, declared);
       busEntities.push(busEntity);
-      const busAttrs = entity2.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
+      const busAttrs = entity.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
       busAttributesMap.set(busEntity.tableName, busAttrs);
       const tableId = `table_${++tableCounter}`;
       const sysTable = {
@@ -18657,7 +18500,7 @@ class DictionaryGenerator {
         _tempId: tableId
       };
       sysTables.push(sysTable);
-      const identifiers = new Set(identifierColumnNames(busAttrs, entity2.primaryKey));
+      const identifiers = new Set(identifierColumnNames(busAttrs, entity.primaryKey));
       const columnEntries = busAttrs.map((attr, _index) => {
         const colId = `col_${++columnCounter}`;
         return {
@@ -18671,16 +18514,16 @@ class DictionaryGenerator {
           default_value: attr.default?.toString(),
           value_min: undefined,
           value_max: undefined,
-          is_key: attr.name === entity2.primaryKey,
+          is_key: attr.name === entity.primaryKey,
           is_parent: false,
           is_mandatory: attr.required,
-          is_updateable: attr.name !== entity2.primaryKey,
+          is_updateable: attr.name !== entity.primaryKey,
           is_identifier: identifiers.has(attr.name),
           is_selection_column: ["name", "email", "title", "description", "status"].includes(attr.name) || attr.unique === true,
           is_translated: false,
           is_encrypted: false,
           is_allow_logging: true,
-          is_allow_copy: attr.name !== entity2.primaryKey,
+          is_allow_copy: attr.name !== entity.primaryKey,
           seq_no: attr.seqNo,
           callout: undefined,
           read_only_logic: undefined,
@@ -18695,7 +18538,7 @@ class DictionaryGenerator {
         };
       });
       sysColumns.push(...columnEntries);
-      const isChild = !!entity2.parentEntity;
+      const isChild = !!entity.parentEntity;
       const windowId = `win_${++windowCounter}`;
       if (!isChild) {
         sysWindows.push({
@@ -18713,17 +18556,17 @@ class DictionaryGenerator {
       };
       sysTabs.push(sysTab);
       if (isChild) {
-        const link = columnEntries.find((col) => col.column_name === entity2.parentLinkColumn);
+        const link = columnEntries.find((col) => col.column_name === entity.parentLinkColumn);
         if (link)
           link.is_parent = true;
         childTabs.push({
           tab: sysTab,
           table: sysTable,
-          parentEntity: entity2.parentEntity,
+          parentEntity: entity.parentEntity,
           linkColumnRef: link?._tempId
         });
       } else {
-        windowByEntity.set(entity2.name, windowId);
+        windowByEntity.set(entity.name, windowId);
       }
       const groups = generateSysFieldGroups(busEntity.displayName, this.config);
       const groupEntries = groups.map((group) => ({
@@ -18824,8 +18667,8 @@ class DictionaryGenerator {
 
 // packages/generator/src/naming/tables.ts
 var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
-function tableNameFor(entity2) {
-  const base = snake(entity2.tableName || entity2.name);
+function tableNameFor(entity) {
+  const base = snake(entity.tableName || entity.name);
   return base.startsWith("bus_") || base.startsWith("sys_") ? base : `bus_${base}`;
 }
 
@@ -19199,7 +19042,7 @@ function deriveDashboards(ctx, appName, appDescription) {
       y += 4;
     }
   };
-  for (const c of ctx.charts.filter((c2) => c2.key.startsWith("authored__")).slice(0, 4)) {
+  for (const c of ctx.charts.filter((c) => c.key.startsWith("authored__")).slice(0, 4)) {
     place(c.name, c.key);
   }
   for (const e of headline) {
@@ -19256,21 +19099,21 @@ ${problems.join(`
 }
 function deriveAccessSpec(model, options) {
   const projectId = kebabName(options.projectName);
-  const access2 = deriveAccess(model.rbac, {
+  const access = deriveAccess(model.rbac, {
     projectId,
     adminEmail: options.adminEmail,
     adminName: options.adminName,
     entities: model.entities.map((e) => e.name)
   });
   const reportDomain = `${projectId || "app"}.reports.example.com`;
-  const roles = access2.roles.map((role) => {
-    const appUser = access2.users.find((u) => u.roleName === role.name);
-    const tables = role.isAdmin ? [] : model.entities.filter((entity2) => {
-      const admitted = access2.entityVisibility[entity2.name];
+  const roles = access.roles.map((role) => {
+    const appUser = access.users.find((u) => u.roleName === role.name);
+    const tables = role.isAdmin ? [] : model.entities.filter((entity) => {
+      const admitted = access.entityVisibility[entity.name];
       if (!admitted || admitted.length === 0)
         return true;
       return admitted.some((r) => r.toLowerCase() === role.declaredAs.toLowerCase());
-    }).map((entity2) => tableNameFor(entity2));
+    }).map((entity) => tableNameFor(entity));
     return {
       name: role.name,
       declaredAs: role.declaredAs,
@@ -19284,7 +19127,7 @@ function deriveAccessSpec(model, options) {
   for (const role of roles) {
     if (role.isAdmin)
       continue;
-    const expected = access2.entityCounts[role.name];
+    const expected = access.entityCounts[role.name];
     if (expected !== undefined && expected !== role.tables.length) {
       throw new Error(`Reporting role "${role.name}" resolved ${role.tables.length} readable tables, ` + `but the application derives ${expected} for the same role. ` + `These must agree — the reporting side is mirroring %%rbac, not reinterpreting it.`);
     }
@@ -19443,11 +19286,11 @@ function referenceTarget(column, declared) {
   return declared.get(stem.replace(/_/g, "")) ?? title(stem).replace(/\s+/g, "");
 }
 function declaredNames(model) {
-  return new Map(model.entities.map((entity2) => [entity2.name.toLowerCase().replace(/_/g, ""), entity2.name]));
+  return new Map(model.entities.map((entity) => [entity.name.toLowerCase().replace(/_/g, ""), entity.name]));
 }
-function fieldRows(entity2, declared) {
-  const primaryKey = entity2.primaryKey || "id";
-  return entity2.attributes.map((attribute) => {
+function fieldRows(entity, declared) {
+  const primaryKey = entity.primaryKey || "id";
+  return entity.attributes.map((attribute) => {
     const isPrimary = attribute.name === primaryKey;
     const referenceId = referenceIdFor(attribute, isPrimary);
     const control = controlFor(attribute, referenceId);
@@ -19494,19 +19337,19 @@ function relationshipPhrase(relationship, entityName) {
       return `has one ${link}`;
   }
 }
-function relationshipsFor(model, entity2) {
-  const related = model.relationships.filter((relationship) => relationship.sourceEntity === entity2.name || relationship.targetEntity === entity2.name);
+function relationshipsFor(model, entity) {
+  const related = model.relationships.filter((relationship) => relationship.sourceEntity === entity.name || relationship.targetEntity === entity.name);
   if (related.length === 0)
     return "";
-  const items = related.map((relationship) => `<li>Each <b>${escapeHtml(title(entity2.name))}</b> ${relationshipPhrase(relationship, entity2.name)}.</li>`).join(`
+  const items = related.map((relationship) => `<li>Each <b>${escapeHtml(title(entity.name))}</b> ${relationshipPhrase(relationship, entity.name)}.</li>`).join(`
           `);
   return `      <h4>Related records</h4>
       <ul class="plain">
           ${items}
       </ul>`;
 }
-function screensFor(dictionary2, entity2) {
-  const layout = dictionary2.get(entity2.name);
+function screensFor(dictionary, entity) {
+  const layout = dictionary.get(entity.name);
   if (!layout)
     return "";
   const rows = layout.fields.map((field) => `          <tr>
@@ -19570,15 +19413,15 @@ function manualDictionary(model) {
   for (const layout of byTable.values())
     layout.fields.sort((a, b) => a.formSeq - b.formSeq);
   const byEntity = new Map;
-  for (const entity2 of model.entities) {
-    const layout = byTable.get(tableNameFor(entity2));
+  for (const entity of model.entities) {
+    const layout = byTable.get(tableNameFor(entity));
     if (layout)
-      byEntity.set(entity2.name, layout);
+      byEntity.set(entity.name, layout);
   }
   return byEntity;
 }
-function workflowFor(model, entity2) {
-  const workflows = model.workflows.filter((workflow) => workflow.entity === entity2.name);
+function workflowFor(model, entity) {
+  const workflows = model.workflows.filter((workflow) => workflow.entity === entity.name);
   if (workflows.length === 0)
     return "";
   return workflows.map((workflow) => {
@@ -19595,10 +19438,10 @@ ${rows}
   }).join(`
 `);
 }
-function rulesFor(model, entity2) {
-  const rules = model.rules.filter((rule2) => rule2.entity === entity2.name);
-  const hooks = model.hooks.filter((hook2) => hook2.entity === entity2.name);
-  const sagas = model.sagas.filter((saga) => saga.entity === entity2.name);
+function rulesFor(model, entity) {
+  const rules = model.rules.filter((rule) => rule.entity === entity.name);
+  const hooks = model.hooks.filter((hook) => hook.entity === entity.name);
+  const sagas = model.sagas.filter((saga) => saga.entity === entity.name);
   if (rules.length === 0 && hooks.length === 0 && sagas.length === 0)
     return "";
   const parts = ["      <h4>What happens when it is written</h4>"];
@@ -19606,13 +19449,13 @@ function rulesFor(model, entity2) {
     parts.push(`      <table>
         <thead><tr><th>Rule</th><th>Runs on</th><th>Order</th></tr></thead>
         <tbody>
-${rules.map((rule2) => `          <tr><td><code>${escapeHtml(rule2.name)}</code></td><td>${escapeHtml(rule2.event)} (${escapeHtml(rule2.operation)})</td><td>${rule2.priority}</td></tr>`).join(`
+${rules.map((rule) => `          <tr><td><code>${escapeHtml(rule.name)}</code></td><td>${escapeHtml(rule.event)} (${escapeHtml(rule.operation)})</td><td>${rule.priority}</td></tr>`).join(`
 `)}
         </tbody>
       </table>`);
   }
   if (hooks.length > 0) {
-    parts.push(`      <p><b>Handlers:</b> ${hooks.map((hook2) => `<code>${escapeHtml(hook2.type)}</code>${hook2.field ? ` on <code>${escapeHtml(hook2.field)}</code>` : ""}`).join(", ")}</p>`);
+    parts.push(`      <p><b>Handlers:</b> ${hooks.map((hook) => `<code>${escapeHtml(hook.type)}</code>${hook.field ? ` on <code>${escapeHtml(hook.field)}</code>` : ""}`).join(", ")}</p>`);
   }
   if (sagas.length > 0) {
     parts.push(`      <p><b>Processes:</b> ${sagas.map((saga) => `<a href="#process-${slug(saga.name)}">${escapeHtml(saga.name)}</a>`).join(", ")}</p>`);
@@ -19620,19 +19463,19 @@ ${rules.map((rule2) => `          <tr><td><code>${escapeHtml(rule2.name)}</code>
   return parts.join(`
 `);
 }
-function accessFor(model, entity2, visibility) {
-  const readers = visibility[entity2.name];
-  const rules = model.rbac.operations.filter((rule2) => rule2.entity === entity2.name);
+function accessFor(model, entity, visibility) {
+  const readers = visibility[entity.name];
+  const rules = model.rbac.operations.filter((rule) => rule.entity === entity.name);
   if (!readers && rules.length === 0)
     return "";
   const parts = ["      <h4>Who may use it</h4>"];
   parts.push(readers && readers.length > 0 ? `      <p>Visible to ${readers.map((role) => `<b>${escapeHtml(title(role))}</b>`).join(", ")}, and to the Administrator. Nobody else sees it at all &mdash; it is absent from their menu rather than refused when opened.</p>` : "      <p>Visible to every signed-in user; the model places no restriction on reading it.</p>");
-  const writes = rules.filter((rule2) => rule2.operation !== "read");
+  const writes = rules.filter((rule) => rule.operation !== "read");
   if (writes.length > 0) {
     parts.push(`      <table>
         <thead><tr><th>Action</th><th>Permitted to</th></tr></thead>
         <tbody>
-${writes.map((rule2) => `          <tr><td>${escapeHtml(title(rule2.operation))}</td><td>${rule2.roles.map((role) => escapeHtml(title(role))).join(", ")}</td></tr>`).join(`
+${writes.map((rule) => `          <tr><td>${escapeHtml(title(rule.operation))}</td><td>${rule.roles.map((role) => escapeHtml(title(role))).join(", ")}</td></tr>`).join(`
 `)}
         </tbody>
       </table>`);
@@ -19642,10 +19485,10 @@ ${writes.map((rule2) => `          <tr><td>${escapeHtml(title(rule2.operation))}
 }
 function renderManual(model, options) {
   const generatedAt = options.generatedAt ?? new Date().toISOString();
-  const access2 = deriveAccess(model.rbac, {
+  const access = deriveAccess(model.rbac, {
     projectId: slug(options.name) || "app",
     adminEmail: options.adminEmail,
-    entities: model.entities.map((entity2) => entity2.name)
+    entities: model.entities.map((entity) => entity.name)
   });
   const categoryOf = new Map;
   for (const category of model.categories) {
@@ -19654,7 +19497,7 @@ function renderManual(model, options) {
   }
   const entities = [...model.entities].sort((a, b) => a.name.localeCompare(b.name));
   const declared = declaredNames(model);
-  const dictionary2 = manualDictionary(model);
+  const dictionary = manualDictionary(model);
   const contents = `
       <nav class="toc" aria-label="Contents">
         <h2>Contents</h2>
@@ -19663,7 +19506,7 @@ function renderManual(model, options) {
           <li><a href="#signing-in">Signing in, and what each role sees</a></li>
           <li><a href="#entities">The records it keeps</a>
             <ul>
-${entities.map((entity2) => `              <li><a href="#entity-${slug(entity2.name)}">${escapeHtml(title(entity2.name))}</a></li>`).join(`
+${entities.map((entity) => `              <li><a href="#entity-${slug(entity.name)}">${escapeHtml(title(entity.name))}</a></li>`).join(`
 `)}
             </ul>
           </li>
@@ -19673,27 +19516,27 @@ ${model.rules.length ? `          <li><a href="#rules">The decisions it makes</a
 ` : ""}          <li><a href="#how-it-was-built">How this application was built</a></li>
         </ol>
       </nav>`;
-  const entitySections = entities.map((entity2) => {
-    const category = categoryOf.get(entity2.name);
-    return `    <section id="entity-${slug(entity2.name)}" class="entity">
-      <h3>${escapeHtml(title(entity2.name))}${category ? ` <span class="group">${escapeHtml(category)}</span>` : ""}</h3>
-      <p class="lede">${entity2.description ? escapeHtml(entity2.description) : '<span class="missing">The model gives this entity no description. Add one with <code>%%entity ' + escapeHtml(entity2.name) + " help: …</code>.</span>"}</p>
-      <p class="meta">Stored as <code>${escapeHtml(tableNameFor(entity2))}</code>, keyed by <code>${escapeHtml(entity2.primaryKey || "id")}</code>.</p>
+  const entitySections = entities.map((entity) => {
+    const category = categoryOf.get(entity.name);
+    return `    <section id="entity-${slug(entity.name)}" class="entity">
+      <h3>${escapeHtml(title(entity.name))}${category ? ` <span class="group">${escapeHtml(category)}</span>` : ""}</h3>
+      <p class="lede">${entity.description ? escapeHtml(entity.description) : '<span class="missing">The model gives this entity no description. Add one with <code>%%entity ' + escapeHtml(entity.name) + " help: …</code>.</span>"}</p>
+      <p class="meta">Stored as <code>${escapeHtml(tableNameFor(entity))}</code>, keyed by <code>${escapeHtml(entity.primaryKey || "id")}</code>.</p>
 
       <h4>Its fields</h4>
-${entity2.attributes.some((attribute) => attribute.description) ? "" : `      <p class="missing">No field here carries help text. Add it with <code>%%field ${escapeHtml(entity2.name)}.&lt;field&gt; help: …</code> and it appears in this column and in the application itself.</p>
+${entity.attributes.some((attribute) => attribute.description) ? "" : `      <p class="missing">No field here carries help text. Add it with <code>%%field ${escapeHtml(entity.name)}.&lt;field&gt; help: …</code> and it appears in this column and in the application itself.</p>
 `}      <table>
         <thead><tr><th>Field</th><th>Shown as</th><th></th><th>What it is for</th></tr></thead>
         <tbody>
-${fieldRows(entity2, declared)}
+${fieldRows(entity, declared)}
         </tbody>
       </table>
 ${[
-      screensFor(dictionary2, entity2),
-      relationshipsFor(model, entity2),
-      workflowFor(model, entity2),
-      rulesFor(model, entity2),
-      accessFor(model, entity2, access2.entityVisibility)
+      screensFor(dictionary, entity),
+      relationshipsFor(model, entity),
+      workflowFor(model, entity),
+      rulesFor(model, entity),
+      accessFor(model, entity, access.entityVisibility)
     ].filter(Boolean).join(`
 `)}
       <p class="back"><a href="#top">Back to contents</a></p>
@@ -19707,7 +19550,7 @@ ${[
     <table>
       <thead><tr><th>Rule</th><th>Applies to</th><th>Runs on</th></tr></thead>
       <tbody>
-${model.rules.map((rule2) => `        <tr><td><code>${escapeHtml(rule2.name)}</code></td><td><a href="#entity-${slug(rule2.entity)}">${escapeHtml(title(rule2.entity))}</a></td><td>${escapeHtml(rule2.event)}</td></tr>`).join(`
+${model.rules.map((rule) => `        <tr><td><code>${escapeHtml(rule.name)}</code></td><td><a href="#entity-${slug(rule.entity)}">${escapeHtml(title(rule.entity))}</a></td><td>${escapeHtml(rule.event)}</td></tr>`).join(`
 `)}
       </tbody>
     </table>
@@ -19727,7 +19570,7 @@ ${saga.steps.map((step) => `        <li>${escapeHtml(step.label)} <span class="t
 `)}
     <p class="back"><a href="#top">Back to contents</a></p>
   </section>` : "";
-  const accountRows = access2.users.map((user) => `        <tr><td>${escapeHtml(user.roleName)}</td><td><code>${escapeHtml(user.email)}</code></td><td>${user.isAdmin ? `all ${model.entities.length}` : `${access2.entityCounts[user.roleName] ?? 0} of ${model.entities.length}`}</td></tr>`).join(`
+  const accountRows = access.users.map((user) => `        <tr><td>${escapeHtml(user.roleName)}</td><td><code>${escapeHtml(user.email)}</code></td><td>${user.isAdmin ? `all ${model.entities.length}` : `${access.entityCounts[user.roleName] ?? 0} of ${model.entities.length}`}</td></tr>`).join(`
 `);
   return `<!doctype html>
 <html lang="en">
@@ -19940,29 +19783,29 @@ export const MODEL_WORKFLOWS: ModelWorkflow[] = ${JSON.stringify(workflows, null
 var jsonType = (type) => type === "integer" || type === "decimal" ? "number" : type === "boolean" ? "boolean" : "string";
 function buildRuleModel(model) {
   const declared = declaredEntityNames(model.entities);
-  return model.entities.map((entity2) => {
-    const bus = entityToBusEntity(entity2, declared);
+  return model.entities.map((entity) => {
+    const bus = entityToBusEntity(entity, declared);
     const values = {};
-    for (const attribute of entity2.attributes) {
+    for (const attribute of entity.attributes) {
       if (attribute.enumValues?.length)
         values[attribute.name] = [...attribute.enumValues];
     }
-    for (const machine of model.workflows.filter((w) => w.entity === entity2.name)) {
+    for (const machine of model.workflows.filter((w) => w.entity === entity.name)) {
       const states = machine.states.map((state) => state.name);
-      const column = Object.entries(values).find(([, list]) => states.some((s) => list.includes(s)))?.[0] ?? (entity2.attributes.some((a) => a.name === "status") ? "status" : undefined);
+      const column = Object.entries(values).find(([, list]) => states.some((s) => list.includes(s)))?.[0] ?? (entity.attributes.some((a) => a.name === "status") ? "status" : undefined);
       if (column)
         values[column] = states;
     }
     return {
-      name: entity2.name,
+      name: entity.name,
       table: bus.tableName,
-      label: formatDisplayName(entity2.name),
-      fields: entity2.attributes.map((attribute) => ({
+      label: formatDisplayName(entity.name),
+      fields: entity.attributes.map((attribute) => ({
         name: attribute.name,
         type: jsonType(attribute.type)
       })),
       values,
-      processes: model.sagas.filter((saga) => saga.entity === entity2.name).map((saga) => saga.name)
+      processes: model.sagas.filter((saga) => saga.entity === entity.name).map((saga) => saga.name)
     };
   });
 }
@@ -20045,7 +19888,7 @@ function parseCategories(source) {
     const code = fields.get("code")?.trim() || slugifyCategory(name);
     if (!code)
       continue;
-    const entities = (fields.get("entities") ?? "").split(",").map((entity2) => entity2.trim()).filter(Boolean);
+    const entities = (fields.get("entities") ?? "").split(",").map((entity) => entity.trim()).filter(Boolean);
     const seqRaw = Number(fields.get("seq"));
     const existing = byCode.get(code);
     const category = {
@@ -20231,9 +20074,9 @@ class MermaidParser {
   }
   attachHelp(entities, fieldHelp, entityHelp) {
     for (const [name, help] of entityHelp) {
-      const entity2 = entities.find((candidate) => candidate.name === name);
-      if (entity2)
-        entity2.description = help;
+      const entity = entities.find((candidate) => candidate.name === name);
+      if (entity)
+        entity.description = help;
     }
     for (const { entity: name, column, help } of fieldHelp) {
       const attribute = entities.find((candidate) => candidate.name === name)?.attributes.find((candidate) => candidate.name === column);
@@ -20243,9 +20086,9 @@ class MermaidParser {
   }
   attachIcons(entities, icons) {
     for (const [name, icon] of icons) {
-      const entity2 = entities.find((candidate) => candidate.name === name);
-      if (entity2)
-        entity2.icon = icon;
+      const entity = entities.find((candidate) => candidate.name === name);
+      if (entity)
+        entity.icon = icon;
     }
   }
   attachParents(entities, parents) {
@@ -20254,8 +20097,8 @@ class MermaidParser {
       const parent = entities.find((candidate) => candidate.name === parentName);
       if (!child || !parent)
         continue;
-      const snake2 = snakeCase(parent.name);
-      const link = child.attributes.find((a) => a.isForeignKey && a.name === `${snake2}_id`) ?? child.attributes.find((a) => a.isForeignKey && a.name.startsWith(`${snake2}_`));
+      const snake = snakeCase(parent.name);
+      const link = child.attributes.find((a) => a.isForeignKey && a.name === `${snake}_id`) ?? child.attributes.find((a) => a.isForeignKey && a.name.startsWith(`${snake}_`));
       if (!link)
         continue;
       child.parentEntity = parent.name;
@@ -20273,14 +20116,14 @@ class MermaidParser {
   }
   attachIndexes(entities, declared) {
     for (const { entity: entityName, columns, unique } of declared) {
-      const entity2 = entities.find((candidate) => candidate.name === entityName);
-      if (!entity2)
+      const entity = entities.find((candidate) => candidate.name === entityName);
+      if (!entity)
         continue;
-      const known = new Set(entity2.attributes.map((attribute) => attribute.name));
+      const known = new Set(entity.attributes.map((attribute) => attribute.name));
       if (!columns.every((column) => known.has(column)))
         continue;
-      entity2.indexes = entity2.indexes ?? [];
-      entity2.indexes.push({ columns, unique });
+      entity.indexes = entity.indexes ?? [];
+      entity.indexes.push({ columns, unique });
     }
   }
   parseEnumDirective(line) {
@@ -20328,8 +20171,8 @@ class MermaidParser {
     for (const binding of bindings) {
       if (!declared.has(binding.enumName))
         continue;
-      const entity2 = entities.find((candidate) => candidate.name === binding.entity);
-      const attribute = entity2?.attributes.find((candidate) => candidate.name === binding.column);
+      const entity = entities.find((candidate) => candidate.name === binding.entity);
+      const attribute = entity?.attributes.find((candidate) => candidate.name === binding.column);
       if (attribute)
         used.add(binding.enumName);
     }
@@ -20343,8 +20186,8 @@ class MermaidParser {
       const referenceId = referenceIds.get(binding.enumName);
       if (!values || !referenceId)
         continue;
-      const entity2 = entities.find((candidate) => candidate.name === binding.entity);
-      const attribute = entity2?.attributes.find((candidate) => candidate.name === binding.column);
+      const entity = entities.find((candidate) => candidate.name === binding.entity);
+      const attribute = entity?.attributes.find((candidate) => candidate.name === binding.column);
       if (!attribute)
         continue;
       attribute.enumRef = binding.enumName;
@@ -20652,9 +20495,9 @@ function eventToOperation(event) {
     return "DELETE";
   return "ALL";
 }
-function toTableName(entity2) {
-  const snake2 = entity2.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
-  return snake2.startsWith("bus_") || snake2.startsWith("sys_") ? snake2 : `bus_${snake2}`;
+function toTableName(entity) {
+  const snake = entity.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
+  return snake.startsWith("bus_") || snake.startsWith("sys_") ? snake : `bus_${snake}`;
 }
 var ACTION_DIRECTIVE = /^%%action\s+([A-Za-z_][\w-]*)\s+([A-Za-z][\w-]*)\s*(.*)$/;
 function parseActionProps(rest) {
@@ -21050,14 +20893,14 @@ function parseModel(sources) {
   }
   const joined = list.join(`
 `);
-  const categories = resolveCategories(joined, entities.map((entity2) => entity2.name));
+  const categories = resolveCategories(joined, entities.map((entity) => entity.name));
   const warn = (message) => console.warn(`  ⚠️  ${message}`);
   const rules = compileRules(extractRuleSections(joined), warn);
-  const hooks = compileHooks(joined, entities.map((entity2) => entity2.name), warn);
-  const workflows = compileWorkflows(joined, entities.map((entity2) => entity2.name), warn);
-  const sagas = compileSagaWorkflows(joined, entities.map((entity2) => entity2.name), warn);
-  const rbac2 = compileRbac(joined, entities.map((entity2) => entity2.name), workflows, warn);
-  const reports = compileReports(joined, entities.map((entity2) => entity2.name), warn);
+  const hooks = compileHooks(joined, entities.map((entity) => entity.name), warn);
+  const workflows = compileWorkflows(joined, entities.map((entity) => entity.name), warn);
+  const sagas = compileSagaWorkflows(joined, entities.map((entity) => entity.name), warn);
+  const rbac = compileRbac(joined, entities.map((entity) => entity.name), workflows, warn);
+  const reports = compileReports(joined, entities.map((entity) => entity.name), warn);
   return {
     entities,
     relationships,
@@ -21067,7 +20910,7 @@ function parseModel(sources) {
     hooks,
     workflows,
     sagas,
-    rbac: rbac2,
+    rbac,
     reports
   };
 }
@@ -21131,10 +20974,10 @@ async function writeManifest(outputDir, model, settings, extras = {}, log = NO_L
       backendPort: port,
       frontendPort: settings.frontendPort ?? port + 1,
       apiUrl: settings.apiBaseUrl ?? `http://localhost:${port}`,
-      entities: model.entities.map((entity2) => entity2.name),
+      entities: model.entities.map((entity) => entity.name),
       categories: model.categories.map((category) => category.name),
-      rules: model.rules.map((rule2) => `${rule2.name} on ${rule2.entity} (${rule2.operation})`),
-      hooks: model.hooks.map((hook2) => `${hook2.type} ${hook2.handler} on ${hook2.entity}`),
+      rules: model.rules.map((rule) => `${rule.name} on ${rule.entity} (${rule.operation})`),
+      hooks: model.hooks.map((hook) => `${hook.type} ${hook.handler} on ${hook.entity}`),
       workflows: model.workflows.map((w) => `${w.name} on ${w.entity} (${w.states.length} states)`),
       sagas: model.sagas.map((s) => `${s.name} on ${s.entity} (${s.steps.length} steps, ${s.trigger})`),
       rbac: [
@@ -21296,8 +21139,8 @@ function toSnakeCase(str) {
   return str.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z])/g, (m, _c, offset) => offset === 0 ? m : m).replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^_/, "");
 }
 function foreignKeyName(targetEntity) {
-  const snake2 = toSnakeCase(targetEntity).replace(/^bus_/, "");
-  return `${snake2}_id`;
+  const snake = toSnakeCase(targetEntity).replace(/^bus_/, "");
+  return `${snake}_id`;
 }
 function stripQuotes(str) {
   return str.replace(/^["']|["']$/g, "").trim();
@@ -21417,7 +21260,7 @@ function parseDirective(line, n, model) {
         });
         return;
       }
-      const [type, handler, entity2, paramsRaw] = caps(m, 4);
+      const [type, handler, entity, paramsRaw] = caps(m, 4);
       const fields = paramsRaw ? parseHookFields(paramsRaw) : [];
       if (!isHookType(type)) {
         model.diagnostics.push({
@@ -21428,25 +21271,25 @@ function parseDirective(line, n, model) {
         });
         return;
       }
-      model.hooks.push({ type, handler, entity: entity2, fields });
+      model.hooks.push({ type, handler, entity, fields });
       return;
     }
     case "entity": {
       const m = rest.match(/^(\w+)\s+([A-Za-z_]\w*)\s*:\s*(.+)$/);
       if (m) {
-        const [entity2, key, value] = caps(m, 3);
-        applyEntityMeta(model, entity2, key, value.trim());
+        const [entity, key, value] = caps(m, 3);
+        applyEntityMeta(model, entity, key, value.trim());
       }
       return;
     }
     case "field": {
       const m = rest.match(/^(\w+)\.(\w+)\s+([A-Za-z_]\w*)\s*:\s*(.+)$/);
       if (m) {
-        const [entity2, attr, key, value] = caps(m, 4);
+        const [entity, attr, key, value] = caps(m, 4);
         if (key === "enum")
-          fieldEnumRefs.push({ entity: entity2, attr, enumName: value.trim() });
+          fieldEnumRefs.push({ entity, attr, enumName: value.trim() });
         else if (key === "help" || key === "description")
-          fieldHelp.push({ entity: entity2, attr, text: value.trim() });
+          fieldHelp.push({ entity, attr, text: value.trim() });
       }
       return;
     }
@@ -21513,20 +21356,20 @@ function parseDirective(line, n, model) {
     case "index": {
       const m = rest.match(/^(\w+)\s*\(([^)]*)\)\s*(unique)?/i);
       if (m) {
-        const [entity2, rawColumns, uniqueFlag] = caps(m, 3);
+        const [entity, rawColumns, uniqueFlag] = caps(m, 3);
         const columns = rawColumns.split(",").map((c) => c.trim()).filter(Boolean);
-        model.indexes.push({ entity: entity2, columns, unique: !!uniqueFlag });
+        model.indexes.push({ entity, columns, unique: !!uniqueFlag });
       }
       return;
     }
     case "rule": {
       const m = rest.match(/^(\w+)\s+on\s+(\w+)(?:\s+event:\s*(\w+))?(?:\s+priority:\s*(\d+))?/);
       if (m) {
-        const [name, entity2, event, priority] = caps(m, 4);
+        const [name, entity, event, priority] = caps(m, 4);
         return {
           rule: {
             name,
-            entity: entity2,
+            entity,
             event: event || undefined,
             priority: priority ? Number(priority) : undefined
           }
@@ -21537,11 +21380,11 @@ function parseDirective(line, n, model) {
     case "workflow": {
       const m = rest.match(/^(\w+)\s+entity:\s*(\w+)\s+kind:\s*(\w+)/);
       if (m) {
-        const [name, entity2, kind] = caps(m, 3);
+        const [name, entity, kind] = caps(m, 3);
         return {
           workflow: {
             name,
-            entity: entity2,
+            entity,
             kind: kind || "hook"
           }
         };
@@ -21551,17 +21394,17 @@ function parseDirective(line, n, model) {
     case "guard": {
       const m = rest.match(/^(\S+)\s+on\s+(\w+)\.(\w+)/);
       if (m) {
-        const [roleExpr, entity2, op] = caps(m, 3);
+        const [roleExpr, entity, op] = caps(m, 3);
         const roles = roleExpr.split("|").map((r) => r.replace(/^role:/, "").trim()).filter(Boolean);
-        model.guards.push({ roles, entity: entity2, op });
+        model.guards.push({ roles, entity, op });
       }
       return;
     }
     case "trigger": {
       const m = rest.match(/^(.+?)\s*->\s*(\w+)\s+on\s+(\w+)/);
       if (m) {
-        const [source, handler, entity2] = caps(m, 3);
-        model.triggers.push({ source: source.trim(), handler, entity: entity2 });
+        const [source, handler, entity] = caps(m, 3);
+        model.triggers.push({ source: source.trim(), handler, entity });
       }
       return;
     }
@@ -21575,18 +21418,18 @@ function parseHookFields(paramsRaw) {
 }
 function applyEntityMeta(model, name, key, value) {
   const ensure = () => {
-    let e2 = model.entities.find((x) => x.name === name);
-    if (!e2) {
-      e2 = {
+    let e = model.entities.find((x) => x.name === name);
+    if (!e) {
+      e = {
         name,
         tableName: toSnakeCase(name),
         attributes: [],
         primaryKey: "id",
         timestamps: true
       };
-      model.entities.push(e2);
+      model.entities.push(e);
     }
-    return e2;
+    return e;
   };
   const e = ensure();
   if (key === "audited")
@@ -21648,14 +21491,14 @@ function parseErdSection(section, model, diags) {
   }
   flush();
 }
-function mergeEntity(model, entity2, attrs) {
-  const existing = model.entities.find((e) => e.name === entity2.name);
-  const target = existing ?? entity2;
+function mergeEntity(model, entity, attrs) {
+  const existing = model.entities.find((e) => e.name === entity.name);
+  const target = existing ?? entity;
   if (existing) {
-    existing.tableName = toSnakeCase(entity2.name);
-    existing.timestamps = entity2.timestamps;
+    existing.tableName = toSnakeCase(entity.name);
+    existing.timestamps = entity.timestamps;
   } else {
-    model.entities.push(entity2);
+    model.entities.push(entity);
   }
   target.attributes = attrs;
   const hasId = attrs.some((a) => a.name === "id" || a.name.endsWith("_id"));
@@ -21726,15 +21569,15 @@ function parseRelationship(line) {
 }
 function parseFlowSection(section, model) {
   const { nodes, edges } = parseFlowGraph(section.lines.map((l) => l.text));
-  const rule2 = section.rule;
+  const rule = section.rule;
   const workflow = section.workflow;
-  const isRules = section.metaKind === "rules" || !!rule2 && section.metaKind !== "workflow" && !workflow;
+  const isRules = section.metaKind === "rules" || !!rule && section.metaKind !== "workflow" && !workflow;
   if (isRules) {
     model.rules.push({
-      name: rule2?.name ?? section.metaName ?? `rule_${model.rules.length + 1}`,
-      entity: rule2?.entity,
-      event: rule2?.event,
-      priority: rule2?.priority,
+      name: rule?.name ?? section.metaName ?? `rule_${model.rules.length + 1}`,
+      entity: rule?.entity,
+      event: rule?.event,
+      priority: rule?.priority,
       nodes,
       edges,
       raw: `flowchart TD
@@ -21761,7 +21604,7 @@ function parseFlowGraph(lines) {
   const edges = [];
   const nodeToken = "([A-Za-z_]\\w*)(\\(\\[[^\\]]*\\]\\)|\\(\\([^)]*\\)\\)|\\{[^}]*\\}|\\[[^\\]]*\\]|\\([^)]*\\))?";
   const edgeRe = new RegExp(`^${nodeToken}\\s*(?:-->|---|-\\.->|==>)\\s*(?:\\|([^|]*)\\|)?\\s*${nodeToken}`);
-  const ensureNode2 = (id, suffix) => {
+  const ensureNode = (id, suffix) => {
     const existing = nodesById.get(id);
     if (existing) {
       if (suffix && existing.label === id) {
@@ -21777,14 +21620,14 @@ function parseFlowGraph(lines) {
     const em = line.match(edgeRe);
     if (em) {
       const [srcId, srcSuffix, edgeLabel, tgtId, tgtSuffix] = caps(em, 5);
-      ensureNode2(srcId, srcSuffix);
-      ensureNode2(tgtId, tgtSuffix);
+      ensureNode(srcId, srcSuffix);
+      ensureNode(tgtId, tgtSuffix);
       edges.push({ source: srcId, target: tgtId, label: edgeLabel?.trim() || undefined });
       continue;
     }
     const nm = line.match(new RegExp(`^${nodeToken}\\s*$`));
     if (nm?.[1] && nm[2])
-      ensureNode2(nm[1], nm[2]);
+      ensureNode(nm[1], nm[2]);
   }
   const sources = new Set(edges.map((e) => e.source));
   const targets = new Set(edges.map((e) => e.target));
@@ -21868,29 +21711,29 @@ function parseStateSection(section, model) {
     transitions.push({ from, to, event });
   }
   const wf = section.workflow;
-  const entity2 = wf?.entity;
+  const entity = wf?.entity;
   model.workflows.push({
     name: wf?.name ?? section.metaName ?? `workflow_${model.workflows.length + 1}`,
-    entity: entity2,
+    entity,
     kind: "state",
-    hooks: entity2 ? model.hooks.filter((h) => h.entity === entity2) : [],
+    hooks: entity ? model.hooks.filter((h) => h.entity === entity) : [],
     states: [...states],
     transitions,
-    guards: entity2 ? model.guards.filter((g) => g.entity === entity2) : [],
-    triggers: entity2 ? model.triggers.filter((t) => t.entity === entity2) : []
+    guards: entity ? model.guards.filter((g) => g.entity === entity) : [],
+    triggers: entity ? model.triggers.filter((t) => t.entity === entity) : []
   });
 }
 function applyFieldEnumRefs(model) {
   for (const ref of fieldEnumRefs) {
-    const entity2 = model.entities.find((e) => e.name === ref.entity);
-    const attr = entity2?.attributes.find((a) => a.name === ref.attr);
+    const entity = model.entities.find((e) => e.name === ref.entity);
+    const attr = entity?.attributes.find((a) => a.name === ref.attr);
     if (attr)
       attr.enumRef = ref.enumName;
   }
   fieldEnumRefs.length = 0;
   for (const h of fieldHelp) {
-    const entity2 = model.entities.find((e) => e.name === h.entity);
-    const attr = entity2?.attributes.find((a) => a.name === h.attr);
+    const entity = model.entities.find((e) => e.name === h.entity);
+    const attr = entity?.attributes.find((a) => a.name === h.attr);
     if (attr)
       attr.description = h.text;
   }
@@ -22083,14 +21926,14 @@ class CheckEngine {
     this.checkRules();
     this.checkWorkflows();
     this.checkCrossDocument();
-    const errors2 = this.issues.filter((i) => i.severity === "error").length;
+    const errors = this.issues.filter((i) => i.severity === "error").length;
     const warnings = this.issues.filter((i) => i.severity === "warning").length;
     const infos = this.issues.filter((i) => i.severity === "info").length;
-    return { issues: this.issues, errors: errors2, warnings, infos, ok: errors2 === 0 };
+    return { issues: this.issues, errors, warnings, infos, ok: errors === 0 };
   }
   entityToFkName(entityName) {
-    const snake2 = entityName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^bus_/, "");
-    return `${snake2}_id`;
+    const snake = entityName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^bus_/, "");
+    return `${snake}_id`;
   }
   fkToEntityName(fkAttr) {
     if (isPersonRoleColumn(fkAttr))
@@ -22153,56 +21996,56 @@ class CheckEngine {
   }
   checkEntities() {
     const seenNames = new Map;
-    for (const entity2 of this.model.entities) {
-      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity2.name}\\s*\\{`));
-      if (!this.identRe.test(entity2.name)) {
-        this.error("EML100", `Invalid entity name "${entity2.name}": must match ^[A-Za-z][A-Za-z0-9_]*$.`, {
+    for (const entity of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
+      if (!this.identRe.test(entity.name)) {
+        this.error("EML100", `Invalid entity name "${entity.name}": must match ^[A-Za-z][A-Za-z0-9_]*$.`, {
           line: entityLine,
           hint: "Use PascalCase for entity names (e.g. CustomerOrder)."
         });
       }
-      const prev = seenNames.get(entity2.name);
+      const prev = seenNames.get(entity.name);
       if (prev !== undefined) {
-        this.error("EML101", `Duplicate entity declaration "${entity2.name}".`, {
+        this.error("EML101", `Duplicate entity declaration "${entity.name}".`, {
           line: entityLine,
           hint: `First declared on line ${prev}. Merge both blocks into one.`
         });
       } else {
-        seenNames.set(entity2.name, entityLine ?? 0);
+        seenNames.set(entity.name, entityLine ?? 0);
       }
-      if (entity2.attributes.length === 0) {
-        this.warn("EML102", `Entity "${entity2.name}" has no attributes.`, {
+      if (entity.attributes.length === 0) {
+        this.warn("EML102", `Entity "${entity.name}" has no attributes.`, {
           line: entityLine,
           hint: "The generator will auto-add  string id PK  if no id is present."
         });
       }
-      this.checkAttributes(entity2, entityLine);
+      this.checkAttributes(entity, entityLine);
     }
   }
-  checkAttributes(entity2, entityLine) {
-    const declaredEntityNames2 = new Set(this.model.entities.map((e) => e.name));
+  checkAttributes(entity, entityLine) {
+    const declaredEntityNames = new Set(this.model.entities.map((e) => e.name));
     const seenAttrNames = new Map;
     const lastLineByName = new Map;
     let pkCount = 0;
-    for (const attr of entity2.attributes) {
+    for (const attr of entity.attributes) {
       const searchFrom = lastLineByName.has(attr.name) ? lastLineByName.get(attr.name) + 1 : entityLine;
       const attrLine = this.src.findLine(new RegExp(`\\b${attr.name}\\b`), searchFrom) ?? this.src.findLine(new RegExp(`\\b${attr.name}\\b`), entityLine);
       if (attrLine !== undefined)
         lastLineByName.set(attr.name, attrLine);
       if (!this.identRe.test(attr.name)) {
-        this.error("EML110", `Invalid attribute name "${entity2.name}.${attr.name}": must match ^[A-Za-z][A-Za-z0-9_]*$.`, {
+        this.error("EML110", `Invalid attribute name "${entity.name}.${attr.name}": must match ^[A-Za-z][A-Za-z0-9_]*$.`, {
           line: attrLine,
           hint: "Use snake_case for attribute names (e.g. first_name, order_id)."
         });
       }
       if (this.identRe.test(attr.name) && !this.slugRe.test(attr.name) && attr.name !== attr.name.toUpperCase()) {
-        this.info("EML111", `Attribute "${entity2.name}.${attr.name}" is not snake_case.`, {
+        this.info("EML111", `Attribute "${entity.name}.${attr.name}" is not snake_case.`, {
           line: attrLine,
           hint: "snake_case is recommended for attribute names per the EML spec."
         });
       }
       if (seenAttrNames.has(attr.name)) {
-        this.warn("EML112", `Duplicate attribute "${entity2.name}.${attr.name}".`, {
+        this.warn("EML112", `Duplicate attribute "${entity.name}.${attr.name}".`, {
           line: attrLine,
           hint: `First occurrence on line ${seenAttrNames.get(attr.name)}. Remove the duplicate.`
         });
@@ -22212,7 +22055,7 @@ class CheckEngine {
       if (attr.isPrimaryKey) {
         pkCount++;
         if (pkCount > 1) {
-          this.error("EML113", `Entity "${entity2.name}" declares more than one PK (found "${attr.name}").`, {
+          this.error("EML113", `Entity "${entity.name}" declares more than one PK (found "${attr.name}").`, {
             line: attrLine,
             hint: "Each entity may have exactly one primary key. Remove the extra PK modifier."
           });
@@ -22220,22 +22063,22 @@ class CheckEngine {
       }
       if (attr.isForeignKey && !attr.name.endsWith("_id")) {
         const isPersonRole = attr.name.endsWith("_by");
-        this.warn("EML114", `Foreign key "${entity2.name}.${attr.name}" does not end with "_id".`, {
+        this.warn("EML114", `Foreign key "${entity.name}.${attr.name}" does not end with "_id".`, {
           line: attrLine,
           hint: isPersonRole ? `Rename to "${attr.name}_id" — a _by column names a person by role, so it resolves to the user entity. Run  bun language/fixer.ts  to apply this automatically.` : `Convention: rename to "${attr.name}_id" so the generator can derive the referenced table. Run  bun language/fixer.ts  to apply this automatically.`
         });
       }
       if (!attr.isForeignKey && !attr.isPrimaryKey && isForeignKeyColumnName2(attr.name)) {
         const target = this.fkToEntityName(attr.name);
-        if (declaredEntityNames2.has(target) && attr.name !== entity2.primaryKey) {
-          this.warn("EML119", `Column "${entity2.name}.${attr.name}" looks like a reference to "${target}" but is not marked FK.`, {
+        if (declaredEntityNames.has(target) && attr.name !== entity.primaryKey) {
+          this.warn("EML119", `Column "${entity.name}.${attr.name}" looks like a reference to "${target}" but is not marked FK.`, {
             line: attrLine,
             hint: `Add FK:  ${attr.rawType ?? "string"} ${attr.name} FK. Without it the Application Dictionary records the column as String and the form shows the raw id instead of a "${target}" lookup.`
           });
         }
       }
       if (MANAGED_COLUMN_NAMES2.has(attr.name.toLowerCase()) && !attr.isPrimaryKey) {
-        this.warn("EML103", `Column "${entity2.name}.${attr.name}" is added by the generator.`, {
+        this.warn("EML103", `Column "${entity.name}.${attr.name}" is added by the generator.`, {
           line: attrLine,
           hint: `Every table carries ${[...MANAGED_COLUMN_NAMES2].join(", ")} already. Delete the line: the generator's own definition is used, and yours is ignored.`
         });
@@ -22243,7 +22086,7 @@ class CheckEngine {
       const def = this.def;
       const rawBase = attr.rawType?.replace(/\(\d+\)/, "").toLowerCase();
       if (rawBase && rawBase !== "string" && !(rawBase in def.types.map)) {
-        this.warn("EML115", `Unknown type "${attr.rawType}" on "${entity2.name}.${attr.name}"; mapped to "string".`, {
+        this.warn("EML115", `Unknown type "${attr.rawType}" on "${entity.name}.${attr.name}"; mapped to "string".`, {
           line: attrLine,
           hint: `Valid types: ${def.types.canonical.join(", ")} (plus aliases listed in appwithai-language.json).`
         });
@@ -22251,7 +22094,7 @@ class CheckEngine {
       if (attr.isPrimaryKey && attrLine) {
         const rawLine = this.src.getLine(attrLine).toUpperCase();
         if (rawLine.includes("OPTIONAL") || rawLine.includes(" NULL ") || rawLine.endsWith(" NULL")) {
-          this.error("EML116", `Primary key "${entity2.name}.${attr.name}" is marked OPTIONAL.`, {
+          this.error("EML116", `Primary key "${entity.name}.${attr.name}" is marked OPTIONAL.`, {
             line: attrLine,
             hint: "Remove OPTIONAL from the PK attribute — primary keys are always required."
           });
@@ -22263,7 +22106,7 @@ class CheckEngine {
           const upper = token.toUpperCase();
           if (!upper || this.validModifiers.has(upper))
             continue;
-          this.warn("EML118", `Unknown modifier "${token}" on "${entity2.name}.${attr.name}" — it will be ignored.`, {
+          this.warn("EML118", `Unknown modifier "${token}" on "${entity.name}.${attr.name}" — it will be ignored.`, {
             line: attrLine,
             hint: `Known modifiers: ${[...this.validModifiers].join(", ")}. Use a quoted string for a description.`,
             context: raw
@@ -22271,8 +22114,8 @@ class CheckEngine {
         }
       }
     }
-    if (pkCount === 0 && entity2.attributes.length > 0) {
-      this.warn("EML117", `Entity "${entity2.name}" has no primary key (PK modifier).`, {
+    if (pkCount === 0 && entity.attributes.length > 0) {
+      this.warn("EML117", `Entity "${entity.name}" has no primary key (PK modifier).`, {
         line: entityLine,
         hint: "Add  string id PK  as the first attribute or mark one existing attribute with PK."
       });
@@ -22434,17 +22277,17 @@ class CheckEngine {
       return m ? `${m[1]}.${m[2]}` : "";
     }).filter(Boolean));
     const entitiesWithMachines = new Set(this.model.workflows.filter((w) => w.kind === "state" && w.entity).map((w) => w.entity));
-    for (const entity2 of this.model.entities) {
-      for (const attr of entity2.attributes) {
+    for (const entity of this.model.entities) {
+      for (const attr of entity.attributes) {
         if (!LIFECYCLE_COLUMN_NAMES.has(attr.name))
           continue;
-        if (attr.name !== "status" && !entitiesWithMachines.has(entity2.name))
+        if (attr.name !== "status" && !entitiesWithMachines.has(entity.name))
           continue;
-        if (boundFields.has(`${entity2.name}.${attr.name}`))
+        if (boundFields.has(`${entity.name}.${attr.name}`))
           continue;
-        this.warn("EML146", `Column "${entity2.name}.${attr.name}" has no %%field enum binding.`, {
+        this.warn("EML146", `Column "${entity.name}.${attr.name}" has no %%field enum binding.`, {
           line: this.src.findLine(new RegExp(`^\\s+\\w+\\s+${attr.name}\\b`)),
-          hint: `Declare  %%enum ${entity2.name}Status: ...  and bind it with  %%field ${entity2.name}.${attr.name} enum: ${entity2.name}Status. Unbound, the Application Dictionary records free text and the form accepts values the state machine cannot act on.`
+          hint: `Declare  %%enum ${entity.name}Status: ...  and bind it with  %%field ${entity.name}.${attr.name} enum: ${entity.name}Status. Unbound, the Application Dictionary records free text and the form accepts values the state machine cannot act on.`
         });
       }
     }
@@ -22555,9 +22398,9 @@ class CheckEngine {
     }
     return named;
   }
-  linkColumnTo(entity2, parentName) {
-    const snake2 = parentName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
-    return entity2.attributes.find((attribute) => attribute.isForeignKey && (attribute.name === `${snake2}_id` || attribute.name.startsWith(`${snake2}_`)));
+  linkColumnTo(entity, parentName) {
+    const snake = parentName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase();
+    return entity.attributes.find((attribute) => attribute.isForeignKey && (attribute.name === `${snake}_id` || attribute.name.startsWith(`${snake}_`)));
   }
   checkCategoryDirectives() {
     for (const { lineNo, text } of this.src.findAll(/^\s*%%category\b/)) {
@@ -22588,22 +22431,22 @@ class CheckEngine {
       });
     }
     const LINE_ITEM_NOUNS = /(Line|LineItem|Item|Detail|Entry|Row)s?$/;
-    for (const entity2 of this.model.entities) {
-      if (parents.has(entity2.name))
+    for (const entity of this.model.entities) {
+      if (parents.has(entity.name))
         continue;
       let candidate;
       for (const other of declared.keys()) {
-        if (other === entity2.name || other.length < 3)
+        if (other === entity.name || other.length < 3)
           continue;
-        if (!entity2.name.startsWith(other) || entity2.name.length <= other.length)
+        if (!entity.name.startsWith(other) || entity.name.length <= other.length)
           continue;
-        if (!this.linkColumnTo(entity2, other))
+        if (!this.linkColumnTo(entity, other))
           continue;
         if (!candidate || other.length > candidate.length)
           candidate = other;
       }
-      if (!candidate && LINE_ITEM_NOUNS.test(entity2.name)) {
-        for (const attribute of entity2.attributes) {
+      if (!candidate && LINE_ITEM_NOUNS.test(entity.name)) {
+        for (const attribute of entity.attributes) {
           if (!attribute.isForeignKey || attribute.isPrimaryKey)
             continue;
           if (!isForeignKeyColumnName2(attribute.name))
@@ -22611,8 +22454,8 @@ class CheckEngine {
           if (isPersonRoleColumn(attribute.name))
             continue;
           const target = this.fkToEntityName(attribute.name);
-          const match = [...declared.keys()].find((name) => name !== entity2.name && (name === target || name.endsWith(target)));
-          if (match && this.linkColumnTo(entity2, match)) {
+          const match = [...declared.keys()].find((name) => name !== entity.name && (name === target || name.endsWith(target)));
+          if (match && this.linkColumnTo(entity, match)) {
             candidate = match;
             break;
           }
@@ -22620,10 +22463,10 @@ class CheckEngine {
       }
       if (!candidate)
         continue;
-      const link = this.linkColumnTo(entity2, candidate);
-      this.info("EML149", `"${entity2.name}" looks like a line item of "${candidate}" but declares no parent.`, {
-        line: this.src.findLine(new RegExp(`^\\s*${entity2.name}\\s*\\{`)),
-        hint: `If a list of every ${entity2.name} away from its ${candidate} is not a screen anyone opens, ` + `declare \`%%entity ${entity2.name} parent: ${candidate}\` — the dictionary then drops its dashboard ` + `card and gives it a tab inside the ${candidate} window, linked on ${link?.name}. ` + `If it is a thing in its own right, leave it: a reference is the opposite on all three questions (§3.5.1).`
+      const link = this.linkColumnTo(entity, candidate);
+      this.info("EML149", `"${entity.name}" looks like a line item of "${candidate}" but declares no parent.`, {
+        line: this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`)),
+        hint: `If a list of every ${entity.name} away from its ${candidate} is not a screen anyone opens, ` + `declare \`%%entity ${entity.name} parent: ${candidate}\` — the dictionary then drops its dashboard ` + `card and gives it a tab inside the ${candidate} window, linked on ${link?.name}. ` + `If it is a thing in its own right, leave it: a reference is the opposite on all three questions (§3.5.1).`
       });
     }
   }
@@ -22631,10 +22474,10 @@ class CheckEngine {
     return name.replace(/[_.]+/g, " ").trim().toLowerCase();
   }
   restatedHelp(subject, text) {
-    const [entity2 = "", column = ""] = subject.split(".");
+    const [entity = "", column = ""] = subject.split(".");
     const body = text.trim().replace(/\.+$/, "").trim().toLowerCase();
-    const own = this.nameAsWords(column || entity2);
-    const of = entity2.toLowerCase();
+    const own = this.nameAsWords(column || entity);
+    const of = entity.toLowerCase();
     if (/^unique identifier( for \w+)?$/.test(body))
       return "restates the key";
     if (new RegExp(`^(the )?${escapeRe(own)}( for ${escapeRe(of)})?$`).test(body)) {
@@ -22647,7 +22490,7 @@ class CheckEngine {
   }
   checkHelpText() {
     const entityHelp = new Map;
-    const fieldHelp2 = new Map;
+    const fieldHelp = new Map;
     for (const { lineNo, text } of this.src.findAll(/^\s*%%entity\b/)) {
       const m = text.trim().match(/^%%entity\s+(\w+)\s+(?:help|description)\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
@@ -22656,41 +22499,41 @@ class CheckEngine {
     for (const { lineNo, text } of this.src.findAll(/^\s*%%field\b/)) {
       const m = text.trim().match(/^%%field\s+([\w.]+)\s+help\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
-        fieldHelp2.set(m[1], { text: m[2], line: lineNo });
+        fieldHelp.set(m[1], { text: m[2], line: lineNo });
     }
-    for (const entity2 of this.model.entities) {
-      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity2.name}\\s*\\{`));
-      const help = entityHelp.get(entity2.name);
+    for (const entity of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
+      const help = entityHelp.get(entity.name);
       if (!help) {
-        this.warn("EML152", `Entity "${entity2.name}" has no %%entity help:.`, {
+        this.warn("EML152", `Entity "${entity.name}" has no %%entity help:.`, {
           line: entityLine,
-          hint: `Add \`%%entity ${entity2.name} help: …\` — what this record is for in the business, when one is created, and what distinguishes it from the entities it sounds like. It becomes sys_table.description and opens the entity's section of the manual.`
+          hint: `Add \`%%entity ${entity.name} help: …\` — what this record is for in the business, when one is created, and what distinguishes it from the entities it sounds like. It becomes sys_table.description and opens the entity's section of the manual.`
         });
       } else {
-        const why = this.restatedHelp(entity2.name, help.text);
+        const why = this.restatedHelp(entity.name, help.text);
         if (why) {
-          this.warn("EML151", `%%entity ${entity2.name} help: ${why}.`, {
+          this.warn("EML151", `%%entity ${entity.name} help: ${why}.`, {
             line: help.line,
             hint: `"${help.text.trim().slice(0, 60)}" tells a reader nothing the entity name did not. Say what the business does with these records — the domain knowledge behind the name is the whole reason this line exists.`
           });
         }
       }
-      const undocumented = entity2.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES2.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp2.has(`${entity2.name}.${attribute.name}`)).map((attribute) => attribute.name);
+      const undocumented = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES2.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp.has(`${entity.name}.${attribute.name}`)).map((attribute) => attribute.name);
       if (undocumented.length > 0) {
         const shown = undocumented.slice(0, 6).join(", ");
         const rest = undocumented.length > 6 ? `, and ${undocumented.length - 6} more` : "";
-        this.warn("EML153", `${entity2.name} has ${undocumented.length} column${undocumented.length === 1 ? "" : "s"} with no %%field help:.`, {
+        this.warn("EML153", `${entity.name} has ${undocumented.length} column${undocumented.length === 1 ? "" : "s"} with no %%field help:.`, {
           line: entityLine,
-          hint: `Add \`%%field ${entity2.name}.<column> help: …\` for ${shown}${rest}. Each becomes sys_column.description — the hint under the control and the column's row in the manual — and a column without one prints a dash.`
+          hint: `Add \`%%field ${entity.name}.<column> help: …\` for ${shown}${rest}. Each becomes sys_column.description — the hint under the control and the column's row in the manual — and a column without one prints a dash.`
         });
       }
-      for (const attribute of entity2.attributes) {
-        const field = fieldHelp2.get(`${entity2.name}.${attribute.name}`);
+      for (const attribute of entity.attributes) {
+        const field = fieldHelp.get(`${entity.name}.${attribute.name}`);
         if (!field)
           continue;
-        const why = this.restatedHelp(`${entity2.name}.${attribute.name}`, field.text);
+        const why = this.restatedHelp(`${entity.name}.${attribute.name}`, field.text);
         if (why) {
-          this.warn("EML151", `%%field ${entity2.name}.${attribute.name} help: ${why}.`, {
+          this.warn("EML151", `%%field ${entity.name}.${attribute.name} help: ${why}.`, {
             line: field.line,
             hint: `"${field.text.trim().slice(0, 60)}" repeats the column name. Say why the value matters, what is expected in it, and what happens downstream — a reference column should say what the reference is *for*, not that it is one.`
           });
@@ -22705,40 +22548,40 @@ class CheckEngine {
       entityAttrMap.set(e.name, new Set(e.attributes.map((a) => a.name)));
     }
     const seenHooks = new Map;
-    for (const hook2 of this.model.hooks) {
-      const hookLine = this.src.findLine(new RegExp(`%%hook\\s+${hook2.type}\\s+${hook2.handler}\\s+on\\s+${hook2.entity}`));
-      if (!this.validHookTypes.has(hook2.type)) {
-        this.error("EML200", `Unknown hook type "${hook2.type}" in %%hook.`, {
+    for (const hook of this.model.hooks) {
+      const hookLine = this.src.findLine(new RegExp(`%%hook\\s+${hook.type}\\s+${hook.handler}\\s+on\\s+${hook.entity}`));
+      if (!this.validHookTypes.has(hook.type)) {
+        this.error("EML200", `Unknown hook type "${hook.type}" in %%hook.`, {
           line: hookLine,
           hint: `Valid hook types: ${[...this.validHookTypes].join(", ")}.`
         });
       }
-      if (!this.identRe.test(hook2.handler)) {
-        this.error("EML201", `Invalid hook handler name "${hook2.handler}".`, {
+      if (!this.identRe.test(hook.handler)) {
+        this.error("EML201", `Invalid hook handler name "${hook.handler}".`, {
           line: hookLine,
           hint: "Handler names must match ^[A-Za-z_][A-Za-z0-9_]*$ (camelCase recommended)."
         });
       }
-      if (!entityNames.has(hook2.entity)) {
-        this.warn("EML202", `%%hook "${hook2.handler}" references undeclared entity "${hook2.entity}".`, {
+      if (!entityNames.has(hook.entity)) {
+        this.warn("EML202", `%%hook "${hook.handler}" references undeclared entity "${hook.entity}".`, {
           line: hookLine,
-          hint: `Declare "${hook2.entity}" in the erDiagram section.`
+          hint: `Declare "${hook.entity}" in the erDiagram section.`
         });
       }
-      if (hook2.fields.length > 0 && entityNames.has(hook2.entity)) {
-        const attrs = entityAttrMap.get(hook2.entity);
-        for (const field of hook2.fields) {
+      if (hook.fields.length > 0 && entityNames.has(hook.entity)) {
+        const attrs = entityAttrMap.get(hook.entity);
+        for (const field of hook.fields) {
           if (attrs && !attrs.has(field)) {
-            this.warn("EML203", `%%hook "${hook2.handler}" references undeclared field "${hook2.entity}.${field}".`, {
+            this.warn("EML203", `%%hook "${hook.handler}" references undeclared field "${hook.entity}.${field}".`, {
               line: hookLine,
-              hint: `Add "${field}" to "${hook2.entity}", or check for a typo.`
+              hint: `Add "${field}" to "${hook.entity}", or check for a typo.`
             });
           }
         }
       }
-      const hookKey = `${hook2.entity}|${hook2.type}|${hook2.handler}`;
+      const hookKey = `${hook.entity}|${hook.type}|${hook.handler}`;
       if (seenHooks.has(hookKey)) {
-        this.warn("EML204", `Duplicate hook: "${hook2.type} ${hook2.handler} on ${hook2.entity}".`, {
+        this.warn("EML204", `Duplicate hook: "${hook.type} ${hook.handler} on ${hook.entity}".`, {
           line: hookLine,
           hint: `Already declared on line ${seenHooks.get(hookKey)}. Remove the duplicate.`
         });
@@ -22768,10 +22611,10 @@ class CheckEngine {
       "all",
       "any"
     ]);
-    const eventsFor = (entity2) => {
+    const eventsFor = (entity) => {
       const events = new Set;
       for (const wf of this.model.workflows) {
-        if (wf.entity !== entity2 || wf.kind !== "state")
+        if (wf.entity !== entity || wf.kind !== "state")
           continue;
         for (const t of wf.transitions) {
           if (t.event)
@@ -22790,10 +22633,10 @@ class CheckEngine {
         });
         continue;
       }
-      const [roleExpr, entity2, target] = caps(m, 3);
+      const [roleExpr, entity, target] = caps(m, 3);
       const roles = roleExpr.split("|").map((part) => part.trim().replace(/^role:/i, "").trim()).filter(Boolean);
       if (roles.length === 0) {
-        this.error("EML211", `%%rbac on ${entity2}.${target} names no role.`, {
+        this.error("EML211", `%%rbac on ${entity}.${target} names no role.`, {
           line: lineNo,
           hint: "A rule with no roles can never be satisfied, so it locks the operation for everyone."
         });
@@ -22805,22 +22648,22 @@ class CheckEngine {
           hint: "Format: role:<name> or role:<a>|<b> or role:<a>|role:<b>"
         });
       }
-      if (!entityNames.has(entity2)) {
-        this.error("EML213", `%%rbac references undeclared entity "${entity2}".`, {
+      if (!entityNames.has(entity)) {
+        this.error("EML213", `%%rbac references undeclared entity "${entity}".`, {
           line: lineNo,
-          hint: `Declare "${entity2}" in the erDiagram section, or check the spelling.`
+          hint: `Declare "${entity}" in the erDiagram section, or check the spelling.`
         });
         continue;
       }
       const lower = target.toLowerCase();
       if (crudOps.has(lower))
         continue;
-      const events = eventsFor(entity2);
+      const events = eventsFor(entity);
       if (events.has(lower))
         continue;
-      this.error("EML214", `%%rbac on ${entity2}.${target} names neither a CRUD operation nor a transition of ${entity2}.`, {
+      this.error("EML214", `%%rbac on ${entity}.${target} names neither a CRUD operation nor a transition of ${entity}.`, {
         line: lineNo,
-        hint: events.size ? `Use one of create, read, update, delete, * — or a transition of ${entity2}: ${[...events].join(", ")}.` : `Use one of create, read, update, delete, * — ${entity2} declares no state machine to take a transition from.`
+        hint: events.size ? `Use one of create, read, update, delete, * — or a transition of ${entity}: ${[...events].join(", ")}.` : `Use one of create, read, update, delete, * — ${entity} declares no state machine to take a transition from.`
       });
     }
   }
@@ -22931,17 +22774,17 @@ class CheckEngine {
       const m = text.trim().match(/^%%hook\s+(\w+)\s+on\s+(\w+)\s*$/);
       if (!m)
         continue;
-      const [event, entity2] = caps(m, 2);
+      const [event, entity] = caps(m, 2);
       if (!this.validHookTypes.has(event)) {
         this.error("EML205", `Automation trigger uses unknown event "${event}".`, {
           line: lineNo,
           hint: `Valid events: ${[...this.validHookTypes].join(", ")}.`
         });
       }
-      if (!entityNames.has(entity2)) {
-        this.warn("EML206", `Automation trigger references undeclared entity "${entity2}".`, {
+      if (!entityNames.has(entity)) {
+        this.warn("EML206", `Automation trigger references undeclared entity "${entity}".`, {
           line: lineNo,
-          hint: `Declare "${entity2}" in the erDiagram section.`
+          hint: `Declare "${entity}" in the erDiagram section.`
         });
       }
     }
@@ -23024,9 +22867,9 @@ class CheckEngine {
           ...new Set((condition.match(/\b[a-z][A-Za-z0-9]*\b/g) ?? []).filter((identifier) => /[a-z][A-Z]/.test(identifier)))
         ];
         if (camel.length > 0) {
-          const snake2 = (identifier) => identifier.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+          const snake = (identifier) => identifier.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
           const tested = camel.map((c) => `"${c}"`).join(", ");
-          const meant = camel.map(snake2).join(", ");
+          const meant = camel.map(snake).join(", ");
           this.error("EML287", `%%action "${name}" tests ${tested}, which no column is named.`, {
             line: lineNo,
             hint: `A rule reads the record being written, and every column is snake_case. ` + `Write ${meant}. A camelCase name is undefined at evaluation: the rule ` + `never fires, or — against == null — fires on every write and the entity ` + `cannot be created.`
@@ -23063,7 +22906,7 @@ class CheckEngine {
     const stepTypes = new Map(stepNodeTypes().map((step) => [step.name, step]));
     const entitySpellings = this.entitySpellings();
     const ruleNames = new Set([
-      ...this.model.rules.map((rule2) => rule2.name),
+      ...this.model.rules.map((rule) => rule.name),
       ...this.src.findAll(/^%%rule\b/).map(({ text }) => text.match(/^%%rule\s+(\w+)/)?.[1]).filter((name) => !!name)
     ]);
     for (const section of this.sagaSections()) {
@@ -23221,7 +23064,7 @@ class CheckEngine {
     }
   }
   sagaStepLines = new Set;
-  stepEntries(steps2) {
+  stepEntries(steps) {
     const order = [];
     const auto = new Map;
     const entryFor = (nodeId, lineNo, text) => {
@@ -23240,22 +23083,22 @@ class CheckEngine {
       order.push(created);
       return created;
     };
-    for (const { lineNo, text } of steps2) {
+    for (const { lineNo, text } of steps) {
       const line = text.trim();
       const typeLine = line.match(AUTO_TYPE_DIRECTIVE2);
       if (typeLine) {
-        const [, nodeId2 = "", typeName2 = "", rest2 = ""] = typeLine;
-        const entry = entryFor(nodeId2, lineNo, text);
-        entry.typeName = typeName2;
+        const [, nodeId = "", typeName = "", rest = ""] = typeLine;
+        const entry = entryFor(nodeId, lineNo, text);
+        entry.typeName = typeName;
         entry.lineNo = lineNo;
         entry.text = text;
-        Object.assign(entry.props, this.parseStepProps(rest2));
+        Object.assign(entry.props, this.parseStepProps(rest));
         continue;
       }
       const propLine = line.match(AUTO_PROP_DIRECTIVE2);
       if (propLine && propLine[2] !== "type") {
-        const [, nodeId2 = "", key = "", value = ""] = propLine;
-        entryFor(nodeId2, lineNo, text).props[key] = value.trim();
+        const [, nodeId = "", key = "", value = ""] = propLine;
+        entryFor(nodeId, lineNo, text).props[key] = value.trim();
         continue;
       }
       const match = line.match(/^%%step\s+([A-Za-z_]\w*)\s+([A-Za-z]\w*)\s*(.*)$/);
@@ -23349,11 +23192,11 @@ class CheckEngine {
   }
   entitySpellings() {
     const spellings = new Set;
-    for (const entity2 of this.model.entities) {
-      const snake2 = entity2.name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/-/g, "_").toLowerCase();
-      const bare = snake2.replace(/^bus_/, "");
-      spellings.add(entity2.name.toLowerCase());
-      spellings.add(snake2);
+    for (const entity of this.model.entities) {
+      const snake = entity.name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/-/g, "_").toLowerCase();
+      const bare = snake.replace(/^bus_/, "");
+      spellings.add(entity.name.toLowerCase());
+      spellings.add(snake);
       spellings.add(bare);
       spellings.add(`bus_${bare}`);
     }
@@ -23430,69 +23273,69 @@ class CheckEngine {
   }
   checkRules() {
     const entityNames = new Set(this.model.entities.map((e) => e.name));
-    for (const rule2 of this.model.rules) {
-      const inputs = rule2.nodes.filter((n) => n.jdmType === "inputNode");
+    for (const rule of this.model.rules) {
+      const inputs = rule.nodes.filter((n) => n.jdmType === "inputNode");
       if (inputs.length === 0) {
-        this.error("EML300", `Rule "${rule2.name}" has no start (input) node.`, {
+        this.error("EML300", `Rule "${rule.name}" has no start (input) node.`, {
           hint: "Add a stadium node as the start:  A([Start: description]) --> ...  as the first step."
         });
       } else if (inputs.length > 1) {
-        this.warn("EML301", `Rule "${rule2.name}" has ${inputs.length} input nodes; expected 1.`, {
+        this.warn("EML301", `Rule "${rule.name}" has ${inputs.length} input nodes; expected 1.`, {
           hint: "A well-formed rule has exactly one start stadium. Merge extra start nodes."
         });
       }
-      const outputs = rule2.nodes.filter((n) => n.jdmType === "outputNode");
+      const outputs = rule.nodes.filter((n) => n.jdmType === "outputNode");
       if (outputs.length === 0) {
-        this.error("EML302", `Rule "${rule2.name}" has no end (output) node.`, {
+        this.error("EML302", `Rule "${rule.name}" has no end (output) node.`, {
           hint: "Add a terminal stadium node with only incoming edges:  ... --> Z([End: description])"
         });
       }
       const edgeSources = new Map;
-      for (const e of rule2.edges) {
+      for (const e of rule.edges) {
         edgeSources.set(e.source, (edgeSources.get(e.source) ?? 0) + 1);
       }
-      for (const node of rule2.nodes) {
+      for (const node of rule.nodes) {
         if (node.shape === "diamond") {
           const outCount = edgeSources.get(node.id) ?? 0;
           if (outCount < 2) {
-            this.warn("EML303", `Rule "${rule2.name}": decision node "${node.id}" (${node.label}) has only ${outCount} outgoing edge(s).`, {
+            this.warn("EML303", `Rule "${rule.name}": decision node "${node.id}" (${node.label}) has only ${outCount} outgoing edge(s).`, {
               hint: "Decision (diamond) nodes should branch at least Yes/No — add a second outgoing edge."
             });
           }
         }
       }
-      for (const edge of rule2.edges) {
-        const srcNode = rule2.nodes.find((n) => n.id === edge.source);
+      for (const edge of rule.edges) {
+        const srcNode = rule.nodes.find((n) => n.id === edge.source);
         if (srcNode?.shape === "diamond" && !edge.label) {
-          this.warn("EML304", `Rule "${rule2.name}": unlabeled edge from decision node "${srcNode.id}".`, {
+          this.warn("EML304", `Rule "${rule.name}": unlabeled edge from decision node "${srcNode.id}".`, {
             hint: `Add a condition label:  ${edge.source} -->|Yes| ${edge.target}  or  ${edge.source} -->|condition| ${edge.target}`
           });
         }
       }
-      if (rule2.nodes.length > 0 && rule2.edges.length > 0) {
-        const reachable = this.reachableNodes(rule2);
-        for (const node of rule2.nodes) {
+      if (rule.nodes.length > 0 && rule.edges.length > 0) {
+        const reachable = this.reachableNodes(rule);
+        for (const node of rule.nodes) {
           if (!reachable.has(node.id) && node.jdmType !== "inputNode") {
-            this.warn("EML305", `Rule "${rule2.name}": node "${node.id}" (${node.label}) is unreachable from the start node.`, {
+            this.warn("EML305", `Rule "${rule.name}": node "${node.id}" (${node.label}) is unreachable from the start node.`, {
               hint: "Add an edge from the start or another reachable node to this node."
             });
           }
         }
       }
-      if (rule2.nodes.length === 0) {
-        this.warn("EML306", `Rule "${rule2.name}" has no nodes.`, {
+      if (rule.nodes.length === 0) {
+        this.warn("EML306", `Rule "${rule.name}" has no nodes.`, {
           hint: "Add flowchart nodes using the shapes documented in spec/02-business-rules.md."
         });
       }
-      if (rule2.entity && !entityNames.has(rule2.entity)) {
-        this.warn("EML307", `Rule "${rule2.name}" bound to undeclared entity "${rule2.entity}".`, {
-          hint: `Declare "${rule2.entity}" in the erDiagram section or check the %%rule directive.`
+      if (rule.entity && !entityNames.has(rule.entity)) {
+        this.warn("EML307", `Rule "${rule.name}" bound to undeclared entity "${rule.entity}".`, {
+          hint: `Declare "${rule.entity}" in the erDiagram section or check the %%rule directive.`
         });
       }
     }
   }
-  reachableNodes(rule2) {
-    const startNode = rule2.nodes.find((n) => n.jdmType === "inputNode");
+  reachableNodes(rule) {
+    const startNode = rule.nodes.find((n) => n.jdmType === "inputNode");
     if (!startNode)
       return new Set;
     const visited = new Set;
@@ -23502,7 +23345,7 @@ class CheckEngine {
       if (visited.has(id))
         continue;
       visited.add(id);
-      for (const e of rule2.edges) {
+      for (const e of rule.edges) {
         if (e.source === id && !visited.has(e.target))
           queue.push(e.target);
       }
@@ -23669,29 +23512,29 @@ class CheckEngine {
         }
       }
     }
-    for (const entity2 of this.model.entities) {
-      for (const attr of entity2.attributes) {
+    for (const entity of this.model.entities) {
+      for (const attr of entity.attributes) {
         if (attr.enumRef && !enumNames.has(attr.enumRef)) {
-          this.warn("EML501", `Attribute "${entity2.name}.${attr.name}" has enum reference "${attr.enumRef}" but no matching %%enum is declared.`, {
+          this.warn("EML501", `Attribute "${entity.name}.${attr.name}" has enum reference "${attr.enumRef}" but no matching %%enum is declared.`, {
             hint: `Add  %%enum ${attr.enumRef}: value1, value2  to the document.`
           });
         }
       }
     }
-    const declaredNames2 = new Set(this.model.entities.map((candidate) => candidate.name));
-    for (const entity2 of this.model.entities) {
-      const claimed = new Set(entity2.attributes.filter((candidate) => candidate.isForeignKey && candidate.name.endsWith("_id")).map((candidate) => this.fkToEntityName(candidate.name)).filter((name) => declaredNames2.has(name)));
-      const spareParents = this.model.relationships.filter((r) => r.target === entity2.name && r.source !== entity2.name).map((r) => r.source).filter((name) => declaredNames2.has(name) && !claimed.has(name));
-      for (const attr of entity2.attributes) {
+    const declaredNames = new Set(this.model.entities.map((candidate) => candidate.name));
+    for (const entity of this.model.entities) {
+      const claimed = new Set(entity.attributes.filter((candidate) => candidate.isForeignKey && candidate.name.endsWith("_id")).map((candidate) => this.fkToEntityName(candidate.name)).filter((name) => declaredNames.has(name)));
+      const spareParents = this.model.relationships.filter((r) => r.target === entity.name && r.source !== entity.name).map((r) => r.source).filter((name) => declaredNames.has(name) && !claimed.has(name));
+      for (const attr of entity.attributes) {
         if (attr.isForeignKey && attr.name.endsWith("_id")) {
           const parentEntityName = this.fkToEntityName(attr.name);
-          const hasRelationship = this.model.relationships.some((r) => (r.source === entity2.name || r.target === entity2.name) && (r.source === parentEntityName || r.target === parentEntityName));
-          const resolvedByRelationship = !declaredNames2.has(parentEntityName) && spareParents.length > 0;
+          const hasRelationship = this.model.relationships.some((r) => (r.source === entity.name || r.target === entity.name) && (r.source === parentEntityName || r.target === parentEntityName));
+          const resolvedByRelationship = !declaredNames.has(parentEntityName) && spareParents.length > 0;
           if (resolvedByRelationship)
             spareParents.shift();
           if (!hasRelationship && !resolvedByRelationship) {
-            this.info("EML502", `FK attribute "${entity2.name}.${attr.name}" has no relationship to "${parentEntityName}".`, {
-              hint: `Add:  ${parentEntityName} ||--o{ ${entity2.name} : "..."  (or reverse for manyToOne).`
+            this.info("EML502", `FK attribute "${entity.name}.${attr.name}" has no relationship to "${parentEntityName}".`, {
+              hint: `Add:  ${parentEntityName} ||--o{ ${entity.name} : "..."  (or reverse for manyToOne).`
             });
           }
         }
@@ -23712,13 +23555,13 @@ class CheckEngine {
       }
     }
     const ruleNames = new Set;
-    for (const rule2 of this.model.rules) {
-      if (ruleNames.has(rule2.name)) {
-        this.warn("EML504", `Duplicate rule name "${rule2.name}".`, {
+    for (const rule of this.model.rules) {
+      if (ruleNames.has(rule.name)) {
+        this.warn("EML504", `Duplicate rule name "${rule.name}".`, {
           hint: "Give each business rule a unique name in its %%rule directive."
         });
       }
-      ruleNames.add(rule2.name);
+      ruleNames.add(rule.name);
     }
     const workflowNames = new Set;
     for (const wf of this.model.workflows) {
@@ -23729,10 +23572,10 @@ class CheckEngine {
       }
       workflowNames.add(wf.name);
     }
-    for (const rule2 of this.model.rules) {
-      if (!rule2.entity) {
-        this.info("EML506", `Rule "${rule2.name}" has no entity binding.`, {
-          hint: `Add  %%rule ${rule2.name} on <Entity> event: <hookType>  to bind this rule to an entity lifecycle.`
+    for (const rule of this.model.rules) {
+      if (!rule.entity) {
+        this.info("EML506", `Rule "${rule.name}" has no entity binding.`, {
+          hint: `Add  %%rule ${rule.name} on <Entity> event: <hookType>  to bind this rule to an entity lifecycle.`
         });
       }
     }
@@ -23852,9 +23695,9 @@ function fixCamelCaseRuleCondition(lines, issue, base) {
       return token;
     if (!/[a-z][A-Z]/.test(token))
       return token;
-    const snake2 = token.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-    renamed.push(`${token} → ${snake2}`);
-    return snake2;
+    const snake = token.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+    renamed.push(`${token} → ${snake}`);
+    return snake;
   });
   if (renamed.length === 0) {
     base.description = "No camelCase identifier found in the condition.";
@@ -24190,8 +24033,8 @@ async function generateFullStack(options) {
   report("check", "Checking the model");
   const review = reviewModel(options.source);
   if (!review.ok) {
-    const { ModelCheckError: ModelCheckError2 } = await Promise.resolve().then(() => (init_model_check_error(), exports_model_check_error));
-    throw new ModelCheckError2(review);
+    await Promise.resolve().then(() => init_model_check_error());
+    throw new ModelCheckError(review);
   }
   report("parse", "Reading the model");
   const parsed = parseModel(review.source);
@@ -24225,22 +24068,22 @@ async function generateFullStack(options) {
       log: (message) => report("overlay", message)
     });
   }
-  const files2 = snapshot(OUTPUT_ROOT);
-  report("done", `${Object.keys(files2).length} files`);
+  const files = snapshot(OUTPUT_ROOT);
+  report("done", `${Object.keys(files).length} files`);
   return {
-    files: files2,
+    files,
     review,
     overlay,
     summary: {
       project: name,
-      entities: parsed.entities.map((entity2) => entity2.name),
-      rules: parsed.rules.map((rule2) => rule2.name),
+      entities: parsed.entities.map((entity) => entity.name),
+      rules: parsed.rules.map((rule) => rule.name),
       workflows: [
         ...parsed.workflows.map((workflow) => workflow.name),
         ...parsed.sagas.map((saga) => saga.name)
       ],
-      fileCount: Object.keys(files2).length,
-      bytes: Object.values(files2).reduce((total, content) => total + content.length, 0)
+      fileCount: Object.keys(files).length,
+      bytes: Object.values(files).reduce((total, content) => total + content.length, 0)
     }
   };
 }
