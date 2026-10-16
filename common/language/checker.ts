@@ -2569,7 +2569,7 @@ class CheckEngine {
         nodeRef.lastIndex = 0;
         let m: RegExpExecArray | null;
         // Not matchAll: the body advances lastIndex past zero-length matches.
-        // biome-ignore lint/suspicious/noAssignInExpressions: standard exec-loop idiom
+        // standard exec-loop idiom
         while ((m = nodeRef.exec(trimmed)) !== null) {
           if (m[0].trim()) current.nodeIds.add(m[1]!);
           if (m.index === nodeRef.lastIndex) nodeRef.lastIndex++;

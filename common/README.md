@@ -149,12 +149,11 @@ that it exited 0 — the WASM run has to have written `backend/pg-wasm/`, which 
 the overlay's own footprint and the difference between the overlay running and
 silently doing nothing.
 
-**They do not share a runtime.** `appwithai` runs on bun 1.4 — what
-app-with-ai-tanstack pins, and what the Dockerfiles it generates run on — and
-`appwithai-wasm` on bun 1.3. CI gives each its own job for that reason: a step
-would inherit the other job's bun and go green having proved nothing about the
-runtime it ships on. `check:cli` and `check:cli:wasm` run one each; the check
-always prints the bun a result came from.
+**Both run on bun 1.4.3**, what app-with-ai-tanstack requires throughout.
+`appwithai-wasm` used to be checked on 1.3; upstream dropped 1.3, so that pin
+went with it. CI still runs each in a job of its own so they go side by side.
+`check:cli` and `check:cli:wasm` run one each; the check always prints the bun a
+result came from.
 
 Add `--no-setup` to the full-stack CLI to stop after writing files. Without it
 the CLI goes on to install, migrate and seed against a PostgreSQL server on
@@ -244,16 +243,15 @@ product's:
 
 ```bash
 bun install
-bun run check            # models, types, lint, every stack, both CLIs, and the reporting SQL
+bun run check            # models, types, every stack, both CLIs, and the reporting SQL
 ```
 
 | | |
 |---|---|
 | `check:models` | Every model in `language/examples/` and `examples/` checks clean, and `html/models/` is still byte-identical to its counterpart |
-| `type-check` | `language/**`, `build/**` and `scripts/**` under the strict config (`tsconfig.language.json`) |
-| `lint` | Biome over `language/` and `scripts/` |
+| `type-check` | `language/**`, `build/**` and `scripts/**` under the strict config (`tsconfig.language.json`), with `bun check`. There is no linter or formatter |
 | `check:stacks` | All three `--stack` targets actually generate |
-| `check:clis` | Both shipped binaries generate, and wrote what each stage should. `check:cli` / `check:cli:wasm` run one each — CI uses those, so each gets its own bun |
+| `check:clis` | Both shipped binaries generate, and wrote what each stage should. `check:cli` / `check:cli:wasm` run one each — CI uses those, one job each |
 | `check:pack` | Every query in every model's reporting pack runs against a **real** generated schema. Skips itself with a message when no PostgreSQL is reachable |
 
 **Every one of these needs `../deps.sh` to have run.** Two modules under
@@ -277,12 +275,8 @@ bun scripts/check-stacks.ts --skip-heavy
 
 | | |
 |---|---|
-| `root-ci.yml` | `paths:`-filtered to `common/**`, `deps.json` and the scripts that run the two together. A `resolve` job reads `deps.json`, then four jobs check out `app-with-ai-tanstack` against it and run models/types/lint, every `--stack` target plus the `appwithai` CLI, the `appwithai-wasm` CLI on its own bun, and the reporting pack against a real PostgreSQL |
+| `root-ci.yml` | `paths:`-filtered to `common/**`, `deps.json` and the scripts that run the two together. A `resolve` job reads `deps.json`, then four jobs check out `app-with-ai-tanstack` against it and run models/types, every `--stack` target plus the `appwithai` CLI, the `appwithai-wasm` CLI, and the reporting pack against a real PostgreSQL |
 | `build-and-run.yml` | The orchestrator, on `workflow_dispatch` and nightly. Checks out both products at their pins, generates an application, injects configuration, brings the stack up, and proves `/app` and `/report` answer — content types included, via `common/build/smoke.sh` — and that the seeder exited 0 |
-
-`wasm-cli` is a job of its own rather than a step because a step would inherit
-the other's bun: `appwithai` runs on 1.4, `appwithai-wasm` on 1.3, and running
-either on the other's pin goes green while proving nothing.
 
 Both workflows read the pins from `deps.json` and nowhere else — no workflow
 restates a ref in a `with:` block, which is how pins drift. Each product's own CI

@@ -221,7 +221,7 @@ Orchestrator — everything but the pack, which needs a PostgreSQL:
 
 ```bash
 cd $O/common && bun install
-bun run check:models && bun run type-check && bun run lint \
+bun run check:models && bun run type-check \
   && bun run check:stacks && bun run check:clis && bun run check:pack
 cd $O && git status --porcelain     # CI fails on a dirty tree
 ```

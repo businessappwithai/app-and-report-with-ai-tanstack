@@ -55,16 +55,16 @@ interface Cli {
   /** The fewest files a run may legitimately write. */
   readonly minFiles: number;
   /**
-   * The bun this CLI is meant to run on. The two differ, and not by
-   * accident: app-with-ai-tanstack pins 1.4, and the Dockerfiles
-   * `appwithai` generates run on it, while the WASM path stays on 1.3.
+   * The bun this CLI is meant to run on. Both are 1.4 now: app-with-ai-tanstack
+   * requires 1.4.3 throughout, the generator that ships both CLIs included,
+   * and the Dockerfiles `appwithai` generates run on it. The WASM path was
+   * kept on 1.3 until upstream dropped it.
    *
    * Reported rather than enforced — a script cannot re-exec itself under
    * another runtime, and refusing to run would make a local sanity check
-   * useless on whichever bun someone happens to have. CI is where the two
-   * are actually separated: one job per CLI, each with its own bun, via
-   * `--only`. The line printed below always names the bun the result came
-   * from, so a green run on the wrong runtime cannot read as the right one.
+   * useless on whichever bun someone happens to have. CI pins the runtime;
+   * the line printed below always names the bun the result came from, so a
+   * green run on the wrong runtime cannot read as the right one.
    */
   readonly bun: string;
   /**
@@ -93,7 +93,7 @@ const CLIS: readonly Cli[] = [
     entry: "packages/generator/src/cli-wasm/generate.ts",
     args: ["--force"],
     minFiles: 200,
-    bun: "1.3",
+    bun: "1.4",
     expect: [
       { path: "backend/src/main.ts", why: "the same backend the other CLI writes" },
       // The overlay's own footprint. Without these the run generated the

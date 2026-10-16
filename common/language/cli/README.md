@@ -220,8 +220,6 @@ diagnostics; without it (`--no-autofix`) they are reported as errors/warnings.
 ## Development
 
 ```bash
-cd language/cli
-bun install                 # dev-only: TypeScript + type packages
-bun run typecheck           # tsc --noEmit
-bun run lint                # biome check
+cd ../..                    # common/ — this directory is part of it, not its own package
+bun run type-check          # bun check over language/, build/ and scripts/
 ```
