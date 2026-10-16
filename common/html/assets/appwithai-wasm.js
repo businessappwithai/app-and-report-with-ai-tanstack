@@ -3,21 +3,17 @@
 // This is the same parser, rule compiler and application assembler that
 // `appwithai-wasm generate` runs; the page imports it so a model generates the
 // same application whether it was submitted from a terminal or from a browser.
-var __defProp = Object.defineProperty;
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
-}
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: __exportSetter.bind(all, name)
-    });
+var __esm = (fn, res, err) => () => {
+  if (fn)
+    try {
+      res = fn(fn = 0);
+    } catch (e) {
+      err = [e];
+    }
+  if (err)
+    throw err[0];
+  return res;
 };
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 
 // node-stub:node:fs
 var missing = () => {
@@ -2011,149 +2007,37 @@ function snakeCase(str) {
   }
   return str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[-\s]+/g, "_").toLowerCase().replace(/_{2,}/g, "_").replace(/^_/, "");
 }
-// node_modules/.bun/zod@3.25.76/node_modules/zod/v3/external.js
-var exports_external = {};
-__export(exports_external, {
-  BRAND: () => BRAND,
-  DIRTY: () => DIRTY,
-  EMPTY_PATH: () => EMPTY_PATH,
-  INVALID: () => INVALID,
-  NEVER: () => NEVER,
-  OK: () => OK,
-  ParseStatus: () => ParseStatus,
-  Schema: () => ZodType,
-  ZodAny: () => ZodAny,
-  ZodArray: () => ZodArray,
-  ZodBigInt: () => ZodBigInt,
-  ZodBoolean: () => ZodBoolean,
-  ZodBranded: () => ZodBranded,
-  ZodCatch: () => ZodCatch,
-  ZodDate: () => ZodDate,
-  ZodDefault: () => ZodDefault,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodEffects: () => ZodEffects,
-  ZodEnum: () => ZodEnum,
-  ZodError: () => ZodError,
-  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
-  ZodFunction: () => ZodFunction,
-  ZodIntersection: () => ZodIntersection,
-  ZodIssueCode: () => ZodIssueCode,
-  ZodLazy: () => ZodLazy,
-  ZodLiteral: () => ZodLiteral,
-  ZodMap: () => ZodMap,
-  ZodNaN: () => ZodNaN,
-  ZodNativeEnum: () => ZodNativeEnum,
-  ZodNever: () => ZodNever,
-  ZodNull: () => ZodNull,
-  ZodNullable: () => ZodNullable,
-  ZodNumber: () => ZodNumber,
-  ZodObject: () => ZodObject,
-  ZodOptional: () => ZodOptional,
-  ZodParsedType: () => ZodParsedType,
-  ZodPipeline: () => ZodPipeline,
-  ZodPromise: () => ZodPromise,
-  ZodReadonly: () => ZodReadonly,
-  ZodRecord: () => ZodRecord,
-  ZodSchema: () => ZodType,
-  ZodSet: () => ZodSet,
-  ZodString: () => ZodString,
-  ZodSymbol: () => ZodSymbol,
-  ZodTransformer: () => ZodEffects,
-  ZodTuple: () => ZodTuple,
-  ZodType: () => ZodType,
-  ZodUndefined: () => ZodUndefined,
-  ZodUnion: () => ZodUnion,
-  ZodUnknown: () => ZodUnknown,
-  ZodVoid: () => ZodVoid,
-  addIssueToContext: () => addIssueToContext,
-  any: () => anyType,
-  array: () => arrayType,
-  bigint: () => bigIntType,
-  boolean: () => booleanType,
-  coerce: () => coerce,
-  custom: () => custom,
-  date: () => dateType,
-  datetimeRegex: () => datetimeRegex,
-  defaultErrorMap: () => en_default,
-  discriminatedUnion: () => discriminatedUnionType,
-  effect: () => effectsType,
-  enum: () => enumType,
-  function: () => functionType,
-  getErrorMap: () => getErrorMap,
-  getParsedType: () => getParsedType,
-  instanceof: () => instanceOfType,
-  intersection: () => intersectionType,
-  isAborted: () => isAborted,
-  isAsync: () => isAsync,
-  isDirty: () => isDirty,
-  isValid: () => isValid,
-  late: () => late,
-  lazy: () => lazyType,
-  literal: () => literalType,
-  makeIssue: () => makeIssue,
-  map: () => mapType,
-  nan: () => nanType,
-  nativeEnum: () => nativeEnumType,
-  never: () => neverType,
-  null: () => nullType,
-  nullable: () => nullableType,
-  number: () => numberType,
-  object: () => objectType,
-  objectUtil: () => objectUtil,
-  oboolean: () => oboolean,
-  onumber: () => onumber,
-  optional: () => optionalType,
-  ostring: () => ostring,
-  pipeline: () => pipelineType,
-  preprocess: () => preprocessType,
-  promise: () => promiseType,
-  quotelessJson: () => quotelessJson,
-  record: () => recordType,
-  set: () => setType,
-  setErrorMap: () => setErrorMap,
-  strictObject: () => strictObjectType,
-  string: () => stringType,
-  symbol: () => symbolType,
-  transformer: () => effectsType,
-  tuple: () => tupleType,
-  undefined: () => undefinedType,
-  union: () => unionType,
-  unknown: () => unknownType,
-  util: () => util,
-  void: () => voidType
-});
-
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
-(function(util2) {
-  util2.assertEqual = (_) => {};
+(function(util) {
+  util.assertEqual = (_) => {};
   function assertIs(_arg) {}
-  util2.assertIs = assertIs;
+  util.assertIs = assertIs;
   function assertNever(_x) {
     throw new Error;
   }
-  util2.assertNever = assertNever;
-  util2.arrayToEnum = (items) => {
+  util.assertNever = assertNever;
+  util.arrayToEnum = (items) => {
     const obj = {};
     for (const item of items) {
       obj[item] = item;
     }
     return obj;
   };
-  util2.getValidEnumValues = (obj) => {
-    const validKeys = util2.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
+  util.getValidEnumValues = (obj) => {
+    const validKeys = util.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
     const filtered = {};
     for (const k of validKeys) {
       filtered[k] = obj[k];
     }
-    return util2.objectValues(filtered);
+    return util.objectValues(filtered);
   };
-  util2.objectValues = (obj) => {
-    return util2.objectKeys(obj).map(function(e) {
+  util.objectValues = (obj) => {
+    return util.objectKeys(obj).map(function(e) {
       return obj[e];
     });
   };
-  util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
+  util.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
     const keys = [];
     for (const key in object) {
       if (Object.prototype.hasOwnProperty.call(object, key)) {
@@ -2162,19 +2046,19 @@ var util;
     }
     return keys;
   };
-  util2.find = (arr, checker) => {
+  util.find = (arr, checker) => {
     for (const item of arr) {
       if (checker(item))
         return item;
     }
     return;
   };
-  util2.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
+  util.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
   function joinValues(array, separator = " | ") {
     return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
-  util2.joinValues = joinValues;
-  util2.jsonStringifyReplacer = (_, value) => {
+  util.joinValues = joinValues;
+  util.jsonStringifyReplacer = (_, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -2182,8 +2066,8 @@ var util;
   };
 })(util || (util = {}));
 var objectUtil;
-(function(objectUtil2) {
-  objectUtil2.mergeShapes = (first, second) => {
+(function(objectUtil) {
+  objectUtil.mergeShapes = (first, second) => {
     return {
       ...first,
       ...second
@@ -2273,11 +2157,6 @@ var ZodIssueCode = util.arrayToEnum([
   "not_multiple_of",
   "not_finite"
 ]);
-var quotelessJson = (obj) => {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"]+)":/g, "$1:");
-};
-
 class ZodError extends Error {
   get errors() {
     return this.issues;
@@ -2478,12 +2357,10 @@ var en_default = errorMap;
 
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
-function setErrorMap(map) {
-  overrideErrorMap = map;
-}
 function getErrorMap() {
   return overrideErrorMap;
 }
+
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path, errorMaps, issueData } = params;
@@ -2510,7 +2387,6 @@ var makeIssue = (params) => {
     message: errorMessage
   };
 };
-var EMPTY_PATH = [];
 function addIssueToContext(ctx, issueData) {
   const overrideMap = getErrorMap();
   const issue = makeIssue({
@@ -2590,11 +2466,12 @@ var isAborted = (x) => x.status === "aborted";
 var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
+
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
-(function(errorUtil2) {
-  errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
-  errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
+(function(errorUtil) {
+  errorUtil.errToObj = (message) => typeof message === "string" ? { message } : message || {};
+  errorUtil.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
 // node_modules/.bun/zod@3.25.76/node_modules/zod/v3/types.js
@@ -2639,12 +2516,12 @@ var handleResult = (ctx, result) => {
 function processCreateParams(params) {
   if (!params)
     return {};
-  const { errorMap: errorMap2, invalid_type_error, required_error, description } = params;
-  if (errorMap2 && (invalid_type_error || required_error)) {
+  const { errorMap, invalid_type_error, required_error, description } = params;
+  if (errorMap && (invalid_type_error || required_error)) {
     throw new Error(`Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`);
   }
-  if (errorMap2)
-    return { errorMap: errorMap2, description };
+  if (errorMap)
+    return { errorMap, description };
   const customMap = (iss, ctx) => {
     const { message } = params;
     if (iss.code === "invalid_enum_value") {
@@ -3031,11 +2908,11 @@ class ZodString extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.string) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.string,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -3589,11 +3466,11 @@ class ZodNumber extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.number) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.number,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -4015,17 +3892,17 @@ class ZodDate extends ZodType {
     }
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.date) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.date,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
     if (Number.isNaN(input.data.getTime())) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_date
       });
       return INVALID;
@@ -4313,8 +4190,8 @@ class ZodArray extends ZodType {
     if (ctx.common.async) {
       return Promise.all([...ctx.data].map((item, i) => {
         return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
-      })).then((result2) => {
-        return ParseStatus.mergeArray(status, result2);
+      })).then((result) => {
+        return ParseStatus.mergeArray(status, result);
       });
     }
     const result = [...ctx.data].map((item, i) => {
@@ -4402,11 +4279,11 @@ class ZodObject extends ZodType {
   _parse(input) {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.object) {
-      const ctx2 = this._getOrReturnCtx(input);
-      addIssueToContext(ctx2, {
+      const ctx = this._getOrReturnCtx(input);
+      addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
         expected: ZodParsedType.object,
-        received: ctx2.parsedType
+        received: ctx.parsedType
       });
       return INVALID;
     }
@@ -4710,7 +4587,7 @@ class ZodUnion extends ZodType {
         ctx.common.issues.push(...dirty.ctx.common.issues);
         return dirty.result;
       }
-      const unionErrors = issues.map((issues2) => new ZodError(issues2));
+      const unionErrors = issues.map((issues) => new ZodError(issues));
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_union,
         unionErrors
@@ -5150,9 +5027,9 @@ class ZodSet extends ZodType {
       }
     }
     const valueType = this._def.valueType;
-    function finalizeSet(elements2) {
+    function finalizeSet(elements) {
       const parsedSet = new Set;
-      for (const element of elements2) {
+      for (const element of elements) {
         if (element.status === "aborted")
           return INVALID;
         if (element.status === "dirty")
@@ -5163,7 +5040,7 @@ class ZodSet extends ZodType {
     }
     const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
     if (ctx.common.async) {
-      return Promise.all(elements).then((elements2) => finalizeSet(elements2));
+      return Promise.all(elements).then((elements) => finalizeSet(elements));
     } else {
       return finalizeSet(elements);
     }
@@ -5516,11 +5393,11 @@ class ZodEffects extends ZodType {
     if (effect.type === "preprocess") {
       const processed = effect.transform(ctx.data, checkCtx);
       if (ctx.common.async) {
-        return Promise.resolve(processed).then(async (processed2) => {
+        return Promise.resolve(processed).then(async (processed) => {
           if (status.value === "aborted")
             return INVALID;
           const result = await this._def.schema._parseAsync({
-            data: processed2,
+            data: processed,
             path: ctx.path,
             parent: ctx
           });
@@ -5712,10 +5589,10 @@ class ZodCatch extends ZodType {
       }
     });
     if (isAsync(result)) {
-      return result.then((result2) => {
+      return result.then((result) => {
         return {
           status: "valid",
-          value: result2.status === "valid" ? result2.value : this._def.catchValue({
+          value: result.status === "valid" ? result.value : this._def.catchValue({
             get error() {
               return new ZodError(newCtx.common.issues);
             },
@@ -5864,78 +5741,48 @@ ZodReadonly.create = (type, params) => {
     ...processCreateParams(params)
   });
 };
-function cleanParams(params, data) {
-  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
-  const p2 = typeof p === "string" ? { message: p } : p;
-  return p2;
-}
-function custom(check, _params = {}, fatal) {
-  if (check)
-    return ZodAny.create().superRefine((data, ctx) => {
-      const r = check(data);
-      if (r instanceof Promise) {
-        return r.then((r2) => {
-          if (!r2) {
-            const params = cleanParams(_params, data);
-            const _fatal = params.fatal ?? fatal ?? true;
-            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-          }
-        });
-      }
-      if (!r) {
-        const params = cleanParams(_params, data);
-        const _fatal = params.fatal ?? fatal ?? true;
-        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-      }
-      return;
-    });
-  return ZodAny.create();
-}
 var late = {
   object: ZodObject.lazycreate
 };
 var ZodFirstPartyTypeKind;
-(function(ZodFirstPartyTypeKind2) {
-  ZodFirstPartyTypeKind2["ZodString"] = "ZodString";
-  ZodFirstPartyTypeKind2["ZodNumber"] = "ZodNumber";
-  ZodFirstPartyTypeKind2["ZodNaN"] = "ZodNaN";
-  ZodFirstPartyTypeKind2["ZodBigInt"] = "ZodBigInt";
-  ZodFirstPartyTypeKind2["ZodBoolean"] = "ZodBoolean";
-  ZodFirstPartyTypeKind2["ZodDate"] = "ZodDate";
-  ZodFirstPartyTypeKind2["ZodSymbol"] = "ZodSymbol";
-  ZodFirstPartyTypeKind2["ZodUndefined"] = "ZodUndefined";
-  ZodFirstPartyTypeKind2["ZodNull"] = "ZodNull";
-  ZodFirstPartyTypeKind2["ZodAny"] = "ZodAny";
-  ZodFirstPartyTypeKind2["ZodUnknown"] = "ZodUnknown";
-  ZodFirstPartyTypeKind2["ZodNever"] = "ZodNever";
-  ZodFirstPartyTypeKind2["ZodVoid"] = "ZodVoid";
-  ZodFirstPartyTypeKind2["ZodArray"] = "ZodArray";
-  ZodFirstPartyTypeKind2["ZodObject"] = "ZodObject";
-  ZodFirstPartyTypeKind2["ZodUnion"] = "ZodUnion";
-  ZodFirstPartyTypeKind2["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
-  ZodFirstPartyTypeKind2["ZodIntersection"] = "ZodIntersection";
-  ZodFirstPartyTypeKind2["ZodTuple"] = "ZodTuple";
-  ZodFirstPartyTypeKind2["ZodRecord"] = "ZodRecord";
-  ZodFirstPartyTypeKind2["ZodMap"] = "ZodMap";
-  ZodFirstPartyTypeKind2["ZodSet"] = "ZodSet";
-  ZodFirstPartyTypeKind2["ZodFunction"] = "ZodFunction";
-  ZodFirstPartyTypeKind2["ZodLazy"] = "ZodLazy";
-  ZodFirstPartyTypeKind2["ZodLiteral"] = "ZodLiteral";
-  ZodFirstPartyTypeKind2["ZodEnum"] = "ZodEnum";
-  ZodFirstPartyTypeKind2["ZodEffects"] = "ZodEffects";
-  ZodFirstPartyTypeKind2["ZodNativeEnum"] = "ZodNativeEnum";
-  ZodFirstPartyTypeKind2["ZodOptional"] = "ZodOptional";
-  ZodFirstPartyTypeKind2["ZodNullable"] = "ZodNullable";
-  ZodFirstPartyTypeKind2["ZodDefault"] = "ZodDefault";
-  ZodFirstPartyTypeKind2["ZodCatch"] = "ZodCatch";
-  ZodFirstPartyTypeKind2["ZodPromise"] = "ZodPromise";
-  ZodFirstPartyTypeKind2["ZodBranded"] = "ZodBranded";
-  ZodFirstPartyTypeKind2["ZodPipeline"] = "ZodPipeline";
-  ZodFirstPartyTypeKind2["ZodReadonly"] = "ZodReadonly";
+(function(ZodFirstPartyTypeKind) {
+  ZodFirstPartyTypeKind["ZodString"] = "ZodString";
+  ZodFirstPartyTypeKind["ZodNumber"] = "ZodNumber";
+  ZodFirstPartyTypeKind["ZodNaN"] = "ZodNaN";
+  ZodFirstPartyTypeKind["ZodBigInt"] = "ZodBigInt";
+  ZodFirstPartyTypeKind["ZodBoolean"] = "ZodBoolean";
+  ZodFirstPartyTypeKind["ZodDate"] = "ZodDate";
+  ZodFirstPartyTypeKind["ZodSymbol"] = "ZodSymbol";
+  ZodFirstPartyTypeKind["ZodUndefined"] = "ZodUndefined";
+  ZodFirstPartyTypeKind["ZodNull"] = "ZodNull";
+  ZodFirstPartyTypeKind["ZodAny"] = "ZodAny";
+  ZodFirstPartyTypeKind["ZodUnknown"] = "ZodUnknown";
+  ZodFirstPartyTypeKind["ZodNever"] = "ZodNever";
+  ZodFirstPartyTypeKind["ZodVoid"] = "ZodVoid";
+  ZodFirstPartyTypeKind["ZodArray"] = "ZodArray";
+  ZodFirstPartyTypeKind["ZodObject"] = "ZodObject";
+  ZodFirstPartyTypeKind["ZodUnion"] = "ZodUnion";
+  ZodFirstPartyTypeKind["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
+  ZodFirstPartyTypeKind["ZodIntersection"] = "ZodIntersection";
+  ZodFirstPartyTypeKind["ZodTuple"] = "ZodTuple";
+  ZodFirstPartyTypeKind["ZodRecord"] = "ZodRecord";
+  ZodFirstPartyTypeKind["ZodMap"] = "ZodMap";
+  ZodFirstPartyTypeKind["ZodSet"] = "ZodSet";
+  ZodFirstPartyTypeKind["ZodFunction"] = "ZodFunction";
+  ZodFirstPartyTypeKind["ZodLazy"] = "ZodLazy";
+  ZodFirstPartyTypeKind["ZodLiteral"] = "ZodLiteral";
+  ZodFirstPartyTypeKind["ZodEnum"] = "ZodEnum";
+  ZodFirstPartyTypeKind["ZodEffects"] = "ZodEffects";
+  ZodFirstPartyTypeKind["ZodNativeEnum"] = "ZodNativeEnum";
+  ZodFirstPartyTypeKind["ZodOptional"] = "ZodOptional";
+  ZodFirstPartyTypeKind["ZodNullable"] = "ZodNullable";
+  ZodFirstPartyTypeKind["ZodDefault"] = "ZodDefault";
+  ZodFirstPartyTypeKind["ZodCatch"] = "ZodCatch";
+  ZodFirstPartyTypeKind["ZodPromise"] = "ZodPromise";
+  ZodFirstPartyTypeKind["ZodBranded"] = "ZodBranded";
+  ZodFirstPartyTypeKind["ZodPipeline"] = "ZodPipeline";
+  ZodFirstPartyTypeKind["ZodReadonly"] = "ZodReadonly";
 })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-var instanceOfType = (cls, params = {
-  message: `Input not instance of ${cls.name}`
-}) => custom((data) => data instanceof cls, params);
 var stringType = ZodString.create;
 var numberType = ZodNumber.create;
 var nanType = ZodNaN.create;
@@ -5970,20 +5817,6 @@ var optionalType = ZodOptional.create;
 var nullableType = ZodNullable.create;
 var preprocessType = ZodEffects.createWithPreprocess;
 var pipelineType = ZodPipeline.create;
-var ostring = () => stringType().optional();
-var onumber = () => numberType().optional();
-var oboolean = () => booleanType().optional();
-var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
-    ...arg,
-    coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
-};
-var NEVER = INVALID;
 // packages/core/src/types/sys-dictionary.types.ts
 var BUS_TABLE_PREFIX = "bus_";
 var AccessLevel = {
@@ -6022,197 +5855,197 @@ var ReferenceType = {
   EMAIL: 30,
   PHONE: 31
 };
-var SysTableSchema = exports_external.object({
-  sys_table_id: exports_external.string().uuid(),
-  table_name: exports_external.string().min(1).max(100),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  icon: exports_external.string().max(100).optional(),
-  access_level: exports_external.enum(["S", "C", "O", "CO", "A"]),
-  is_view: exports_external.boolean(),
-  is_document: exports_external.boolean(),
-  is_high_volume: exports_external.boolean(),
-  is_changelog: exports_external.boolean(),
-  replication_type: exports_external.string().optional(),
-  sys_window_id: exports_external.string().uuid().optional(),
-  po_window_id: exports_external.string().uuid().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysTableSchema = objectType({
+  sys_table_id: stringType().uuid(),
+  table_name: stringType().min(1).max(100),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  icon: stringType().max(100).optional(),
+  access_level: enumType(["S", "C", "O", "CO", "A"]),
+  is_view: booleanType(),
+  is_document: booleanType(),
+  is_high_volume: booleanType(),
+  is_changelog: booleanType(),
+  replication_type: stringType().optional(),
+  sys_window_id: stringType().uuid().optional(),
+  po_window_id: stringType().uuid().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysColumnSchema = exports_external.object({
-  sys_column_id: exports_external.string().uuid(),
-  sys_table_id: exports_external.string().uuid(),
-  column_name: exports_external.string().min(1).max(100),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  sys_reference_id: exports_external.number(),
-  sys_val_rule_id: exports_external.string().uuid().optional(),
-  field_length: exports_external.number().optional(),
-  default_value: exports_external.string().optional(),
-  value_min: exports_external.string().optional(),
-  value_max: exports_external.string().optional(),
-  is_key: exports_external.boolean(),
-  is_parent: exports_external.boolean(),
-  is_mandatory: exports_external.boolean(),
-  is_updateable: exports_external.boolean(),
-  is_identifier: exports_external.boolean(),
-  is_selection_column: exports_external.boolean(),
-  is_translated: exports_external.boolean(),
-  is_encrypted: exports_external.boolean(),
-  is_allow_logging: exports_external.boolean(),
-  is_allow_copy: exports_external.boolean(),
-  seq_no: exports_external.number(),
-  callout: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  mandatory_logic: exports_external.string().optional(),
-  format_pattern: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysColumnSchema = objectType({
+  sys_column_id: stringType().uuid(),
+  sys_table_id: stringType().uuid(),
+  column_name: stringType().min(1).max(100),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  sys_reference_id: numberType(),
+  sys_val_rule_id: stringType().uuid().optional(),
+  field_length: numberType().optional(),
+  default_value: stringType().optional(),
+  value_min: stringType().optional(),
+  value_max: stringType().optional(),
+  is_key: booleanType(),
+  is_parent: booleanType(),
+  is_mandatory: booleanType(),
+  is_updateable: booleanType(),
+  is_identifier: booleanType(),
+  is_selection_column: booleanType(),
+  is_translated: booleanType(),
+  is_encrypted: booleanType(),
+  is_allow_logging: booleanType(),
+  is_allow_copy: booleanType(),
+  seq_no: numberType(),
+  callout: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  mandatory_logic: stringType().optional(),
+  format_pattern: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysFieldSchema = exports_external.object({
-  sys_field_id: exports_external.string().uuid(),
-  sys_tab_id: exports_external.string().uuid(),
-  sys_column_id: exports_external.string().uuid(),
-  sys_field_group_id: exports_external.string().uuid().optional(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  seq_no: exports_external.number(),
-  seq_no_grid: exports_external.number(),
-  display_length: exports_external.number().optional(),
-  x_position: exports_external.number().optional(),
-  y_position: exports_external.number().optional(),
-  column_span: exports_external.number().optional(),
-  num_lines: exports_external.number().optional(),
-  is_displayed: exports_external.boolean(),
-  is_displayed_grid: exports_external.boolean(),
-  is_read_only: exports_external.boolean(),
-  is_encrypted: exports_external.boolean(),
-  is_same_line: exports_external.boolean(),
-  is_heading: exports_external.boolean(),
-  is_field_only: exports_external.boolean(),
-  display_logic: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  mandatory_logic: exports_external.string().optional(),
-  obscure_type: exports_external.string().optional(),
-  included_tab_id: exports_external.string().uuid().optional(),
-  default_value: exports_external.string().optional(),
-  sort_no: exports_external.number().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysFieldSchema = objectType({
+  sys_field_id: stringType().uuid(),
+  sys_tab_id: stringType().uuid(),
+  sys_column_id: stringType().uuid(),
+  sys_field_group_id: stringType().uuid().optional(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  seq_no: numberType(),
+  seq_no_grid: numberType(),
+  display_length: numberType().optional(),
+  x_position: numberType().optional(),
+  y_position: numberType().optional(),
+  column_span: numberType().optional(),
+  num_lines: numberType().optional(),
+  is_displayed: booleanType(),
+  is_displayed_grid: booleanType(),
+  is_read_only: booleanType(),
+  is_encrypted: booleanType(),
+  is_same_line: booleanType(),
+  is_heading: booleanType(),
+  is_field_only: booleanType(),
+  display_logic: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  mandatory_logic: stringType().optional(),
+  obscure_type: stringType().optional(),
+  included_tab_id: stringType().uuid().optional(),
+  default_value: stringType().optional(),
+  sort_no: numberType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysWindowSchema = exports_external.object({
-  sys_window_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  window_type: exports_external.enum(["M", "T", "Q"]),
-  is_sales_transaction: exports_external.boolean(),
-  is_default: exports_external.boolean(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysWindowSchema = objectType({
+  sys_window_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  window_type: enumType(["M", "T", "Q"]),
+  is_sales_transaction: booleanType(),
+  is_default: booleanType(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysTabSchema = exports_external.object({
-  sys_tab_id: exports_external.string().uuid(),
-  sys_window_id: exports_external.string().uuid(),
-  sys_table_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  help: exports_external.string().optional(),
-  tab_level: exports_external.number(),
-  seq_no: exports_external.number(),
-  is_single_row: exports_external.boolean(),
-  has_tree: exports_external.boolean(),
-  is_info_tab: exports_external.boolean(),
-  is_translation_tab: exports_external.boolean(),
-  is_read_only: exports_external.boolean(),
-  is_insert_record: exports_external.boolean(),
-  is_advanced_tab: exports_external.boolean(),
-  parent_column_id: exports_external.string().uuid().optional(),
-  link_column_id: exports_external.string().uuid().optional(),
-  order_by_clause: exports_external.string().optional(),
-  where_clause: exports_external.string().optional(),
-  display_logic: exports_external.string().optional(),
-  read_only_logic: exports_external.string().optional(),
-  commit_warning: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysTabSchema = objectType({
+  sys_tab_id: stringType().uuid(),
+  sys_window_id: stringType().uuid(),
+  sys_table_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  help: stringType().optional(),
+  tab_level: numberType(),
+  seq_no: numberType(),
+  is_single_row: booleanType(),
+  has_tree: booleanType(),
+  is_info_tab: booleanType(),
+  is_translation_tab: booleanType(),
+  is_read_only: booleanType(),
+  is_insert_record: booleanType(),
+  is_advanced_tab: booleanType(),
+  parent_column_id: stringType().uuid().optional(),
+  link_column_id: stringType().uuid().optional(),
+  order_by_clause: stringType().optional(),
+  where_clause: stringType().optional(),
+  display_logic: stringType().optional(),
+  read_only_logic: stringType().optional(),
+  commit_warning: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysUserSchema = exports_external.object({
-  sys_user_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  email: exports_external.string().email(),
-  password_hash: exports_external.string(),
-  description: exports_external.string().optional(),
-  is_system_user: exports_external.boolean(),
-  is_sales_rep: exports_external.boolean(),
-  login_date: exports_external.date().optional(),
-  login_failure_count: exports_external.number(),
-  is_locked: exports_external.boolean(),
-  is_account_verified: exports_external.boolean(),
-  notification_type: exports_external.string().optional(),
-  supervisor_id: exports_external.string().uuid().optional(),
-  default_sys_role_id: exports_external.string().uuid().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysUserSchema = objectType({
+  sys_user_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  email: stringType().email(),
+  password_hash: stringType(),
+  description: stringType().optional(),
+  is_system_user: booleanType(),
+  is_sales_rep: booleanType(),
+  login_date: dateType().optional(),
+  login_failure_count: numberType(),
+  is_locked: booleanType(),
+  is_account_verified: booleanType(),
+  notification_type: stringType().optional(),
+  supervisor_id: stringType().uuid().optional(),
+  default_sys_role_id: stringType().uuid().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysRoleSchema = exports_external.object({
-  sys_role_id: exports_external.string().uuid(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  user_level: exports_external.string(),
-  is_master_role: exports_external.boolean(),
-  is_can_export: exports_external.boolean(),
-  is_can_report: exports_external.boolean(),
-  is_personal_lock: exports_external.boolean(),
-  is_personal_access: exports_external.boolean(),
-  max_query_records: exports_external.number(),
-  connection_profile: exports_external.string().optional(),
-  preference_type: exports_external.string().optional(),
-  is_show_accounting: exports_external.boolean(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysRoleSchema = objectType({
+  sys_role_id: stringType().uuid(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  user_level: stringType(),
+  is_master_role: booleanType(),
+  is_can_export: booleanType(),
+  is_can_report: booleanType(),
+  is_personal_lock: booleanType(),
+  is_personal_access: booleanType(),
+  max_query_records: numberType(),
+  connection_profile: stringType().optional(),
+  preference_type: stringType().optional(),
+  is_show_accounting: booleanType(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
-var SysReferenceSchema = exports_external.object({
-  sys_reference_id: exports_external.number(),
-  name: exports_external.string().min(1).max(100),
-  description: exports_external.string().optional(),
-  validation_type: exports_external.enum(["S", "L", "T", "R"]),
-  vformat: exports_external.string().optional(),
-  entity_type: exports_external.string(),
-  is_active: exports_external.boolean(),
-  created_by: exports_external.string(),
-  updated_by: exports_external.string(),
-  created_at: exports_external.date(),
-  updated_at: exports_external.date()
+var SysReferenceSchema = objectType({
+  sys_reference_id: numberType(),
+  name: stringType().min(1).max(100),
+  description: stringType().optional(),
+  validation_type: enumType(["S", "L", "T", "R"]),
+  vformat: stringType().optional(),
+  entity_type: stringType(),
+  is_active: booleanType(),
+  created_by: stringType(),
+  updated_by: stringType(),
+  created_at: dateType(),
+  updated_at: dateType()
 });
 // packages/generator/src/parsers/mermaid.parser.ts
 var TYPE_MAP = getTypeMap();
@@ -6633,13 +6466,13 @@ function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = ()
     if (resolved) {
       const ops = resolved === "*" ? [...RBAC_OPERATIONS] : [resolved];
       for (const operation of ops) {
-        const key2 = `${entity}:${operation}`;
-        const existing2 = operations.get(key2);
-        if (existing2) {
+        const key = `${entity}:${operation}`;
+        const existing = operations.get(key);
+        if (existing) {
           for (const role of roles)
-            existing2.roles.add(role);
+            existing.roles.add(role);
         } else {
-          operations.set(key2, { entity, operation, roles: new Set(roles) });
+          operations.set(key, { entity, operation, roles: new Set(roles) });
         }
       }
       continue;
@@ -7454,32 +7287,32 @@ function compileSagas(sections, knownEntities = [], onWarn = () => {}) {
         continue;
       const autoType = line.match(AUTO_TYPE_DIRECTIVE);
       if (autoType?.[1] && autoType[2]) {
-        const [, nodeId2 = "", typeName2 = "", rest2 = ""] = autoType;
-        if (!STEP_TYPES.includes(typeName2)) {
-          onWarn(`Workflow "${section.name}": unknown step type "${typeName2}" on node ${nodeId2} — skipped.`);
+        const [, nodeId = "", typeName = "", rest = ""] = autoType;
+        if (!STEP_TYPES.includes(typeName)) {
+          onWarn(`Workflow "${section.name}": unknown step type "${typeName}" on node ${nodeId} — skipped.`);
           continue;
         }
-        const existing = declared.get(nodeId2);
-        declared.set(nodeId2, {
-          nodeId: nodeId2,
-          type: typeName2,
-          label: labels.get(nodeId2) ?? nodeId2,
-          props: { ...existing?.props, ...parseStepProps(rest2) }
+        const existing = declared.get(nodeId);
+        declared.set(nodeId, {
+          nodeId,
+          type: typeName,
+          label: labels.get(nodeId) ?? nodeId,
+          props: { ...existing?.props, ...parseStepProps(rest) }
         });
-        autoNodes.add(nodeId2);
+        autoNodes.add(nodeId);
         continue;
       }
       const autoProp = line.match(AUTO_PROP_DIRECTIVE);
       if (autoProp?.[1] && autoProp[2] && autoProp[2] !== "type") {
-        const [, nodeId2 = "", key = "", value = ""] = autoProp;
-        const existing = declared.get(nodeId2);
-        declared.set(nodeId2, {
-          nodeId: nodeId2,
+        const [, nodeId = "", key = "", value = ""] = autoProp;
+        const existing = declared.get(nodeId);
+        declared.set(nodeId, {
+          nodeId,
           type: existing?.type ?? "Formula",
-          label: labels.get(nodeId2) ?? nodeId2,
+          label: labels.get(nodeId) ?? nodeId,
           props: { ...existing?.props, [key]: value.trim() }
         });
-        autoNodes.add(nodeId2);
+        autoNodes.add(nodeId);
         continue;
       }
       const match = line.match(STEP_DIRECTIVE);
@@ -7958,18 +7791,18 @@ function parseHookFields(paramsRaw) {
 }
 function applyEntityMeta(model, name, key, value) {
   const ensure = () => {
-    let e2 = model.entities.find((x) => x.name === name);
-    if (!e2) {
-      e2 = {
+    let e = model.entities.find((x) => x.name === name);
+    if (!e) {
+      e = {
         name,
         tableName: toSnakeCase(name),
         attributes: [],
         primaryKey: "id",
         timestamps: true
       };
-      model.entities.push(e2);
+      model.entities.push(e);
     }
-    return e2;
+    return e;
   };
   const e = ensure();
   if (key === "audited")
@@ -8144,7 +7977,7 @@ function parseFlowGraph(lines) {
   const edges = [];
   const nodeToken = "([A-Za-z_]\\w*)(\\(\\[[^\\]]*\\]\\)|\\(\\([^)]*\\)\\)|\\{[^}]*\\}|\\[[^\\]]*\\]|\\([^)]*\\))?";
   const edgeRe = new RegExp(`^${nodeToken}\\s*(?:-->|---|-\\.->|==>)\\s*(?:\\|([^|]*)\\|)?\\s*${nodeToken}`);
-  const ensureNode2 = (id, suffix) => {
+  const ensureNode = (id, suffix) => {
     const existing = nodesById.get(id);
     if (existing) {
       if (suffix && existing.label === id) {
@@ -8160,14 +7993,14 @@ function parseFlowGraph(lines) {
     const em = line.match(edgeRe);
     if (em) {
       const [srcId, srcSuffix, edgeLabel, tgtId, tgtSuffix] = caps(em, 5);
-      ensureNode2(srcId, srcSuffix);
-      ensureNode2(tgtId, tgtSuffix);
+      ensureNode(srcId, srcSuffix);
+      ensureNode(tgtId, tgtSuffix);
       edges.push({ source: srcId, target: tgtId, label: edgeLabel?.trim() || undefined });
       continue;
     }
     const nm = line.match(new RegExp(`^${nodeToken}\\s*$`));
     if (nm?.[1] && nm[2])
-      ensureNode2(nm[1], nm[2]);
+      ensureNode(nm[1], nm[2]);
   }
   const sources = new Set(edges.map((e) => e.source));
   const targets = new Set(edges.map((e) => e.target));
@@ -8466,10 +8299,10 @@ class CheckEngine {
     this.checkRules();
     this.checkWorkflows();
     this.checkCrossDocument();
-    const errors2 = this.issues.filter((i) => i.severity === "error").length;
+    const errors = this.issues.filter((i) => i.severity === "error").length;
     const warnings = this.issues.filter((i) => i.severity === "warning").length;
     const infos = this.issues.filter((i) => i.severity === "info").length;
-    return { issues: this.issues, errors: errors2, warnings, infos, ok: errors2 === 0 };
+    return { issues: this.issues, errors, warnings, infos, ok: errors === 0 };
   }
   entityToFkName(entityName) {
     const snake = entityName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").toLowerCase().replace(/^bus_/, "");
@@ -9030,7 +8863,7 @@ class CheckEngine {
   }
   checkHelpText() {
     const entityHelp = new Map;
-    const fieldHelp2 = new Map;
+    const fieldHelp = new Map;
     for (const { lineNo, text } of this.src.findAll(/^\s*%%entity\b/)) {
       const m = text.trim().match(/^%%entity\s+(\w+)\s+(?:help|description)\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
@@ -9039,7 +8872,7 @@ class CheckEngine {
     for (const { lineNo, text } of this.src.findAll(/^\s*%%field\b/)) {
       const m = text.trim().match(/^%%field\s+([\w.]+)\s+help\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
-        fieldHelp2.set(m[1], { text: m[2], line: lineNo });
+        fieldHelp.set(m[1], { text: m[2], line: lineNo });
     }
     for (const entity of this.model.entities) {
       const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
@@ -9058,7 +8891,7 @@ class CheckEngine {
           });
         }
       }
-      const undocumented = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp2.has(`${entity.name}.${attribute.name}`)).map((attribute) => attribute.name);
+      const undocumented = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp.has(`${entity.name}.${attribute.name}`)).map((attribute) => attribute.name);
       if (undocumented.length > 0) {
         const shown = undocumented.slice(0, 6).join(", ");
         const rest = undocumented.length > 6 ? `, and ${undocumented.length - 6} more` : "";
@@ -9068,7 +8901,7 @@ class CheckEngine {
         });
       }
       for (const attribute of entity.attributes) {
-        const field = fieldHelp2.get(`${entity.name}.${attribute.name}`);
+        const field = fieldHelp.get(`${entity.name}.${attribute.name}`);
         if (!field)
           continue;
         const why = this.restatedHelp(`${entity.name}.${attribute.name}`, field.text);
@@ -9387,9 +9220,9 @@ class CheckEngine {
           hint: 'Add a condition, e.g. when: severity == "critical". Use when: true to say "always" on purpose.'
         });
       }
-      const missing2 = contract.required.filter((key) => !has(key));
-      if (missing2.length > 0) {
-        this.error("EML283", `%%action "${name}" (${typeName}) is missing: ${missing2.join(", ")}.`, {
+      const missing = contract.required.filter((key) => !has(key));
+      if (missing.length > 0) {
+        this.error("EML283", `%%action "${name}" (${typeName}) is missing: ${missing.join(", ")}.`, {
           line: lineNo,
           hint: `${typeName} requires ${contract.required.join(", ")}.`
         });
@@ -9479,24 +9312,24 @@ class CheckEngine {
           });
         }
         const has = (key) => (props[key] ?? "").trim().length > 0;
-        const missing2 = [];
+        const missing = [];
         for (const key of contract.required ?? []) {
           if (!has(key))
-            missing2.push(key);
+            missing.push(key);
         }
         for (const group of contract.oneOf ?? []) {
           if (!group.some((key) => has(key)))
-            missing2.push(`one of ${group.join(" / ")}`);
+            missing.push(`one of ${group.join(" / ")}`);
         }
         if (typeName === "Formula" && has("operation")) {
           const extra = contract.perOperation?.[props.operation.trim()]?.required ?? [];
           for (const key of extra) {
             if (!has(key))
-              missing2.push(key);
+              missing.push(key);
           }
         }
-        if (missing2.length > 0) {
-          this.error("EML262", `%%step ${nodeId} (${typeName}) is missing: ${missing2.join(", ")}.`, {
+        if (missing.length > 0) {
+          this.error("EML262", `%%step ${nodeId} (${typeName}) is missing: ${missing.join(", ")}.`, {
             line: lineNo,
             hint: `${typeName} requires ${(contract.required ?? []).join(", ") || "no fixed properties"}. See spec/03-workflows.md.`
           });
@@ -9604,7 +9437,7 @@ class CheckEngine {
     }
   }
   sagaStepLines = new Set;
-  stepEntries(steps2) {
+  stepEntries(steps) {
     const order = [];
     const auto = new Map;
     const entryFor = (nodeId, lineNo, text) => {
@@ -9623,22 +9456,22 @@ class CheckEngine {
       order.push(created);
       return created;
     };
-    for (const { lineNo, text } of steps2) {
+    for (const { lineNo, text } of steps) {
       const line = text.trim();
       const typeLine = line.match(AUTO_TYPE_DIRECTIVE2);
       if (typeLine) {
-        const [, nodeId2 = "", typeName2 = "", rest2 = ""] = typeLine;
-        const entry = entryFor(nodeId2, lineNo, text);
-        entry.typeName = typeName2;
+        const [, nodeId = "", typeName = "", rest = ""] = typeLine;
+        const entry = entryFor(nodeId, lineNo, text);
+        entry.typeName = typeName;
         entry.lineNo = lineNo;
         entry.text = text;
-        Object.assign(entry.props, this.parseStepProps(rest2));
+        Object.assign(entry.props, this.parseStepProps(rest));
         continue;
       }
       const propLine = line.match(AUTO_PROP_DIRECTIVE2);
       if (propLine && propLine[2] !== "type") {
-        const [, nodeId2 = "", key = "", value = ""] = propLine;
-        entryFor(nodeId2, lineNo, text).props[key] = value.trim();
+        const [, nodeId = "", key = "", value = ""] = propLine;
+        entryFor(nodeId, lineNo, text).props[key] = value.trim();
         continue;
       }
       const match = line.match(/^%%step\s+([A-Za-z_]\w*)\s+([A-Za-z]\w*)\s*(.*)$/);
@@ -10563,8 +10396,8 @@ class ModelCheckError extends Error {
   issues;
   review;
   constructor(review) {
-    const errors2 = review.counts.errors;
-    super(`This model has ${errors2} error${errors2 === 1 ? "" : "s"}.`);
+    const errors = review.counts.errors;
+    super(`This model has ${errors} error${errors === 1 ? "" : "s"}.`);
     this.name = "ModelCheckError";
     this.issues = review.issues;
     this.review = review;
@@ -26735,44 +26568,44 @@ function shuffleArray(array) {
     array[j] = temp;
   }
 }
-var BusEntitySchema = exports_external.object({
-  name: exports_external.string(),
-  tableName: exports_external.string().regex(/^bus_/, "Table name must start with bus_"),
-  originalName: exports_external.string(),
-  displayName: exports_external.string(),
-  description: exports_external.string().optional(),
-  attributes: exports_external.array(exports_external.any()),
-  primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean()
+var BusEntitySchema = objectType({
+  name: stringType(),
+  tableName: stringType().regex(/^bus_/, "Table name must start with bus_"),
+  originalName: stringType(),
+  displayName: stringType(),
+  description: stringType().optional(),
+  attributes: arrayType(anyType()),
+  primaryKey: stringType(),
+  timestamps: booleanType()
 });
-var DictionaryGenerationConfigSchema = exports_external.object({
-  defaultEntityType: exports_external.string(),
-  createdBy: exports_external.string(),
-  randomizeFieldOrder: exports_external.boolean(),
-  includeFieldGroups: exports_external.boolean(),
-  defaultAccessLevel: exports_external.enum(["S", "C", "O", "CO", "A"])
+var DictionaryGenerationConfigSchema = objectType({
+  defaultEntityType: stringType(),
+  createdBy: stringType(),
+  randomizeFieldOrder: booleanType(),
+  includeFieldGroups: booleanType(),
+  defaultAccessLevel: enumType(["S", "C", "O", "CO", "A"])
 });
 // packages/core/src/types/entity.types.ts
-var EntityAttributeSchema = exports_external.object({
-  name: exports_external.string(),
-  type: exports_external.enum(["string", "integer", "decimal", "boolean", "date", "datetime", "text", "json"]),
-  required: exports_external.boolean(),
-  description: exports_external.string().optional(),
-  semanticType: exports_external.enum(["email", "url", "phone", "password", "color"]).optional(),
-  unique: exports_external.boolean().optional(),
-  default: exports_external.any().optional(),
-  maxLength: exports_external.number().optional(),
-  minLength: exports_external.number().optional(),
-  pattern: exports_external.string().optional()
+var EntityAttributeSchema = objectType({
+  name: stringType(),
+  type: enumType(["string", "integer", "decimal", "boolean", "date", "datetime", "text", "json"]),
+  required: booleanType(),
+  description: stringType().optional(),
+  semanticType: enumType(["email", "url", "phone", "password", "color"]).optional(),
+  unique: booleanType().optional(),
+  default: anyType().optional(),
+  maxLength: numberType().optional(),
+  minLength: numberType().optional(),
+  pattern: stringType().optional()
 });
-var EntitySchema = exports_external.object({
-  name: exports_external.string(),
-  tableName: exports_external.string(),
-  description: exports_external.string().optional(),
-  attributes: exports_external.array(EntityAttributeSchema),
-  primaryKey: exports_external.string(),
-  timestamps: exports_external.boolean(),
-  icon: exports_external.string().optional()
+var EntitySchema = objectType({
+  name: stringType(),
+  tableName: stringType(),
+  description: stringType().optional(),
+  attributes: arrayType(EntityAttributeSchema),
+  primaryKey: stringType(),
+  timestamps: booleanType(),
+  icon: stringType().optional()
 });
 // packages/generator/src/generators/dictionary.generator.ts
 class DictionaryGenerator {
@@ -26801,10 +26634,10 @@ class DictionaryGenerator {
     const windowByEntity = new Map;
     const childTabs = [];
     const declared = declaredEntityNames(entities);
-    for (const entity2 of entities) {
-      const busEntity = entityToBusEntity(entity2, declared);
+    for (const entity of entities) {
+      const busEntity = entityToBusEntity(entity, declared);
       busEntities.push(busEntity);
-      const busAttrs = entity2.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
+      const busAttrs = entity.attributes.map((attr, index) => attributeToBusAttribute(attr, index));
       busAttributesMap.set(busEntity.tableName, busAttrs);
       const tableId = `table_${++tableCounter}`;
       const sysTable = {
@@ -26812,7 +26645,7 @@ class DictionaryGenerator {
         _tempId: tableId
       };
       sysTables.push(sysTable);
-      const identifiers = new Set(identifierColumnNames(busAttrs, entity2.primaryKey));
+      const identifiers = new Set(identifierColumnNames(busAttrs, entity.primaryKey));
       const columnEntries = busAttrs.map((attr, _index) => {
         const colId = `col_${++columnCounter}`;
         return {
@@ -26826,16 +26659,16 @@ class DictionaryGenerator {
           default_value: attr.default?.toString(),
           value_min: undefined,
           value_max: undefined,
-          is_key: attr.name === entity2.primaryKey,
+          is_key: attr.name === entity.primaryKey,
           is_parent: false,
           is_mandatory: attr.required,
-          is_updateable: attr.name !== entity2.primaryKey,
+          is_updateable: attr.name !== entity.primaryKey,
           is_identifier: identifiers.has(attr.name),
           is_selection_column: ["name", "email", "title", "description", "status"].includes(attr.name) || attr.unique === true,
           is_translated: false,
           is_encrypted: false,
           is_allow_logging: true,
-          is_allow_copy: attr.name !== entity2.primaryKey,
+          is_allow_copy: attr.name !== entity.primaryKey,
           seq_no: attr.seqNo,
           callout: undefined,
           read_only_logic: undefined,
@@ -26850,7 +26683,7 @@ class DictionaryGenerator {
         };
       });
       sysColumns.push(...columnEntries);
-      const isChild = !!entity2.parentEntity;
+      const isChild = !!entity.parentEntity;
       const windowId = `win_${++windowCounter}`;
       if (!isChild) {
         sysWindows.push({
@@ -26868,17 +26701,17 @@ class DictionaryGenerator {
       };
       sysTabs.push(sysTab);
       if (isChild) {
-        const link = columnEntries.find((col) => col.column_name === entity2.parentLinkColumn);
+        const link = columnEntries.find((col) => col.column_name === entity.parentLinkColumn);
         if (link)
           link.is_parent = true;
         childTabs.push({
           tab: sysTab,
           table: sysTable,
-          parentEntity: entity2.parentEntity,
+          parentEntity: entity.parentEntity,
           linkColumnRef: link?._tempId
         });
       } else {
-        windowByEntity.set(entity2.name, windowId);
+        windowByEntity.set(entity.name, windowId);
       }
       const groups = generateSysFieldGroups(busEntity.displayName, this.config);
       const groupEntries = groups.map((group) => ({
@@ -26979,8 +26812,8 @@ class DictionaryGenerator {
 
 // packages/generator/src/naming/tables.ts
 var snake = (value) => value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/[\s-]+/g, "_").toLowerCase();
-function tableNameFor(entity2) {
-  const base = snake(entity2.tableName || entity2.name);
+function tableNameFor(entity) {
+  const base = snake(entity.tableName || entity.name);
   return base.startsWith("bus_") || base.startsWith("sys_") ? base : `bus_${base}`;
 }
 
@@ -27015,11 +26848,11 @@ function deriveAccess(compiled, options) {
     if (!declared.has(key))
       declared.set(key, role);
   };
-  for (const rule2 of compiled.operations)
-    for (const role of rule2.roles)
+  for (const rule of compiled.operations)
+    for (const role of rule.roles)
       remember(role);
-  for (const rule2 of compiled.transitions)
-    for (const role of rule2.roles)
+  for (const rule of compiled.transitions)
+    for (const role of rule.roles)
       remember(role);
   const roles = BUILT_IN.map((role) => ({ ...role }));
   const taken = new Set(roles.map((role) => role.name.toLowerCase()));
@@ -27053,18 +26886,18 @@ function deriveAccess(compiled, options) {
     isAdmin: false
   });
   const entityVisibility = {};
-  for (const rule2 of compiled.operations) {
-    if (rule2.operation !== "read")
+  for (const rule of compiled.operations) {
+    if (rule.operation !== "read")
       continue;
-    const existing = entityVisibility[rule2.entity] ?? [];
-    entityVisibility[rule2.entity] = [...new Set([...existing, ...rule2.roles])].sort();
+    const existing = entityVisibility[rule.entity] ?? [];
+    entityVisibility[rule.entity] = [...new Set([...existing, ...rule.roles])].sort();
   }
   const allEntities = options.entities && options.entities.length > 0 ? options.entities : Object.keys(entityVisibility);
   const normalize = (value) => value.trim().toLowerCase().replace(/[\s-]+/g, "_");
   const entityCounts = {};
   for (const role of roles) {
-    entityCounts[role.name] = role.isAdmin ? allEntities.length : allEntities.filter((entity2) => {
-      const allowed = entityVisibility[entity2];
+    entityCounts[role.name] = role.isAdmin ? allEntities.length : allEntities.filter((entity) => {
+      const allowed = entityVisibility[entity];
       if (!allowed || allowed.length === 0)
         return true;
       return allowed.some((name) => normalize(name) === normalize(role.declaredAs));
@@ -27449,7 +27282,7 @@ function deriveDashboards(ctx, appName, appDescription) {
       y += 4;
     }
   };
-  for (const c of ctx.charts.filter((c2) => c2.key.startsWith("authored__")).slice(0, 4)) {
+  for (const c of ctx.charts.filter((c) => c.key.startsWith("authored__")).slice(0, 4)) {
     place(c.name, c.key);
   }
   for (const e of headline) {
@@ -27515,12 +27348,12 @@ function deriveAccessSpec(model, options) {
   const reportDomain = `${projectId || "app"}.reports.example.com`;
   const roles = access.roles.map((role) => {
     const appUser = access.users.find((u) => u.roleName === role.name);
-    const tables = role.isAdmin ? [] : model.entities.filter((entity2) => {
-      const admitted = access.entityVisibility[entity2.name];
+    const tables = role.isAdmin ? [] : model.entities.filter((entity) => {
+      const admitted = access.entityVisibility[entity.name];
       if (!admitted || admitted.length === 0)
         return true;
       return admitted.some((r) => r.toLowerCase() === role.declaredAs.toLowerCase());
-    }).map((entity2) => tableNameFor(entity2));
+    }).map((entity) => tableNameFor(entity));
     return {
       name: role.name,
       declaredAs: role.declaredAs,
@@ -27672,9 +27505,9 @@ function buildSchema(entities, relationships) {
     "-- make the order of `erDiagram` blocks decide whether the schema loads.",
     ""
   ];
-  for (const entity2 of entities) {
-    const table = tableNameFor(entity2);
-    const columns = entity2.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES2.has(snake2(attribute.name))).map((attribute) => {
+  for (const entity of entities) {
+    const table = tableNameFor(entity);
+    const columns = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES2.has(snake2(attribute.name))).map((attribute) => {
       const nullability = attribute.required ? " NOT NULL" : "";
       const unique = attribute.unique ? " UNIQUE" : "";
       return `  ${snake2(attribute.name)} ${sqlType(attribute)}${nullability}${unique},`;
@@ -27685,7 +27518,7 @@ function buildSchema(entities, relationships) {
     lines.push(MANAGED_COLUMNS);
     lines.push(");");
     lines.push(`CREATE INDEX IF NOT EXISTS idx_${table}_deleted ON ${table}(deleted_at);`);
-    for (const index of entity2.indexes ?? []) {
+    for (const index of entity.indexes ?? []) {
       const name = `idx_${table}_${index.columns.map(snake2).join("_")}`;
       const unique = index.unique ? "UNIQUE " : "";
       lines.push(`CREATE ${unique}INDEX IF NOT EXISTS ${name} ON ${table}(${index.columns.map(snake2).join(", ")});`);
@@ -27700,13 +27533,13 @@ function buildSchema(entities, relationships) {
   lines.push("-- relationship is better than failing the whole schema load. Every reference");
   lines.push("-- column gets an index regardless, since that is what the joins need.");
   lines.push("");
-  const byName = new Map(entities.map((entity2) => [entity2.name, entity2]));
+  const byName = new Map(entities.map((entity) => [entity.name, entity]));
   const constrained = new Set;
-  for (const entity2 of entities) {
-    for (const attribute of entity2.attributes) {
+  for (const entity of entities) {
+    for (const attribute of entity.attributes) {
       if (!attribute.isForeignKey)
         continue;
-      const table = tableNameFor(entity2);
+      const table = tableNameFor(entity);
       const column = snake2(attribute.name);
       lines.push(`CREATE INDEX IF NOT EXISTS idx_${table}_${column} ON ${table}(${column});`);
     }
@@ -27751,7 +27584,7 @@ function fingerprint(value) {
 }
 function buildModelBundle(parsed, project) {
   const schema = buildSchema(parsed.entities, parsed.relationships);
-  const dictionary2 = new DictionaryGenerator({
+  const dictionary = new DictionaryGenerator({
     databaseType: "postgresql",
     includeRbac: true,
     randomizeFieldOrder: false
@@ -27767,7 +27600,7 @@ function buildModelBundle(parsed, project) {
     projectId: kebab(project.name),
     adminEmail: project.adminEmail,
     adminName: project.adminName,
-    entities: parsed.entities.map((entity2) => entity2.name)
+    entities: parsed.entities.map((entity) => entity.name)
   });
   const categoryOf = new Map;
   for (const category of parsed.categories) {
@@ -27775,23 +27608,23 @@ function buildModelBundle(parsed, project) {
       categoryOf.set(entityName, category.name);
   }
   const declared = declaredEntityNames(parsed.entities);
-  const entities = parsed.entities.map((entity2) => {
-    const table = tableNameFor(entity2);
+  const entities = parsed.entities.map((entity) => {
+    const table = tableNameFor(entity);
     return {
-      name: entity2.name,
+      name: entity.name,
       tableName: table,
-      routeName: kebab(entity2.name),
-      displayName: title(entity2.name),
-      description: entity2.description,
-      primaryKey: entity2.primaryKey,
-      category: categoryOf.get(entity2.name) ?? "General",
-      icon: entity2.icon,
-      parentEntity: entity2.parentEntity,
-      parentLinkColumn: entity2.parentLinkColumn ? snake2(entity2.parentLinkColumn) : undefined,
-      attributes: entity2.attributes.map((attribute, index) => ({
+      routeName: kebab(entity.name),
+      displayName: title(entity.name),
+      description: entity.description,
+      primaryKey: entity.primaryKey,
+      category: categoryOf.get(entity.name) ?? "General",
+      icon: entity.icon,
+      parentEntity: entity.parentEntity,
+      parentLinkColumn: entity.parentLinkColumn ? snake2(entity.parentLinkColumn) : undefined,
+      attributes: entity.attributes.map((attribute, index) => ({
         name: attribute.name,
         columnName: snake2(attribute.name),
-        displayName: attributeDisplayName(attribute, entity2.primaryKey, declared),
+        displayName: attributeDisplayName(attribute, entity.primaryKey, declared),
         type: attribute.type,
         sqlType: sqlType(attribute),
         required: !!attribute.required,
@@ -27801,17 +27634,17 @@ function buildModelBundle(parsed, project) {
         isForeignKey: !!attribute.isForeignKey,
         enumRef: attribute.enumRef,
         enumValues: attribute.enumValues,
-        referenceId: referenceIdFor(attribute, attribute.name === entity2.primaryKey),
+        referenceId: referenceIdFor(attribute, attribute.name === entity.primaryKey),
         seqNo: (index + 1) * 10
       }))
     };
   });
-  const tableByTemp = new Map(dictionary2.sysTables.map((table) => [table._tempId, table.table_name]));
-  const columnByTemp = new Map(dictionary2.sysColumns.map((column) => [
+  const tableByTemp = new Map(dictionary.sysTables.map((table) => [table._tempId, table.table_name]));
+  const columnByTemp = new Map(dictionary.sysColumns.map((column) => [
     column._tempId,
     { table: tableByTemp.get(column._tableRef) ?? "", column: column.column_name }
   ]));
-  const tabTable = new Map(dictionary2.sysTabs.map((tab) => [tab._tempId, tableByTemp.get(tab._tableRef) ?? ""]));
+  const tabTable = new Map(dictionary.sysTabs.map((tab) => [tab._tempId, tableByTemp.get(tab._tableRef) ?? ""]));
   const model = {
     project: {
       name: project.name,
@@ -27833,10 +27666,10 @@ function buildModelBundle(parsed, project) {
       seqNo: (index + 1) * 10,
       entities: category.entities
     })),
-    enums: parsed.enums.map((declared2) => ({
-      name: declared2.name,
-      referenceId: declared2.referenceId,
-      values: declared2.values
+    enums: parsed.enums.map((declared) => ({
+      name: declared.name,
+      referenceId: declared.referenceId,
+      values: declared.values
     })),
     rules: parsed.rules,
     hooks: parsed.hooks,
@@ -27846,7 +27679,7 @@ function buildModelBundle(parsed, project) {
       name: report.name,
       title: report.title,
       entity: report.entity ?? null,
-      tableName: report.entity ? entities.find((entity2) => entity2.name === report.entity)?.tableName ?? null : null,
+      tableName: report.entity ? entities.find((entity) => entity.name === report.entity)?.tableName ?? null : null,
       chart: report.chart ?? null,
       x: report.x ?? null,
       y: report.y ?? null,
@@ -27867,14 +27700,14 @@ function buildModelBundle(parsed, project) {
         description: `${title(name)} reference type`,
         validationType: id === ReferenceType.LIST ? "L" : id >= 18 && id <= 19 ? "T" : "S"
       })),
-      windows: dictionary2.sysWindows.map((window) => ({
+      windows: dictionary.sysWindows.map((window) => ({
         name: window.name,
         description: window.description,
         windowType: "maintain"
       })),
-      tables: dictionary2.sysTables.map((table) => {
-        const ownTab = dictionary2.sysTabs.find((tab) => tab._tableRef === table._tempId);
-        const ownWindow = ownTab ? dictionary2.sysWindows.find((window) => window._tempId === ownTab._windowRef) : undefined;
+      tables: dictionary.sysTables.map((table) => {
+        const ownTab = dictionary.sysTabs.find((tab) => tab._tableRef === table._tempId);
+        const ownWindow = ownTab ? dictionary.sysWindows.find((window) => window._tempId === ownTab._windowRef) : undefined;
         return {
           tableName: table.table_name,
           name: table.name,
@@ -27885,17 +27718,17 @@ function buildModelBundle(parsed, project) {
           category: categoryOf.get(entityNameFor(entities, table.table_name)) ?? "General"
         };
       }),
-      tabs: dictionary2.sysTabs.map((tab) => ({
+      tabs: dictionary.sysTabs.map((tab) => ({
         tableName: tableByTemp.get(tab._tableRef) ?? "",
-        window: dictionary2.sysWindows.find((window) => window._tempId === tab._windowRef)?.name ?? tab.name,
+        window: dictionary.sysWindows.find((window) => window._tempId === tab._windowRef)?.name ?? tab.name,
         name: tab.name,
         description: tab.description,
         seqNo: tab.seq_no,
         isSingleRow: false,
         tabLevel: tab.tab_level ?? 0,
-        linkColumn: tab.link_column_id ? dictionary2.sysColumns.find((column) => column._tempId === tab.link_column_id)?.column_name : undefined
+        linkColumn: tab.link_column_id ? dictionary.sysColumns.find((column) => column._tempId === tab.link_column_id)?.column_name : undefined
       })),
-      columns: dictionary2.sysColumns.map((column) => ({
+      columns: dictionary.sysColumns.map((column) => ({
         tableName: tableByTemp.get(column._tableRef) ?? "",
         columnName: column.column_name,
         name: column.name,
@@ -27913,10 +27746,10 @@ function buildModelBundle(parsed, project) {
         seqNo: column.seq_no
       })),
       fieldGroups: [],
-      fields: dictionary2.sysFields.map((field) => {
+      fields: dictionary.sysFields.map((field) => {
         const reference = columnByTemp.get(field._columnRef);
         const tableName = reference?.table ?? tabTable.get(field._tabRef) ?? "";
-        const attribute = entities.find((entity2) => entity2.tableName === tableName)?.attributes.find((item) => item.columnName === reference?.column);
+        const attribute = entities.find((entity) => entity.tableName === tableName)?.attributes.find((item) => item.columnName === reference?.column);
         return {
           tableName,
           columnName: reference?.column ?? "",
@@ -27950,7 +27783,7 @@ var GRID_NOISE = new Set([
 ]);
 var isNoise = (column) => GRID_NOISE.has(column);
 function entityNameFor(entities, tableName) {
-  return entities.find((entity2) => entity2.tableName === tableName)?.name ?? tableName;
+  return entities.find((entity) => entity.tableName === tableName)?.name ?? tableName;
 }
 var PERSON_ROLE_COLUMNS = new Set([
   "assigned_to",
@@ -27967,17 +27800,17 @@ function isPersonRoleColumn2(columnName) {
   return columnName.endsWith("_by") || columnName.endsWith("_by_id") || PERSON_ROLE_COLUMNS.has(columnName);
 }
 function refTableFor(entities, tableName, columnName) {
-  const owner = entities.find((entity2) => entity2.tableName === tableName);
+  const owner = entities.find((entity) => entity.tableName === tableName);
   const attribute = owner?.attributes.find((item) => item.columnName === columnName);
   if (!attribute?.isForeignKey)
     return;
   if (isPersonRoleColumn2(columnName)) {
-    const user = entities.find((entity2) => entity2.tableName === "bus_user" || entity2.name === "User");
+    const user = entities.find((entity) => entity.tableName === "bus_user" || entity.name === "User");
     if (user)
       return user.tableName;
   }
   const base = columnName.replace(/_id$/, "");
-  return entities.find((entity2) => entity2.tableName === `bus_${base}`)?.tableName;
+  return entities.find((entity) => entity.tableName === `bus_${base}`)?.tableName;
 }
 
 // packages/generator/src/manual/index.ts
@@ -28022,11 +27855,11 @@ function referenceTarget(column, declared) {
   return declared.get(stem.replace(/_/g, "")) ?? title2(stem).replace(/\s+/g, "");
 }
 function declaredNames(model) {
-  return new Map(model.entities.map((entity2) => [entity2.name.toLowerCase().replace(/_/g, ""), entity2.name]));
+  return new Map(model.entities.map((entity) => [entity.name.toLowerCase().replace(/_/g, ""), entity.name]));
 }
-function fieldRows(entity2, declared) {
-  const primaryKey = entity2.primaryKey || "id";
-  return entity2.attributes.map((attribute) => {
+function fieldRows(entity, declared) {
+  const primaryKey = entity.primaryKey || "id";
+  return entity.attributes.map((attribute) => {
     const isPrimary = attribute.name === primaryKey;
     const referenceId = referenceIdFor(attribute, isPrimary);
     const control = controlFor(attribute, referenceId);
@@ -28073,19 +27906,19 @@ function relationshipPhrase(relationship, entityName) {
       return `has one ${link}`;
   }
 }
-function relationshipsFor(model, entity2) {
-  const related = model.relationships.filter((relationship) => relationship.sourceEntity === entity2.name || relationship.targetEntity === entity2.name);
+function relationshipsFor(model, entity) {
+  const related = model.relationships.filter((relationship) => relationship.sourceEntity === entity.name || relationship.targetEntity === entity.name);
   if (related.length === 0)
     return "";
-  const items = related.map((relationship) => `<li>Each <b>${escapeHtml(title2(entity2.name))}</b> ${relationshipPhrase(relationship, entity2.name)}.</li>`).join(`
+  const items = related.map((relationship) => `<li>Each <b>${escapeHtml(title2(entity.name))}</b> ${relationshipPhrase(relationship, entity.name)}.</li>`).join(`
           `);
   return `      <h4>Related records</h4>
       <ul class="plain">
           ${items}
       </ul>`;
 }
-function screensFor(dictionary2, entity2) {
-  const layout = dictionary2.get(entity2.name);
+function screensFor(dictionary, entity) {
+  const layout = dictionary.get(entity.name);
   if (!layout)
     return "";
   const rows = layout.fields.map((field) => `          <tr>
@@ -28149,15 +27982,15 @@ function manualDictionary(model) {
   for (const layout of byTable.values())
     layout.fields.sort((a, b) => a.formSeq - b.formSeq);
   const byEntity = new Map;
-  for (const entity2 of model.entities) {
-    const layout = byTable.get(tableNameFor(entity2));
+  for (const entity of model.entities) {
+    const layout = byTable.get(tableNameFor(entity));
     if (layout)
-      byEntity.set(entity2.name, layout);
+      byEntity.set(entity.name, layout);
   }
   return byEntity;
 }
-function workflowFor(model, entity2) {
-  const workflows = model.workflows.filter((workflow) => workflow.entity === entity2.name);
+function workflowFor(model, entity) {
+  const workflows = model.workflows.filter((workflow) => workflow.entity === entity.name);
   if (workflows.length === 0)
     return "";
   return workflows.map((workflow) => {
@@ -28174,10 +28007,10 @@ ${rows}
   }).join(`
 `);
 }
-function rulesFor(model, entity2) {
-  const rules = model.rules.filter((rule2) => rule2.entity === entity2.name);
-  const hooks = model.hooks.filter((hook2) => hook2.entity === entity2.name);
-  const sagas = model.sagas.filter((saga) => saga.entity === entity2.name);
+function rulesFor(model, entity) {
+  const rules = model.rules.filter((rule) => rule.entity === entity.name);
+  const hooks = model.hooks.filter((hook) => hook.entity === entity.name);
+  const sagas = model.sagas.filter((saga) => saga.entity === entity.name);
   if (rules.length === 0 && hooks.length === 0 && sagas.length === 0)
     return "";
   const parts = ["      <h4>What happens when it is written</h4>"];
@@ -28185,13 +28018,13 @@ function rulesFor(model, entity2) {
     parts.push(`      <table>
         <thead><tr><th>Rule</th><th>Runs on</th><th>Order</th></tr></thead>
         <tbody>
-${rules.map((rule2) => `          <tr><td><code>${escapeHtml(rule2.name)}</code></td><td>${escapeHtml(rule2.event)} (${escapeHtml(rule2.operation)})</td><td>${rule2.priority}</td></tr>`).join(`
+${rules.map((rule) => `          <tr><td><code>${escapeHtml(rule.name)}</code></td><td>${escapeHtml(rule.event)} (${escapeHtml(rule.operation)})</td><td>${rule.priority}</td></tr>`).join(`
 `)}
         </tbody>
       </table>`);
   }
   if (hooks.length > 0) {
-    parts.push(`      <p><b>Handlers:</b> ${hooks.map((hook2) => `<code>${escapeHtml(hook2.type)}</code>${hook2.field ? ` on <code>${escapeHtml(hook2.field)}</code>` : ""}`).join(", ")}</p>`);
+    parts.push(`      <p><b>Handlers:</b> ${hooks.map((hook) => `<code>${escapeHtml(hook.type)}</code>${hook.field ? ` on <code>${escapeHtml(hook.field)}</code>` : ""}`).join(", ")}</p>`);
   }
   if (sagas.length > 0) {
     parts.push(`      <p><b>Processes:</b> ${sagas.map((saga) => `<a href="#process-${slug(saga.name)}">${escapeHtml(saga.name)}</a>`).join(", ")}</p>`);
@@ -28199,19 +28032,19 @@ ${rules.map((rule2) => `          <tr><td><code>${escapeHtml(rule2.name)}</code>
   return parts.join(`
 `);
 }
-function accessFor(model, entity2, visibility) {
-  const readers = visibility[entity2.name];
-  const rules = model.rbac.operations.filter((rule2) => rule2.entity === entity2.name);
+function accessFor(model, entity, visibility) {
+  const readers = visibility[entity.name];
+  const rules = model.rbac.operations.filter((rule) => rule.entity === entity.name);
   if (!readers && rules.length === 0)
     return "";
   const parts = ["      <h4>Who may use it</h4>"];
   parts.push(readers && readers.length > 0 ? `      <p>Visible to ${readers.map((role) => `<b>${escapeHtml(title2(role))}</b>`).join(", ")}, and to the Administrator. Nobody else sees it at all &mdash; it is absent from their menu rather than refused when opened.</p>` : "      <p>Visible to every signed-in user; the model places no restriction on reading it.</p>");
-  const writes = rules.filter((rule2) => rule2.operation !== "read");
+  const writes = rules.filter((rule) => rule.operation !== "read");
   if (writes.length > 0) {
     parts.push(`      <table>
         <thead><tr><th>Action</th><th>Permitted to</th></tr></thead>
         <tbody>
-${writes.map((rule2) => `          <tr><td>${escapeHtml(title2(rule2.operation))}</td><td>${rule2.roles.map((role) => escapeHtml(title2(role))).join(", ")}</td></tr>`).join(`
+${writes.map((rule) => `          <tr><td>${escapeHtml(title2(rule.operation))}</td><td>${rule.roles.map((role) => escapeHtml(title2(role))).join(", ")}</td></tr>`).join(`
 `)}
         </tbody>
       </table>`);
@@ -28224,7 +28057,7 @@ function renderManual(model, options) {
   const access = deriveAccess(model.rbac, {
     projectId: slug(options.name) || "app",
     adminEmail: options.adminEmail,
-    entities: model.entities.map((entity2) => entity2.name)
+    entities: model.entities.map((entity) => entity.name)
   });
   const categoryOf = new Map;
   for (const category of model.categories) {
@@ -28233,7 +28066,7 @@ function renderManual(model, options) {
   }
   const entities = [...model.entities].sort((a, b) => a.name.localeCompare(b.name));
   const declared = declaredNames(model);
-  const dictionary2 = manualDictionary(model);
+  const dictionary = manualDictionary(model);
   const contents = `
       <nav class="toc" aria-label="Contents">
         <h2>Contents</h2>
@@ -28242,7 +28075,7 @@ function renderManual(model, options) {
           <li><a href="#signing-in">Signing in, and what each role sees</a></li>
           <li><a href="#entities">The records it keeps</a>
             <ul>
-${entities.map((entity2) => `              <li><a href="#entity-${slug(entity2.name)}">${escapeHtml(title2(entity2.name))}</a></li>`).join(`
+${entities.map((entity) => `              <li><a href="#entity-${slug(entity.name)}">${escapeHtml(title2(entity.name))}</a></li>`).join(`
 `)}
             </ul>
           </li>
@@ -28252,27 +28085,27 @@ ${model.rules.length ? `          <li><a href="#rules">The decisions it makes</a
 ` : ""}          <li><a href="#how-it-was-built">How this application was built</a></li>
         </ol>
       </nav>`;
-  const entitySections = entities.map((entity2) => {
-    const category = categoryOf.get(entity2.name);
-    return `    <section id="entity-${slug(entity2.name)}" class="entity">
-      <h3>${escapeHtml(title2(entity2.name))}${category ? ` <span class="group">${escapeHtml(category)}</span>` : ""}</h3>
-      <p class="lede">${entity2.description ? escapeHtml(entity2.description) : '<span class="missing">The model gives this entity no description. Add one with <code>%%entity ' + escapeHtml(entity2.name) + " help: …</code>.</span>"}</p>
-      <p class="meta">Stored as <code>${escapeHtml(tableNameFor(entity2))}</code>, keyed by <code>${escapeHtml(entity2.primaryKey || "id")}</code>.</p>
+  const entitySections = entities.map((entity) => {
+    const category = categoryOf.get(entity.name);
+    return `    <section id="entity-${slug(entity.name)}" class="entity">
+      <h3>${escapeHtml(title2(entity.name))}${category ? ` <span class="group">${escapeHtml(category)}</span>` : ""}</h3>
+      <p class="lede">${entity.description ? escapeHtml(entity.description) : '<span class="missing">The model gives this entity no description. Add one with <code>%%entity ' + escapeHtml(entity.name) + " help: …</code>.</span>"}</p>
+      <p class="meta">Stored as <code>${escapeHtml(tableNameFor(entity))}</code>, keyed by <code>${escapeHtml(entity.primaryKey || "id")}</code>.</p>
 
       <h4>Its fields</h4>
-${entity2.attributes.some((attribute) => attribute.description) ? "" : `      <p class="missing">No field here carries help text. Add it with <code>%%field ${escapeHtml(entity2.name)}.&lt;field&gt; help: …</code> and it appears in this column and in the application itself.</p>
+${entity.attributes.some((attribute) => attribute.description) ? "" : `      <p class="missing">No field here carries help text. Add it with <code>%%field ${escapeHtml(entity.name)}.&lt;field&gt; help: …</code> and it appears in this column and in the application itself.</p>
 `}      <table>
         <thead><tr><th>Field</th><th>Shown as</th><th></th><th>What it is for</th></tr></thead>
         <tbody>
-${fieldRows(entity2, declared)}
+${fieldRows(entity, declared)}
         </tbody>
       </table>
 ${[
-      screensFor(dictionary2, entity2),
-      relationshipsFor(model, entity2),
-      workflowFor(model, entity2),
-      rulesFor(model, entity2),
-      accessFor(model, entity2, access.entityVisibility)
+      screensFor(dictionary, entity),
+      relationshipsFor(model, entity),
+      workflowFor(model, entity),
+      rulesFor(model, entity),
+      accessFor(model, entity, access.entityVisibility)
     ].filter(Boolean).join(`
 `)}
       <p class="back"><a href="#top">Back to contents</a></p>
@@ -28286,7 +28119,7 @@ ${[
     <table>
       <thead><tr><th>Rule</th><th>Applies to</th><th>Runs on</th></tr></thead>
       <tbody>
-${model.rules.map((rule2) => `        <tr><td><code>${escapeHtml(rule2.name)}</code></td><td><a href="#entity-${slug(rule2.entity)}">${escapeHtml(title2(rule2.entity))}</a></td><td>${escapeHtml(rule2.event)}</td></tr>`).join(`
+${model.rules.map((rule) => `        <tr><td><code>${escapeHtml(rule.name)}</code></td><td><a href="#entity-${slug(rule.entity)}">${escapeHtml(title2(rule.entity))}</a></td><td>${escapeHtml(rule.event)}</td></tr>`).join(`
 `)}
       </tbody>
     </table>
@@ -28484,149 +28317,149 @@ var t = Symbol(`FakerLocaleProxy`);
 var n = () => {
   throw new e(`You cannot edit the locale data on the faker instance`);
 };
-function r(e2) {
-  return typeof e2 == `object` && !!e2 && e2?.[t] === true;
+function r(e) {
+  return typeof e == `object` && !!e && e?.[t] === true;
 }
-function i(e2) {
-  if (r(e2))
-    return e2;
-  let i2 = { raw: e2 };
-  return new Proxy(e2, { has() {
+function i(e) {
+  if (r(e))
+    return e;
+  let i = { raw: e };
+  return new Proxy(e, { has() {
     return true;
-  }, get(e3, n2) {
-    return typeof n2 == `symbol` ? n2 === t || e3[n2] : n2 === `nodeType` ? e3[n2] : i2[n2] ??= o(n2, e3[n2]);
+  }, get(e, n) {
+    return typeof n == `symbol` ? n === t || e[n] : n === `nodeType` ? e[n] : i[n] ??= o(n, e[n]);
   }, set: n, deleteProperty: n });
 }
-function a(t2, ...n2) {
-  if (t2 === null)
-    throw new e(`The locale data for '${n2.join(`.`)}' aren't applicable to this locale.
+function a(t, ...n) {
+  if (t === null)
+    throw new e(`The locale data for '${n.join(`.`)}' aren't applicable to this locale.
   If you think this is a bug, please report it at: https://github.com/faker-js/faker`);
-  if (t2 === undefined)
-    throw new e(`The locale data for '${n2.join(`.`)}' are missing in this locale.
+  if (t === undefined)
+    throw new e(`The locale data for '${n.join(`.`)}' are missing in this locale.
   If this is a custom Faker instance, please make sure all required locales are used e.g. '[de_AT, de, en, base]'.
   Please contribute the missing data to the project or use a locale/Faker instance that has these data.
   For more information see https://fakerjs.dev/guide/localization.html`);
 }
-function o(e2, t2 = {}) {
-  return new Proxy(t2, { has(e3, t3) {
-    return e3[t3] != null;
-  }, get(t3, n2) {
-    let r2 = t3[n2];
-    return typeof n2 == `symbol` || n2 === `nodeType` || a(r2, e2, n2.toString()), r2;
+function o(e, t = {}) {
+  return new Proxy(t, { has(e, t) {
+    return e[t] != null;
+  }, get(t, n) {
+    let r = t[n];
+    return typeof n == `symbol` || n === `nodeType` || a(r, e, n.toString()), r;
   }, set: n, deleteProperty: n });
 }
-function s(e2) {
-  let t2 = {};
-  for (let n2 of e2)
-    for (let e3 in n2) {
-      let r2 = n2[e3];
-      t2[e3] === undefined ? t2[e3] = { ...r2 } : t2[e3] = { ...r2, ...t2[e3] };
+function s(e) {
+  let t = {};
+  for (let n of e)
+    for (let e in n) {
+      let r = n[e];
+      t[e] === undefined ? t[e] = { ...r } : t[e] = { ...r, ...t[e] };
     }
-  return t2;
+  return t;
 }
 var c = 2567483615;
 var l = 2 ** 31 - 1;
 var u = 2 ** 31;
 var { imul: d, trunc: f } = Math;
-function p(e2) {
-  return typeof e2 == `number` ? m(e2) : h(e2);
+function p(e) {
+  return typeof e == `number` ? m(e) : h(e);
 }
-function m(e2) {
-  let t2 = Array.from({ length: 624 });
-  t2[0] = e2;
-  for (let e3 = 1;e3 !== 624; ++e3) {
-    let n2 = t2[e3 - 1] ^ t2[e3 - 1] >>> 30;
-    t2[e3] = f(d(1812433253, n2) + e3);
+function m(e) {
+  let t = Array.from({ length: 624 });
+  t[0] = e;
+  for (let e = 1;e !== 624; ++e) {
+    let n = t[e - 1] ^ t[e - 1] >>> 30;
+    t[e] = f(d(1812433253, n) + e);
   }
-  return t2;
+  return t;
 }
-function h(e2) {
-  let t2 = m(19650218), n2 = 1, r2 = 0;
-  for (let i2 = Math.max(624, e2.length);i2 !== 0; --i2) {
-    let i3 = t2[n2 - 1] ^ t2[n2 - 1] >>> 30;
-    t2[n2] = f((t2[n2] ^ d(i3, 1664525)) + e2[r2] + r2), n2++, r2++, n2 >= 624 && (t2[0] = t2[623], n2 = 1), r2 >= e2.length && (r2 = 0);
+function h(e) {
+  let t = m(19650218), n = 1, r = 0;
+  for (let i = Math.max(624, e.length);i !== 0; --i) {
+    let i = t[n - 1] ^ t[n - 1] >>> 30;
+    t[n] = f((t[n] ^ d(i, 1664525)) + e[r] + r), n++, r++, n >= 624 && (t[0] = t[623], n = 1), r >= e.length && (r = 0);
   }
-  for (let e3 = 623;e3 !== 0; e3--)
-    t2[n2] = f((t2[n2] ^ d(t2[n2 - 1] ^ t2[n2 - 1] >>> 30, 1566083941)) - n2), n2++, n2 >= 624 && (t2[0] = t2[623], n2 = 1);
-  return t2[0] = 2147483648, t2;
+  for (let e = 623;e !== 0; e--)
+    t[n] = f((t[n] ^ d(t[n - 1] ^ t[n - 1] >>> 30, 1566083941)) - n), n++, n >= 624 && (t[0] = t[623], n = 1);
+  return t[0] = 2147483648, t;
 }
-function g(e2) {
-  for (let t3 = 0;t3 !== 227; ++t3) {
-    let n2 = (e2[t3] & u) + (e2[t3 + 1] & l);
-    e2[t3] = e2[t3 + 397] ^ n2 >>> 1 ^ -(n2 & 1) & c;
+function g(e) {
+  for (let t = 0;t !== 227; ++t) {
+    let n = (e[t] & u) + (e[t + 1] & l);
+    e[t] = e[t + 397] ^ n >>> 1 ^ -(n & 1) & c;
   }
-  for (let t3 = 227;t3 !== 623; ++t3) {
-    let n2 = (e2[t3] & u) + (e2[t3 + 1] & l);
-    e2[t3] = e2[t3 + 397 - 624] ^ n2 >>> 1 ^ -(n2 & 1) & c;
+  for (let t = 227;t !== 623; ++t) {
+    let n = (e[t] & u) + (e[t + 1] & l);
+    e[t] = e[t + 397 - 624] ^ n >>> 1 ^ -(n & 1) & c;
   }
-  let t2 = (e2[623] & u) + (e2[0] & l);
-  return e2[623] = e2[396] ^ t2 >>> 1 ^ -(t2 & 1) & c, e2;
+  let t = (e[623] & u) + (e[0] & l);
+  return e[623] = e[396] ^ t >>> 1 ^ -(t & 1) & c, e;
 }
 var _ = class {
   states;
   index;
-  constructor(e2 = Math.random() * (2 ** 53 - 1), t2 = g(p(e2)), n2 = 0) {
-    this.states = t2, this.index = n2;
+  constructor(e = Math.random() * (2 ** 53 - 1), t = g(p(e)), n = 0) {
+    this.states = t, this.index = n;
   }
   nextU32() {
-    let e2 = this.states[this.index];
-    return e2 ^= this.states[this.index] >>> 11, e2 ^= e2 << 7 & 2636928640, e2 ^= e2 << 15 & 4022730752, e2 ^= e2 >>> 18, ++this.index >= 624 && (this.states = g(this.states), this.index = 0), e2 >>> 0;
+    let e = this.states[this.index];
+    return e ^= this.states[this.index] >>> 11, e ^= e << 7 & 2636928640, e ^= e << 15 & 4022730752, e ^= e >>> 18, ++this.index >= 624 && (this.states = g(this.states), this.index = 0), e >>> 0;
   }
   nextF32() {
     return this.nextU32() * 0.00000000023283064365386963;
   }
   nextU53() {
-    let e2 = this.nextU32() >>> 5, t2 = this.nextU32() >>> 6;
-    return e2 * 67108864 + t2;
+    let e = this.nextU32() >>> 5, t = this.nextU32() >>> 6;
+    return e * 67108864 + t;
   }
   nextF53() {
     return this.nextU53() * 0.00000000000000011102230246251565;
   }
-  seed(e2) {
-    this.states = g(p(e2)), this.index = 0;
+  seed(e) {
+    this.states = g(p(e)), this.index = 0;
   }
 };
 function v() {
   return Math.ceil(Math.random() * (2 ** 53 - 1));
 }
-function y(e2 = v()) {
-  let t2 = new _(e2);
+function y(e = v()) {
+  let t = new _(e);
   return { next() {
-    return t2.nextF53();
-  }, seed(e3) {
-    t2.seed(e3);
+    return t.nextF53();
+  }, seed(e) {
+    t.seed(e);
   } };
 }
-function te(e2 = {}) {
-  let { locale: t2 = {}, randomizer: n2 = y(), config: r2 = {}, seed: a2 } = e2;
-  return n2 != null && a2 != null && n2.seed(a2), { locale: i(Array.isArray(t2) ? s(t2) : t2), randomizer: n2, config: r2 };
+function te(e = {}) {
+  let { locale: t = {}, randomizer: n = y(), config: r = {}, seed: a } = e;
+  return n != null && a != null && n.seed(a), { locale: i(Array.isArray(t) ? s(t) : t), randomizer: n, config: r };
 }
 function b() {
   return ne;
 }
-var ne = ({ next: e2 }) => e2();
-function re(e2) {
-  let t2 = Object.getPrototypeOf(e2);
+var ne = ({ next: e }) => e();
+function re(e) {
+  let t = Object.getPrototypeOf(e);
   do {
-    for (let n2 of Object.getOwnPropertyNames(t2))
-      typeof e2[n2] == `function` && n2 !== `constructor` && (e2[n2] = e2[n2].bind(e2));
-    t2 = Object.getPrototypeOf(t2);
-  } while (t2 !== Object.prototype);
+    for (let n of Object.getOwnPropertyNames(t))
+      typeof e[n] == `function` && n !== `constructor` && (e[n] = e[n].bind(e));
+    t = Object.getPrototypeOf(t);
+  } while (t !== Object.prototype);
 }
 var x = class {
   faker;
-  constructor(e2) {
-    this.faker = e2, re(this);
+  constructor(e) {
+    this.faker = e, re(this);
   }
 };
 var S = class extends x {
   faker;
-  constructor(e2) {
-    super(e2), this.faker = e2;
+  constructor(e) {
+    super(e), this.faker = e;
   }
 };
-var C = function(e2) {
-  return e2.Narrowbody = `narrowbody`, e2.Regional = `regional`, e2.Widebody = `widebody`, e2;
+var C = function(e) {
+  return e.Narrowbody = `narrowbody`, e.Regional = `regional`, e.Widebody = `widebody`, e;
 }({});
 var ie = [`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`];
 var ae = [`0`, `O`, `1`, `I`, `L`];
@@ -28642,20 +28475,20 @@ var ce = class extends S {
   airplane() {
     return this.faker.helpers.arrayElement(this.faker.definitions.airline.airplane);
   }
-  recordLocator(e2 = {}) {
-    let { allowNumerics: t2 = false, allowVisuallySimilarCharacters: n2 = false } = e2, r2 = [];
-    return t2 || r2.push(...ie), n2 || r2.push(...ae), this.faker.string.alphanumeric({ length: 6, casing: `upper`, exclude: r2 });
+  recordLocator(e = {}) {
+    let { allowNumerics: t = false, allowVisuallySimilarCharacters: n = false } = e, r = [];
+    return t || r.push(...ie), n || r.push(...ae), this.faker.string.alphanumeric({ length: 6, casing: `upper`, exclude: r });
   }
-  seat(e2 = {}) {
-    let { aircraftType: t2 = `narrowbody` } = e2, n2 = oe[t2], r2 = se[t2];
-    return `${this.faker.number.int({ min: 1, max: n2 })}${this.faker.helpers.arrayElement(r2)}`;
+  seat(e = {}) {
+    let { aircraftType: t = `narrowbody` } = e, n = oe[t], r = se[t];
+    return `${this.faker.number.int({ min: 1, max: n })}${this.faker.helpers.arrayElement(r)}`;
   }
   aircraftType() {
     return this.faker.helpers.enumValue(C);
   }
-  flightNumber(e2 = {}) {
-    let { length: t2 = { min: 1, max: 4 }, addLeadingZeros: n2 = false } = e2, r2 = this.faker.string.numeric({ length: t2, allowLeadingZeros: false });
-    return n2 ? r2.padStart(4, `0`) : r2;
+  flightNumber(e = {}) {
+    let { length: t = { min: 1, max: 4 }, addLeadingZeros: n = false } = e, r = this.faker.string.numeric({ length: t, allowLeadingZeros: false });
+    return n ? r.padStart(4, `0`) : r;
   }
 };
 var le = class extends S {
@@ -28728,67 +28561,67 @@ var ue = class extends S {
     return this.faker.helpers.arrayElement(this.faker.definitions.book.title);
   }
 };
-var w = function(e2) {
-  return e2.SRGB = `sRGB`, e2.DisplayP3 = `display-p3`, e2.REC2020 = `rec2020`, e2.A98RGB = `a98-rgb`, e2.ProphotoRGB = `prophoto-rgb`, e2;
+var w = function(e) {
+  return e.SRGB = `sRGB`, e.DisplayP3 = `display-p3`, e.REC2020 = `rec2020`, e.A98RGB = `a98-rgb`, e.ProphotoRGB = `prophoto-rgb`, e;
 }({});
-var T = function(e2) {
-  return e2.RGB = `rgb`, e2.RGBA = `rgba`, e2.HSL = `hsl`, e2.HSLA = `hsla`, e2.HWB = `hwb`, e2.CMYK = `cmyk`, e2.LAB = `lab`, e2.LCH = `lch`, e2.COLOR = `color`, e2;
+var T = function(e) {
+  return e.RGB = `rgb`, e.RGBA = `rgba`, e.HSL = `hsl`, e.HSLA = `hsla`, e.HWB = `hwb`, e.CMYK = `cmyk`, e.LAB = `lab`, e.LCH = `lch`, e.COLOR = `color`, e;
 }({});
-function de(e2, t2) {
-  let { prefix: n2, casing: r2 } = t2;
-  switch (r2) {
+function de(e, t) {
+  let { prefix: n, casing: r } = t;
+  switch (r) {
     case `upper`:
-      e2 = e2.toUpperCase();
+      e = e.toUpperCase();
       break;
     case `lower`:
-      e2 = e2.toLowerCase();
+      e = e.toLowerCase();
       break;
     case `mixed`:
   }
-  return n2 && (e2 = n2 + e2), e2;
+  return n && (e = n + e), e;
 }
-function E(e2) {
-  return e2.map((e3) => {
-    if (e3 % 1 != 0) {
-      let t2 = new ArrayBuffer(4);
-      return new DataView(t2).setFloat32(0, e3), E([...new Uint8Array(t2)]).replaceAll(` `, ``);
+function E(e) {
+  return e.map((e) => {
+    if (e % 1 != 0) {
+      let t = new ArrayBuffer(4);
+      return new DataView(t).setFloat32(0, e), E([...new Uint8Array(t)]).replaceAll(` `, ``);
     }
-    return (e3 >>> 0).toString(2).padStart(8, `0`);
+    return (e >>> 0).toString(2).padStart(8, `0`);
   }).join(` `);
 }
-function D(e2) {
-  return Math.round(e2 * 100);
+function D(e) {
+  return Math.round(e * 100);
 }
-function fe(e2, t2 = `rgb`, n2 = `sRGB`) {
-  switch (t2) {
+function fe(e, t = `rgb`, n = `sRGB`) {
+  switch (t) {
     case `rgba`:
-      return `rgba(${e2[0]}, ${e2[1]}, ${e2[2]}, ${e2[3]})`;
+      return `rgba(${e[0]}, ${e[1]}, ${e[2]}, ${e[3]})`;
     case `color`:
-      return `color(${n2} ${e2[0]} ${e2[1]} ${e2[2]})`;
+      return `color(${n} ${e[0]} ${e[1]} ${e[2]})`;
     case `cmyk`:
-      return `cmyk(${D(e2[0])}%, ${D(e2[1])}%, ${D(e2[2])}%, ${D(e2[3])}%)`;
+      return `cmyk(${D(e[0])}%, ${D(e[1])}%, ${D(e[2])}%, ${D(e[3])}%)`;
     case `hsl`:
-      return `hsl(${e2[0]}deg ${D(e2[1])}% ${D(e2[2])}%)`;
+      return `hsl(${e[0]}deg ${D(e[1])}% ${D(e[2])}%)`;
     case `hsla`:
-      return `hsl(${e2[0]}deg ${D(e2[1])}% ${D(e2[2])}% / ${e2[3]})`;
+      return `hsl(${e[0]}deg ${D(e[1])}% ${D(e[2])}% / ${e[3]})`;
     case `hwb`:
-      return `hwb(${e2[0]} ${D(e2[1])}% ${D(e2[2])}%)`;
+      return `hwb(${e[0]} ${D(e[1])}% ${D(e[2])}%)`;
     case `lab`:
-      return `lab(${D(e2[0])}% ${e2[1]} ${e2[2]})`;
+      return `lab(${D(e[0])}% ${e[1]} ${e[2]})`;
     case `lch`:
-      return `lch(${D(e2[0])}% ${e2[1]} ${e2[2]})`;
+      return `lch(${D(e[0])}% ${e[1]} ${e[2]})`;
     case `rgb`:
-      return `rgb(${e2[0]}, ${e2[1]}, ${e2[2]})`;
+      return `rgb(${e[0]}, ${e[1]}, ${e[2]})`;
   }
 }
-function O(e2, t2, n2 = `rgb`, r2 = `sRGB`) {
-  switch (t2) {
+function O(e, t, n = `rgb`, r = `sRGB`) {
+  switch (t) {
     case `css`:
-      return fe(e2, n2, r2);
+      return fe(e, n, r);
     case `binary`:
-      return E(e2);
+      return E(e);
     case `decimal`:
-      return e2;
+      return e;
   }
 }
 var pe = class extends S {
@@ -28804,51 +28637,51 @@ var pe = class extends S {
   cssSupportedSpace() {
     return this.faker.helpers.enumValue(w);
   }
-  rgb(e2 = {}) {
-    let { format: t2 = `hex`, includeAlpha: n2 = false, prefix: r2 = `#`, casing: i2 = `lower` } = e2, a2;
-    if (t2 === `hex`)
-      return a2 = this.faker.string.hexadecimal({ length: n2 ? 8 : 6, prefix: `` }), a2 = de(a2, { prefix: r2, casing: i2 }), a2;
-    let o2 = `rgb`;
-    return a2 = Array.from({ length: 3 }, () => this.faker.number.int(255)), n2 && (a2.push(this.faker.number.float({ multipleOf: 0.01 })), o2 = `rgba`), O(a2, t2, o2);
+  rgb(e = {}) {
+    let { format: t = `hex`, includeAlpha: n = false, prefix: r = `#`, casing: i = `lower` } = e, a;
+    if (t === `hex`)
+      return a = this.faker.string.hexadecimal({ length: n ? 8 : 6, prefix: `` }), a = de(a, { prefix: r, casing: i }), a;
+    let o = `rgb`;
+    return a = Array.from({ length: 3 }, () => this.faker.number.int(255)), n && (a.push(this.faker.number.float({ multipleOf: 0.01 })), o = `rgba`), O(a, t, o);
   }
-  cmyk(e2 = {}) {
-    let { format: t2 = `decimal` } = e2;
-    return O(Array.from({ length: 4 }, () => this.faker.number.float({ multipleOf: 0.01 })), t2, `cmyk`);
+  cmyk(e = {}) {
+    let { format: t = `decimal` } = e;
+    return O(Array.from({ length: 4 }, () => this.faker.number.float({ multipleOf: 0.01 })), t, `cmyk`);
   }
-  hsl(e2 = {}) {
-    let { format: t2 = `decimal`, includeAlpha: n2 = false } = e2, r2 = [this.faker.number.int(360)];
-    for (let t3 = 0;t3 < (e2?.includeAlpha ? 3 : 2); t3++)
-      r2.push(this.faker.number.float({ multipleOf: 0.01 }));
-    return O(r2, t2, n2 ? `hsla` : `hsl`);
+  hsl(e = {}) {
+    let { format: t = `decimal`, includeAlpha: n = false } = e, r = [this.faker.number.int(360)];
+    for (let t = 0;t < (e?.includeAlpha ? 3 : 2); t++)
+      r.push(this.faker.number.float({ multipleOf: 0.01 }));
+    return O(r, t, n ? `hsla` : `hsl`);
   }
-  hwb(e2 = {}) {
-    let { format: t2 = `decimal` } = e2, n2 = [this.faker.number.int(360)];
-    for (let e3 = 0;e3 < 2; e3++)
-      n2.push(this.faker.number.float({ multipleOf: 0.01 }));
-    return O(n2, t2, `hwb`);
+  hwb(e = {}) {
+    let { format: t = `decimal` } = e, n = [this.faker.number.int(360)];
+    for (let e = 0;e < 2; e++)
+      n.push(this.faker.number.float({ multipleOf: 0.01 }));
+    return O(n, t, `hwb`);
   }
-  lab(e2 = {}) {
-    let { format: t2 = `decimal` } = e2, n2 = [this.faker.number.float({ multipleOf: 0.000001 })];
-    for (let e3 = 0;e3 < 2; e3++)
-      n2.push(this.faker.number.float({ min: -100, max: 100, multipleOf: 0.0001 }));
-    return O(n2, t2, `lab`);
+  lab(e = {}) {
+    let { format: t = `decimal` } = e, n = [this.faker.number.float({ multipleOf: 0.000001 })];
+    for (let e = 0;e < 2; e++)
+      n.push(this.faker.number.float({ min: -100, max: 100, multipleOf: 0.0001 }));
+    return O(n, t, `lab`);
   }
-  lch(e2 = {}) {
-    let { format: t2 = `decimal` } = e2;
-    return O([this.faker.number.float({ multipleOf: 0.000001 }), this.faker.number.float({ max: 230, multipleOf: 0.1 }), this.faker.number.float({ max: 360, multipleOf: 0.1 })], t2, `lch`);
+  lch(e = {}) {
+    let { format: t = `decimal` } = e;
+    return O([this.faker.number.float({ multipleOf: 0.000001 }), this.faker.number.float({ max: 230, multipleOf: 0.1 }), this.faker.number.float({ max: 360, multipleOf: 0.1 })], t, `lch`);
   }
-  colorByCSSColorSpace(e2 = {}) {
-    let { format: t2 = `decimal`, space: n2 = `sRGB` } = e2;
-    return O(Array.from({ length: 3 }, () => this.faker.number.float({ multipleOf: 0.0001 })), t2, `color`, n2);
+  colorByCSSColorSpace(e = {}) {
+    let { format: t = `decimal`, space: n = `sRGB` } = e;
+    return O(Array.from({ length: 3 }, () => this.faker.number.float({ multipleOf: 0.0001 })), t, `color`, n);
   }
 };
-function me(t2) {
-  if (!/^\d{11}$/.test(t2))
+function me(t) {
+  if (!/^\d{11}$/.test(t))
     throw new e(`calculateUPCCheckDigit expects exactly 11 numeric digits`);
-  let n2 = 0, r2 = 0;
-  for (let e2 of t2)
-    n2 += Number.parseInt(e2, 10) * (r2 % 2 == 0 ? 3 : 1), r2++;
-  return (10 - n2 % 10) % 10;
+  let n = 0, r = 0;
+  for (let e of t)
+    n += Number.parseInt(e, 10) * (r % 2 == 0 ? 3 : 1), r++;
+  return (10 - n % 10) % 10;
 }
 var he = { 0: [[1999999, 2], [2279999, 3], [2289999, 4], [3689999, 3], [3699999, 4], [6389999, 3], [6397999, 4], [6399999, 7], [6449999, 3], [6459999, 7], [6479999, 3], [6489999, 7], [6549999, 3], [6559999, 4], [6999999, 3], [8499999, 4], [8999999, 5], [9499999, 6], [9999999, 7]], 1: [[99999, 3], [299999, 2], [349999, 3], [399999, 4], [499999, 3], [699999, 2], [999999, 4], [3979999, 3], [5499999, 4], [6499999, 5], [6799999, 4], [6859999, 5], [7139999, 4], [7169999, 3], [7319999, 4], [7399999, 7], [7749999, 5], [7753999, 7], [7763999, 5], [7764999, 7], [7769999, 5], [7782999, 7], [7899999, 5], [7999999, 4], [8004999, 5], [8049999, 5], [8379999, 5], [8384999, 7], [8671999, 5], [8675999, 4], [8697999, 5], [9159999, 6], [9165059, 7], [9168699, 6], [9169079, 7], [9195999, 6], [9196549, 7], [9729999, 6], [9877999, 4], [9911499, 6], [9911999, 7], [9989899, 6], [9999999, 7]] };
 var ge = class extends S {
@@ -28856,20 +28689,20 @@ var ge = class extends S {
     return this.faker.helpers.arrayElement(this.faker.definitions.commerce.department);
   }
   productName() {
-    let e2 = this.faker.definitions.commerce.product_name.pattern;
-    return this.faker.helpers.fake(e2);
+    let e = this.faker.definitions.commerce.product_name.pattern;
+    return this.faker.helpers.fake(e);
   }
-  price(e2 = {}) {
-    let { dec: t2 = 2, max: n2 = 1000, min: r2 = 1, symbol: i2 = `` } = e2;
-    if (r2 < 0 || n2 < 0)
-      return `${i2}0`;
-    if (r2 === n2)
-      return `${i2}${r2.toFixed(t2)}`;
-    let a2 = this.faker.number.float({ min: r2, max: n2, fractionDigits: t2 });
-    if (t2 === 0)
-      return `${i2}${a2.toFixed(t2)}`;
-    let o2 = a2 * 10 ** t2 % 10, s2 = this.faker.helpers.weightedArrayElement([{ weight: 5, value: 9 }, { weight: 3, value: 5 }, { weight: 1, value: 0 }, { weight: 1, value: this.faker.number.int({ min: 0, max: 9 }) }]), c2 = (1 / 10) ** t2, l2 = o2 * c2, u2 = s2 * c2, d2 = a2 - l2 + u2;
-    return r2 <= d2 && d2 <= n2 ? `${i2}${d2.toFixed(t2)}` : `${i2}${a2.toFixed(t2)}`;
+  price(e = {}) {
+    let { dec: t = 2, max: n = 1000, min: r = 1, symbol: i = `` } = e;
+    if (r < 0 || n < 0)
+      return `${i}0`;
+    if (r === n)
+      return `${i}${r.toFixed(t)}`;
+    let a = this.faker.number.float({ min: r, max: n, fractionDigits: t });
+    if (t === 0)
+      return `${i}${a.toFixed(t)}`;
+    let o = a * 10 ** t % 10, s = this.faker.helpers.weightedArrayElement([{ weight: 5, value: 9 }, { weight: 3, value: 5 }, { weight: 1, value: 0 }, { weight: 1, value: this.faker.number.int({ min: 0, max: 9 }) }]), c = (1 / 10) ** t, l = o * c, u = s * c, d = a - l + u;
+    return r <= d && d <= n ? `${i}${d.toFixed(t)}` : `${i}${a.toFixed(t)}`;
   }
   productAdjective() {
     return this.faker.helpers.arrayElement(this.faker.definitions.commerce.product_name.adjective);
@@ -28883,28 +28716,28 @@ var ge = class extends S {
   productDescription() {
     return this.faker.helpers.fake(this.faker.definitions.commerce.product_description);
   }
-  isbn(t2 = {}) {
-    typeof t2 == `number` && (t2 = { variant: t2 });
-    let { variant: n2 = 13, separator: r2 = `-` } = t2, [i2, a2] = this.faker.helpers.objectEntry(he), o2 = this.faker.string.numeric(8), s2 = Number.parseInt(o2.slice(0, -1)), c2 = a2.find(([e2]) => s2 <= e2)?.[1];
-    if (!c2)
-      throw new e(`Unable to find a registrant length for the group ${i2}`);
-    let l2 = [`978`, i2, o2.slice(0, c2), o2.slice(c2)];
-    n2 === 10 && l2.shift();
-    let u2 = l2.join(``), d2 = 0;
-    for (let e2 = 0;e2 < n2 - 1; e2++) {
-      let t3 = n2 === 10 ? e2 + 1 : e2 % 2 ? 3 : 1;
-      d2 += t3 * Number.parseInt(u2[e2]);
+  isbn(t = {}) {
+    typeof t == `number` && (t = { variant: t });
+    let { variant: n = 13, separator: r = `-` } = t, [i, a] = this.faker.helpers.objectEntry(he), o = this.faker.string.numeric(8), s = Number.parseInt(o.slice(0, -1)), c = a.find(([e]) => s <= e)?.[1];
+    if (!c)
+      throw new e(`Unable to find a registrant length for the group ${i}`);
+    let l = [`978`, i, o.slice(0, c), o.slice(c)];
+    n === 10 && l.shift();
+    let u = l.join(``), d = 0;
+    for (let e = 0;e < n - 1; e++) {
+      let t = n === 10 ? e + 1 : e % 2 ? 3 : 1;
+      d += t * Number.parseInt(u[e]);
     }
-    return d2 = n2 === 10 ? d2 % 11 : (10 - d2 % 10) % 10, l2.push(d2 === 10 ? `X` : d2.toString()), l2.join(r2);
+    return d = n === 10 ? d % 11 : (10 - d % 10) % 10, l.push(d === 10 ? `X` : d.toString()), l.join(r);
   }
-  upc(t2 = {}) {
-    let { prefix: n2 = `` } = t2;
-    if (n2 && /\D/.test(n2))
+  upc(t = {}) {
+    let { prefix: n = `` } = t;
+    if (n && /\D/.test(n))
       throw new e(`Prefix must contain only numeric digits`);
-    if (n2.length > 11)
+    if (n.length > 11)
       throw new e(`Prefix must be at most 11 numeric digits`);
-    let r2 = 11 - n2.length, i2 = `${n2}${this.faker.string.numeric({ length: r2, allowLeadingZeros: true })}`;
-    return `${i2}${me(i2)}`;
+    let r = 11 - n.length, i = `${n}${this.faker.string.numeric({ length: r, allowLeadingZeros: true })}`;
+    return `${i}${me(i)}`;
   }
 };
 var _e = class extends S {
@@ -28953,147 +28786,147 @@ var ve = class extends S {
     return this.faker.string.hexadecimal({ length: 24, casing: `lower`, prefix: `` });
   }
 };
-function k(t2, n2 = `refDate`) {
-  let r2 = new Date(t2);
-  if (Number.isNaN(r2.valueOf()))
-    throw new e(`Invalid ${n2} date: ${t2.toString()}`);
-  return r2;
+function k(t, n = `refDate`) {
+  let r = new Date(t);
+  if (Number.isNaN(r.valueOf()))
+    throw new e(`Invalid ${n} date: ${t.toString()}`);
+  return r;
 }
 var A = class extends x {
-  anytime(e2 = {}) {
-    let { refDate: t2 = this.faker.defaultRefDate() } = e2, n2 = k(t2).getTime();
-    return this.between({ from: n2 - 1000 * 60 * 60 * 24 * 365, to: n2 + 1000 * 60 * 60 * 24 * 365 });
+  anytime(e = {}) {
+    let { refDate: t = this.faker.defaultRefDate() } = e, n = k(t).getTime();
+    return this.between({ from: n - 1000 * 60 * 60 * 24 * 365, to: n + 1000 * 60 * 60 * 24 * 365 });
   }
-  past(t2 = {}) {
-    let { refDate: n2 = this.faker.defaultRefDate() } = t2, { years: r2 = 1 } = t2;
-    if (typeof r2 == `number` && (r2 = { min: 0, max: r2 }), r2.max <= 0)
+  past(t = {}) {
+    let { refDate: n = this.faker.defaultRefDate() } = t, { years: r = 1 } = t;
+    if (typeof r == `number` && (r = { min: 0, max: r }), r.max <= 0)
       throw new e(`Years must be greater than 0.`);
-    if (r2.min >= r2.max)
+    if (r.min >= r.max)
       throw new e(`The maximum amount of years must be greater than the minimum amount of years.`);
-    let i2 = k(n2), a2 = new Date(i2);
-    a2.setUTCFullYear(a2.getUTCFullYear() - r2.max);
-    let o2 = new Date(i2);
-    return o2.setUTCFullYear(o2.getUTCFullYear() - r2.min), this.between({ from: a2, to: o2.getTime() - 1000 });
+    let i = k(n), a = new Date(i);
+    a.setUTCFullYear(a.getUTCFullYear() - r.max);
+    let o = new Date(i);
+    return o.setUTCFullYear(o.getUTCFullYear() - r.min), this.between({ from: a, to: o.getTime() - 1000 });
   }
-  future(t2 = {}) {
-    let { refDate: n2 = this.faker.defaultRefDate() } = t2, { years: r2 = 1 } = t2;
-    if (typeof r2 == `number` && (r2 = { min: 0, max: r2 }), r2.max <= 0)
+  future(t = {}) {
+    let { refDate: n = this.faker.defaultRefDate() } = t, { years: r = 1 } = t;
+    if (typeof r == `number` && (r = { min: 0, max: r }), r.max <= 0)
       throw new e(`Years must be greater than 0.`);
-    if (r2.min >= r2.max)
+    if (r.min >= r.max)
       throw new e(`The maximum amount of years must be greater than the minimum amount of years.`);
-    let i2 = k(n2), a2 = new Date(i2);
-    a2.setUTCFullYear(a2.getUTCFullYear() + r2.min);
-    let o2 = new Date(i2);
-    return o2.setUTCFullYear(o2.getUTCFullYear() + r2.max), this.between({ from: a2.getTime() + 1000, to: o2 });
+    let i = k(n), a = new Date(i);
+    a.setUTCFullYear(a.getUTCFullYear() + r.min);
+    let o = new Date(i);
+    return o.setUTCFullYear(o.getUTCFullYear() + r.max), this.between({ from: a.getTime() + 1000, to: o });
   }
-  between(t2) {
-    let { from: n2, to: r2 } = t2, i2 = k(n2, `from`).getTime(), a2 = k(r2, `to`).getTime();
-    if (i2 > a2)
+  between(t) {
+    let { from: n, to: r } = t, i = k(n, `from`).getTime(), a = k(r, `to`).getTime();
+    if (i > a)
       throw new e("`from` date must be before `to` date.");
-    return new Date(this.faker.number.int({ min: i2, max: a2 }));
+    return new Date(this.faker.number.int({ min: i, max: a }));
   }
-  betweens(e2) {
-    let { from: t2, to: n2, count: r2 = 3 } = e2;
-    return this.faker.helpers.multiple(() => this.between({ from: t2, to: n2 }), { count: r2 }).toSorted((e3, t3) => e3.getTime() - t3.getTime());
+  betweens(e) {
+    let { from: t, to: n, count: r = 3 } = e;
+    return this.faker.helpers.multiple(() => this.between({ from: t, to: n }), { count: r }).toSorted((e, t) => e.getTime() - t.getTime());
   }
-  recent(t2 = {}) {
-    let { refDate: n2 = this.faker.defaultRefDate() } = t2, { days: r2 = 1 } = t2;
-    if (typeof r2 == `number` && (r2 = { min: 0, max: r2 }), r2.max <= 0)
+  recent(t = {}) {
+    let { refDate: n = this.faker.defaultRefDate() } = t, { days: r = 1 } = t;
+    if (typeof r == `number` && (r = { min: 0, max: r }), r.max <= 0)
       throw new e(`Days must be greater than 0.`);
-    if (r2.min >= r2.max)
+    if (r.min >= r.max)
       throw new e(`The maximum amount of days must be greater than the minimum amount of days.`);
-    let i2 = k(n2), a2 = new Date(i2);
-    a2.setUTCDate(a2.getUTCDate() - r2.max);
-    let o2 = new Date(i2);
-    return o2.setUTCDate(o2.getUTCDate() - r2.min), this.between({ from: a2, to: o2.getTime() - 1000 });
+    let i = k(n), a = new Date(i);
+    a.setUTCDate(a.getUTCDate() - r.max);
+    let o = new Date(i);
+    return o.setUTCDate(o.getUTCDate() - r.min), this.between({ from: a, to: o.getTime() - 1000 });
   }
-  soon(t2 = {}) {
-    let { refDate: n2 = this.faker.defaultRefDate() } = t2, { days: r2 = 1 } = t2;
-    if (typeof r2 == `number` && (r2 = { min: 0, max: r2 }), r2.max <= 0)
+  soon(t = {}) {
+    let { refDate: n = this.faker.defaultRefDate() } = t, { days: r = 1 } = t;
+    if (typeof r == `number` && (r = { min: 0, max: r }), r.max <= 0)
       throw new e(`Days must be greater than 0.`);
-    if (r2.min >= r2.max)
+    if (r.min >= r.max)
       throw new e(`The maximum amount of days must be greater than the minimum amount of days.`);
-    let i2 = k(n2), a2 = new Date(i2);
-    a2.setUTCDate(a2.getUTCDate() + r2.min);
-    let o2 = new Date(i2);
-    return o2.setUTCDate(o2.getUTCDate() + r2.max), this.between({ from: a2.getTime() + 1000, to: o2 });
+    let i = k(n), a = new Date(i);
+    a.setUTCDate(a.getUTCDate() + r.min);
+    let o = new Date(i);
+    return o.setUTCDate(o.getUTCDate() + r.max), this.between({ from: a.getTime() + 1000, to: o });
   }
-  birthdate(t2 = {}) {
-    let { mode: n2 = `age`, min: r2 = 18, max: i2 = 80, refDate: a2 = this.faker.defaultRefDate() } = t2, o2 = k(a2), s2 = o2.getUTCFullYear();
-    switch (n2) {
+  birthdate(t = {}) {
+    let { mode: n = `age`, min: r = 18, max: i = 80, refDate: a = this.faker.defaultRefDate() } = t, o = k(a), s = o.getUTCFullYear();
+    switch (n) {
       case `age`: {
-        let t3 = new Date(o2).setUTCFullYear(s2 - i2 - 1) + 1440 * 60 * 1000, n3 = new Date(o2).setUTCFullYear(s2 - r2);
-        if (t3 > n3)
-          throw new e(`Max age ${i2} should be greater than or equal to min age ${r2}.`);
-        return this.between({ from: t3, to: n3 });
+        let t = new Date(o).setUTCFullYear(s - i - 1) + 1440 * 60 * 1000, n = new Date(o).setUTCFullYear(s - r);
+        if (t > n)
+          throw new e(`Max age ${i} should be greater than or equal to min age ${r}.`);
+        return this.between({ from: t, to: n });
       }
       case `year`: {
-        let t3 = new Date(Date.UTC(0, 0, 2)).setUTCFullYear(r2), n3 = new Date(Date.UTC(0, 11, 30)).setUTCFullYear(i2);
-        if (t3 > n3)
-          throw new e(`Max year ${i2} should be greater than or equal to min year ${r2}.`);
-        return this.between({ from: t3, to: n3 });
+        let t = new Date(Date.UTC(0, 0, 2)).setUTCFullYear(r), n = new Date(Date.UTC(0, 11, 30)).setUTCFullYear(i);
+        if (t > n)
+          throw new e(`Max year ${i} should be greater than or equal to min year ${r}.`);
+        return this.between({ from: t, to: n });
       }
     }
   }
 };
 var ye = class extends A {
   faker;
-  constructor(e2) {
-    super(e2), this.faker = e2;
+  constructor(e) {
+    super(e), this.faker = e;
   }
-  month(e2 = {}) {
-    let { abbreviated: t2 = false, context: n2 = false } = e2, r2 = this.faker.definitions.date.month, i2;
-    i2 = t2 ? n2 && r2.abbr_context != null ? `abbr_context` : `abbr` : n2 && r2.wide_context != null ? `wide_context` : `wide`;
-    let o2 = r2[i2];
-    return a(o2, `date.month`, i2), this.faker.helpers.arrayElement(o2);
+  month(e = {}) {
+    let { abbreviated: t = false, context: n = false } = e, r = this.faker.definitions.date.month, i;
+    i = t ? n && r.abbr_context != null ? `abbr_context` : `abbr` : n && r.wide_context != null ? `wide_context` : `wide`;
+    let o = r[i];
+    return a(o, `date.month`, i), this.faker.helpers.arrayElement(o);
   }
-  weekday(e2 = {}) {
-    let { abbreviated: t2 = false, context: n2 = false } = e2, r2 = this.faker.definitions.date.weekday, i2;
-    i2 = t2 ? n2 && r2.abbr_context != null ? `abbr_context` : `abbr` : n2 && r2.wide_context != null ? `wide_context` : `wide`;
-    let o2 = r2[i2];
-    return a(o2, `date.weekday`, i2), this.faker.helpers.arrayElement(o2);
+  weekday(e = {}) {
+    let { abbreviated: t = false, context: n = false } = e, r = this.faker.definitions.date.weekday, i;
+    i = t ? n && r.abbr_context != null ? `abbr_context` : `abbr` : n && r.wide_context != null ? `wide_context` : `wide`;
+    let o = r[i];
+    return a(o, `date.weekday`, i), this.faker.helpers.arrayElement(o);
   }
   timeZone() {
     return this.faker.helpers.arrayElement(this.faker.definitions.date.time_zone);
   }
 };
-var j = function(e2) {
-  return e2.Legacy = `legacy`, e2.Segwit = `segwit`, e2.Bech32 = `bech32`, e2.Taproot = `taproot`, e2;
+var j = function(e) {
+  return e.Legacy = `legacy`, e.Segwit = `segwit`, e.Bech32 = `bech32`, e.Taproot = `taproot`, e;
 }({});
-var be = function(e2) {
-  return e2.Mainnet = `mainnet`, e2.Testnet = `testnet`, e2;
+var be = function(e) {
+  return e.Mainnet = `mainnet`, e.Testnet = `testnet`, e;
 }({});
 var xe = { legacy: { prefix: { mainnet: `1`, testnet: `m` }, length: { min: 26, max: 34 }, casing: `mixed`, exclude: `0OIl` }, segwit: { prefix: { mainnet: `3`, testnet: `2` }, length: { min: 26, max: 34 }, casing: `mixed`, exclude: `0OIl` }, bech32: { prefix: { mainnet: `bc1`, testnet: `tb1` }, length: { min: 42, max: 42 }, casing: `lower`, exclude: `1bBiIoO` }, taproot: { prefix: { mainnet: `bc1p`, testnet: `tb1p` }, length: { min: 62, max: 62 }, casing: `lower`, exclude: `1bBiIoO` } };
-var M = { alpha: `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split(``), formats: [{ country: `AL`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 16 }], format: `ALkk bbbs sssx cccc cccc cccc cccc` }, { country: `AD`, total: 24, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 12 }], format: `ADkk bbbb ssss cccc cccc cccc` }, { country: `AT`, total: 20, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 11 }], format: `ATkk bbbb bccc cccc cccc` }, { country: `AZ`, total: 28, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 20 }], format: `AZkk bbbb cccc cccc cccc cccc cccc` }, { country: `BH`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 14 }], format: `BHkk bbbb cccc cccc cccc cc` }, { country: `BE`, total: 16, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 9 }], format: `BEkk bbbc cccc ccxx` }, { country: `BA`, total: 20, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 10 }], format: `BAkk bbbs sscc cccc ccxx` }, { country: `BR`, total: 29, bban: [{ type: `n`, count: 13 }, { type: `n`, count: 10 }, { type: `a`, count: 1 }, { type: `c`, count: 1 }], format: `BRkk bbbb bbbb ssss sccc cccc ccct n` }, { country: `BG`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `c`, count: 8 }], format: `BGkk bbbb ssss ddcc cccc cc` }, { country: `CR`, total: 22, bban: [{ type: `n`, count: 1 }, { type: `n`, count: 3 }, { type: `n`, count: 14 }], format: `CRkk xbbb cccc cccc cccc cc` }, { country: `HR`, total: 21, bban: [{ type: `n`, count: 7 }, { type: `n`, count: 10 }], format: `HRkk bbbb bbbc cccc cccc c` }, { country: `CY`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 16 }], format: `CYkk bbbs ssss cccc cccc cccc cccc` }, { country: `CZ`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `CZkk bbbb ssss sscc cccc cccc` }, { country: `DK`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `DKkk bbbb cccc cccc cc` }, { country: `DO`, total: 28, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 20 }], format: `DOkk bbbb cccc cccc cccc cccc cccc` }, { country: `TL`, total: 23, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 16 }], format: `TLkk bbbc cccc cccc cccc cxx` }, { country: `EE`, total: 20, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 12 }], format: `EEkk bbss cccc cccc cccx` }, { country: `FO`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `FOkk bbbb cccc cccc cx` }, { country: `FI`, total: 18, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `FIkk bbbb bbcc cccc cx` }, { country: `FR`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `c`, count: 11 }, { type: `n`, count: 2 }], format: `FRkk bbbb bggg ggcc cccc cccc cxx` }, { country: `GE`, total: 22, bban: [{ type: `a`, count: 2 }, { type: `n`, count: 16 }], format: `GEkk bbcc cccc cccc cccc cc` }, { country: `DE`, total: 22, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 10 }], format: `DEkk bbbb bbbb cccc cccc cc` }, { country: `GI`, total: 23, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 15 }], format: `GIkk bbbb cccc cccc cccc ccc` }, { country: `GR`, total: 27, bban: [{ type: `n`, count: 7 }, { type: `c`, count: 16 }], format: `GRkk bbbs sssc cccc cccc cccc ccc` }, { country: `GL`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `GLkk bbbb cccc cccc cc` }, { country: `GT`, total: 28, bban: [{ type: `c`, count: 4 }, { type: `c`, count: 4 }, { type: `c`, count: 16 }], format: `GTkk bbbb mmtt cccc cccc cccc cccc` }, { country: `HU`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 16 }], format: `HUkk bbbs sssk cccc cccc cccc cccx` }, { country: `IS`, total: 26, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 16 }], format: `ISkk bbbb sscc cccc iiii iiii ii` }, { country: `IE`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `IEkk aaaa bbbb bbcc cccc cc` }, { country: `IL`, total: 23, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 13 }], format: `ILkk bbbn nncc cccc cccc ccc` }, { country: `IR`, total: 26, bban: [{ type: `n`, count: 22 }], format: `IRkk bbbb cccc cccc cccc cccc cc` }, { country: `IT`, total: 27, bban: [{ type: `a`, count: 1 }, { type: `n`, count: 10 }, { type: `c`, count: 12 }], format: `ITkk xaaa aabb bbbc cccc cccc ccc` }, { country: `JO`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 4 }, { type: `n`, count: 18 }], format: `JOkk bbbb nnnn cccc cccc cccc cccc cc` }, { country: `KZ`, total: 20, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 13 }], format: `KZkk bbbc cccc cccc cccc` }, { country: `XK`, total: 20, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 12 }], format: `XKkk bbbb cccc cccc cccc` }, { country: `KW`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 22 }], format: `KWkk bbbb cccc cccc cccc cccc cccc cc` }, { country: `LV`, total: 21, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 13 }], format: `LVkk bbbb cccc cccc cccc c` }, { country: `LB`, total: 28, bban: [{ type: `n`, count: 4 }, { type: `c`, count: 20 }], format: `LBkk bbbb cccc cccc cccc cccc cccc` }, { country: `LI`, total: 21, bban: [{ type: `n`, count: 5 }, { type: `c`, count: 12 }], format: `LIkk bbbb bccc cccc cccc c` }, { country: `LT`, total: 20, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 11 }], format: `LTkk bbbb bccc cccc cccc` }, { country: `LU`, total: 20, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 13 }], format: `LUkk bbbc cccc cccc cccc` }, { country: `MK`, total: 19, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 10 }, { type: `n`, count: 2 }], format: `MKkk bbbc cccc cccc cxx` }, { country: `MT`, total: 31, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 5 }, { type: `c`, count: 18 }], format: `MTkk bbbb ssss sccc cccc cccc cccc ccc` }, { country: `MR`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 13 }], format: `MRkk bbbb bsss sscc cccc cccc cxx` }, { country: `MU`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 4 }, { type: `n`, count: 15 }, { type: `a`, count: 3 }], format: `MUkk bbbb bbss cccc cccc cccc 000d dd` }, { country: `MC`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `c`, count: 11 }, { type: `n`, count: 2 }], format: `MCkk bbbb bsss sscc cccc cccc cxx` }, { country: `MD`, total: 24, bban: [{ type: `c`, count: 2 }, { type: `c`, count: 18 }], format: `MDkk bbcc cccc cccc cccc cccc` }, { country: `ME`, total: 22, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 15 }], format: `MEkk bbbc cccc cccc cccc xx` }, { country: `NL`, total: 18, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 10 }], format: `NLkk bbbb cccc cccc cc` }, { country: `NO`, total: 15, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 7 }], format: `NOkk bbbb cccc ccx` }, { country: `PK`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 16 }], format: `PKkk bbbb cccc cccc cccc cccc` }, { country: `PS`, total: 29, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 9 }, { type: `n`, count: 12 }], format: `PSkk bbbb xxxx xxxx xccc cccc cccc c` }, { country: `PL`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 16 }], format: `PLkk bbbs sssx cccc cccc cccc cccc` }, { country: `PT`, total: 25, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 13 }], format: `PTkk bbbb ssss cccc cccc cccx x` }, { country: `QA`, total: 29, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 21 }], format: `QAkk bbbb cccc cccc cccc cccc cccc c` }, { country: `RO`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 16 }], format: `ROkk bbbb cccc cccc cccc cccc` }, { country: `SM`, total: 27, bban: [{ type: `a`, count: 1 }, { type: `n`, count: 10 }, { type: `c`, count: 12 }], format: `SMkk xaaa aabb bbbc cccc cccc ccc` }, { country: `SA`, total: 24, bban: [{ type: `n`, count: 2 }, { type: `c`, count: 18 }], format: `SAkk bbcc cccc cccc cccc cccc` }, { country: `RS`, total: 22, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 15 }], format: `RSkk bbbc cccc cccc cccc xx` }, { country: `SK`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `SKkk bbbb ssss sscc cccc cccc` }, { country: `SI`, total: 19, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 10 }], format: `SIkk bbss sccc cccc cxx` }, { country: `ES`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `ESkk bbbb gggg xxcc cccc cccc` }, { country: `SE`, total: 24, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 17 }], format: `SEkk bbbc cccc cccc cccc cccc` }, { country: `CH`, total: 21, bban: [{ type: `n`, count: 5 }, { type: `c`, count: 12 }], format: `CHkk bbbb bccc cccc cccc c` }, { country: `TN`, total: 24, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 15 }], format: `TNkk bbss sccc cccc cccc cccc` }, { country: `TR`, total: 26, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 1 }, { type: `n`, count: 16 }], format: `TRkk bbbb bxcc cccc cccc cccc cc` }, { country: `AE`, total: 23, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 16 }], format: `AEkk bbbc cccc cccc cccc ccc` }, { country: `GB`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `GBkk bbbb ssss sscc cccc cc` }, { country: `VG`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 16 }], format: `VGkk bbbb cccc cccc cccc cccc` }], iso3166: `AD.AE.AF.AG.AI.AL.AM.AO.AQ.AR.AS.AT.AU.AW.AX.AZ.BA.BB.BD.BE.BF.BG.BH.BI.BJ.BL.BM.BN.BO.BQ.BR.BS.BT.BV.BW.BY.BZ.CA.CC.CD.CF.CG.CH.CI.CK.CL.CM.CN.CO.CR.CU.CV.CW.CX.CY.CZ.DE.DJ.DK.DM.DO.DZ.EC.EE.EG.EH.ER.ES.ET.FI.FJ.FK.FM.FO.FR.GA.GB.GD.GE.GF.GG.GH.GI.GL.GM.GN.GP.GQ.GR.GS.GT.GU.GW.GY.HK.HM.HN.HR.HT.HU.ID.IE.IL.IM.IN.IO.IQ.IR.IS.IT.JE.JM.JO.JP.KE.KG.KH.KI.KM.KN.KP.KR.KW.KY.KZ.LA.LB.LC.LI.LK.LR.LS.LT.LU.LV.LY.MA.MC.MD.ME.MF.MG.MH.MK.ML.MM.MN.MO.MP.MQ.MR.MS.MT.MU.MV.MW.MX.MY.MZ.NA.NC.NE.NF.NG.NI.NL.NO.NP.NR.NU.NZ.OM.PA.PE.PF.PG.PH.PK.PL.PM.PN.PR.PS.PT.PW.PY.QA.RE.RO.RS.RU.RW.SA.SB.SC.SD.SE.SG.SH.SI.SJ.SK.SL.SM.SN.SO.SR.SS.ST.SV.SX.SY.SZ.TC.TD.TF.TG.TH.TJ.TK.TL.TM.TN.TO.TR.TT.TV.TW.TZ.UA.UG.UM.US.UY.UZ.VA.VC.VE.VG.VI.VN.VU.WF.WS.XK.YE.YT.ZA.ZM.ZW`.split(`.`), mod97: (e2) => {
-  let t2 = 0;
-  for (let n2 of e2)
-    t2 = (t2 * 10 + +n2) % 97;
-  return t2;
-}, pattern10: [`01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`], pattern100: [`001`, `002`, `003`, `004`, `005`, `006`, `007`, `008`, `009`], toDigitString: (e2) => e2.replaceAll(/[A-Z]/gi, (e3) => String((e3.toUpperCase().codePointAt(0) ?? NaN) - 55)) };
-function Se(e2) {
-  let t2 = ``;
-  for (let n2 = 0;n2 < e2.length; n2 += 4)
-    t2 += `${e2.substring(n2, n2 + 4)} `;
-  return t2.trimEnd();
+var M = { alpha: `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split(``), formats: [{ country: `AL`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 16 }], format: `ALkk bbbs sssx cccc cccc cccc cccc` }, { country: `AD`, total: 24, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 12 }], format: `ADkk bbbb ssss cccc cccc cccc` }, { country: `AT`, total: 20, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 11 }], format: `ATkk bbbb bccc cccc cccc` }, { country: `AZ`, total: 28, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 20 }], format: `AZkk bbbb cccc cccc cccc cccc cccc` }, { country: `BH`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 14 }], format: `BHkk bbbb cccc cccc cccc cc` }, { country: `BE`, total: 16, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 9 }], format: `BEkk bbbc cccc ccxx` }, { country: `BA`, total: 20, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 10 }], format: `BAkk bbbs sscc cccc ccxx` }, { country: `BR`, total: 29, bban: [{ type: `n`, count: 13 }, { type: `n`, count: 10 }, { type: `a`, count: 1 }, { type: `c`, count: 1 }], format: `BRkk bbbb bbbb ssss sccc cccc ccct n` }, { country: `BG`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `c`, count: 8 }], format: `BGkk bbbb ssss ddcc cccc cc` }, { country: `CR`, total: 22, bban: [{ type: `n`, count: 1 }, { type: `n`, count: 3 }, { type: `n`, count: 14 }], format: `CRkk xbbb cccc cccc cccc cc` }, { country: `HR`, total: 21, bban: [{ type: `n`, count: 7 }, { type: `n`, count: 10 }], format: `HRkk bbbb bbbc cccc cccc c` }, { country: `CY`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `c`, count: 16 }], format: `CYkk bbbs ssss cccc cccc cccc cccc` }, { country: `CZ`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `CZkk bbbb ssss sscc cccc cccc` }, { country: `DK`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `DKkk bbbb cccc cccc cc` }, { country: `DO`, total: 28, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 20 }], format: `DOkk bbbb cccc cccc cccc cccc cccc` }, { country: `TL`, total: 23, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 16 }], format: `TLkk bbbc cccc cccc cccc cxx` }, { country: `EE`, total: 20, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 12 }], format: `EEkk bbss cccc cccc cccx` }, { country: `FO`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `FOkk bbbb cccc cccc cx` }, { country: `FI`, total: 18, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `FIkk bbbb bbcc cccc cx` }, { country: `FR`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `c`, count: 11 }, { type: `n`, count: 2 }], format: `FRkk bbbb bggg ggcc cccc cccc cxx` }, { country: `GE`, total: 22, bban: [{ type: `a`, count: 2 }, { type: `n`, count: 16 }], format: `GEkk bbcc cccc cccc cccc cc` }, { country: `DE`, total: 22, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 10 }], format: `DEkk bbbb bbbb cccc cccc cc` }, { country: `GI`, total: 23, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 15 }], format: `GIkk bbbb cccc cccc cccc ccc` }, { country: `GR`, total: 27, bban: [{ type: `n`, count: 7 }, { type: `c`, count: 16 }], format: `GRkk bbbs sssc cccc cccc cccc ccc` }, { country: `GL`, total: 18, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 10 }], format: `GLkk bbbb cccc cccc cc` }, { country: `GT`, total: 28, bban: [{ type: `c`, count: 4 }, { type: `c`, count: 4 }, { type: `c`, count: 16 }], format: `GTkk bbbb mmtt cccc cccc cccc cccc` }, { country: `HU`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 16 }], format: `HUkk bbbs sssk cccc cccc cccc cccx` }, { country: `IS`, total: 26, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 16 }], format: `ISkk bbbb sscc cccc iiii iiii ii` }, { country: `IE`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `IEkk aaaa bbbb bbcc cccc cc` }, { country: `IL`, total: 23, bban: [{ type: `n`, count: 6 }, { type: `n`, count: 13 }], format: `ILkk bbbn nncc cccc cccc ccc` }, { country: `IR`, total: 26, bban: [{ type: `n`, count: 22 }], format: `IRkk bbbb cccc cccc cccc cccc cc` }, { country: `IT`, total: 27, bban: [{ type: `a`, count: 1 }, { type: `n`, count: 10 }, { type: `c`, count: 12 }], format: `ITkk xaaa aabb bbbc cccc cccc ccc` }, { country: `JO`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 4 }, { type: `n`, count: 18 }], format: `JOkk bbbb nnnn cccc cccc cccc cccc cc` }, { country: `KZ`, total: 20, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 13 }], format: `KZkk bbbc cccc cccc cccc` }, { country: `XK`, total: 20, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 12 }], format: `XKkk bbbb cccc cccc cccc` }, { country: `KW`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 22 }], format: `KWkk bbbb cccc cccc cccc cccc cccc cc` }, { country: `LV`, total: 21, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 13 }], format: `LVkk bbbb cccc cccc cccc c` }, { country: `LB`, total: 28, bban: [{ type: `n`, count: 4 }, { type: `c`, count: 20 }], format: `LBkk bbbb cccc cccc cccc cccc cccc` }, { country: `LI`, total: 21, bban: [{ type: `n`, count: 5 }, { type: `c`, count: 12 }], format: `LIkk bbbb bccc cccc cccc c` }, { country: `LT`, total: 20, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 11 }], format: `LTkk bbbb bccc cccc cccc` }, { country: `LU`, total: 20, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 13 }], format: `LUkk bbbc cccc cccc cccc` }, { country: `MK`, total: 19, bban: [{ type: `n`, count: 3 }, { type: `c`, count: 10 }, { type: `n`, count: 2 }], format: `MKkk bbbc cccc cccc cxx` }, { country: `MT`, total: 31, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 5 }, { type: `c`, count: 18 }], format: `MTkk bbbb ssss sccc cccc cccc cccc ccc` }, { country: `MR`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 13 }], format: `MRkk bbbb bsss sscc cccc cccc cxx` }, { country: `MU`, total: 30, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 4 }, { type: `n`, count: 15 }, { type: `a`, count: 3 }], format: `MUkk bbbb bbss cccc cccc cccc 000d dd` }, { country: `MC`, total: 27, bban: [{ type: `n`, count: 10 }, { type: `c`, count: 11 }, { type: `n`, count: 2 }], format: `MCkk bbbb bsss sscc cccc cccc cxx` }, { country: `MD`, total: 24, bban: [{ type: `c`, count: 2 }, { type: `c`, count: 18 }], format: `MDkk bbcc cccc cccc cccc cccc` }, { country: `ME`, total: 22, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 15 }], format: `MEkk bbbc cccc cccc cccc xx` }, { country: `NL`, total: 18, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 10 }], format: `NLkk bbbb cccc cccc cc` }, { country: `NO`, total: 15, bban: [{ type: `n`, count: 4 }, { type: `n`, count: 7 }], format: `NOkk bbbb cccc ccx` }, { country: `PK`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 16 }], format: `PKkk bbbb cccc cccc cccc cccc` }, { country: `PS`, total: 29, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 9 }, { type: `n`, count: 12 }], format: `PSkk bbbb xxxx xxxx xccc cccc cccc c` }, { country: `PL`, total: 28, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 16 }], format: `PLkk bbbs sssx cccc cccc cccc cccc` }, { country: `PT`, total: 25, bban: [{ type: `n`, count: 8 }, { type: `n`, count: 13 }], format: `PTkk bbbb ssss cccc cccc cccx x` }, { country: `QA`, total: 29, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 21 }], format: `QAkk bbbb cccc cccc cccc cccc cccc c` }, { country: `RO`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `c`, count: 16 }], format: `ROkk bbbb cccc cccc cccc cccc` }, { country: `SM`, total: 27, bban: [{ type: `a`, count: 1 }, { type: `n`, count: 10 }, { type: `c`, count: 12 }], format: `SMkk xaaa aabb bbbc cccc cccc ccc` }, { country: `SA`, total: 24, bban: [{ type: `n`, count: 2 }, { type: `c`, count: 18 }], format: `SAkk bbcc cccc cccc cccc cccc` }, { country: `RS`, total: 22, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 15 }], format: `RSkk bbbc cccc cccc cccc xx` }, { country: `SK`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `SKkk bbbb ssss sscc cccc cccc` }, { country: `SI`, total: 19, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 10 }], format: `SIkk bbss sccc cccc cxx` }, { country: `ES`, total: 24, bban: [{ type: `n`, count: 10 }, { type: `n`, count: 10 }], format: `ESkk bbbb gggg xxcc cccc cccc` }, { country: `SE`, total: 24, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 17 }], format: `SEkk bbbc cccc cccc cccc cccc` }, { country: `CH`, total: 21, bban: [{ type: `n`, count: 5 }, { type: `c`, count: 12 }], format: `CHkk bbbb bccc cccc cccc c` }, { country: `TN`, total: 24, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 15 }], format: `TNkk bbss sccc cccc cccc cccc` }, { country: `TR`, total: 26, bban: [{ type: `n`, count: 5 }, { type: `n`, count: 1 }, { type: `n`, count: 16 }], format: `TRkk bbbb bxcc cccc cccc cccc cc` }, { country: `AE`, total: 23, bban: [{ type: `n`, count: 3 }, { type: `n`, count: 16 }], format: `AEkk bbbc cccc cccc cccc ccc` }, { country: `GB`, total: 22, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 6 }, { type: `n`, count: 8 }], format: `GBkk bbbb ssss sscc cccc cc` }, { country: `VG`, total: 24, bban: [{ type: `a`, count: 4 }, { type: `n`, count: 16 }], format: `VGkk bbbb cccc cccc cccc cccc` }], iso3166: `AD.AE.AF.AG.AI.AL.AM.AO.AQ.AR.AS.AT.AU.AW.AX.AZ.BA.BB.BD.BE.BF.BG.BH.BI.BJ.BL.BM.BN.BO.BQ.BR.BS.BT.BV.BW.BY.BZ.CA.CC.CD.CF.CG.CH.CI.CK.CL.CM.CN.CO.CR.CU.CV.CW.CX.CY.CZ.DE.DJ.DK.DM.DO.DZ.EC.EE.EG.EH.ER.ES.ET.FI.FJ.FK.FM.FO.FR.GA.GB.GD.GE.GF.GG.GH.GI.GL.GM.GN.GP.GQ.GR.GS.GT.GU.GW.GY.HK.HM.HN.HR.HT.HU.ID.IE.IL.IM.IN.IO.IQ.IR.IS.IT.JE.JM.JO.JP.KE.KG.KH.KI.KM.KN.KP.KR.KW.KY.KZ.LA.LB.LC.LI.LK.LR.LS.LT.LU.LV.LY.MA.MC.MD.ME.MF.MG.MH.MK.ML.MM.MN.MO.MP.MQ.MR.MS.MT.MU.MV.MW.MX.MY.MZ.NA.NC.NE.NF.NG.NI.NL.NO.NP.NR.NU.NZ.OM.PA.PE.PF.PG.PH.PK.PL.PM.PN.PR.PS.PT.PW.PY.QA.RE.RO.RS.RU.RW.SA.SB.SC.SD.SE.SG.SH.SI.SJ.SK.SL.SM.SN.SO.SR.SS.ST.SV.SX.SY.SZ.TC.TD.TF.TG.TH.TJ.TK.TL.TM.TN.TO.TR.TT.TV.TW.TZ.UA.UG.UM.US.UY.UZ.VA.VC.VE.VG.VI.VN.VU.WF.WS.XK.YE.YT.ZA.ZM.ZW`.split(`.`), mod97: (e) => {
+  let t = 0;
+  for (let n of e)
+    t = (t * 10 + +n) % 97;
+  return t;
+}, pattern10: [`01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`], pattern100: [`001`, `002`, `003`, `004`, `005`, `006`, `007`, `008`, `009`], toDigitString: (e) => e.replaceAll(/[A-Z]/gi, (e) => String((e.toUpperCase().codePointAt(0) ?? NaN) - 55)) };
+function Se(e) {
+  let t = ``;
+  for (let n = 0;n < e.length; n += 4)
+    t += `${e.substring(n, n + 4)} `;
+  return t.trimEnd();
 }
 var Ce = class extends S {
-  accountNumber(e2 = {}) {
-    typeof e2 == `number` && (e2 = { length: e2 });
-    let { length: t2 = 8 } = e2;
-    return this.faker.string.numeric({ length: t2, allowLeadingZeros: true });
+  accountNumber(e = {}) {
+    typeof e == `number` && (e = { length: e });
+    let { length: t = 8 } = e;
+    return this.faker.string.numeric({ length: t, allowLeadingZeros: true });
   }
   accountName() {
     return [this.faker.helpers.arrayElement(this.faker.definitions.finance.account_type), `Account`].join(` `);
   }
   routingNumber() {
-    let e2 = this.faker.helpers.arrayElement(this.faker.definitions.finance.federal_reserve_routing_symbol) + this.faker.string.numeric({ length: 4, allowLeadingZeros: true }), t2 = 0;
-    for (let n2 = 0;n2 < e2.length; n2 += 3)
-      t2 += Number(e2[n2]) * 3, t2 += Number(e2[n2 + 1]) * 7, t2 += Number(e2[n2 + 2]) || 0;
-    return `${e2}${Math.ceil(t2 / 10) * 10 - t2}`;
+    let e = this.faker.helpers.arrayElement(this.faker.definitions.finance.federal_reserve_routing_symbol) + this.faker.string.numeric({ length: 4, allowLeadingZeros: true }), t = 0;
+    for (let n = 0;n < e.length; n += 3)
+      t += Number(e[n]) * 3, t += Number(e[n + 1]) * 7, t += Number(e[n + 2]) || 0;
+    return `${e}${Math.ceil(t / 10) * 10 - t}`;
   }
-  amount(e2 = {}) {
-    let { autoFormat: t2 = false, dec: n2 = 2, max: r2 = 1000, min: i2 = 0, symbol: a2 = `` } = e2, o2 = this.faker.number.float({ max: r2, min: i2, fractionDigits: n2 });
-    return a2 + (t2 ? o2.toLocaleString(undefined, { minimumFractionDigits: n2 }) : o2.toFixed(n2));
+  amount(e = {}) {
+    let { autoFormat: t = false, dec: n = 2, max: r = 1000, min: i = 0, symbol: a = `` } = e, o = this.faker.number.float({ max: r, min: i, fractionDigits: n });
+    return a + (t ? o.toLocaleString(undefined, { minimumFractionDigits: n }) : o.toFixed(n));
   }
   transactionType() {
     return this.faker.helpers.arrayElement(this.faker.definitions.finance.transaction_type);
@@ -29108,35 +28941,35 @@ var Ce = class extends S {
     return this.currency().name;
   }
   currencySymbol() {
-    let e2;
+    let e;
     do
-      e2 = this.currency().symbol;
-    while (e2.length === 0);
-    return e2;
+      e = this.currency().symbol;
+    while (e.length === 0);
+    return e;
   }
   currencyNumericCode() {
     return this.currency().numericCode;
   }
-  bitcoinAddress(e2 = {}) {
-    let { type: t2 = this.faker.helpers.enumValue(j), network: n2 = `mainnet` } = e2, r2 = xe[t2], i2 = r2.prefix[n2], a2 = this.faker.number.int(r2.length);
-    return i2 + this.faker.string.alphanumeric({ length: a2 - i2.length, casing: r2.casing, exclude: r2.exclude });
+  bitcoinAddress(e = {}) {
+    let { type: t = this.faker.helpers.enumValue(j), network: n = `mainnet` } = e, r = xe[t], i = r.prefix[n], a = this.faker.number.int(r.length);
+    return i + this.faker.string.alphanumeric({ length: a - i.length, casing: r.casing, exclude: r.exclude });
   }
   litecoinAddress() {
-    let e2 = this.faker.number.int({ min: 26, max: 33 });
-    return this.faker.string.fromCharacters(`LM3`) + this.faker.string.fromCharacters(`123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ`, e2 - 1);
+    let e = this.faker.number.int({ min: 26, max: 33 });
+    return this.faker.string.fromCharacters(`LM3`) + this.faker.string.fromCharacters(`123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ`, e - 1);
   }
-  creditCardNumber(e2 = {}) {
-    typeof e2 == `string` && (e2 = { issuer: e2 });
-    let { issuer: t2 = `` } = e2, n2, r2 = this.faker.definitions.finance.credit_card, i2 = t2.toLowerCase();
-    if (i2 in r2)
-      n2 = this.faker.helpers.arrayElement(r2[i2]);
-    else if (t2.includes(`#`))
-      n2 = t2;
+  creditCardNumber(e = {}) {
+    typeof e == `string` && (e = { issuer: e });
+    let { issuer: t = `` } = e, n, r = this.faker.definitions.finance.credit_card, i = t.toLowerCase();
+    if (i in r)
+      n = this.faker.helpers.arrayElement(r[i]);
+    else if (t.includes(`#`))
+      n = t;
     else {
-      let e3 = this.faker.helpers.objectValue(r2);
-      n2 = this.faker.helpers.arrayElement(e3);
+      let e = this.faker.helpers.objectValue(r);
+      n = this.faker.helpers.arrayElement(e);
     }
-    return n2 = n2.replaceAll(`/`, ``), this.faker.helpers.replaceCreditCardSymbols(n2);
+    return n = n.replaceAll(`/`, ``), this.faker.helpers.replaceCreditCardSymbols(n);
   }
   creditCardCVV() {
     return this.faker.string.numeric({ length: 3, allowLeadingZeros: true });
@@ -29144,42 +28977,42 @@ var Ce = class extends S {
   creditCardIssuer() {
     return this.faker.helpers.objectKey(this.faker.definitions.finance.credit_card);
   }
-  pin(t2 = {}) {
-    typeof t2 == `number` && (t2 = { length: t2 });
-    let { length: n2 = 4 } = t2;
-    if (n2 < 1)
+  pin(t = {}) {
+    typeof t == `number` && (t = { length: t });
+    let { length: n = 4 } = t;
+    if (n < 1)
       throw new e(`minimum length is 1`);
-    return this.faker.string.numeric({ length: n2, allowLeadingZeros: true });
+    return this.faker.string.numeric({ length: n, allowLeadingZeros: true });
   }
   ethereumAddress() {
     return this.faker.string.hexadecimal({ length: 40, casing: `lower` });
   }
-  iban(t2 = {}) {
-    let { countryCode: n2, formatted: r2 = false } = t2, i2 = n2 ? M.formats.find((e2) => e2.country === n2) : this.faker.helpers.arrayElement(M.formats);
-    if (!i2)
-      throw new e(`Country code ${n2} not supported.`);
-    let a2 = ``, o2 = 0;
-    for (let e2 of i2.bban) {
-      let t3 = e2.count;
-      for (o2 += e2.count;t3 > 0; )
-        e2.type === `a` ? a2 += this.faker.helpers.arrayElement(M.alpha) : e2.type === `c` ? this.faker.datatype.boolean(0.8) ? a2 += this.faker.number.int(9) : a2 += this.faker.helpers.arrayElement(M.alpha) : t3 >= 3 && this.faker.datatype.boolean(0.3) ? this.faker.datatype.boolean() ? (a2 += this.faker.helpers.arrayElement(M.pattern100), t3 -= 2) : (a2 += this.faker.helpers.arrayElement(M.pattern10), t3--) : a2 += this.faker.number.int(9), t3--;
-      a2 = a2.substring(0, o2);
+  iban(t = {}) {
+    let { countryCode: n, formatted: r = false } = t, i = n ? M.formats.find((e) => e.country === n) : this.faker.helpers.arrayElement(M.formats);
+    if (!i)
+      throw new e(`Country code ${n} not supported.`);
+    let a = ``, o = 0;
+    for (let e of i.bban) {
+      let t = e.count;
+      for (o += e.count;t > 0; )
+        e.type === `a` ? a += this.faker.helpers.arrayElement(M.alpha) : e.type === `c` ? this.faker.datatype.boolean(0.8) ? a += this.faker.number.int(9) : a += this.faker.helpers.arrayElement(M.alpha) : t >= 3 && this.faker.datatype.boolean(0.3) ? this.faker.datatype.boolean() ? (a += this.faker.helpers.arrayElement(M.pattern100), t -= 2) : (a += this.faker.helpers.arrayElement(M.pattern10), t--) : a += this.faker.number.int(9), t--;
+      a = a.substring(0, o);
     }
-    let s2 = 98 - M.mod97(M.toDigitString(`${a2}${i2.country}00`));
-    s2 < 10 && (s2 = `0${s2}`);
-    let c2 = `${i2.country}${s2}${a2}`;
-    return r2 ? Se(c2) : c2;
+    let s = 98 - M.mod97(M.toDigitString(`${a}${i.country}00`));
+    s < 10 && (s = `0${s}`);
+    let c = `${i.country}${s}${a}`;
+    return r ? Se(c) : c;
   }
-  bic(e2 = {}) {
-    let { includeBranchCode: t2 = this.faker.datatype.boolean() } = e2;
-    return `${this.faker.string.alpha({ length: 4, casing: `upper` })}${this.faker.helpers.arrayElement(M.iso3166)}${this.faker.string.alphanumeric({ length: 2, casing: `upper` })}${t2 ? this.faker.datatype.boolean() ? this.faker.string.alphanumeric({ length: 3, casing: `upper` }) : `XXX` : ``}`;
+  bic(e = {}) {
+    let { includeBranchCode: t = this.faker.datatype.boolean() } = e;
+    return `${this.faker.string.alpha({ length: 4, casing: `upper` })}${this.faker.helpers.arrayElement(M.iso3166)}${this.faker.string.alphanumeric({ length: 2, casing: `upper` })}${t ? this.faker.datatype.boolean() ? this.faker.string.alphanumeric({ length: 3, casing: `upper` }) : `XXX` : ``}`;
   }
   transactionDescription() {
     return this.faker.helpers.fake(this.faker.definitions.finance.transaction_description_pattern);
   }
 };
-function we(e2) {
-  return e2.split(` `).map((e3) => e3.charAt(0).toUpperCase() + e3.slice(1)).join(` `);
+function we(e) {
+  return e.split(` `).map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(` `);
 }
 var Te = class extends S {
   adjective() {
@@ -29214,26 +29047,26 @@ var Ee = class extends S {
   branch() {
     return `${this.faker.hacker.noun().replace(` `, `-`)}-${this.faker.hacker.verb().replace(` `, `-`)}`;
   }
-  commitEntry(e2 = {}) {
-    let { merge: t2 = this.faker.datatype.boolean({ probability: 0.2 }), eol: n2 = `CRLF`, refDate: r2 } = e2, i2 = [`commit ${this.faker.git.commitSha()}`];
-    t2 && i2.push(`Merge: ${this.commitSha({ length: 7 })} ${this.commitSha({ length: 7 })}`);
-    let a2 = this.faker.person.firstName(), o2 = this.faker.person.lastName(), s2 = this.faker.person.fullName({ firstName: a2, lastName: o2 }), c2 = this.faker.internet.username({ firstName: a2, lastName: o2 }), l2 = this.faker.helpers.arrayElement([s2, c2]), u2 = this.faker.internet.email({ firstName: a2, lastName: o2 });
-    l2 = l2.replaceAll(/^[.,:;"\\']|[<>\n]|[.,:;"\\']$/g, ``), i2.push(`Author: ${l2} <${u2}>`, `Date: ${this.commitDate({ refDate: r2 })}`, ``, `${` `.repeat(4)}${this.commitMessage()}`, ``);
-    let d2 = n2 === `CRLF` ? `\r
+  commitEntry(e = {}) {
+    let { merge: t = this.faker.datatype.boolean({ probability: 0.2 }), eol: n = `CRLF`, refDate: r } = e, i = [`commit ${this.faker.git.commitSha()}`];
+    t && i.push(`Merge: ${this.commitSha({ length: 7 })} ${this.commitSha({ length: 7 })}`);
+    let a = this.faker.person.firstName(), o = this.faker.person.lastName(), s = this.faker.person.fullName({ firstName: a, lastName: o }), c = this.faker.internet.username({ firstName: a, lastName: o }), l = this.faker.helpers.arrayElement([s, c]), u = this.faker.internet.email({ firstName: a, lastName: o });
+    l = l.replaceAll(/^[.,:;"\\']|[<>\n]|[.,:;"\\']$/g, ``), i.push(`Author: ${l} <${u}>`, `Date: ${this.commitDate({ refDate: r })}`, ``, `${` `.repeat(4)}${this.commitMessage()}`, ``);
+    let d = n === `CRLF` ? `\r
 ` : `
 `;
-    return i2.join(d2);
+    return i.join(d);
   }
   commitMessage() {
     return `${this.faker.hacker.verb()} ${this.faker.hacker.adjective()} ${this.faker.hacker.noun()}`;
   }
-  commitDate(e2 = {}) {
-    let { refDate: t2 = this.faker.defaultRefDate() } = e2, n2 = [`Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`], r2 = [`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`], i2 = this.faker.date.recent({ days: 1, refDate: t2 }), a2 = n2[i2.getUTCDay()], o2 = r2[i2.getUTCMonth()], s2 = i2.getUTCDate(), c2 = i2.getUTCHours().toString().padStart(2, `0`), l2 = i2.getUTCMinutes().toString().padStart(2, `0`), u2 = i2.getUTCSeconds().toString().padStart(2, `0`), d2 = i2.getUTCFullYear(), f2 = this.faker.number.int({ min: -11, max: 12 }), p2 = Math.abs(f2).toString().padStart(2, `0`);
-    return `${a2} ${o2} ${s2} ${c2}:${l2}:${u2} ${d2} ${f2 >= 0 ? `+` : `-`}${p2}00`;
+  commitDate(e = {}) {
+    let { refDate: t = this.faker.defaultRefDate() } = e, n = [`Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`], r = [`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`], i = this.faker.date.recent({ days: 1, refDate: t }), a = n[i.getUTCDay()], o = r[i.getUTCMonth()], s = i.getUTCDate(), c = i.getUTCHours().toString().padStart(2, `0`), l = i.getUTCMinutes().toString().padStart(2, `0`), u = i.getUTCSeconds().toString().padStart(2, `0`), d = i.getUTCFullYear(), f = this.faker.number.int({ min: -11, max: 12 }), p = Math.abs(f).toString().padStart(2, `0`);
+    return `${a} ${o} ${s} ${c}:${l}:${u} ${d} ${f >= 0 ? `+` : `-`}${p}00`;
   }
-  commitSha(e2 = {}) {
-    let { length: t2 = 40 } = e2;
-    return this.faker.string.hexadecimal({ length: t2, casing: `lower`, prefix: `` });
+  commitSha(e = {}) {
+    let { length: t = 40 } = e;
+    return this.faker.string.hexadecimal({ length: t, casing: `lower`, prefix: `` });
   }
 };
 var De = class extends S {
@@ -29257,368 +29090,368 @@ var De = class extends S {
   }
 };
 var Oe = /\.|\(/;
-function ke(t2, n2, r2 = [n2, n2.definitions.raw]) {
-  if (t2.length === 0)
+function ke(t, n, r = [n, n.definitions.raw]) {
+  if (t.length === 0)
     throw new e(`Eval expression cannot be empty.`);
-  if (r2.length === 0)
+  if (r.length === 0)
     throw new e(`Eval entrypoints cannot be empty.`);
-  let i2 = r2, a2 = t2;
+  let i = r, a = t;
   do {
-    let e2;
-    a2.startsWith(`(`) ? [e2, i2] = Ae(a2, i2) : [e2, i2] = Me(a2, i2), a2 = a2.substring(e2), i2 = i2.filter((e3) => e3 != null).map((e3) => Array.isArray(e3) ? n2.helpers.arrayElement(e3) : e3);
-  } while (a2.length > 0 && i2.length > 0);
-  if (i2.length === 0)
-    throw new e(`Cannot resolve expression '${t2}'`);
-  let o2 = i2[0];
-  return typeof o2 == `function` ? o2() : o2;
+    let e;
+    a.startsWith(`(`) ? [e, i] = Ae(a, i) : [e, i] = Me(a, i), a = a.substring(e), i = i.filter((e) => e != null).map((e) => Array.isArray(e) ? n.helpers.arrayElement(e) : e);
+  } while (a.length > 0 && i.length > 0);
+  if (i.length === 0)
+    throw new e(`Cannot resolve expression '${t}'`);
+  let o = i[0];
+  return typeof o == `function` ? o() : o;
 }
-function Ae(t2, n2) {
-  let [r2, i2] = je(t2), a2 = t2[r2 + 1];
-  switch (a2) {
+function Ae(t, n) {
+  let [r, i] = je(t), a = t[r + 1];
+  switch (a) {
     case `.`:
     case `(`:
     case undefined:
       break;
     default:
-      throw new e(`Expected dot ('.'), open parenthesis ('('), or nothing after function call but got '${a2}'`);
+      throw new e(`Expected dot ('.'), open parenthesis ('('), or nothing after function call but got '${a}'`);
   }
-  return [r2 + (a2 === `.` ? 2 : 1), n2.map((e2) => typeof e2 == `function` ? e2(...i2) : undefined)];
+  return [r + (a === `.` ? 2 : 1), n.map((e) => typeof e == `function` ? e(...i) : undefined)];
 }
-function je(t2) {
-  let n2 = t2.indexOf(`)`, 1);
-  if (n2 === -1)
-    throw new e(`Missing closing parenthesis in '${t2}'`);
-  for (;n2 !== -1; ) {
-    let e2 = t2.substring(1, n2);
+function je(t) {
+  let n = t.indexOf(`)`, 1);
+  if (n === -1)
+    throw new e(`Missing closing parenthesis in '${t}'`);
+  for (;n !== -1; ) {
+    let e = t.substring(1, n);
     try {
-      return [n2, JSON.parse(`[${e2}]`)];
+      return [n, JSON.parse(`[${e}]`)];
     } catch {
-      if (!e2.includes(`'`) && !e2.includes(`"`))
+      if (!e.includes(`'`) && !e.includes(`"`))
         try {
-          return [n2, JSON.parse(`["${e2}"]`)];
+          return [n, JSON.parse(`["${e}"]`)];
         } catch {}
     }
-    n2 = t2.indexOf(`)`, n2 + 1);
+    n = t.indexOf(`)`, n + 1);
   }
-  n2 = t2.lastIndexOf(`)`);
-  let r2 = t2.substring(1, n2);
-  return [n2, [r2]];
+  n = t.lastIndexOf(`)`);
+  let r = t.substring(1, n);
+  return [n, [r]];
 }
-function Me(t2, n2) {
-  let r2 = Oe.exec(t2), i2 = (r2?.[0] ?? ``) === `.`, a2 = r2?.index ?? t2.length, o2 = t2.substring(0, a2);
-  if (o2.length === 0)
-    throw new e(`Expression parts cannot be empty in '${t2}'`);
-  let s2 = t2[a2 + 1];
-  if (i2 && (s2 == null || s2 === `.` || s2 === `(`))
-    throw new e(`Found dot without property name in '${t2}'`);
-  return [a2 + +!!i2, n2.map((e2) => N(e2, o2))];
+function Me(t, n) {
+  let r = Oe.exec(t), i = (r?.[0] ?? ``) === `.`, a = r?.index ?? t.length, o = t.substring(0, a);
+  if (o.length === 0)
+    throw new e(`Expression parts cannot be empty in '${t}'`);
+  let s = t[a + 1];
+  if (i && (s == null || s === `.` || s === `(`))
+    throw new e(`Found dot without property name in '${t}'`);
+  return [a + +!!i, n.map((e) => N(e, o))];
 }
-function N(e2, t2) {
-  switch (typeof e2) {
+function N(e, t) {
+  switch (typeof e) {
     case `function`:
       try {
-        e2 = e2();
+        e = e();
       } catch {
         return;
       }
-      return N(e2, t2);
+      return N(e, t);
     case `object`:
-      return e2?.[t2];
+      return e?.[t];
     default:
       return;
   }
 }
-function Ne(e2) {
-  let t2 = Pe(e2.replace(/L?$/, `0`));
-  return t2 === 0 ? 0 : 10 - t2;
+function Ne(e) {
+  let t = Pe(e.replace(/L?$/, `0`));
+  return t === 0 ? 0 : 10 - t;
 }
-function Pe(e2) {
-  e2 = e2.replaceAll(/[\s-]/g, ``);
-  let t2 = 0, n2 = false;
-  for (let r2 = e2.length - 1;r2 >= 0; r2--) {
-    let i2 = Number.parseInt(e2[r2]);
-    n2 && (i2 *= 2, i2 > 9 && (i2 = i2 % 10 + 1)), t2 += i2, n2 = !n2;
+function Pe(e) {
+  e = e.replaceAll(/[\s-]/g, ``);
+  let t = 0, n = false;
+  for (let r = e.length - 1;r >= 0; r--) {
+    let i = Number.parseInt(e[r]);
+    n && (i *= 2, i > 9 && (i = i % 10 + 1)), t += i, n = !n;
   }
-  return t2 % 10;
+  return t % 10;
 }
-function P(t2, n2, r2, i2) {
-  let a2 = 1;
-  if (n2)
-    switch (n2) {
+function P(t, n, r, i) {
+  let a = 1;
+  if (n)
+    switch (n) {
       case `?`:
-        a2 = +!t2.datatype.boolean();
+        a = +!t.datatype.boolean();
         break;
       case `*`: {
-        let e2 = 1;
-        for (;t2.datatype.boolean(); )
-          e2 *= 2;
-        a2 = t2.number.int({ min: 0, max: e2 });
+        let e = 1;
+        for (;t.datatype.boolean(); )
+          e *= 2;
+        a = t.number.int({ min: 0, max: e });
         break;
       }
       case `+`: {
-        let e2 = 1;
-        for (;t2.datatype.boolean(); )
-          e2 *= 2;
-        a2 = t2.number.int({ min: 1, max: e2 });
+        let e = 1;
+        for (;t.datatype.boolean(); )
+          e *= 2;
+        a = t.number.int({ min: 1, max: e });
         break;
       }
       default:
         throw new e(`Unknown quantifier symbol provided.`);
     }
   else
-    r2 != null && i2 != null ? a2 = t2.number.int({ min: Number.parseInt(r2), max: Number.parseInt(i2) }) : r2 != null && i2 == null && (a2 = Number.parseInt(r2));
-  return a2;
+    r != null && i != null ? a = t.number.int({ min: Number.parseInt(r), max: Number.parseInt(i) }) : r != null && i == null && (a = Number.parseInt(r));
+  return a;
 }
-function Fe(e2, t2 = ``) {
-  let n2 = /(.)\{(\d+),(\d+)\}/, r2 = /(.)\{(\d+)\}/, i2 = /\[(\d+)-(\d+)\]/, a2, o2, s2, c2, l2 = n2.exec(t2);
-  for (;l2 != null; )
-    a2 = Number.parseInt(l2[2]), o2 = Number.parseInt(l2[3]), a2 > o2 && (s2 = o2, o2 = a2, a2 = s2), c2 = e2.number.int({ min: a2, max: o2 }), t2 = t2.slice(0, l2.index) + l2[1].repeat(c2) + t2.slice(l2.index + l2[0].length), l2 = n2.exec(t2);
-  for (l2 = r2.exec(t2);l2 != null; )
-    c2 = Number.parseInt(l2[2]), t2 = t2.slice(0, l2.index) + l2[1].repeat(c2) + t2.slice(l2.index + l2[0].length), l2 = r2.exec(t2);
-  for (l2 = i2.exec(t2);l2 != null; )
-    a2 = Number.parseInt(l2[1]), o2 = Number.parseInt(l2[2]), a2 > o2 && (s2 = o2, o2 = a2, a2 = s2), t2 = t2.slice(0, l2.index) + e2.number.int({ min: a2, max: o2 }).toString() + t2.slice(l2.index + l2[0].length), l2 = i2.exec(t2);
-  return t2;
+function Fe(e, t = ``) {
+  let n = /(.)\{(\d+),(\d+)\}/, r = /(.)\{(\d+)\}/, i = /\[(\d+)-(\d+)\]/, a, o, s, c, l = n.exec(t);
+  for (;l != null; )
+    a = Number.parseInt(l[2]), o = Number.parseInt(l[3]), a > o && (s = o, o = a, a = s), c = e.number.int({ min: a, max: o }), t = t.slice(0, l.index) + l[1].repeat(c) + t.slice(l.index + l[0].length), l = n.exec(t);
+  for (l = r.exec(t);l != null; )
+    c = Number.parseInt(l[2]), t = t.slice(0, l.index) + l[1].repeat(c) + t.slice(l.index + l[0].length), l = r.exec(t);
+  for (l = i.exec(t);l != null; )
+    a = Number.parseInt(l[1]), o = Number.parseInt(l[2]), a > o && (s = o, o = a, a = s), t = t.slice(0, l.index) + e.number.int({ min: a, max: o }).toString() + t.slice(l.index + l[0].length), l = i.exec(t);
+  return t;
 }
-function Ie(e2, t2, n2) {
-  let r2 = ``, i2 = false;
-  for (let a2 = 0;a2 < t2.length; a2++) {
-    let o2 = t2[a2];
-    if (o2 === `\\`) {
-      r2 += o2, a2 + 1 < t2.length && (r2 += t2[++a2]);
+function Ie(e, t, n) {
+  let r = ``, i = false;
+  for (let a = 0;a < t.length; a++) {
+    let o = t[a];
+    if (o === `\\`) {
+      r += o, a + 1 < t.length && (r += t[++a]);
       continue;
     }
-    if (o2 === `[`) {
-      i2 = true, r2 += o2;
+    if (o === `[`) {
+      i = true, r += o;
       continue;
     }
-    if (o2 === `]`) {
-      i2 = false, r2 += o2;
+    if (o === `]`) {
+      i = false, r += o;
       continue;
     }
-    let s2 = t2[a2 + 1], c2 = [`?`, `*`, `+`, `{`].includes(s2);
-    if (!i2 && !c2 && o2 === `.`) {
-      r2 += e2.string.alphanumeric();
+    let s = t[a + 1], c = [`?`, `*`, `+`, `{`].includes(s);
+    if (!i && !c && o === `.`) {
+      r += e.string.alphanumeric();
       continue;
     }
-    if (!i2 && !c2 && n2 && /^[a-z]$/i.test(o2)) {
-      r2 += e2.string.fromCharacters([o2.toLowerCase(), o2.toUpperCase()]);
+    if (!i && !c && n && /^[a-z]$/i.test(o)) {
+      r += e.string.fromCharacters([o.toLowerCase(), o.toUpperCase()]);
       continue;
     }
-    r2 += o2;
+    r += o;
   }
-  return r2;
+  return r;
 }
-function F(e2, t2 = ``, n2 = `#`) {
-  let r2 = ``;
-  for (let i2 = 0;i2 < t2.length; i2++)
-    t2.charAt(i2) === n2 ? r2 += e2.number.int(9) : t2.charAt(i2) === `!` ? r2 += e2.number.int({ min: 2, max: 9 }) : r2 += t2.charAt(i2);
-  return r2;
+function F(e, t = ``, n = `#`) {
+  let r = ``;
+  for (let i = 0;i < t.length; i++)
+    t.charAt(i) === n ? r += e.number.int(9) : t.charAt(i) === `!` ? r += e.number.int({ min: 2, max: 9 }) : r += t.charAt(i);
+  return r;
 }
 var I = class extends x {
-  slugify(e2 = ``) {
-    return e2.normalize(`NFKD`).replaceAll(/[\u0300-\u036F]/g, ``).replaceAll(` `, `-`).replaceAll(/[^\w.-]+/g, ``);
+  slugify(e = ``) {
+    return e.normalize(`NFKD`).replaceAll(/[\u0300-\u036F]/g, ``).replaceAll(` `, `-`).replaceAll(/[^\w.-]+/g, ``);
   }
-  replaceSymbols(e2 = ``) {
-    let t2 = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split(``), n2 = ``;
-    for (let r2 = 0;r2 < e2.length; r2++)
-      e2.charAt(r2) === `#` ? n2 += this.faker.number.int(9) : e2.charAt(r2) === `?` ? n2 += this.arrayElement(t2) : e2.charAt(r2) === `*` ? n2 += this.faker.datatype.boolean() ? this.arrayElement(t2) : this.faker.number.int(9) : n2 += e2.charAt(r2);
-    return n2;
+  replaceSymbols(e = ``) {
+    let t = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split(``), n = ``;
+    for (let r = 0;r < e.length; r++)
+      e.charAt(r) === `#` ? n += this.faker.number.int(9) : e.charAt(r) === `?` ? n += this.arrayElement(t) : e.charAt(r) === `*` ? n += this.faker.datatype.boolean() ? this.arrayElement(t) : this.faker.number.int(9) : n += e.charAt(r);
+    return n;
   }
-  replaceCreditCardSymbols(e2 = `6453-####-####-####-###L`, t2 = `#`) {
-    e2 = Fe(this.faker, e2), e2 = F(this.faker, e2, t2);
-    let n2 = Ne(e2);
-    return e2.replace(`L`, String(n2));
+  replaceCreditCardSymbols(e = `6453-####-####-####-###L`, t = `#`) {
+    e = Fe(this.faker, e), e = F(this.faker, e, t);
+    let n = Ne(e);
+    return e.replace(`L`, String(n));
   }
-  fromRegExp(t2) {
-    let n2 = false;
-    if (t2 instanceof RegExp && (n2 = t2.flags.includes(`i`), t2 = t2.source.replace(/^\^+/, ``).replace(/\$+$/, ``)), t2 === `.`)
+  fromRegExp(t) {
+    let n = false;
+    if (t instanceof RegExp && (n = t.flags.includes(`i`), t = t.source.replace(/^\^+/, ``).replace(/\$+$/, ``)), t === `.`)
       return this.faker.string.alphanumeric();
-    if (n2 && /^[a-z]$/i.test(t2))
-      return this.faker.string.fromCharacters([t2.toLowerCase(), t2.toUpperCase()]);
-    t2 = Ie(this.faker, t2, n2);
-    let r2, i2, a2, o2 = /([.A-Za-z0-9])(?:\{(\d+)(?:,(\d+)|)\}|(\?|\*|\+))(?![^[]*]|[^{]*})/, s2 = o2.exec(t2);
-    for (;s2 != null; ) {
-      let e2 = s2[2], r3 = s2[3], i3 = s2[4];
-      a2 = P(this.faker, i3, e2, r3);
-      let c3;
-      c3 = s2[1] === `.` ? this.faker.string.alphanumeric(a2) : n2 ? this.faker.string.fromCharacters([s2[1].toLowerCase(), s2[1].toUpperCase()], a2) : s2[1].repeat(a2), t2 = t2.slice(0, s2.index) + c3 + t2.slice(s2.index + s2[0].length), s2 = o2.exec(t2);
+    if (n && /^[a-z]$/i.test(t))
+      return this.faker.string.fromCharacters([t.toLowerCase(), t.toUpperCase()]);
+    t = Ie(this.faker, t, n);
+    let r, i, a, o = /([.A-Za-z0-9])(?:\{(\d+)(?:,(\d+)|)\}|(\?|\*|\+))(?![^[]*]|[^{]*})/, s = o.exec(t);
+    for (;s != null; ) {
+      let e = s[2], r = s[3], i = s[4];
+      a = P(this.faker, i, e, r);
+      let c;
+      c = s[1] === `.` ? this.faker.string.alphanumeric(a) : n ? this.faker.string.fromCharacters([s[1].toLowerCase(), s[1].toUpperCase()], a) : s[1].repeat(a), t = t.slice(0, s.index) + c + t.slice(s.index + s[0].length), s = o.exec(t);
     }
-    let c2 = /(\d-\d|\w-\w|\d|\w|[-!@#$&()`.+,/"])/, l2 = /\[(\^|)(-|)(.+?)\](?:\{(\d+)(?:,(\d+)|)\}|(\?|\*|\+)|)/;
-    for (s2 = l2.exec(t2);s2 != null; ) {
-      let o3 = s2[1] === `^`, u3 = s2[2] === `-`, d3 = s2[4], f2 = s2[5], p2 = s2[6], m2 = [], h2 = s2[3], g2 = c2.exec(h2);
-      for (u3 && m2.push(45);g2 != null; ) {
-        if (g2[0].includes(`-`)) {
-          let t3 = g2[0].split(`-`).map((e2) => e2.codePointAt(0) ?? NaN);
-          if (r2 = t3[0], i2 = t3[1], r2 > i2)
+    let c = /(\d-\d|\w-\w|\d|\w|[-!@#$&()`.+,/"])/, l = /\[(\^|)(-|)(.+?)\](?:\{(\d+)(?:,(\d+)|)\}|(\?|\*|\+)|)/;
+    for (s = l.exec(t);s != null; ) {
+      let o = s[1] === `^`, u = s[2] === `-`, d = s[4], f = s[5], p = s[6], m = [], h = s[3], g = c.exec(h);
+      for (u && m.push(45);g != null; ) {
+        if (g[0].includes(`-`)) {
+          let t = g[0].split(`-`).map((e) => e.codePointAt(0) ?? NaN);
+          if (r = t[0], i = t[1], r > i)
             throw new e(`Character range provided is out of order.`);
-          for (let e2 = r2;e2 <= i2; e2++)
-            if (n2 && Number.isNaN(Number(String.fromCodePoint(e2)))) {
-              let t4 = String.fromCodePoint(e2);
-              m2.push(t4.toUpperCase().codePointAt(0) ?? NaN, t4.toLowerCase().codePointAt(0) ?? NaN);
+          for (let e = r;e <= i; e++)
+            if (n && Number.isNaN(Number(String.fromCodePoint(e)))) {
+              let t = String.fromCodePoint(e);
+              m.push(t.toUpperCase().codePointAt(0) ?? NaN, t.toLowerCase().codePointAt(0) ?? NaN);
             } else
-              m2.push(e2);
+              m.push(e);
         } else
-          n2 && Number.isNaN(Number(g2[0])) ? m2.push(g2[0].toUpperCase().codePointAt(0) ?? NaN, g2[0].toLowerCase().codePointAt(0) ?? NaN) : m2.push(g2[0].codePointAt(0) ?? NaN);
-        h2 = h2.substring(g2[0].length), g2 = c2.exec(h2);
+          n && Number.isNaN(Number(g[0])) ? m.push(g[0].toUpperCase().codePointAt(0) ?? NaN, g[0].toLowerCase().codePointAt(0) ?? NaN) : m.push(g[0].codePointAt(0) ?? NaN);
+        h = h.substring(g[0].length), g = c.exec(h);
       }
-      if (a2 = P(this.faker, p2, d3, f2), o3) {
-        let e2;
-        for (let t3 = 48;t3 <= 57; t3++) {
-          if (e2 = m2.indexOf(t3), e2 > -1) {
-            m2.splice(e2, 1);
+      if (a = P(this.faker, p, d, f), o) {
+        let e;
+        for (let t = 48;t <= 57; t++) {
+          if (e = m.indexOf(t), e > -1) {
+            m.splice(e, 1);
             continue;
           }
-          m2.push(t3);
+          m.push(t);
         }
-        for (let t3 = 65;t3 <= 90; t3++) {
-          if (e2 = m2.indexOf(t3), e2 > -1) {
-            m2.splice(e2, 1);
+        for (let t = 65;t <= 90; t++) {
+          if (e = m.indexOf(t), e > -1) {
+            m.splice(e, 1);
             continue;
           }
-          m2.push(t3);
+          m.push(t);
         }
-        for (let t3 = 97;t3 <= 122; t3++) {
-          if (e2 = m2.indexOf(t3), e2 > -1) {
-            m2.splice(e2, 1);
+        for (let t = 97;t <= 122; t++) {
+          if (e = m.indexOf(t), e > -1) {
+            m.splice(e, 1);
             continue;
           }
-          m2.push(t3);
+          m.push(t);
         }
       }
-      let _2 = this.multiple(() => String.fromCodePoint(this.arrayElement(m2)), { count: a2 }).join(``);
-      t2 = t2.slice(0, s2.index) + _2 + t2.slice(s2.index + s2[0].length), s2 = l2.exec(t2);
+      let _ = this.multiple(() => String.fromCodePoint(this.arrayElement(m)), { count: a }).join(``);
+      t = t.slice(0, s.index) + _ + t.slice(s.index + s[0].length), s = l.exec(t);
     }
-    let u2 = /(.)\{(\d+),(\d+)\}/;
-    for (s2 = u2.exec(t2);s2 != null; ) {
-      if (r2 = Number.parseInt(s2[2]), i2 = Number.parseInt(s2[3]), r2 > i2)
+    let u = /(.)\{(\d+),(\d+)\}/;
+    for (s = u.exec(t);s != null; ) {
+      if (r = Number.parseInt(s[2]), i = Number.parseInt(s[3]), r > i)
         throw new e(`Numbers out of order in {} quantifier.`);
-      a2 = this.faker.number.int({ min: r2, max: i2 }), t2 = t2.slice(0, s2.index) + s2[1].repeat(a2) + t2.slice(s2.index + s2[0].length), s2 = u2.exec(t2);
+      a = this.faker.number.int({ min: r, max: i }), t = t.slice(0, s.index) + s[1].repeat(a) + t.slice(s.index + s[0].length), s = u.exec(t);
     }
-    let d2 = /(.)\{(\d+)\}/;
-    for (s2 = d2.exec(t2);s2 != null; )
-      a2 = Number.parseInt(s2[2]), t2 = t2.slice(0, s2.index) + s2[1].repeat(a2) + t2.slice(s2.index + s2[0].length), s2 = d2.exec(t2);
-    return t2;
+    let d = /(.)\{(\d+)\}/;
+    for (s = d.exec(t);s != null; )
+      a = Number.parseInt(s[2]), t = t.slice(0, s.index) + s[1].repeat(a) + t.slice(s.index + s[0].length), s = d.exec(t);
+    return t;
   }
-  shuffle(e2, t2 = {}) {
-    let { inplace: n2 = false } = t2;
-    n2 || (e2 = [...e2]);
-    for (let t3 = e2.length - 1;t3 > 0; --t3) {
-      let n3 = this.faker.number.int(t3);
-      [e2[t3], e2[n3]] = [e2[n3], e2[t3]];
+  shuffle(e, t = {}) {
+    let { inplace: n = false } = t;
+    n || (e = [...e]);
+    for (let t = e.length - 1;t > 0; --t) {
+      let n = this.faker.number.int(t);
+      [e[t], e[n]] = [e[n], e[t]];
     }
-    return e2;
+    return e;
   }
-  uniqueArray(e2, t2) {
-    if (Array.isArray(e2)) {
-      let n3 = [...new Set(e2)];
-      return this.shuffle(n3).splice(0, t2);
+  uniqueArray(e, t) {
+    if (Array.isArray(e)) {
+      let n = [...new Set(e)];
+      return this.shuffle(n).splice(0, t);
     }
-    let n2 = new Set;
+    let n = new Set;
     try {
-      if (typeof e2 == `function`) {
-        let r2 = 1000 * t2, i2 = 0;
-        for (;n2.size < t2 && i2 < r2; )
-          n2.add(e2()), i2++;
+      if (typeof e == `function`) {
+        let r = 1000 * t, i = 0;
+        for (;n.size < t && i < r; )
+          n.add(e()), i++;
       }
     } catch {}
-    return [...n2];
+    return [...n];
   }
-  mustache(e2, t2) {
-    if (e2 == null)
+  mustache(e, t) {
+    if (e == null)
       return ``;
-    for (let n2 in t2) {
-      let r2 = RegExp(`{{${n2}}}`, `g`), i2 = t2[n2];
-      typeof i2 == `string` && (i2 = i2.replaceAll(`$`, `$$$$`)), e2 = e2.replace(r2, i2);
+    for (let n in t) {
+      let r = RegExp(`{{${n}}}`, `g`), i = t[n];
+      typeof i == `string` && (i = i.replaceAll(`$`, `$$$$`)), e = e.replace(r, i);
     }
-    return e2;
+    return e;
   }
-  maybe(e2, t2 = {}) {
-    if (this.faker.datatype.boolean(t2))
-      return e2();
+  maybe(e, t = {}) {
+    if (this.faker.datatype.boolean(t))
+      return e();
   }
-  objectKey(e2) {
-    let t2 = Object.keys(e2);
-    return this.arrayElement(t2);
+  objectKey(e) {
+    let t = Object.keys(e);
+    return this.arrayElement(t);
   }
-  objectValue(e2) {
-    return e2[this.faker.helpers.objectKey(e2)];
+  objectValue(e) {
+    return e[this.faker.helpers.objectKey(e)];
   }
-  objectEntry(e2) {
-    let t2 = this.faker.helpers.objectKey(e2);
-    return [t2, e2[t2]];
+  objectEntry(e) {
+    let t = this.faker.helpers.objectKey(e);
+    return [t, e[t]];
   }
-  arrayElement(t2) {
-    if (t2.length === 0)
+  arrayElement(t) {
+    if (t.length === 0)
       throw new e(`Cannot get value from empty dataset.`);
-    return t2[t2.length > 1 ? this.faker.number.int({ max: t2.length - 1 }) : 0];
+    return t[t.length > 1 ? this.faker.number.int({ max: t.length - 1 }) : 0];
   }
-  weightedArrayElement(t2) {
-    if (t2.length === 0)
+  weightedArrayElement(t) {
+    if (t.length === 0)
       throw new e(`weightedArrayElement expects an array with at least one element`);
-    if (t2.some((e2) => e2.weight <= 0))
+    if (t.some((e) => e.weight <= 0))
       throw new e(`weightedArrayElement expects an array of { weight, value } objects where weight is a positive number`);
-    let n2 = t2.reduce((e2, { weight: t3 }) => e2 + t3, 0), r2 = this.faker.number.float({ min: 0, max: n2 }), i2 = 0;
-    for (let { weight: e2, value: n3 } of t2)
-      if (i2 += e2, r2 < i2)
-        return n3;
-    return t2.at(-1).value;
+    let n = t.reduce((e, { weight: t }) => e + t, 0), r = this.faker.number.float({ min: 0, max: n }), i = 0;
+    for (let { weight: e, value: n } of t)
+      if (i += e, r < i)
+        return n;
+    return t.at(-1).value;
   }
-  arrayElements(e2, t2) {
-    if (e2.length === 0)
+  arrayElements(e, t) {
+    if (e.length === 0)
       return [];
-    let n2 = this.rangeToNumber(t2 ?? { min: 1, max: e2.length });
-    if (n2 >= e2.length)
-      return this.shuffle(e2);
-    if (n2 <= 0)
+    let n = this.rangeToNumber(t ?? { min: 1, max: e.length });
+    if (n >= e.length)
+      return this.shuffle(e);
+    if (n <= 0)
       return [];
-    let r2 = [...e2], i2 = e2.length, a2 = i2 - n2;
-    for (;i2-- > a2; ) {
-      let e3 = this.faker.number.int(i2), t3 = r2[e3];
-      r2[e3] = r2[i2], r2[i2] = t3;
+    let r = [...e], i = e.length, a = i - n;
+    for (;i-- > a; ) {
+      let e = this.faker.number.int(i), t = r[e];
+      r[e] = r[i], r[i] = t;
     }
-    return r2.slice(a2);
+    return r.slice(a);
   }
-  enumValue(e2) {
-    let t2 = Object.keys(e2).filter((e3) => Number.isNaN(Number(e3)));
-    return e2[this.arrayElement(t2)];
+  enumValue(e) {
+    let t = Object.keys(e).filter((e) => Number.isNaN(Number(e)));
+    return e[this.arrayElement(t)];
   }
-  rangeToNumber(e2) {
-    return typeof e2 == `number` ? e2 : this.faker.number.int(e2);
+  rangeToNumber(e) {
+    return typeof e == `number` ? e : this.faker.number.int(e);
   }
-  multiple(e2, t2 = {}) {
-    let n2 = this.rangeToNumber(t2.count ?? 3);
-    return n2 <= 0 ? [] : Array.from({ length: n2 }, e2);
+  multiple(e, t = {}) {
+    let n = this.rangeToNumber(t.count ?? 3);
+    return n <= 0 ? [] : Array.from({ length: n }, e);
   }
 };
 var Le = class extends I {
   faker;
-  constructor(e2) {
-    super(e2), this.faker = e2;
+  constructor(e) {
+    super(e), this.faker = e;
   }
-  fake(e2) {
-    e2 = typeof e2 == `string` ? e2 : this.arrayElement(e2);
-    let t2 = e2.search(/{{[a-z]/), n2 = e2.indexOf(`}}`, t2);
-    if (t2 === -1 || n2 === -1)
-      return e2;
-    let r2 = ke(e2.substring(t2 + 2, n2 + 2).replace(`}}`, ``).replace(`{{`, ``), this.faker), i2 = String(r2), a2 = e2.substring(0, t2) + i2 + e2.substring(n2 + 2);
-    return this.fake(a2);
+  fake(e) {
+    e = typeof e == `string` ? e : this.arrayElement(e);
+    let t = e.search(/{{[a-z]/), n = e.indexOf(`}}`, t);
+    if (t === -1 || n === -1)
+      return e;
+    let r = ke(e.substring(t + 2, n + 2).replace(`}}`, ``).replace(`{{`, ``), this.faker), i = String(r), a = e.substring(0, t) + i + e.substring(n + 2);
+    return this.fake(a);
   }
 };
-var L = typeof Buffer > `u` || !z(`base64`) ? (e2) => {
-  let t2 = new TextEncoder().encode(e2), n2 = Array.from(t2, (e3) => String.fromCodePoint(e3)).join(``);
-  return btoa(n2);
-} : (e2) => Buffer.from(e2).toString(`base64`);
-var R = typeof Buffer > `u` || !z(`base64url`) ? (e2) => L(e2).replaceAll(`+`, `-`).replaceAll(`/`, `_`).replaceAll(/=+$/g, ``) : (e2) => Buffer.from(e2).toString(`base64url`);
-function z(e2) {
+var L = typeof Buffer > `u` || !z(`base64`) ? (e) => {
+  let t = new TextEncoder().encode(e), n = Array.from(t, (e) => String.fromCodePoint(e)).join(``);
+  return btoa(n);
+} : (e) => Buffer.from(e).toString(`base64`);
+var R = typeof Buffer > `u` || !z(`base64url`) ? (e) => L(e).replaceAll(`+`, `-`).replaceAll(`/`, `_`).replaceAll(/=+$/g, ``) : (e) => Buffer.from(e).toString(`base64url`);
+function z(e) {
   try {
-    return typeof Buffer.from(`test`).toString(e2) == `string`;
+    return typeof Buffer.from(`test`).toString(e) == `string`;
   } catch {
     return false;
   }
 }
-function Re(e2) {
-  let { deprecated: t2, since: n2, until: r2, proposed: i2 } = e2, a2 = `[@faker-js/faker]: ${t2} is deprecated`;
-  n2 && (a2 += ` since v${n2}`), r2 && (a2 += ` and will be removed in v${r2}`), i2 && (a2 += `. Please use ${i2} instead`), console.warn(`${a2}.`);
+function Re(e) {
+  let { deprecated: t, since: n, until: r, proposed: i } = e, a = `[@faker-js/faker]: ${t} is deprecated`;
+  n && (a += ` since v${n}`), r && (a += ` and will be removed in v${r}`), i && (a += `. Please use ${i} instead`), console.warn(`${a}.`);
 }
 var ze = class extends S {
   avatar() {
@@ -29627,26 +29460,26 @@ var ze = class extends S {
   avatarGitHub() {
     return `https://avatars.githubusercontent.com/u/${this.faker.number.int(1e8)}`;
   }
-  personPortrait(e2 = {}) {
-    let { size: t2 = 512 } = e2, { sex: n2 = this.faker.person.sexType() } = e2;
-    return n2 === `generic` && (n2 = this.faker.person.sexType()), `https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/${n2}/${t2}/${this.faker.number.int({ min: 0, max: 99 })}.jpg`;
+  personPortrait(e = {}) {
+    let { size: t = 512 } = e, { sex: n = this.faker.person.sexType() } = e;
+    return n === `generic` && (n = this.faker.person.sexType()), `https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/${n}/${t}/${this.faker.number.int({ min: 0, max: 99 })}.jpg`;
   }
-  url(e2 = {}) {
-    let { width: t2 = this.faker.number.int({ min: 1, max: 3999 }), height: n2 = this.faker.number.int({ min: 1, max: 3999 }) } = e2;
-    return this.faker.helpers.arrayElement([({ width: e3, height: t3 }) => this.urlPicsumPhotos({ width: e3, height: t3, grayscale: false, blur: 0 })])({ width: t2, height: n2 });
+  url(e = {}) {
+    let { width: t = this.faker.number.int({ min: 1, max: 3999 }), height: n = this.faker.number.int({ min: 1, max: 3999 }) } = e;
+    return this.faker.helpers.arrayElement([({ width: e, height: t }) => this.urlPicsumPhotos({ width: e, height: t, grayscale: false, blur: 0 })])({ width: t, height: n });
   }
-  urlLoremFlickr(e2 = {}) {
+  urlLoremFlickr(e = {}) {
     Re({ deprecated: `faker.image.urlLoremFlickr()`, proposed: `faker.image.url()`, since: `10.1.0`, until: `11.0.0` });
-    let { width: t2 = this.faker.number.int({ min: 1, max: 3999 }), height: n2 = this.faker.number.int({ min: 1, max: 3999 }), category: r2 } = e2;
-    return `https://loremflickr.com/${t2}/${n2}${r2 == null ? `` : `/${r2}`}?lock=${this.faker.number.int()}`;
+    let { width: t = this.faker.number.int({ min: 1, max: 3999 }), height: n = this.faker.number.int({ min: 1, max: 3999 }), category: r } = e;
+    return `https://loremflickr.com/${t}/${n}${r == null ? `` : `/${r}`}?lock=${this.faker.number.int()}`;
   }
-  urlPicsumPhotos(e2 = {}) {
-    let { width: t2 = this.faker.number.int({ min: 1, max: 3999 }), height: n2 = this.faker.number.int({ min: 1, max: 3999 }), grayscale: r2 = this.faker.datatype.boolean(), blur: i2 = this.faker.number.int({ max: 10 }) } = e2, a2 = `https://picsum.photos/seed/${this.faker.string.alphanumeric({ length: { min: 5, max: 10 } })}/${t2}/${n2}`, o2 = typeof i2 == `number` && i2 >= 1 && i2 <= 10;
-    return (r2 || o2) && (a2 += `?`, r2 && (a2 += `grayscale`), r2 && o2 && (a2 += `&`), o2 && (a2 += `blur=${i2}`)), a2;
+  urlPicsumPhotos(e = {}) {
+    let { width: t = this.faker.number.int({ min: 1, max: 3999 }), height: n = this.faker.number.int({ min: 1, max: 3999 }), grayscale: r = this.faker.datatype.boolean(), blur: i = this.faker.number.int({ max: 10 }) } = e, a = `https://picsum.photos/seed/${this.faker.string.alphanumeric({ length: { min: 5, max: 10 } })}/${t}/${n}`, o = typeof i == `number` && i >= 1 && i <= 10;
+    return (r || o) && (a += `?`, r && (a += `grayscale`), r && o && (a += `&`), o && (a += `blur=${i}`)), a;
   }
-  dataUri(e2 = {}) {
-    let { width: t2 = this.faker.number.int({ min: 1, max: 3999 }), height: n2 = this.faker.number.int({ min: 1, max: 3999 }), color: r2 = this.faker.color.rgb(), type: i2 = this.faker.helpers.arrayElement([`svg-uri`, `svg-base64`]) } = e2, a2 = `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" width="${t2}" height="${n2}"><rect width="100%" height="100%" fill="${r2}"/><text x="${t2 / 2}" y="${n2 / 2}" font-size="20" alignment-baseline="middle" text-anchor="middle" fill="white">${t2}x${n2}</text></svg>`;
-    return i2 === `svg-uri` ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(a2)}` : `data:image/svg+xml;base64,${L(a2)}`;
+  dataUri(e = {}) {
+    let { width: t = this.faker.number.int({ min: 1, max: 3999 }), height: n = this.faker.number.int({ min: 1, max: 3999 }), color: r = this.faker.color.rgb(), type: i = this.faker.helpers.arrayElement([`svg-uri`, `svg-base64`]) } = e, a = `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" width="${t}" height="${n}"><rect width="100%" height="100%" fill="${r}"/><text x="${t / 2}" y="${n / 2}" font-size="20" alignment-baseline="middle" text-anchor="middle" fill="white">${t}x${n}</text></svg>`;
+    return i === `svg-uri` ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(a)}` : `data:image/svg+xml;base64,${L(a)}`;
   }
 };
 var Be = Object.fromEntries([[`А`, `A`], [`а`, `a`], [`Б`, `B`], [`б`, `b`], [`В`, `V`], [`в`, `v`], [`Г`, `G`], [`г`, `g`], [`Д`, `D`], [`д`, `d`], [`ъе`, `ye`], [`Ъе`, `Ye`], [`ъЕ`, `yE`], [`ЪЕ`, `YE`], [`Е`, `E`], [`е`, `e`], [`Ё`, `Yo`], [`ё`, `yo`], [`Ж`, `Zh`], [`ж`, `zh`], [`З`, `Z`], [`з`, `z`], [`И`, `I`], [`и`, `i`], [`ый`, `iy`], [`Ый`, `Iy`], [`ЫЙ`, `IY`], [`ыЙ`, `iY`], [`Й`, `Y`], [`й`, `y`], [`К`, `K`], [`к`, `k`], [`Л`, `L`], [`л`, `l`], [`М`, `M`], [`м`, `m`], [`Н`, `N`], [`н`, `n`], [`О`, `O`], [`о`, `o`], [`П`, `P`], [`п`, `p`], [`Р`, `R`], [`р`, `r`], [`С`, `S`], [`с`, `s`], [`Т`, `T`], [`т`, `t`], [`У`, `U`], [`у`, `u`], [`Ф`, `F`], [`ф`, `f`], [`Х`, `Kh`], [`х`, `kh`], [`Ц`, `Ts`], [`ц`, `ts`], [`Ч`, `Ch`], [`ч`, `ch`], [`Ш`, `Sh`], [`ш`, `sh`], [`Щ`, `Sch`], [`щ`, `sch`], [`Ъ`, ``], [`ъ`, ``], [`Ы`, `Y`], [`ы`, `y`], [`Ь`, ``], [`ь`, ``], [`Э`, `E`], [`э`, `e`], [`Ю`, `Yu`], [`ю`, `yu`], [`Я`, `Ya`], [`я`, `ya`]]);
@@ -29656,47 +29489,47 @@ var Ue = Object.fromEntries([[`ա`, `a`], [`Ա`, `A`], [`բ`, `b`], [`Բ`, `B`],
 var We = Object.fromEntries([[`چ`, `ch`], [`ک`, `k`], [`گ`, `g`], [`پ`, `p`], [`ژ`, `zh`], [`ی`, `y`]]);
 var Ge = Object.fromEntries([[`א`, `a`], [`ב`, `b`], [`ג`, `g`], [`ד`, `d`], [`ה`, `h`], [`ו`, `v`], [`ז`, `z`], [`ח`, `ch`], [`ט`, `t`], [`י`, `y`], [`כ`, `k`], [`ך`, `kh`], [`ל`, `l`], [`ם`, `m`], [`מ`, `m`], [`ן`, `n`], [`נ`, `n`], [`ס`, `s`], [`ע`, `a`], [`פ`, `f`], [`ף`, `ph`], [`צ`, `ts`], [`ץ`, `ts`], [`ק`, `k`], [`ר`, `r`], [`ש`, `sh`], [`ת`, `t`], [`ו`, `v`]]);
 var B = { ...Be, ...Ve, ...He, ...We, ...Ue, ...Ge };
-var Ke = function(e2) {
-  return e2.Any = `any`, e2.Loopback = `loopback`, e2.PrivateA = `private-a`, e2.PrivateB = `private-b`, e2.PrivateC = `private-c`, e2.TestNet1 = `test-net-1`, e2.TestNet2 = `test-net-2`, e2.TestNet3 = `test-net-3`, e2.LinkLocal = `link-local`, e2.Multicast = `multicast`, e2;
+var Ke = function(e) {
+  return e.Any = `any`, e.Loopback = `loopback`, e.PrivateA = `private-a`, e.PrivateB = `private-b`, e.PrivateC = `private-c`, e.TestNet1 = `test-net-1`, e.TestNet2 = `test-net-2`, e.TestNet3 = `test-net-3`, e.LinkLocal = `link-local`, e.Multicast = `multicast`, e;
 }({});
 var qe = { any: `0.0.0.0/0`, loopback: `127.0.0.0/8`, "private-a": `10.0.0.0/8`, "private-b": `172.16.0.0/12`, "private-c": `192.168.0.0/16`, "test-net-1": `192.0.2.0/24`, "test-net-2": `198.51.100.0/24`, "test-net-3": `203.0.113.0/24`, "link-local": `169.254.0.0/16`, multicast: `224.0.0.0/4` };
-function V(e2) {
-  return /^[a-z][a-z-]*[a-z]$/i.exec(e2) !== null;
+function V(e) {
+  return /^[a-z][a-z-]*[a-z]$/i.exec(e) !== null;
 }
-function H(e2, t2) {
-  let n2 = e2.helpers.slugify(t2);
-  if (V(n2))
-    return n2;
-  let r2 = e2.helpers.slugify(e2.lorem.word());
-  return V(r2) ? r2 : e2.string.alpha({ casing: `lower`, length: e2.number.int({ min: 4, max: 8 }) });
+function H(e, t) {
+  let n = e.helpers.slugify(t);
+  if (V(n))
+    return n;
+  let r = e.helpers.slugify(e.lorem.word());
+  return V(r) ? r : e.string.alpha({ casing: `lower`, length: e.number.int({ min: 4, max: 8 }) });
 }
 var Je = class extends S {
-  email(e2 = {}) {
-    let { firstName: t2, lastName: n2, provider: r2 = this.faker.helpers.arrayElement(this.faker.definitions.internet.free_email), allowSpecialCharacters: i2 = false } = e2, a2 = this.username({ firstName: t2, lastName: n2 });
-    if (a2 = a2.replaceAll(/[^A-Za-z0-9._+-]+/g, ``), a2 = a2.substring(0, 50), i2) {
-      let e3 = [...`._-`], t3 = [...".!#$%&'*+-/=?^_`{|}~"];
-      a2 = a2.replace(this.faker.helpers.arrayElement(e3), this.faker.helpers.arrayElement(t3));
+  email(e = {}) {
+    let { firstName: t, lastName: n, provider: r = this.faker.helpers.arrayElement(this.faker.definitions.internet.free_email), allowSpecialCharacters: i = false } = e, a = this.username({ firstName: t, lastName: n });
+    if (a = a.replaceAll(/[^A-Za-z0-9._+-]+/g, ``), a = a.substring(0, 50), i) {
+      let e = [...`._-`], t = [...".!#$%&'*+-/=?^_`{|}~"];
+      a = a.replace(this.faker.helpers.arrayElement(e), this.faker.helpers.arrayElement(t));
     }
-    return a2 = a2.replaceAll(/\.{2,}/g, `.`), a2 = a2.replace(/^\./, ``), a2 = a2.replace(/\.$/, ``), `${a2}@${r2}`;
+    return a = a.replaceAll(/\.{2,}/g, `.`), a = a.replace(/^\./, ``), a = a.replace(/\.$/, ``), `${a}@${r}`;
   }
-  exampleEmail(e2 = {}) {
-    let { firstName: t2, lastName: n2, allowSpecialCharacters: r2 = false } = e2, i2 = this.faker.helpers.arrayElement(this.faker.definitions.internet.example_email);
-    return this.email({ firstName: t2, lastName: n2, provider: i2, allowSpecialCharacters: r2 });
+  exampleEmail(e = {}) {
+    let { firstName: t, lastName: n, allowSpecialCharacters: r = false } = e, i = this.faker.helpers.arrayElement(this.faker.definitions.internet.example_email);
+    return this.email({ firstName: t, lastName: n, provider: i, allowSpecialCharacters: r });
   }
-  username(e2 = {}) {
-    let { firstName: t2 = this.faker.person.firstName(), lastName: n2 = this.faker.person.lastName(), lastName: r2 } = e2, i2 = this.faker.helpers.arrayElement([`.`, `_`]), a2 = this.faker.number.int(99), o2 = [() => `${t2}${i2}${n2}${a2}`, () => `${t2}${i2}${n2}`];
-    r2 || o2.push(() => `${t2}${a2}`);
-    let s2 = this.faker.helpers.arrayElement(o2)();
-    return s2 = s2.normalize(`NFKD`).replaceAll(/[\u0300-\u036F]/g, ``), s2 = [...s2].map((e3) => {
-      if (B[e3])
-        return B[e3];
-      let t3 = e3.codePointAt(0) ?? NaN;
-      return t3 < 128 ? e3 : t3.toString(36);
-    }).join(``), s2 = s2.replaceAll(`'`, ``), s2 = s2.replaceAll(` `, ``), s2;
+  username(e = {}) {
+    let { firstName: t = this.faker.person.firstName(), lastName: n = this.faker.person.lastName(), lastName: r } = e, i = this.faker.helpers.arrayElement([`.`, `_`]), a = this.faker.number.int(99), o = [() => `${t}${i}${n}${a}`, () => `${t}${i}${n}`];
+    r || o.push(() => `${t}${a}`);
+    let s = this.faker.helpers.arrayElement(o)();
+    return s = s.normalize(`NFKD`).replaceAll(/[\u0300-\u036F]/g, ``), s = [...s].map((e) => {
+      if (B[e])
+        return B[e];
+      let t = e.codePointAt(0) ?? NaN;
+      return t < 128 ? e : t.toString(36);
+    }).join(``), s = s.replaceAll(`'`, ``), s = s.replaceAll(` `, ``), s;
   }
-  displayName(e2 = {}) {
-    let { firstName: t2 = this.faker.person.firstName(), lastName: n2 = this.faker.person.lastName() } = e2, r2 = this.faker.helpers.arrayElement([`.`, `_`]), i2 = this.faker.number.int(99), a2 = this.faker.helpers.arrayElement([() => `${t2}${i2}`, () => `${t2}${r2}${n2}`, () => `${t2}${r2}${n2}${i2}`])();
-    return a2 = a2.replaceAll(`'`, ``), a2 = a2.replaceAll(` `, ``), a2;
+  displayName(e = {}) {
+    let { firstName: t = this.faker.person.firstName(), lastName: n = this.faker.person.lastName() } = e, r = this.faker.helpers.arrayElement([`.`, `_`]), i = this.faker.number.int(99), a = this.faker.helpers.arrayElement([() => `${t}${i}`, () => `${t}${r}${n}`, () => `${t}${r}${n}${i}`])();
+    return a = a.replaceAll(`'`, ``), a = a.replaceAll(` `, ``), a;
   }
   protocol() {
     return this.faker.helpers.arrayElement([`http`, `https`]);
@@ -29704,13 +29537,13 @@ var Je = class extends S {
   httpMethod() {
     return this.faker.helpers.arrayElement([`GET`, `POST`, `PUT`, `DELETE`, `PATCH`]);
   }
-  httpStatusCode(e2 = {}) {
-    let { types: t2 = Object.keys(this.faker.definitions.internet.http_status_code) } = e2, n2 = this.faker.helpers.arrayElement(t2);
-    return this.faker.helpers.arrayElement(this.faker.definitions.internet.http_status_code[n2]);
+  httpStatusCode(e = {}) {
+    let { types: t = Object.keys(this.faker.definitions.internet.http_status_code) } = e, n = this.faker.helpers.arrayElement(t);
+    return this.faker.helpers.arrayElement(this.faker.definitions.internet.http_status_code[n]);
   }
-  url(e2 = {}) {
-    let { appendSlash: t2 = this.faker.datatype.boolean(), protocol: n2 = `https` } = e2;
-    return `${n2}://${this.domainName()}${t2 ? `/` : ``}`;
+  url(e = {}) {
+    let { appendSlash: t = this.faker.datatype.boolean(), protocol: n = `https` } = e;
+    return `${n}://${this.domainName()}${t ? `/` : ``}`;
   }
   domainName() {
     return `${this.domainWord()}.${this.domainSuffix()}`;
@@ -29724,20 +29557,20 @@ var Je = class extends S {
   ip() {
     return this.faker.datatype.boolean() ? this.ipv4() : this.ipv6();
   }
-  ipv4(t2 = {}) {
-    let { network: n2 = `any`, cidrBlock: r2 = qe[n2] } = t2;
-    if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/.test(r2))
-      throw new e(`Invalid CIDR block provided: ${r2}. Must be in the format x.x.x.x/y.`);
-    let [i2, a2] = r2.split(`/`), o2 = Number.parseInt(a2, 10);
-    if (o2 > 32)
-      throw new e(`Invalid CIDR block provided: ${r2}. Prefix length must be between 0 and 32.`);
-    let s2 = i2.split(`.`).map(Number);
-    if (s2.some((e2) => e2 > 255))
-      throw new e(`Invalid CIDR block provided: ${r2}. Each octet must be between 0 and 255.`);
-    if (o2 === 32)
-      return i2;
-    let c2 = 4294967295 >>> o2, [l2, u2, d2, f2] = s2, p2 = (l2 << 24 | u2 << 16 | d2 << 8 | f2) & ~c2 | this.faker.number.int(c2);
-    return [p2 >>> 24 & 255, p2 >>> 16 & 255, p2 >>> 8 & 255, p2 & 255].join(`.`);
+  ipv4(t = {}) {
+    let { network: n = `any`, cidrBlock: r = qe[n] } = t;
+    if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/.test(r))
+      throw new e(`Invalid CIDR block provided: ${r}. Must be in the format x.x.x.x/y.`);
+    let [i, a] = r.split(`/`), o = Number.parseInt(a, 10);
+    if (o > 32)
+      throw new e(`Invalid CIDR block provided: ${r}. Prefix length must be between 0 and 32.`);
+    let s = i.split(`.`).map(Number);
+    if (s.some((e) => e > 255))
+      throw new e(`Invalid CIDR block provided: ${r}. Each octet must be between 0 and 255.`);
+    if (o === 32)
+      return i;
+    let c = 4294967295 >>> o, [l, u, d, f] = s, p = (l << 24 | u << 16 | d << 8 | f) & ~c | this.faker.number.int(c);
+    return [p >>> 24 & 255, p >>> 16 & 255, p >>> 8 & 255, p & 255].join(`.`);
   }
   ipv6() {
     return Array.from({ length: 8 }, () => this.faker.string.hexadecimal({ length: 4, casing: `lower`, prefix: `` })).join(`:`);
@@ -29748,87 +29581,87 @@ var Je = class extends S {
   userAgent() {
     return this.faker.helpers.fake(this.faker.definitions.internet.user_agent_pattern);
   }
-  mac(e2 = {}) {
-    typeof e2 == `string` && (e2 = { separator: e2 });
-    let { separator: t2 = `:` } = e2, n2, r2 = ``;
-    for ([`:`, `-`, ``].includes(t2) || (t2 = `:`), n2 = 0;n2 < 12; n2++)
-      r2 += this.faker.number.hex(15), n2 % 2 == 1 && n2 !== 11 && (r2 += t2);
-    return r2;
+  mac(e = {}) {
+    typeof e == `string` && (e = { separator: e });
+    let { separator: t = `:` } = e, n, r = ``;
+    for ([`:`, `-`, ``].includes(t) || (t = `:`), n = 0;n < 12; n++)
+      r += this.faker.number.hex(15), n % 2 == 1 && n !== 11 && (r += t);
+    return r;
   }
-  password(e2 = {}) {
-    let t2 = /[aeiouAEIOU]$/, n2 = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]$/, { length: r2 = 15, memorable: i2 = false, pattern: a2 = /\w/, prefix: o2 = `` } = e2, s2 = a2, c2 = o2;
-    for (;c2.length < r2; ) {
-      i2 && (s2 = n2.test(c2) ? t2 : n2);
-      let e3 = this.faker.number.int(94) + 33, r3 = String.fromCodePoint(e3);
-      i2 && (r3 = r3.toLowerCase()), s2.test(r3) && (c2 += r3);
+  password(e = {}) {
+    let t = /[aeiouAEIOU]$/, n = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]$/, { length: r = 15, memorable: i = false, pattern: a = /\w/, prefix: o = `` } = e, s = a, c = o;
+    for (;c.length < r; ) {
+      i && (s = n.test(c) ? t : n);
+      let e = this.faker.number.int(94) + 33, r = String.fromCodePoint(e);
+      i && (r = r.toLowerCase()), s.test(r) && (c += r);
     }
-    return c2;
+    return c;
   }
-  emoji(e2 = {}) {
-    let { types: t2 = Object.keys(this.faker.definitions.internet.emoji) } = e2, n2 = this.faker.helpers.arrayElement(t2);
-    return this.faker.helpers.arrayElement(this.faker.definitions.internet.emoji[n2]);
+  emoji(e = {}) {
+    let { types: t = Object.keys(this.faker.definitions.internet.emoji) } = e, n = this.faker.helpers.arrayElement(t);
+    return this.faker.helpers.arrayElement(this.faker.definitions.internet.emoji[n]);
   }
   jwtAlgorithm() {
     return this.faker.helpers.arrayElement(this.faker.definitions.internet.jwt_algorithm);
   }
-  jwt(e2 = {}) {
-    let { refDate: t2 = this.faker.defaultRefDate() } = e2, n2 = this.faker.date.recent({ refDate: t2 }), { header: r2 = { alg: this.jwtAlgorithm(), typ: `JWT` }, payload: i2 = { iat: Math.round(n2.valueOf() / 1000), exp: Math.round(this.faker.date.soon({ refDate: n2 }).valueOf() / 1000), nbf: Math.round(this.faker.date.anytime({ refDate: t2 }).valueOf() / 1000), iss: this.faker.company.name(), sub: this.faker.string.uuid(), aud: this.faker.string.uuid(), jti: this.faker.string.uuid() } } = e2;
-    return `${R(JSON.stringify(r2))}.${R(JSON.stringify(i2))}.${this.faker.string.alphanumeric(64)}`;
+  jwt(e = {}) {
+    let { refDate: t = this.faker.defaultRefDate() } = e, n = this.faker.date.recent({ refDate: t }), { header: r = { alg: this.jwtAlgorithm(), typ: `JWT` }, payload: i = { iat: Math.round(n.valueOf() / 1000), exp: Math.round(this.faker.date.soon({ refDate: n }).valueOf() / 1000), nbf: Math.round(this.faker.date.anytime({ refDate: t }).valueOf() / 1000), iss: this.faker.company.name(), sub: this.faker.string.uuid(), aud: this.faker.string.uuid(), jti: this.faker.string.uuid() } } = e;
+    return `${R(JSON.stringify(r))}.${R(JSON.stringify(i))}.${this.faker.string.alphanumeric(64)}`;
   }
 };
 var U = class extends x {
-  latitude(e2 = {}) {
-    let { max: t2 = 90, min: n2 = -90, precision: r2 = 4 } = e2;
-    return this.faker.number.float({ min: n2, max: t2, fractionDigits: r2 });
+  latitude(e = {}) {
+    let { max: t = 90, min: n = -90, precision: r = 4 } = e;
+    return this.faker.number.float({ min: n, max: t, fractionDigits: r });
   }
-  longitude(e2 = {}) {
-    let { max: t2 = 180, min: n2 = -180, precision: r2 = 4 } = e2;
-    return this.faker.number.float({ max: t2, min: n2, fractionDigits: r2 });
+  longitude(e = {}) {
+    let { max: t = 180, min: n = -180, precision: r = 4 } = e;
+    return this.faker.number.float({ max: t, min: n, fractionDigits: r });
   }
-  nearbyGPSCoordinate(e2 = {}) {
-    let { origin: t2, radius: n2 = 10, isMetric: r2 = false } = e2;
-    if (t2 == null)
+  nearbyGPSCoordinate(e = {}) {
+    let { origin: t, radius: n = 10, isMetric: r = false } = e;
+    if (t == null)
       return [this.latitude(), this.longitude()];
-    let i2 = this.faker.number.float({ max: 2 * Math.PI, fractionDigits: 5 }), a2 = r2 ? n2 : n2 * 1.60934, o2 = this.faker.number.float({ max: a2, fractionDigits: 3 }) * 0.995 / (40000 / 360), s2 = [t2[0] + Math.sin(i2) * o2, t2[1] + Math.cos(i2) * o2];
-    return s2[0] %= 180, Math.abs(s2[0]) > 90 && (s2[0] = Math.sign(s2[0]) * 180 - s2[0], s2[1] += 180), s2[1] = (s2[1] % 360 + 540) % 360 - 180, [s2[0], s2[1]];
+    let i = this.faker.number.float({ max: 2 * Math.PI, fractionDigits: 5 }), a = r ? n : n * 1.60934, o = this.faker.number.float({ max: a, fractionDigits: 3 }) * 0.995 / (40000 / 360), s = [t[0] + Math.sin(i) * o, t[1] + Math.cos(i) * o];
+    return s[0] %= 180, Math.abs(s[0]) > 90 && (s[0] = Math.sign(s[0]) * 180 - s[0], s[1] += 180), s[1] = (s[1] % 360 + 540) % 360 - 180, [s[0], s[1]];
   }
 };
 var Ye = class extends U {
   faker;
-  constructor(e2) {
-    super(e2), this.faker = e2;
+  constructor(e) {
+    super(e), this.faker = e;
   }
-  zipCode(t2 = {}) {
-    typeof t2 == `string` && (t2 = { format: t2 });
-    let { state: n2 } = t2;
-    if (n2 != null) {
-      let t3 = this.faker.definitions.location.postcode_by_state[n2];
-      if (t3 == null)
-        throw new e(`No zip code definition found for state "${n2}"`);
-      return this.faker.helpers.fake(t3);
+  zipCode(t = {}) {
+    typeof t == `string` && (t = { format: t });
+    let { state: n } = t;
+    if (n != null) {
+      let t = this.faker.definitions.location.postcode_by_state[n];
+      if (t == null)
+        throw new e(`No zip code definition found for state "${n}"`);
+      return this.faker.helpers.fake(t);
     }
-    let { format: r2 = this.faker.definitions.location.postcode } = t2;
-    return typeof r2 == `string` && (r2 = [r2]), r2 = this.faker.helpers.arrayElement(r2), this.faker.helpers.replaceSymbols(r2);
+    let { format: r = this.faker.definitions.location.postcode } = t;
+    return typeof r == `string` && (r = [r]), r = this.faker.helpers.arrayElement(r), this.faker.helpers.replaceSymbols(r);
   }
   city() {
     return this.faker.helpers.fake(this.faker.definitions.location.city_pattern);
   }
   buildingNumber() {
-    return this.faker.helpers.arrayElement(this.faker.definitions.location.building_number).replaceAll(/#+/g, (e2) => this.faker.string.numeric({ length: e2.length, allowLeadingZeros: false }));
+    return this.faker.helpers.arrayElement(this.faker.definitions.location.building_number).replaceAll(/#+/g, (e) => this.faker.string.numeric({ length: e.length, allowLeadingZeros: false }));
   }
   street() {
     return this.faker.helpers.fake(this.faker.definitions.location.street_pattern);
   }
-  streetAddress(e2 = {}) {
-    typeof e2 == `boolean` && (e2 = { useFullAddress: e2 });
-    let { useFullAddress: t2 } = e2, n2 = this.faker.definitions.location.street_address[t2 ? `full` : `normal`];
-    return this.faker.helpers.fake(n2);
+  streetAddress(e = {}) {
+    typeof e == `boolean` && (e = { useFullAddress: e });
+    let { useFullAddress: t } = e, n = this.faker.definitions.location.street_address[t ? `full` : `normal`];
+    return this.faker.helpers.fake(n);
   }
   postalAddress() {
     return this.faker.helpers.fake(this.faker.definitions.location.postal_address);
   }
   secondaryAddress() {
-    return this.faker.helpers.fake(this.faker.definitions.location.secondary_address).replaceAll(/#+/g, (e2) => this.faker.string.numeric({ length: e2.length, allowLeadingZeros: false }));
+    return this.faker.helpers.fake(this.faker.definitions.location.secondary_address).replaceAll(/#+/g, (e) => this.faker.string.numeric({ length: e.length, allowLeadingZeros: false }));
   }
   county() {
     return this.faker.helpers.arrayElement(this.faker.definitions.location.county);
@@ -29839,10 +29672,10 @@ var Ye = class extends U {
   continent() {
     return this.faker.helpers.arrayElement(this.faker.definitions.location.continent);
   }
-  countryCode(e2 = {}) {
-    typeof e2 == `string` && (e2 = { variant: e2 });
-    let { variant: t2 = `alpha-2` } = e2, n2 = (() => {
-      switch (t2) {
+  countryCode(e = {}) {
+    typeof e == `string` && (e = { variant: e });
+    let { variant: t = `alpha-2` } = e, n = (() => {
+      switch (t) {
         case `numeric`:
           return `numeric`;
         case `alpha-3`:
@@ -29851,23 +29684,23 @@ var Ye = class extends U {
           return `alpha2`;
       }
     })();
-    return this.faker.helpers.arrayElement(this.faker.definitions.location.country_code)[n2];
+    return this.faker.helpers.arrayElement(this.faker.definitions.location.country_code)[n];
   }
-  state(e2 = {}) {
-    let { abbreviated: t2 = false } = e2, n2 = t2 ? this.faker.definitions.location.state_abbr : this.faker.definitions.location.state;
-    return this.faker.helpers.arrayElement(n2);
+  state(e = {}) {
+    let { abbreviated: t = false } = e, n = t ? this.faker.definitions.location.state_abbr : this.faker.definitions.location.state;
+    return this.faker.helpers.arrayElement(n);
   }
-  direction(e2 = {}) {
-    let { abbreviated: t2 = false } = e2, n2 = this.faker.definitions.location.direction, r2 = t2 ? [...n2.cardinal_abbr, ...n2.ordinal_abbr] : [...n2.cardinal, ...n2.ordinal];
-    return this.faker.helpers.arrayElement(r2);
+  direction(e = {}) {
+    let { abbreviated: t = false } = e, n = this.faker.definitions.location.direction, r = t ? [...n.cardinal_abbr, ...n.ordinal_abbr] : [...n.cardinal, ...n.ordinal];
+    return this.faker.helpers.arrayElement(r);
   }
-  cardinalDirection(e2 = {}) {
-    let { abbreviated: t2 = false } = e2, n2 = this.faker.definitions.location.direction, r2 = t2 ? n2.cardinal_abbr : n2.cardinal;
-    return this.faker.helpers.arrayElement(r2);
+  cardinalDirection(e = {}) {
+    let { abbreviated: t = false } = e, n = this.faker.definitions.location.direction, r = t ? n.cardinal_abbr : n.cardinal;
+    return this.faker.helpers.arrayElement(r);
   }
-  ordinalDirection(e2 = {}) {
-    let { abbreviated: t2 = false } = e2, n2 = this.faker.definitions.location.direction, r2 = t2 ? n2.ordinal_abbr : n2.ordinal;
-    return this.faker.helpers.arrayElement(r2);
+  ordinalDirection(e = {}) {
+    let { abbreviated: t = false } = e, n = this.faker.definitions.location.direction, r = t ? n.ordinal_abbr : n.ordinal;
+    return this.faker.helpers.arrayElement(r);
   }
   timeZone() {
     return this.faker.helpers.arrayElement(this.faker.definitions.location.time_zone);
@@ -29876,66 +29709,66 @@ var Ye = class extends U {
     return this.faker.helpers.arrayElement(this.faker.definitions.location.language);
   }
 };
-function Xe(e2, t2, n2 = (e3) => e3) {
-  let r2 = Object.create(null);
-  for (let i2 of e2) {
-    let e3 = t2(i2);
-    r2[e3] === undefined && (r2[e3] = []), r2[e3].push(n2(i2));
+function Xe(e, t, n = (e) => e) {
+  let r = Object.create(null);
+  for (let i of e) {
+    let e = t(i);
+    r[e] === undefined && (r[e] = []), r[e].push(n(i));
   }
-  return r2;
+  return r;
 }
 var W = { fail: () => {
   throw new e(`No words found that match the given length.`);
-}, closest: (e2, t2) => {
-  let n2 = Xe(e2, (e3) => e3.length), r2 = Object.keys(n2).map(Number), i2 = Math.max(...r2.filter((e3) => e3 < t2.min)), a2 = Math.min(...r2.filter((e3) => e3 > t2.max)), o2 = Math.min(t2.min - i2, a2 - t2.max);
-  return e2.filter((e3) => e3.length === t2.min - o2 || e3.length === t2.max + o2);
-}, shortest: (e2) => {
-  let t2 = Math.min(...e2.map((e3) => e3.length));
-  return e2.filter((e3) => e3.length === t2);
-}, longest: (e2) => {
-  let t2 = Math.max(...e2.map((e3) => e3.length));
-  return e2.filter((e3) => e3.length === t2);
-}, "any-length": (e2) => [...e2] };
-function G(e2) {
-  let { wordList: t2, length: n2, strategy: r2 = `fail` } = e2;
-  if (n2 != null) {
-    let e3 = typeof n2 == `number` ? (e4) => e4.length === n2 : (e4) => e4.length >= n2.min && e4.length <= n2.max, i2 = t2.filter(e3);
-    return i2.length > 0 ? i2 : typeof n2 == `number` ? W[r2](t2, { min: n2, max: n2 }) : W[r2](t2, n2);
-  } else if (r2 === `shortest` || r2 === `longest`)
-    return W[r2](t2);
-  return [...t2];
+}, closest: (e, t) => {
+  let n = Xe(e, (e) => e.length), r = Object.keys(n).map(Number), i = Math.max(...r.filter((e) => e < t.min)), a = Math.min(...r.filter((e) => e > t.max)), o = Math.min(t.min - i, a - t.max);
+  return e.filter((e) => e.length === t.min - o || e.length === t.max + o);
+}, shortest: (e) => {
+  let t = Math.min(...e.map((e) => e.length));
+  return e.filter((e) => e.length === t);
+}, longest: (e) => {
+  let t = Math.max(...e.map((e) => e.length));
+  return e.filter((e) => e.length === t);
+}, "any-length": (e) => [...e] };
+function G(e) {
+  let { wordList: t, length: n, strategy: r = `fail` } = e;
+  if (n != null) {
+    let e = typeof n == `number` ? (e) => e.length === n : (e) => e.length >= n.min && e.length <= n.max, i = t.filter(e);
+    return i.length > 0 ? i : typeof n == `number` ? W[r](t, { min: n, max: n }) : W[r](t, n);
+  } else if (r === `shortest` || r === `longest`)
+    return W[r](t);
+  return [...t];
 }
 var Ze = class extends S {
-  word(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.lorem.word }));
+  word(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.lorem.word }));
   }
-  words(e2 = 3) {
-    return this.faker.helpers.multiple(() => this.word(), { count: e2 }).join(` `);
+  words(e = 3) {
+    return this.faker.helpers.multiple(() => this.word(), { count: e }).join(` `);
   }
-  sentence(e2 = { min: 3, max: 10 }) {
-    let t2 = this.words(e2);
-    return `${t2.charAt(0).toUpperCase() + t2.substring(1)}.`;
+  sentence(e = { min: 3, max: 10 }) {
+    let t = this.words(e);
+    return `${t.charAt(0).toUpperCase() + t.substring(1)}.`;
   }
-  slug(e2 = 3) {
-    let t2 = this.words(e2);
-    return this.faker.helpers.slugify(t2);
+  slug(e = 3) {
+    let t = this.words(e);
+    return this.faker.helpers.slugify(t);
   }
-  sentences(e2 = { min: 2, max: 6 }, t2 = ` `) {
-    return this.faker.helpers.multiple(() => this.sentence(), { count: e2 }).join(t2);
+  sentences(e = { min: 2, max: 6 }, t = ` `) {
+    return this.faker.helpers.multiple(() => this.sentence(), { count: e }).join(t);
   }
-  paragraph(e2 = 3) {
-    return this.sentences(e2);
+  paragraph(e = 3) {
+    return this.sentences(e);
   }
-  paragraphs(e2 = 3, t2 = `
+  paragraphs(e = 3, t = `
 `) {
-    return this.faker.helpers.multiple(() => this.paragraph(), { count: e2 }).join(t2);
+    return this.faker.helpers.multiple(() => this.paragraph(), { count: e }).join(t);
   }
   text() {
-    let e2 = this.faker.helpers.arrayElement([`sentence`, `sentences`, `paragraph`, `paragraphs`, `lines`]);
-    return this[e2]();
+    let e = this.faker.helpers.arrayElement([`sentence`, `sentences`, `paragraph`, `paragraphs`, `lines`]);
+    return this[e]();
   }
-  lines(e2 = { min: 1, max: 5 }) {
-    return this.sentences(e2, `
+  lines(e = { min: 1, max: 5 }) {
+    return this.sentences(e, `
 `);
   }
 };
@@ -29953,34 +29786,34 @@ var Qe = class extends S {
     return this.faker.helpers.arrayElement(this.faker.definitions.music.song_name);
   }
 };
-var K = function(e2) {
-  return e2.Female = `female`, e2.Generic = `generic`, e2.Male = `male`, e2;
+var K = function(e) {
+  return e.Female = `female`, e.Generic = `generic`, e.Male = `male`, e;
 }({});
-function q(e2, t2 = e2.person.sexType(), n2) {
-  let { generic: r2, female: i2, male: a2 } = n2;
-  if (t2 === `generic`)
-    return r2 ?? e2.helpers.arrayElement([i2, a2]) ?? [];
-  let o2 = t2 === `female` ? i2 : a2;
-  return o2 == null ? r2 ?? [] : r2 == null ? o2 : e2.helpers.weightedArrayElement([{ weight: 3 * Math.sqrt(o2.length), value: o2 }, { weight: Math.sqrt(r2.length), value: r2 }]);
+function q(e, t = e.person.sexType(), n) {
+  let { generic: r, female: i, male: a } = n;
+  if (t === `generic`)
+    return r ?? e.helpers.arrayElement([i, a]) ?? [];
+  let o = t === `female` ? i : a;
+  return o == null ? r ?? [] : r == null ? o : e.helpers.weightedArrayElement([{ weight: 3 * Math.sqrt(o.length), value: o }, { weight: Math.sqrt(r.length), value: r }]);
 }
 var $e = class extends S {
-  firstName(e2) {
-    return this.faker.helpers.arrayElement(q(this.faker, e2, this.faker.definitions.person.first_name));
+  firstName(e) {
+    return this.faker.helpers.arrayElement(q(this.faker, e, this.faker.definitions.person.first_name));
   }
-  lastName(e2) {
-    let t2 = this.faker.definitions.raw.person?.last_name_pattern;
-    if (t2 != null) {
-      let n2 = this.faker.helpers.weightedArrayElement(q(this.faker, e2, t2));
-      return this.faker.helpers.fake(n2);
+  lastName(e) {
+    let t = this.faker.definitions.raw.person?.last_name_pattern;
+    if (t != null) {
+      let n = this.faker.helpers.weightedArrayElement(q(this.faker, e, t));
+      return this.faker.helpers.fake(n);
     }
-    return this.faker.helpers.arrayElement(q(this.faker, e2, this.faker.definitions.person.last_name));
+    return this.faker.helpers.arrayElement(q(this.faker, e, this.faker.definitions.person.last_name));
   }
-  middleName(e2) {
-    return this.faker.helpers.arrayElement(q(this.faker, e2, this.faker.definitions.person.middle_name));
+  middleName(e) {
+    return this.faker.helpers.arrayElement(q(this.faker, e, this.faker.definitions.person.middle_name));
   }
-  fullName(e2 = {}) {
-    let { sex: t2 = this.faker.helpers.arrayElement([`female`, `male`]), firstName: n2 = this.firstName(t2), lastName: r2 = this.lastName(t2) } = e2, i2 = this.faker.helpers.weightedArrayElement(this.faker.definitions.person.name);
-    return this.faker.helpers.mustache(i2, { "person.prefix": () => this.prefix(t2), "person.firstName": () => n2, "person.middleName": () => this.middleName(t2), "person.lastName": () => r2, "person.suffix": () => this.suffix() });
+  fullName(e = {}) {
+    let { sex: t = this.faker.helpers.arrayElement([`female`, `male`]), firstName: n = this.firstName(t), lastName: r = this.lastName(t) } = e, i = this.faker.helpers.weightedArrayElement(this.faker.definitions.person.name);
+    return this.faker.helpers.mustache(i, { "person.prefix": () => this.prefix(t), "person.firstName": () => n, "person.middleName": () => this.middleName(t), "person.lastName": () => r, "person.suffix": () => this.suffix() });
   }
   gender() {
     return this.faker.helpers.arrayElement(this.faker.definitions.person.gender);
@@ -29988,15 +29821,15 @@ var $e = class extends S {
   sex() {
     return this.faker.helpers.arrayElement(this.faker.definitions.person.sex);
   }
-  sexType(e2 = {}) {
-    let { includeGeneric: t2 = false } = e2;
-    return t2 ? this.faker.helpers.enumValue(K) : this.faker.helpers.arrayElement([`female`, `male`]);
+  sexType(e = {}) {
+    let { includeGeneric: t = false } = e;
+    return t ? this.faker.helpers.enumValue(K) : this.faker.helpers.arrayElement([`female`, `male`]);
   }
   bio() {
     return this.faker.helpers.fake(this.faker.definitions.person.bio_pattern);
   }
-  prefix(e2) {
-    return this.faker.helpers.arrayElement(q(this.faker, e2, this.faker.definitions.person.prefix));
+  prefix(e) {
+    return this.faker.helpers.arrayElement(q(this.faker, e, this.faker.definitions.person.prefix));
   }
   suffix() {
     return this.faker.helpers.arrayElement(this.faker.definitions.person.suffix);
@@ -30018,12 +29851,12 @@ var $e = class extends S {
   }
 };
 var et = class extends S {
-  number(e2 = {}) {
-    let { style: t2 = `human` } = e2, n2 = this.faker.definitions.phone_number.format[t2];
-    if (!n2)
-      throw Error(`No definitions for ${t2} in this locale`);
-    let r2 = this.faker.helpers.arrayElement(n2);
-    return F(this.faker, r2);
+  number(e = {}) {
+    let { style: t = `human` } = e, n = this.faker.definitions.phone_number.format[t];
+    if (!n)
+      throw Error(`No definitions for ${t} in this locale`);
+    let r = this.faker.helpers.arrayElement(n);
+    return F(this.faker, r);
   }
   imei() {
     return this.faker.helpers.replaceCreditCardSymbols(`##-######-######-L`, `#`);
@@ -30043,16 +29876,16 @@ var it = [`en`, `wl`, `ww`];
 var J = { index: `o`, slot: `s`, mac: `x`, pci: `p` };
 var at = [`SUN`, `MON`, `TUE`, `WED`, `THU`, `FRI`, `SAT`];
 var ot = class extends S {
-  fileName(e2 = {}) {
-    let { extensionCount: t2 = 1 } = e2, n2 = this.faker.word.words().toLowerCase().replaceAll(/\W/g, `_`), r2 = this.faker.helpers.multiple(() => this.fileExt(), { count: t2 }).join(`.`);
-    return r2.length === 0 ? n2 : `${n2}.${r2}`;
+  fileName(e = {}) {
+    let { extensionCount: t = 1 } = e, n = this.faker.word.words().toLowerCase().replaceAll(/\W/g, `_`), r = this.faker.helpers.multiple(() => this.fileExt(), { count: t }).join(`.`);
+    return r.length === 0 ? n : `${n}.${r}`;
   }
-  commonFileName(e2) {
-    return `${this.fileName({ extensionCount: 0 })}.${e2 || this.commonFileExt()}`;
+  commonFileName(e) {
+    return `${this.fileName({ extensionCount: 0 })}.${e || this.commonFileExt()}`;
   }
   mimeType() {
-    let e2 = Object.keys(this.faker.definitions.system.mime_type);
-    return this.faker.helpers.arrayElement(e2);
+    let e = Object.keys(this.faker.definitions.system.mime_type);
+    return this.faker.helpers.arrayElement(e);
   }
   commonFileType() {
     return this.faker.helpers.arrayElement(nt);
@@ -30061,23 +29894,23 @@ var ot = class extends S {
     return this.fileExt(this.faker.helpers.arrayElement(rt));
   }
   fileType() {
-    let e2 = this.faker.definitions.system.mime_type, t2 = new Set(Object.keys(e2).map((e3) => e3.split(`/`, 1)[0]));
-    return this.faker.helpers.arrayElement([...t2]);
+    let e = this.faker.definitions.system.mime_type, t = new Set(Object.keys(e).map((e) => e.split(`/`, 1)[0]));
+    return this.faker.helpers.arrayElement([...t]);
   }
-  fileExt(t2) {
-    let n2 = this.faker.definitions.system.mime_type;
-    if (typeof t2 == `string`) {
-      let r3 = n2[t2];
-      if (r3 == null)
-        throw new e(`MIME type ${t2} is not supported.`);
-      return this.faker.helpers.arrayElement(r3.extensions);
+  fileExt(t) {
+    let n = this.faker.definitions.system.mime_type;
+    if (typeof t == `string`) {
+      let r = n[t];
+      if (r == null)
+        throw new e(`MIME type ${t} is not supported.`);
+      return this.faker.helpers.arrayElement(r.extensions);
     }
-    let r2 = new Set(Object.values(n2).flatMap(({ extensions: e2 }) => e2));
-    return this.faker.helpers.arrayElement([...r2]);
+    let r = new Set(Object.values(n).flatMap(({ extensions: e }) => e));
+    return this.faker.helpers.arrayElement([...r]);
   }
   directoryPath() {
-    let e2 = this.faker.definitions.system.directory_path;
-    return this.faker.helpers.arrayElement(e2);
+    let e = this.faker.definitions.system.directory_path;
+    return this.faker.helpers.arrayElement(e);
   }
   filePath() {
     return `${this.directoryPath()}/${this.fileName()}`;
@@ -30085,38 +29918,38 @@ var ot = class extends S {
   semver() {
     return [this.faker.number.int(9), this.faker.number.int(20), this.faker.number.int(20)].join(`.`);
   }
-  networkInterface(e2 = {}) {
-    let { interfaceType: t2 = this.faker.helpers.arrayElement(it), interfaceSchema: n2 = this.faker.helpers.objectKey(J) } = e2, r2, i2 = ``;
-    switch (n2) {
+  networkInterface(e = {}) {
+    let { interfaceType: t = this.faker.helpers.arrayElement(it), interfaceSchema: n = this.faker.helpers.objectKey(J) } = e, r, i = ``;
+    switch (n) {
       case `index`:
-        r2 = this.faker.string.numeric();
+        r = this.faker.string.numeric();
         break;
       case `slot`:
-        r2 = `${this.faker.string.numeric()}${this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ?? ``}${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ``}`;
+        r = `${this.faker.string.numeric()}${this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ?? ``}${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ``}`;
         break;
       case `mac`:
-        r2 = this.faker.internet.mac(``);
+        r = this.faker.internet.mac(``);
         break;
       case `pci`:
-        i2 = this.faker.helpers.maybe(() => `P${this.faker.string.numeric()}`) ?? ``, r2 = `${this.faker.string.numeric()}s${this.faker.string.numeric()}${this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ?? ``}${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ``}`;
+        i = this.faker.helpers.maybe(() => `P${this.faker.string.numeric()}`) ?? ``, r = `${this.faker.string.numeric()}s${this.faker.string.numeric()}${this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ?? ``}${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ``}`;
         break;
     }
-    return `${i2}${t2}${J[n2]}${r2}`;
+    return `${i}${t}${J[n]}${r}`;
   }
-  cron(e2 = {}) {
-    let { includeYear: t2 = false, includeNonStandard: n2 = false } = e2, r2 = [this.faker.number.int(59), `*`], i2 = [this.faker.number.int(23), `*`], a2 = [this.faker.number.int({ min: 1, max: 31 }), `*`, `?`], o2 = [this.faker.number.int({ min: 1, max: 12 }), `*`], s2 = [this.faker.number.int(6), this.faker.helpers.arrayElement(at), `*`, `?`], c2 = [this.faker.number.int({ min: 1970, max: 2099 }), `*`], l2 = this.faker.helpers.arrayElement(r2), u2 = this.faker.helpers.arrayElement(i2), d2 = this.faker.helpers.arrayElement(a2), f2 = this.faker.helpers.arrayElement(o2), p2 = this.faker.helpers.arrayElement(s2), m2 = this.faker.helpers.arrayElement(c2), h2 = `${l2} ${u2} ${d2} ${f2} ${p2}`;
-    return t2 && (h2 += ` ${m2}`), !n2 || this.faker.datatype.boolean() ? h2 : this.faker.helpers.arrayElement([`@annually`, `@daily`, `@hourly`, `@monthly`, `@reboot`, `@weekly`, `@yearly`]);
+  cron(e = {}) {
+    let { includeYear: t = false, includeNonStandard: n = false } = e, r = [this.faker.number.int(59), `*`], i = [this.faker.number.int(23), `*`], a = [this.faker.number.int({ min: 1, max: 31 }), `*`, `?`], o = [this.faker.number.int({ min: 1, max: 12 }), `*`], s = [this.faker.number.int(6), this.faker.helpers.arrayElement(at), `*`, `?`], c = [this.faker.number.int({ min: 1970, max: 2099 }), `*`], l = this.faker.helpers.arrayElement(r), u = this.faker.helpers.arrayElement(i), d = this.faker.helpers.arrayElement(a), f = this.faker.helpers.arrayElement(o), p = this.faker.helpers.arrayElement(s), m = this.faker.helpers.arrayElement(c), h = `${l} ${u} ${d} ${f} ${p}`;
+    return t && (h += ` ${m}`), !n || this.faker.datatype.boolean() ? h : this.faker.helpers.arrayElement([`@annually`, `@daily`, `@hourly`, `@monthly`, `@reboot`, `@weekly`, `@yearly`]);
   }
 };
 var st = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
 var ct = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, J: 1, K: 2, L: 3, M: 4, N: 5, P: 7, R: 9, S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9 };
-function lt(e2) {
-  let t2 = 0;
-  for (let [n2, r2] of e2.split(``).entries()) {
-    let e3 = ct[r2] ?? Number(r2);
-    t2 += e3 * st[n2];
+function lt(e) {
+  let t = 0;
+  for (let [n, r] of e.split(``).entries()) {
+    let e = ct[r] ?? Number(r);
+    t += e * st[n];
   }
-  return t2 % 11 == 10 ? `X` : String(t2 % 11);
+  return t % 11 == 10 ? `X` : String(t % 11);
 }
 var ut = class extends S {
   vehicle() {
@@ -30135,8 +29968,8 @@ var ut = class extends S {
     return this.faker.helpers.arrayElement(this.faker.definitions.vehicle.fuel);
   }
   vin() {
-    let e2 = [`o`, `i`, `q`, `O`, `I`, `Q`], t2 = `${this.faker.string.alphanumeric({ length: 10, casing: `upper`, exclude: e2 })}${this.faker.string.alpha({ length: 1, casing: `upper`, exclude: e2 })}${this.faker.string.alphanumeric({ length: 1, casing: `upper`, exclude: e2 })}${this.faker.string.numeric({ length: 5, allowLeadingZeros: true })}`;
-    return `${t2.slice(0, 8)}${lt(t2)}${t2.slice(9)}`;
+    let e = [`o`, `i`, `q`, `O`, `I`, `Q`], t = `${this.faker.string.alphanumeric({ length: 10, casing: `upper`, exclude: e })}${this.faker.string.alpha({ length: 1, casing: `upper`, exclude: e })}${this.faker.string.alphanumeric({ length: 1, casing: `upper`, exclude: e })}${this.faker.string.numeric({ length: 5, allowLeadingZeros: true })}`;
+    return `${t.slice(0, 8)}${lt(t)}${t.slice(9)}`;
   }
   color() {
     return this.faker.color.human();
@@ -30149,280 +29982,280 @@ var ut = class extends S {
   }
 };
 var dt = class extends S {
-  adjective(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.adjective }));
+  adjective(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.adjective }));
   }
-  adverb(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.adverb }));
+  adverb(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.adverb }));
   }
-  conjunction(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.conjunction }));
+  conjunction(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.conjunction }));
   }
-  interjection(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.interjection }));
+  interjection(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.interjection }));
   }
-  noun(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.noun }));
+  noun(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.noun }));
   }
-  preposition(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.preposition }));
+  preposition(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.preposition }));
   }
-  verb(e2 = {}) {
-    return typeof e2 == `number` && (e2 = { length: e2 }), this.faker.helpers.arrayElement(G({ ...e2, wordList: this.faker.definitions.word.verb }));
+  verb(e = {}) {
+    return typeof e == `number` && (e = { length: e }), this.faker.helpers.arrayElement(G({ ...e, wordList: this.faker.definitions.word.verb }));
   }
-  sample(t2 = {}) {
-    let n2 = this.faker.helpers.shuffle([this.adjective, this.adverb, this.conjunction, this.interjection, this.noun, this.preposition, this.verb]);
-    for (let e2 of n2)
+  sample(t = {}) {
+    let n = this.faker.helpers.shuffle([this.adjective, this.adverb, this.conjunction, this.interjection, this.noun, this.preposition, this.verb]);
+    for (let e of n)
       try {
-        return e2(t2);
+        return e(t);
       } catch {
         continue;
       }
     throw new e(`No matching word data available for the current locale`);
   }
-  words(e2 = {}) {
-    typeof e2 == `number` && (e2 = { count: e2 });
-    let { count: t2 = { min: 1, max: 3 } } = e2;
-    return this.faker.helpers.multiple(() => this.sample(), { count: t2 }).join(` `);
+  words(e = {}) {
+    typeof e == `number` && (e = { count: e });
+    let { count: t = { min: 1, max: 3 } } = e;
+    return this.faker.helpers.multiple(() => this.sample(), { count: t }).join(` `);
   }
 };
 var ft = class extends x {
-  boolean(e2 = {}) {
-    typeof e2 == `number` && (e2 = { probability: e2 });
-    let { probability: t2 = 0.5 } = e2;
-    return t2 <= 0 ? false : t2 >= 1 || this.faker.number.float() < t2;
+  boolean(e = {}) {
+    typeof e == `number` && (e = { probability: e });
+    let { probability: t = 0.5 } = e;
+    return t <= 0 ? false : t >= 1 || this.faker.number.float() < t;
   }
 };
 var pt = class extends x {
-  int(t2 = {}) {
-    typeof t2 == `number` && (t2 = { max: t2 });
-    let { min: n2 = 0, max: r2 = 2 ** 53 - 1, multipleOf: i2 = 1, distributor: a2 = b() } = t2;
-    if (!Number.isSafeInteger(i2))
+  int(t = {}) {
+    typeof t == `number` && (t = { max: t });
+    let { min: n = 0, max: r = 2 ** 53 - 1, multipleOf: i = 1, distributor: a = b() } = t;
+    if (!Number.isSafeInteger(i))
       throw new e(`multipleOf should be an integer.`);
-    if (i2 <= 0)
+    if (i <= 0)
       throw new e(`multipleOf should be greater than 0.`);
-    let o2 = Math.ceil(n2 / i2), s2 = Math.floor(r2 / i2);
-    if (o2 === s2)
-      return o2 * i2;
-    if (s2 < o2)
-      throw r2 >= n2 ? new e(`No suitable integer value between ${n2} and ${r2} found.`) : new e(`Max ${r2} should be greater than min ${n2}.`);
-    let c2 = a2(this.faker.fakerCore.randomizer), l2 = s2 - o2 + 1;
-    return Math.floor(c2 * l2 + o2) * i2;
+    let o = Math.ceil(n / i), s = Math.floor(r / i);
+    if (o === s)
+      return o * i;
+    if (s < o)
+      throw r >= n ? new e(`No suitable integer value between ${n} and ${r} found.`) : new e(`Max ${r} should be greater than min ${n}.`);
+    let c = a(this.faker.fakerCore.randomizer), l = s - o + 1;
+    return Math.floor(c * l + o) * i;
   }
-  float(t2 = {}) {
-    typeof t2 == `number` && (t2 = { max: t2 });
-    let { min: n2 = 0, max: r2 = 1, fractionDigits: i2, multipleOf: a2, multipleOf: o2 = i2 == null ? undefined : 10 ** -i2, distributor: s2 = b() } = t2;
-    if (r2 < n2)
-      throw new e(`Max ${r2} should be greater than min ${n2}.`);
-    if (i2 != null) {
-      if (a2 != null)
+  float(t = {}) {
+    typeof t == `number` && (t = { max: t });
+    let { min: n = 0, max: r = 1, fractionDigits: i, multipleOf: a, multipleOf: o = i == null ? undefined : 10 ** -i, distributor: s = b() } = t;
+    if (r < n)
+      throw new e(`Max ${r} should be greater than min ${n}.`);
+    if (i != null) {
+      if (a != null)
         throw new e(`multipleOf and fractionDigits cannot be set at the same time.`);
-      if (!Number.isSafeInteger(i2))
+      if (!Number.isSafeInteger(i))
         throw new e(`fractionDigits should be an integer.`);
-      if (i2 < 0)
+      if (i < 0)
         throw new e(`fractionDigits should be greater than or equal to 0.`);
     }
-    if (o2 != null) {
-      if (o2 <= 0)
+    if (o != null) {
+      if (o <= 0)
         throw new e(`multipleOf should be greater than 0.`);
-      let t3 = Math.log10(o2), i3 = o2 < 1 && Number.isSafeInteger(t3) ? 10 ** -t3 : 1 / o2;
-      return this.int({ min: n2 * i3, max: r2 * i3, distributor: s2 }) / i3;
+      let t = Math.log10(o), i = o < 1 && Number.isSafeInteger(t) ? 10 ** -t : 1 / o;
+      return this.int({ min: n * i, max: r * i, distributor: s }) / i;
     }
-    return s2(this.faker.fakerCore.randomizer) * (r2 - n2) + n2;
+    return s(this.faker.fakerCore.randomizer) * (r - n) + n;
   }
-  binary(e2 = {}) {
-    typeof e2 == `number` && (e2 = { max: e2 });
-    let { min: t2 = 0, max: n2 = 1 } = e2;
-    return this.int({ max: n2, min: t2 }).toString(2);
+  binary(e = {}) {
+    typeof e == `number` && (e = { max: e });
+    let { min: t = 0, max: n = 1 } = e;
+    return this.int({ max: n, min: t }).toString(2);
   }
-  octal(e2 = {}) {
-    typeof e2 == `number` && (e2 = { max: e2 });
-    let { min: t2 = 0, max: n2 = 7 } = e2;
-    return this.int({ max: n2, min: t2 }).toString(8);
+  octal(e = {}) {
+    typeof e == `number` && (e = { max: e });
+    let { min: t = 0, max: n = 7 } = e;
+    return this.int({ max: n, min: t }).toString(8);
   }
-  hex(e2 = {}) {
-    typeof e2 == `number` && (e2 = { max: e2 });
-    let { min: t2 = 0, max: n2 = 15 } = e2;
-    return this.int({ max: n2, min: t2 }).toString(16);
+  hex(e = {}) {
+    typeof e == `number` && (e = { max: e });
+    let { min: t = 0, max: n = 15 } = e;
+    return this.int({ max: n, min: t }).toString(16);
   }
-  bigInt(t2 = {}) {
-    (typeof t2 == `bigint` || typeof t2 == `number` || typeof t2 == `string` || typeof t2 == `boolean`) && (t2 = { max: t2 });
-    let n2 = BigInt(t2.min ?? 0), r2 = BigInt(t2.max ?? n2 + BigInt(999999999999999));
-    if (r2 < n2)
-      throw new e(`Max ${r2} should be larger than min ${n2}.`);
-    let i2 = BigInt(t2.multipleOf ?? 1);
-    if (i2 <= BigInt(0))
+  bigInt(t = {}) {
+    (typeof t == `bigint` || typeof t == `number` || typeof t == `string` || typeof t == `boolean`) && (t = { max: t });
+    let n = BigInt(t.min ?? 0), r = BigInt(t.max ?? n + BigInt(999999999999999));
+    if (r < n)
+      throw new e(`Max ${r} should be larger than min ${n}.`);
+    let i = BigInt(t.multipleOf ?? 1);
+    if (i <= BigInt(0))
       throw new e(`multipleOf should be greater than 0.`);
-    let a2 = n2 / i2 + (n2 % i2 > 0n ? 1n : 0n), o2 = r2 / i2 - (r2 % i2 < 0n ? 1n : 0n);
-    if (a2 === o2)
-      return a2 * i2;
-    if (o2 < a2)
-      throw new e(`No suitable bigint value between ${n2} and ${r2} found.`);
-    let s2 = o2 - a2 + 1n;
-    return (a2 + BigInt(this.faker.string.numeric({ length: s2.toString(10).length, allowLeadingZeros: true })) % s2) * i2;
+    let a = n / i + (n % i > 0n ? 1n : 0n), o = r / i - (r % i < 0n ? 1n : 0n);
+    if (a === o)
+      return a * i;
+    if (o < a)
+      throw new e(`No suitable bigint value between ${n} and ${r} found.`);
+    let s = o - a + 1n;
+    return (a + BigInt(this.faker.string.numeric({ length: s.toString(10).length, allowLeadingZeros: true })) % s) * i;
   }
-  romanNumeral(t2 = {}) {
-    let n2 = 3999;
-    typeof t2 == `number` && (t2 = { max: t2 });
-    let { min: r2 = 1, max: i2 = n2 } = t2;
-    if (r2 < 1)
-      throw new e(`Min value ${r2} should be 1 or greater.`);
-    if (i2 > n2)
-      throw new e(`Max value ${i2} should be ${n2} or less.`);
-    let a2 = this.int({ min: r2, max: i2 }), o2 = [[`M`, 1000], [`CM`, 900], [`D`, 500], [`CD`, 400], [`C`, 100], [`XC`, 90], [`L`, 50], [`XL`, 40], [`X`, 10], [`IX`, 9], [`V`, 5], [`IV`, 4], [`I`, 1]], s2 = ``;
-    for (let [e2, t3] of o2)
-      s2 += e2.repeat(Math.floor(a2 / t3)), a2 %= t3;
-    return s2;
+  romanNumeral(t = {}) {
+    let n = 3999;
+    typeof t == `number` && (t = { max: t });
+    let { min: r = 1, max: i = n } = t;
+    if (r < 1)
+      throw new e(`Min value ${r} should be 1 or greater.`);
+    if (i > n)
+      throw new e(`Max value ${i} should be ${n} or less.`);
+    let a = this.int({ min: r, max: i }), o = [[`M`, 1000], [`CM`, 900], [`D`, 500], [`CD`, 400], [`C`, 100], [`XC`, 90], [`L`, 50], [`XL`, 40], [`X`, 10], [`IX`, 9], [`V`, 5], [`IV`, 4], [`I`, 1]], s = ``;
+    for (let [e, t] of o)
+      s += e.repeat(Math.floor(a / t)), a %= t;
+    return s;
   }
 };
 var Y = `0123456789ABCDEFGHJKMNPQRSTVWXYZ`;
-function mt(e2) {
-  let t2 = e2.valueOf(), n2 = ``;
-  for (let e3 = 10;e3 > 0; e3--) {
-    let e4 = t2 % 32;
-    n2 = Y[e4] + n2, t2 = (t2 - e4) / 32;
+function mt(e) {
+  let t = e.valueOf(), n = ``;
+  for (let e = 10;e > 0; e--) {
+    let e = t % 32;
+    n = Y[e] + n, t = (t - e) / 32;
   }
-  return n2;
+  return n;
 }
-function ht(e2) {
-  return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replaceAll(`x`, () => e2.number.hex({ min: 0, max: 15 })).replaceAll(`y`, () => e2.number.hex({ min: 8, max: 11 }));
+function ht(e) {
+  return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replaceAll(`x`, () => e.number.hex({ min: 0, max: 15 })).replaceAll(`y`, () => e.number.hex({ min: 8, max: 11 }));
 }
-function gt(e2, t2) {
-  let n2 = t2.valueOf(), r2 = Math.max(n2, 0).toString(16).padStart(12, `0`).slice(-12);
-  return `${[r2.substring(0, 8), r2.substring(8)].join(`-`)}-${`7xxx-yxxx-xxxxxxxxxxxx`.replaceAll(`x`, () => e2.number.hex({ min: 0, max: 15 })).replaceAll(`y`, () => e2.number.hex({ min: 8, max: 11 }))}`;
+function gt(e, t) {
+  let n = t.valueOf(), r = Math.max(n, 0).toString(16).padStart(12, `0`).slice(-12);
+  return `${[r.substring(0, 8), r.substring(8)].join(`-`)}-${`7xxx-yxxx-xxxxxxxxxxxx`.replaceAll(`x`, () => e.number.hex({ min: 0, max: 15 })).replaceAll(`y`, () => e.number.hex({ min: 8, max: 11 }))}`;
 }
 var X = 2 ** 48 - 1;
 var Z = [...`ABCDEFGHIJKLMNOPQRSTUVWXYZ`];
 var Q = [...`abcdefghijklmnopqrstuvwxyz`];
 var _t = [...`0123456789`];
 var vt = class extends x {
-  fromCharacters(t2, n2 = 1) {
-    if (n2 = this.faker.helpers.rangeToNumber(n2), n2 <= 0)
+  fromCharacters(t, n = 1) {
+    if (n = this.faker.helpers.rangeToNumber(n), n <= 0)
       return ``;
-    if (typeof t2 == `string` && (t2 = [...t2]), t2.length === 0)
+    if (typeof t == `string` && (t = [...t]), t.length === 0)
       throw new e(`Unable to generate string: No characters to select from.`);
-    return this.faker.helpers.multiple(() => this.faker.helpers.arrayElement(t2), { count: n2 }).join(``);
+    return this.faker.helpers.multiple(() => this.faker.helpers.arrayElement(t), { count: n }).join(``);
   }
-  alpha(e2 = {}) {
-    typeof e2 == `number` && (e2 = { length: e2 });
-    let t2 = this.faker.helpers.rangeToNumber(e2.length ?? 1);
-    if (t2 <= 0)
+  alpha(e = {}) {
+    typeof e == `number` && (e = { length: e });
+    let t = this.faker.helpers.rangeToNumber(e.length ?? 1);
+    if (t <= 0)
       return ``;
-    let { casing: n2 = `mixed` } = e2, { exclude: r2 = [] } = e2;
-    typeof r2 == `string` && (r2 = [...r2]);
-    let i2;
-    switch (n2) {
+    let { casing: n = `mixed` } = e, { exclude: r = [] } = e;
+    typeof r == `string` && (r = [...r]);
+    let i;
+    switch (n) {
       case `upper`:
-        i2 = [...Z];
+        i = [...Z];
         break;
       case `lower`:
-        i2 = [...Q];
+        i = [...Q];
         break;
       case `mixed`:
-        i2 = [...Q, ...Z];
+        i = [...Q, ...Z];
         break;
     }
-    return i2 = i2.filter((e3) => !r2.includes(e3)), this.fromCharacters(i2, t2);
+    return i = i.filter((e) => !r.includes(e)), this.fromCharacters(i, t);
   }
-  alphanumeric(e2 = {}) {
-    typeof e2 == `number` && (e2 = { length: e2 });
-    let t2 = this.faker.helpers.rangeToNumber(e2.length ?? 1);
-    if (t2 <= 0)
+  alphanumeric(e = {}) {
+    typeof e == `number` && (e = { length: e });
+    let t = this.faker.helpers.rangeToNumber(e.length ?? 1);
+    if (t <= 0)
       return ``;
-    let { casing: n2 = `mixed` } = e2, { exclude: r2 = [] } = e2;
-    typeof r2 == `string` && (r2 = [...r2]);
-    let i2 = [..._t];
-    switch (n2) {
+    let { casing: n = `mixed` } = e, { exclude: r = [] } = e;
+    typeof r == `string` && (r = [...r]);
+    let i = [..._t];
+    switch (n) {
       case `upper`:
-        i2.push(...Z);
+        i.push(...Z);
         break;
       case `lower`:
-        i2.push(...Q);
+        i.push(...Q);
         break;
       case `mixed`:
-        i2.push(...Q, ...Z);
+        i.push(...Q, ...Z);
         break;
     }
-    return i2 = i2.filter((e3) => !r2.includes(e3)), this.fromCharacters(i2, t2);
+    return i = i.filter((e) => !r.includes(e)), this.fromCharacters(i, t);
   }
-  binary(e2 = {}) {
-    let { prefix: t2 = `0b` } = e2, n2 = t2;
-    return n2 += this.fromCharacters([`0`, `1`], e2.length ?? 1), n2;
+  binary(e = {}) {
+    let { prefix: t = `0b` } = e, n = t;
+    return n += this.fromCharacters([`0`, `1`], e.length ?? 1), n;
   }
-  octal(e2 = {}) {
-    let { prefix: t2 = `0o` } = e2, n2 = t2;
-    return n2 += this.fromCharacters([`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`], e2.length ?? 1), n2;
+  octal(e = {}) {
+    let { prefix: t = `0o` } = e, n = t;
+    return n += this.fromCharacters([`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`], e.length ?? 1), n;
   }
-  hexadecimal(e2 = {}) {
-    let { casing: t2 = `mixed`, prefix: n2 = `0x` } = e2, r2 = this.faker.helpers.rangeToNumber(e2.length ?? 1);
-    if (r2 <= 0)
-      return n2;
-    let i2 = this.fromCharacters([`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `a`, `b`, `c`, `d`, `e`, `f`, `A`, `B`, `C`, `D`, `E`, `F`], r2);
-    return t2 === `upper` ? i2 = i2.toUpperCase() : t2 === `lower` && (i2 = i2.toLowerCase()), `${n2}${i2}`;
+  hexadecimal(e = {}) {
+    let { casing: t = `mixed`, prefix: n = `0x` } = e, r = this.faker.helpers.rangeToNumber(e.length ?? 1);
+    if (r <= 0)
+      return n;
+    let i = this.fromCharacters([`0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `a`, `b`, `c`, `d`, `e`, `f`, `A`, `B`, `C`, `D`, `E`, `F`], r);
+    return t === `upper` ? i = i.toUpperCase() : t === `lower` && (i = i.toLowerCase()), `${n}${i}`;
   }
-  numeric(t2 = {}) {
-    typeof t2 == `number` && (t2 = { length: t2 });
-    let n2 = this.faker.helpers.rangeToNumber(t2.length ?? 1);
-    if (n2 <= 0)
+  numeric(t = {}) {
+    typeof t == `number` && (t = { length: t });
+    let n = this.faker.helpers.rangeToNumber(t.length ?? 1);
+    if (n <= 0)
       return ``;
-    let { allowLeadingZeros: r2 = true } = t2, { exclude: i2 = [] } = t2;
-    typeof i2 == `string` && (i2 = [...i2]);
-    let a2 = _t.filter((e2) => !i2.includes(e2));
-    if (a2.length === 0 || a2.length === 1 && !r2 && a2[0] === `0`)
+    let { allowLeadingZeros: r = true } = t, { exclude: i = [] } = t;
+    typeof i == `string` && (i = [...i]);
+    let a = _t.filter((e) => !i.includes(e));
+    if (a.length === 0 || a.length === 1 && !r && a[0] === `0`)
       throw new e(`Unable to generate numeric string, because all possible digits are excluded.`);
-    let o2 = ``;
-    return !r2 && !i2.includes(`0`) && (o2 += this.faker.helpers.arrayElement(a2.filter((e2) => e2 !== `0`))), o2 += this.fromCharacters(a2, n2 - o2.length), o2;
+    let o = ``;
+    return !r && !i.includes(`0`) && (o += this.faker.helpers.arrayElement(a.filter((e) => e !== `0`))), o += this.fromCharacters(a, n - o.length), o;
   }
-  sample(e2 = 10) {
-    e2 = this.faker.helpers.rangeToNumber(e2);
-    let t2 = { min: 33, max: 125 }, n2 = ``;
-    for (;n2.length < e2; )
-      n2 += String.fromCodePoint(this.faker.number.int(t2));
-    return n2;
+  sample(e = 10) {
+    e = this.faker.helpers.rangeToNumber(e);
+    let t = { min: 33, max: 125 }, n = ``;
+    for (;n.length < e; )
+      n += String.fromCodePoint(this.faker.number.int(t));
+    return n;
   }
-  uuid(e2 = {}) {
-    let { version: t2 = 4, refDate: n2 = this.faker.defaultRefDate() } = e2;
-    switch (t2) {
+  uuid(e = {}) {
+    let { version: t = 4, refDate: n = this.faker.defaultRefDate() } = e;
+    switch (t) {
       case 7:
-        return gt(this.faker, k(n2));
+        return gt(this.faker, k(n));
       default:
         return ht(this.faker);
     }
   }
-  ulid(t2 = {}) {
-    let { refDate: n2 = this.faker.defaultRefDate() } = t2, r2 = k(n2);
-    if (r2.valueOf() < 0 || r2.valueOf() > X)
-      throw new e(`Unable to generate ULID: the refDate must be between ${new Date(0).toISOString()} and ${new Date(X).toISOString()}, but was ${r2.toISOString()}.`);
-    return mt(r2) + this.fromCharacters(Y, 16);
+  ulid(t = {}) {
+    let { refDate: n = this.faker.defaultRefDate() } = t, r = k(n);
+    if (r.valueOf() < 0 || r.valueOf() > X)
+      throw new e(`Unable to generate ULID: the refDate must be between ${new Date(0).toISOString()} and ${new Date(X).toISOString()}, but was ${r.toISOString()}.`);
+    return mt(r) + this.fromCharacters(Y, 16);
   }
-  nanoid(e2 = 21) {
-    if (e2 = this.faker.helpers.rangeToNumber(e2), e2 <= 0)
+  nanoid(e = 21) {
+    if (e = this.faker.helpers.rangeToNumber(e), e <= 0)
       return ``;
-    let t2 = [{ value: () => this.alphanumeric(1), weight: 62 }, { value: () => this.faker.helpers.arrayElement([`_`, `-`]), weight: 2 }], n2 = ``;
-    for (;n2.length < e2; ) {
-      let e3 = this.faker.helpers.weightedArrayElement(t2);
-      n2 += e3();
+    let t = [{ value: () => this.alphanumeric(1), weight: 62 }, { value: () => this.faker.helpers.arrayElement([`_`, `-`]), weight: 2 }], n = ``;
+    for (;n.length < e; ) {
+      let e = this.faker.helpers.weightedArrayElement(t);
+      n += e();
     }
-    return n2;
+    return n;
   }
-  symbol(e2 = 1) {
-    return this.fromCharacters(`!"#$%&'()*+,-./:;<=>?@[\\]^_\`{|}~`.split(``), e2);
+  symbol(e = 1) {
+    return this.fromCharacters(`!"#$%&'()*+,-./:;<=>?@[\\]^_\`{|}~`.split(``), e);
   }
 };
 var yt = () => new Date;
-function bt(e2) {
-  return (e2.config.defaultRefDate ?? yt)();
+function bt(e) {
+  return (e.config.defaultRefDate ?? yt)();
 }
-function xt(e2, t2 = () => new Date) {
-  typeof t2 == `function` ? e2.config.defaultRefDate = t2 : e2.config.defaultRefDate = () => new Date(t2);
+function xt(e, t = () => new Date) {
+  typeof t == `function` ? e.config.defaultRefDate = t : e.config.defaultRefDate = () => new Date(t);
 }
 var $ = class {
   fakerCore;
   get defaultRefDate() {
     return () => bt(this.fakerCore);
   }
-  setDefaultRefDate(e2 = () => new Date) {
-    xt(this.fakerCore, e2);
+  setDefaultRefDate(e = () => new Date) {
+    xt(this.fakerCore, e);
   }
   datatype = new ft(this);
   date = new A(this);
@@ -30430,11 +30263,11 @@ var $ = class {
   location = new U(this);
   number = new pt(this);
   string = new vt(this);
-  constructor(e2) {
-    this.fakerCore = te(e2);
+  constructor(e) {
+    this.fakerCore = te(e);
   }
-  seed(e2 = v()) {
-    return this.fakerCore.randomizer.seed(e2), e2;
+  seed(e = v()) {
+    return this.fakerCore.randomizer.seed(e), e;
   }
 };
 var St = new $;
@@ -30469,10 +30302,10 @@ var Ct = class extends $ {
   get definitions() {
     return this.fakerCore.locale;
   }
-  constructor(t2) {
-    super(t2);
-    let { locale: n2 } = t2;
-    if (Array.isArray(n2) && n2.length === 0)
+  constructor(t) {
+    super(t);
+    let { locale: n } = t;
+    if (Array.isArray(n) && n.length === 0)
       throw new e(`The locale option must contain at least one locale definition.`);
   }
   getMetadata() {
@@ -30495,19 +30328,19 @@ var e2 = { airline: { airline: [{ name: `Aegean Airlines`, iataCode: `A3` }, { n
 {{location.zipCode}}`], postcode: [`#####`, `#####-####`], secondary_address: [`Apt. ###`, `Suite ###`], state: `Alabama.Alaska.Arizona.Arkansas.California.Colorado.Connecticut.Delaware.Florida.Georgia.Hawaii.Idaho.Illinois.Indiana.Iowa.Kansas.Kentucky.Louisiana.Maine.Maryland.Massachusetts.Michigan.Minnesota.Mississippi.Missouri.Montana.Nebraska.Nevada.New Hampshire.New Jersey.New Mexico.New York.North Carolina.North Dakota.Ohio.Oklahoma.Oregon.Pennsylvania.Rhode Island.South Carolina.South Dakota.Tennessee.Texas.Utah.Vermont.Virginia.Washington.West Virginia.Wisconsin.Wyoming`.split(`.`), state_abbr: `AL.AK.AZ.AR.CA.CO.CT.DE.FL.GA.HI.ID.IL.IN.IA.KS.KY.LA.ME.MD.MA.MI.MN.MS.MO.MT.NE.NV.NH.NJ.NM.NY.NC.ND.OH.OK.OR.PA.RI.SC.SD.TN.TX.UT.VT.VA.WA.WV.WI.WY`.split(`.`), street_address: { normal: `{{location.buildingNumber}} {{location.street}}`, full: `{{location.buildingNumber}} {{location.street}} {{location.secondaryAddress}}` }, street_name: `10th Street.11th Street.12th Street.13th Street.14th Street.15th Street.16th Street.1st Avenue.1st Street.2nd Avenue.2nd Street.3rd Avenue.3rd Street.4th Avenue.4th Street.5th Avenue.5th Street.6th Avenue.6th Street.7th Avenue.7th Street.8th Avenue.8th Street.9th Street.A Street.Abbey Road.Adams Avenue.Adams Street.Airport Road.Albany Road.Albert Road.Albion Street.Alexandra Road.Alfred Street.Alma Street.Ash Close.Ash Grove.Ash Road.Ash Street.Aspen Close.Atlantic Avenue.Avenue Road.Back Lane.Baker Street.Balmoral Road.Barn Close.Barton Road.Bath Road.Bath Street.Bay Street.Beach Road.Bedford Road.Beech Close.Beech Drive.Beech Grove.Beech Road.Beechwood Avenue.Bell Lane.Belmont Road.Birch Avenue.Birch Close.Birch Grove.Birch Road.Blind Lane.Bluebell Close.Boundary Road.Bramble Close.Bramley Close.Bridge Road.Bridge Street.Broad Lane.Broad Street.Broadway.Broadway Avenue.Broadway Street.Brook Lane.Brook Road.Brook Street.Brookside.Buckingham Road.Cambridge Street.Canal Street.Castle Close.Castle Lane.Castle Road.Castle Street.Cavendish Road.Cedar Avenue.Cedar Close.Cedar Grove.Cedar Road.Cedar Street.Cemetery Road.Center Avenue.Center Road.Center Street.Central Avenue.Central Street.Chapel Close.Chapel Hill.Chapel Road.Chapel Street.Charles Street.Cherry Close.Cherry Street.Cherry Tree Close.Chester Road.Chestnut Close.Chestnut Drive.Chestnut Grove.Chestnut Street.Church Avenue.Church Close.Church Hill.Church Lane.Church Path.Church Road.Church Street.Church View.Church Walk.Claremont Road.Clarence Road.Clarence Street.Clarendon Road.Clark Street.Clay Lane.Cleveland Street.Cliff Road.Clifton Road.Clinton Street.College Avenue.College Street.Columbia Avenue.Commerce Street.Commercial Road.Commercial Street.Common Lane.Coronation Avenue.Coronation Road.County Line Road.County Road.Court Street.Cow Lane.Crescent Road.Cromwell Road.Cross Lane.Cross Street.Crown Street.Cumberland Street.Dale Street.Dark Lane.Davis Street.Depot Street.Derby Road.Derwent Close.Devonshire Road.Division Street.Douglas Road.Duke Street.E 10th Street.E 11th Street.E 12th Street.E 14th Street.E 1st Street.E 2nd Street.E 3rd Street.E 4th Avenue.E 4th Street.E 5th Street.E 6th Avenue.E 6th Street.E 7th Street.E 8th Street.E 9th Street.E Bridge Street.E Broad Street.E Broadway.E Broadway Street.E Cedar Street.E Center Street.E Central Avenue.E Church Street.E Elm Street.E Franklin Street.E Front Street.E Grand Avenue.E High Street.E Jackson Street.E Jefferson Street.E Main.E Main Street.E Maple Street.E Market Street.E North Street.E Oak Street.E Park Avenue.E Pine Street.E River Road.E South Street.E State Street.E Union Street.E Walnut Street.E Washington Avenue.E Washington Street.E Water Street.East Avenue.East Road.East Street.Edward Street.Elm Close.Elm Grove.Elm Road.Elm Street.Euclid Avenue.Fairfield Road.Farm Close.Ferry Road.Field Close.Field Lane.First Avenue.First Street.Fore Street.Forest Avenue.Forest Road.Fourth Avenue.Franklin Avenue.Franklin Road.Franklin Street.Front Street.Frontage Road.Garden Close.Garden Street.George Street.Gladstone Road.Glebe Close.Gloucester Road.Gordon Road.Gordon Street.Grand Avenue.Grange Avenue.Grange Close.Grange Road.Grant Street.Green Close.Green Lane.Green Street.Greenville Road.Greenway.Greenwood Road.Grove Lane.Grove Road.Grove Street.Hall Lane.Hall Street.Harrison Avenue.Harrison Street.Hawthorn Avenue.Hawthorn Close.Hazel Close.Hazel Grove.Heath Road.Heather Close.Henry Street.Heron Close.Hickory Street.High Road.High Street.Highfield Avenue.Highfield Close.Highfield Road.Highland Avenue.Hill Road.Hill Street.Hillside.Hillside Avenue.Hillside Close.Hillside Road.Holly Close.Honeysuckle Close.Howard Road.Howard Street.Jackson Avenue.Jackson Street.James Street.Jefferson Avenue.Jefferson Street.Johnson Street.Jubilee Close.Juniper Close.Kent Road.Kestrel Close.King Street.King's Road.Kingfisher Close.Kings Highway.Kingsway.Laburnum Grove.Lafayette Street.Lake Avenue.Lake Drive.Lake Road.Lake Street.Lancaster Road.Lansdowne Road.Larch Close.Laurel Close.Lawrence Street.Lee Street.Liberty Street.Lime Grove.Lincoln Avenue.Lincoln Highway.Lincoln Road.Lincoln Street.Locust Street.Lodge Close.Lodge Lane.London Road.Long Lane.Low Road.Madison Avenue.Madison Street.Main.Main Avenue.Main Road.Main Street.Main Street E.Main Street N.Main Street S.Main Street W.Manchester Road.Manor Close.Manor Drive.Manor Gardens.Manor Road.Manor Way.Maple Avenue.Maple Close.Maple Drive.Maple Road.Maple Street.Market Place.Market Square.Market Street.Marlborough Road.Marsh Lane.Martin Luther King Boulevard.Martin Luther King Drive.Martin Luther King Jr Boulevard.Mary Street.Mayfield Road.Meadow Close.Meadow Drive.Meadow Lane.Meadow View.Meadow Way.Memorial Drive.Middle Street.Mill Close.Mill Lane.Mill Road.Mill Street.Milton Road.Milton Street.Monroe Street.Moor Lane.Moss Lane.Mount Pleasant.Mount Street.Mulberry Street.N 1st Street.N 2nd Street.N 3rd Street.N 4th Street.N 5th Street.N 6th Street.N 7th Street.N 8th Street.N 9th Street.N Bridge Street.N Broad Street.N Broadway.N Broadway Street.N Cedar Street.N Center Street.N Central Avenue.N Chestnut Street.N Church Street.N College Street.N Court Street.N Division Street.N East Street.N Elm Street.N Franklin Street.N Front Street.N Harrison Street.N High Street.N Jackson Street.N Jefferson Street.N Lincoln Street.N Locust Street.N Main.N Main Avenue.N Main Street.N Maple Street.N Market Street.N Monroe Street.N Oak Street.N Park Street.N Pearl Street.N Pine Street.N Poplar Street.N Railroad Street.N State Street.N Union Street.N Walnut Street.N Washington Avenue.N Washington Street.N Water Street.Nelson Road.Nelson Street.New Lane.New Road.New Street.Newton Road.Nightingale Close.Norfolk Road.North Avenue.North Lane.North Road.North Street.Northfield Road.Oak Avenue.Oak Drive.Oak Lane.Oak Road.Oak Street.Oakfield Road.Oaklands.Old Lane.Old Military Road.Old Road.Old State Road.Orchard Drive.Orchard Lane.Orchard Road.Orchard Street.Oxford Road.Oxford Street.Park Avenue.Park Crescent.Park Drive.Park Lane.Park Place.Park Road.Park Street.Park View.Parkside.Pearl Street.Pennsylvania Avenue.Pine Close.Pine Grove.Pine Street.Pinfold Lane.Pleasant Street.Poplar Avenue.Poplar Close.Poplar Road.Poplar Street.Post Road.Pound Lane.Princes Street.Princess Street.Priory Close.Priory Road.Prospect Avenue.Prospect Place.Prospect Road.Prospect Street.Quarry Lane.Quarry Road.Queen's Road.Railroad Avenue.Railroad Street.Railway Street.Rectory Close.Rectory Lane.Richmond Close.Richmond Road.Ridge Road.River Road.River Street.Riverside.Riverside Avenue.Riverside Drive.Roman Road.Roman Way.Rowan Close.Russell Street.S 10th Street.S 14th Street.S 1st Avenue.S 1st Street.S 2nd Street.S 3rd Street.S 4th Street.S 5th Street.S 6th Street.S 7th Street.S 8th Street.S 9th Street.S Bridge Street.S Broad Street.S Broadway.S Broadway Street.S Center Street.S Central Avenue.S Chestnut Street.S Church Street.S College Street.S Division Street.S East Street.S Elm Street.S Franklin Street.S Front Street.S Grand Avenue.S High Street.S Jackson Street.S Jefferson Street.S Lincoln Street.S Main.S Main Avenue.S Main Street.S Maple Street.S Market Street.S Mill Street.S Monroe Street.S Oak Street.S Park Street.S Pine Street.S Railroad Street.S State Street.S Union Street.S Walnut Street.S Washington Avenue.S Washington Street.S Water Street.S West Street.Salisbury Road.Sandringham Road.Sandy Lane.School Close.School Lane.School Road.School Street.Second Avenue.Silver Street.Skyline Drive.Smith Street.Somerset Road.South Avenue.South Drive.South Road.South Street.South View.Spring Gardens.Spring Street.Springfield Close.Springfield Road.Spruce Street.St Andrew's Road.St Andrews Close.St George's Road.St John's Road.St Mary's Close.St Mary's Road.Stanley Road.Stanley Street.State Avenue.State Line Road.State Road.State Street.Station Road.Station Street.Stoney Lane.Sycamore Avenue.Sycamore Close.Sycamore Drive.Sycamore Street.Talbot Road.Tennyson Road.The Avenue.The Beeches.The Causeway.The Chase.The Coppice.The Copse.The Crescent.The Croft.The Dell.The Drive.The Fairway.The Glebe.The Grange.The Green.The Grove.The Hawthorns.The Lane.The Laurels.The Limes.The Maltings.The Meadows.The Mews.The Mount.The Oaks.The Orchard.The Oval.The Paddock.The Paddocks.The Poplars.The Ridgeway.The Ridings.The Rise.The Sidings.The Spinney.The Square.The Willows.The Woodlands.Third Avenue.Third Street.Tower Road.Trinity Road.Tudor Close.Union Avenue.Union Street.University Avenue.University Drive.Valley Road.Veterans Memorial Drive.Veterans Memorial Highway.Vicarage Close.Vicarage Lane.Vicarage Road.Victoria Place.Victoria Road.Victoria Street.Vine Street.W 10th Street.W 11th Street.W 12th Street.W 14th Street.W 1st Street.W 2nd Street.W 3rd Street.W 4th Avenue.W 4th Street.W 5th Street.W 6th Avenue.W 6th Street.W 7th Street.W 8th Street.W 9th Street.W Bridge Street.W Broad Street.W Broadway.W Broadway Avenue.W Broadway Street.W Center Street.W Central Avenue.W Chestnut Street.W Church Street.W Division Street.W Elm Street.W Franklin Street.W Front Street.W Grand Avenue.W High Street.W Jackson Street.W Jefferson Street.W Lake Street.W Main.W Main Street.W Maple Street.W Market Street.W Monroe Street.W North Street.W Oak Street.W Park Street.W Pine Street.W River Road.W South Street.W State Street.W Union Street.W Walnut Street.W Washington Avenue.W Washington Street.Walnut Close.Walnut Street.Warren Close.Warren Road.Washington Avenue.Washington Boulevard.Washington Road.Washington Street.Water Lane.Water Street.Waterloo Road.Waterside.Watery Lane.Waverley Road.Well Lane.Wellington Road.Wellington Street.West Avenue.West End.West Lane.West Road.West Street.West View.Western Avenue.Western Road.Westfield Road.Westgate.William Street.Willow Close.Willow Drive.Willow Grove.Willow Road.Willow Street.Windermere Road.Windmill Close.Windmill Lane.Windsor Avenue.Windsor Close.Windsor Drive.Wood Lane.Wood Street.Woodland Close.Woodland Road.Woodlands.Woodlands Avenue.Woodlands Close.Woodlands Road.Woodside.Woodside Road.Wren Close.Yew Tree Close.York Road.York Street`.split(`.`), street_pattern: [`{{person.firstName}} {{location.street_suffix}}`, `{{person.lastName}} {{location.street_suffix}}`, `{{location.street_name}}`], street_suffix: `Alley.Avenue.Branch.Bridge.Brook.Brooks.Burg.Burgs.Bypass.Camp.Canyon.Cape.Causeway.Center.Centers.Circle.Circles.Cliff.Cliffs.Club.Common.Corner.Corners.Course.Court.Courts.Cove.Coves.Creek.Crescent.Crest.Crossing.Crossroad.Curve.Dale.Dam.Divide.Drive.Drives.Estate.Estates.Expressway.Extension.Extensions.Fall.Falls.Ferry.Field.Fields.Flat.Flats.Ford.Fords.Forest.Forge.Forges.Fork.Forks.Fort.Freeway.Garden.Gardens.Gateway.Glen.Glens.Green.Greens.Grove.Groves.Harbor.Harbors.Haven.Heights.Highway.Hill.Hills.Hollow.Inlet.Island.Islands.Isle.Junction.Junctions.Key.Keys.Knoll.Knolls.Lake.Lakes.Land.Landing.Lane.Light.Lights.Loaf.Lock.Locks.Lodge.Loop.Mall.Manor.Manors.Meadow.Meadows.Mews.Mill.Mills.Mission.Motorway.Mount.Mountain.Mountains.Neck.Orchard.Oval.Overpass.Park.Parks.Parkway.Parkways.Pass.Passage.Path.Pike.Pine.Pines.Place.Plain.Plains.Plaza.Point.Points.Port.Ports.Prairie.Radial.Ramp.Ranch.Rapid.Rapids.Rest.Ridge.Ridges.River.Road.Roads.Route.Row.Rue.Run.Shoal.Shoals.Shore.Shores.Skyway.Spring.Springs.Spur.Spurs.Square.Squares.Station.Stravenue.Stream.Street.Streets.Summit.Terrace.Throughway.Trace.Track.Trafficway.Trail.Tunnel.Turnpike.Underpass.Union.Unions.Valley.Valleys.Via.Viaduct.View.Views.Village.Villages.Ville.Vista.Walk.Walks.Wall.Way.Ways.Well.Wells`.split(`.`) }, lorem: { word: `a.ab.abbas.abduco.abeo.abscido.absconditus.absens.absorbeo.absque.abstergo.absum.abundans.abutor.accedo.accendo.acceptus.accommodo.accusamus.accusantium.accusator.acer.acerbitas.acervus.acidus.acies.acquiro.acsi.ad.adamo.adaugeo.addo.adduco.ademptio.adeo.adeptio.adfectus.adfero.adficio.adflicto.adhaero.adhuc.adicio.adimpleo.adinventitias.adipisci.adipiscor.adiuvo.administratio.admiratio.admitto.admoneo.admoveo.adnuo.adopto.adsidue.adstringo.adsuesco.adsum.adulatio.adulescens.aduro.advenio.adversus.advoco.aedificium.aeger.aegre.aegrotatio.aegrus.aeneus.aequitas.aequus.aer.aestas.aestivus.aestus.aetas.aeternus.ager.aggero.aggredior.agnitio.agnosco.ago.ait.aiunt.alias.alienus.alii.alioqui.aliqua.aliquam.aliquid.alius.allatus.alo.alter.altus.alveus.amaritudo.ambitus.ambulo.amet.amicitia.amiculum.amissio.amita.amitto.amo.amor.amoveo.amplexus.amplitudo.amplus.ancilla.angelus.angulus.angustus.animadverto.animi.animus.annus.anser.ante.antea.antepono.antiquus.aperiam.aperio.aperte.apostolus.apparatus.appello.appono.appositus.approbo.apto.aptus.apud.aqua.ara.aranea.arbitro.arbor.arbustum.arca.arceo.arcesso.architecto.arcus.argentum.argumentum.arguo.arma.armarium.aro.ars.articulus.artificiose.arto.arx.ascisco.ascit.asper.asperiores.aspernatur.aspicio.asporto.assentator.assumenda.astrum.at.atavus.ater.atque.atqui.atrocitas.atrox.attero.attollo.attonbitus.auctor.auctus.audacia.audax.audentia.audeo.audio.auditor.aufero.aureus.aurum.aut.autem.autus.auxilium.avaritia.avarus.aveho.averto.baiulus.balbus.barba.bardus.basium.beatae.beatus.bellicus.bellum.bene.beneficium.benevolentia.benigne.bestia.bibo.bis.blandior.blanditiis.bonus.bos.brevis.cado.caecus.caelestis.caelum.calamitas.calcar.calco.calculus.callide.campana.candidus.canis.canonicus.canto.capillus.capio.capitulus.capto.caput.carbo.carcer.careo.caries.cariosus.caritas.carmen.carpo.carus.casso.caste.casus.catena.caterva.cattus.cauda.causa.caute.caveo.cavus.cedo.celebrer.celer.celo.cena.cenaculum.ceno.censura.centum.cerno.cernuus.certe.certus.cervus.cetera.charisma.chirographum.cibo.cibus.cicuta.cilicium.cimentarius.ciminatio.cinis.circumvenio.cito.civis.civitas.clam.clamo.claro.clarus.claudeo.claustrum.clementia.clibanus.coadunatio.coaegresco.coepi.coerceo.cogito.cognatus.cognomen.cogo.cohaero.cohibeo.cohors.colligo.collum.colo.color.coma.combibo.comburo.comedo.comes.cometes.comis.comitatus.commemoro.comminor.commodi.commodo.communis.comparo.compello.complectus.compono.comprehendo.comptus.conatus.concedo.concido.conculco.condico.conduco.confero.confido.conforto.confugo.congregatio.conicio.coniecto.conitor.coniuratio.conor.conqueror.conscendo.consectetur.consequatur.consequuntur.conservo.considero.conspergo.constans.consuasor.contabesco.contego.contigo.contra.conturbo.conventus.convoco.copia.copiose.cornu.corona.corporis.corpus.correptius.corrigo.corroboro.corrumpo.corrupti.coruscus.cotidie.crapula.cras.crastinus.creator.creber.crebro.credo.creo.creptio.crepusculum.cresco.creta.cribro.crinis.cruciamentum.crudelis.cruentus.crur.crustulum.crux.cubicularis.cubitum.cubo.cui.cuius.culpa.culpo.cultellus.cultura.cum.cumque.cunabula.cunae.cunctatio.cupiditas.cupiditate.cupio.cuppedia.cupressus.cur.cura.curatio.curia.curiositas.curis.curo.curriculum.currus.cursim.curso.cursus.curto.curtus.curvo.custodia.damnatio.damno.dapifer.debeo.debilito.debitis.decens.decerno.decet.decimus.decipio.decor.decretum.decumbo.dedecor.dedico.deduco.defaeco.defendo.defero.defessus.defetiscor.deficio.defleo.defluo.defungo.degenero.degero.degusto.deinde.delectatio.delectus.delego.deleniti.deleo.delibero.delicate.delinquo.deludo.demens.demergo.demitto.demo.demonstro.demoror.demulceo.demum.denego.denique.dens.denuncio.denuo.deorsum.depereo.depono.depopulo.deporto.depraedor.deprecator.deprimo.depromo.depulso.deputo.derelinquo.derideo.deripio.deserunt.desidero.desino.desipio.desolo.desparatus.despecto.dicta.dignissimos.distinctio.dolor.dolore.dolorem.doloremque.dolores.doloribus.dolorum.ducimus.ea.eaque.earum.eius.eligendi.enim.eos.error.esse.est.et.eum.eveniet.ex.excepturi.exercitationem.expedita.explicabo.facere.facilis.fuga.fugiat.fugit.harum.hic.id.illo.illum.impedit.in.incidunt.infit.inflammatio.inventore.ipsa.ipsam.ipsum.iste.itaque.iure.iusto.labore.laboriosam.laborum.laudantium.libero.magnam.magni.maiores.maxime.minima.minus.modi.molestiae.molestias.mollitia.nam.natus.necessitatibus.nemo.neque.nesciunt.nihil.nisi.nobis.non.nostrum.nulla.numquam.occaecati.ocer.odio.odit.officia.officiis.omnis.optio.paens.pariatur.patior.patria.patrocinor.patruus.pauci.paulatim.pauper.pax.peccatus.pecco.pecto.pectus.pecus.peior.pel.perferendis.perspiciatis.placeat.porro.possimus.praesentium.provident.quae.quaerat.quam.quas.quasi.qui.quia.quibusdam.quidem.quis.quisquam.quo.quod.quos.ratione.recusandae.reiciendis.rem.repellat.repellendus.reprehenderit.repudiandae.rerum.saepe.sapiente.sed.sequi.similique.sint.sit.socius.sodalitas.sol.soleo.solio.solitudo.solium.sollers.sollicito.solum.solus.soluta.solutio.solvo.somniculosus.somnus.sonitus.sono.sophismata.sopor.sordeo.sortitus.spargo.speciosus.spectaculum.speculum.sperno.spero.spes.spiculum.spiritus.spoliatio.sponte.stabilis.statim.statua.stella.stillicidium.stipes.stips.sto.strenuus.strues.studio.stultus.suadeo.suasoria.sub.subito.subiungo.sublime.subnecto.subseco.substantia.subvenio.succedo.succurro.sufficio.suffoco.suffragium.suggero.sui.sulum.sum.summa.summisse.summopere.sumo.sumptus.sunt.supellex.super.suppellex.supplanto.suppono.supra.surculus.surgo.sursum.suscipio.suscipit.suspendo.sustineo.suus.synagoga.tabella.tabernus.tabesco.tabgo.tabula.taceo.tactus.taedium.talio.talis.talus.tam.tamdiu.tamen.tametsi.tamisium.tamquam.tandem.tantillus.tantum.tardus.tego.temeritas.temperantia.templum.tempora.tempore.temporibus.temptatio.tempus.tenax.tendo.teneo.tener.tenetur.tenuis.tenus.tepesco.tepidus.ter.terebro.teres.terga.tergeo.tergiversatio.tergo.tergum.termes.terminatio.tero.terra.terreo.territo.terror.tersus.tertius.testimonium.texo.textilis.textor.textus.thalassinus.theatrum.theca.thema.theologus.thermae.thesaurus.thesis.thorax.thymbra.thymum.tibi.timidus.timor.titulus.tolero.tollo.tondeo.tonsor.torqueo.torrens.tot.totam.totidem.toties.totus.tracto.trado.traho.trans.tredecim.tremo.trepide.tres.tribuo.tricesimus.triduana.tripudio.tristis.triumphus.trucido.truculenter.tubineus.tui.tum.tumultus.tunc.turba.turbo.turpis.tutamen.tutis.tyrannus.uberrime.ubi.ulciscor.ullam.ullus.ulterius.ultio.ultra.umbra.umerus.umquam.una.unde.undique.universe.unus.urbanus.urbs.uredo.usitas.usque.ustilo.ustulo.usus.ut.uter.uterque.utilis.utique.utor.utpote.utrimque.utroque.utrum.uxor.vaco.vacuus.vado.vae.valde.valens.valeo.valetudo.validus.vallum.vapulus.varietas.varius.vehemens.vel.velit.velociter.velum.velut.venia.veniam.venio.ventito.ventosus.ventus.venustas.ver.verbera.verbum.vere.verecundia.vereor.vergo.veritas.veritatis.vero.versus.verto.verumtamen.verus.vesco.vesica.vesper.vespillo.vester.vestigium.vestrum.vetus.via.vicinus.vicissitudo.victoria.victus.videlicet.video.viduo.vigilo.vigor.vilicus.vilis.vilitas.villa.vinco.vinculum.vindico.vinitor.vinum.vir.virga.virgo.viridis.viriliter.virtus.vis.viscus.vita.vitae.vitiosus.vitium.vito.vivo.vix.vobis.vociferor.voco.volaticus.volo.volubilis.voluntarius.volup.voluptas.voluptate.voluptatem.voluptates.voluptatibus.voluptatum.volutabrum.volva.vomer.vomica.vomito.vorago.vorax.voro.vos.votum.voveo.vox.vulariter.vulgaris.vulgivagus.vulgo.vulgus.vulnero.vulnus.vulpes.vulticulus.xiphias`.split(`.`) }, metadata: { title: `English`, code: `en`, language: `en`, endonym: `English`, dir: `ltr`, script: `Latn` }, music: { album: [`"Awaken, My Love!"`, `(What's The Story) Morning Glory?`, `- Tragedy +`, `13 Reasons Why (Season 3)`, `21st Century Breakdown`, `30 De Febrero`, `432 Hz Deep Healing`, `5-Star`, `528 Hz Meditation Music`, `54+1`, `8 Mile`, `808s & Heartbreak`, `9 To 5 And Odd Jobs`, `A Beautiful Lie`, `A Day At The Races`, `A Day Without Rain`, `A Fever You Can't Sweat Out`, `A Gangsta's Pain`, `A Gift & A Curse`, `A Hard Day's Night`, `A Head Full Of Dreams`, `A Kind Of Magic`, `A Million Ways To Murder`, `A Moment Apart`, `A Song For Every Moon`, `A Thousand Suns`, `A Winter Romance`, `ABBA`, `AI YoungBoy`, `AJ Tracey`, `Act One`, `After Hours`, `Agent Provocateur`, `All About You`, `All I Know So Far: Setlist`, `All Or Nothing`, `All Out`, `All Over The Place`, `All Stand Together`, `All The Lost Souls`, `All The Things I Never Said`, `All Things Must Pass`, `Alleen`, `Alright, Still`, `Alta Suciedad`, `America`, `American Heartbreak`, `American Teen`, `And Justice For None`, `Animal Songs`, `Another Friday Night`, `Anything Goes`, `Ao Vivo Em São Paulo`, `Ao Vivo No Ibirapuera`, `Apricot Princess`, `Aqui E Agora (Ao Vivo)`, `Arcane League Of Legends`, `Ardipithecus`, `Aretha Now`, `Around The Fur`, `Arrival`, `Artist 2.0`, `As She Pleases`, `Ascend`, `Ashlyn`, `Astro Lounge`, `At Night, Alone.`, `At. Long. Last. ASAP`, `Atlas`, `Audioslave`, `Aura`, `Austin`, `Awake`, `Away From The Sun`, `Ayayay!`, `Baby On Baby`, `Back For Everything`, `Back From The Edge`, `Back In Black`, `Back To Black`, `Back To The Game`, `Bad`, `Bahía Ducati`, `Baila`, `Barbie The Album`, `Battleground`, `Bayou Country`, `Bcos U Will Never B Free`, `Be`, `Be Here Now`, `Beautiful Mind`, `Beautiful Thugger Girls`, `Beautiful Trauma`, `Beauty And The Beast`, `Beggars Banquet`, `Being Funny In A Foreign Language`, `Berlin Lebt`, `Berry Is On Top`, `Best White Noise For Baby Sleep - Loopable With No Fade`, `Big Baby DRAM`, `Bigger, Better, Faster, More!`, `Billy Talent II`, `Black Star Elephant`, `Blackout`, `Blank Face LP`, `Bleach`, `Blizzard Of Ozz`, `Blonde`, `Blood Sugar Sex Magik`, `Bloom`, `Blowin' Your Mind!`, `Blu Celeste`, `Blue`, `Blue Banisters`, `Blue Hawaii`, `Blue Neighbourhood`, `Bluebird Days`, `Bobby Tarantino`, `Bobby Tarantino II`, `Bon Iver`, `Born Pink`, `Born To Run`, `Brand New Eyes`, `Break The Cycle`, `Breakfast In America`, `Breakthrough`, `Brett Young`, `Bridge Over Troubled Water`, `Bright: The Album`, `Brol`, `Buds`, `Buena Vista Social Club`, `Built On Glass`, `Bury Me At Makeout Creek`, `Busyhead`, `By The Way`, `CB6`, `CNCO`, `California Sunrise`, `Californication`, `Call Me Irresponsible`, `Calm`, `Camino Palmero`, `Camp`, `Caracal`, `Carbon Fiber Hits`, `Carnival`, `Carry On`, `Cartel De Santa`, `Certified Lover Boy`, `Chaaama`, `Chama Meu Nome`, `Chapter 1: Snake Oil`, `Chapter 2: Swamp Savant`, `Chapter One`, `Charlie's Angels`, `Cherry Bomb`, `Chief`, `Chocolate Factory`, `Chosen`, `Chris Brown`, `Christina Aguilera`, `Chromatica`, `Church`, `City Of Evil`, `Clandestino`, `Clouds`, `Coco`, `Collision Course`, `Colour Vision`, `Combat Rock`, `Come Around Sundown`, `Come Away With Me`, `Come Home The Kids Miss You`, `Come What(ever) May`, `Commando`, `Common Sense`, `Communion`, `Conditions`, `Confident`, `Confrontation`, `Control The Streets, Volume 2`, `Corinne Bailey Rae`, `Costello Music`, `Cottonwood`, `Covers, Vol. 2`, `Cozy Tapes Vol. 2: Too Cozy`, `Crash Talk`, `Crazy Love`, `Crazysexycool`, `Crowded House`, `Cruisin' With Junior H`, `Culture`, `Current Mood`, `DS2`, `Dale`, `Danger Days: The True Lives Of The Fabulous Killjoys`, `Dangerous Woman`, `Dangerous: The Double Album`, `Dark Horse`, `Day69`, `Daydream`, `De Fiesta`, `De Viaje`, `DeAnn`, `Death Race For Love`, `Delirium`, `Delta`, `Demidevil`, `Depression Cherry`, `Descendants`, `Desgenerados Mixtape`, `Destin`, `Destiny Fulfilled`, `Desvelado`, `Detroit 2`, `Dex Meets Dexter`, `Dharma`, `Die A Legend`, `Different World`, `Dig Your Roots`, `Digital Druglord`, `Dirt`, `Disclaimer I / II`, `Discovery`, `Disraeli Gears`, `Disumano`, `Dizzy Up The Girl`, `Don't Play That Song`, `Donda`, `Donde Quiero Estar`, `Doo-Wops & Hooligans`, `Down The Way`, `Dr. Feelgood`, `Dream Your Life Away`, `Dreaming Out Loud`, `Drip Harder`, `Drive`, `Drones`, `Dropped Outta College`, `Drowning`, `Dua Warna Cinta`, `Dulce Beat`, `Dusty In Memphis`, `Dutty Rock`, `Dying To Live`, `ENR`, `East Atlanta Love Letter`, `Editorial`, `Edna`, `El Abayarde`, `El Amor En Los Tiempos Del Perreo`, `El Camino`, `El Comienzo`, `El Dorado`, `El Karma`, `El Mal Querer`, `El Malo`, `El Trabajo Es La Suerte`, `El Viaje De Copperpot`, `Electric Ladyland`, `Emotion`, `En Tus Planes`, `Endless Summer Vacation`, `Enter The Wu-Tang (36 Chambers)`, `Equals (=)`, `Estrella`, `Euphoria`, `Europop`, `Evermore`, `Every Kingdom`, `Everyday Life`, `Evolve`, `Expectations`, `Face Yourself`, `Facelift`, `Fallin'`, `Fancy You`, `Fantasía`, `Favourite Worst Nightmare`, `Fear Of The Dark`, `Fearless`, `Feel Something`, `Feels Like Home`, `Femme Fatale`, `Ferxxocalipsis`, `Fifty Shades Darker`, `Fifty Shades Freed`, `Fifty Shades Of Grey`, `Final (Vol.1)`, `Finding Beauty In Negative Spaces`, `Fine Line`, `First Impressions Of Earth`, `First Steps`, `Five Seconds Flat`, `Folklore`, `For Emma, Forever Ago`, `Forajido EP 1`, `Forever`, `Forever Young`, `Formula Of Love: O+T=<3`, `Free 6lack`, `Freudian`, `Frozen II`, `Full Moon Fever`, `Funhouse`, `Funk Wav Bounces Vol.1`, `Future History`, `FutureSex/LoveSounds`, `Fuzzybrain`, `Gallery`, `Gangsta's Paradise`, `Gemini`, `Gemini Rights`, `Generationwhy`, `Get A Grip`, `Get Up`, `Gettin' Old`, `Girl`, `Gladiator`, `Glisten`, `Globalization`, `Gloria`, `Glory Days`, `God's Project`, `Gold Skies`, `Golden`, `Good Evening`, `Good Thing`, `Goodbye Yellow Brick Road`, `Gossip Columns`, `Got Your Six`, `Graceland`, `Graduation`, `Grand Champ`, `Grandson, Vol. 1`, `Green River`, `Guerra`, `Ha*Ash Primera Fila - Hecho Realidad`, `Haiz`, `Hamilton`, `Happy Endings`, `Harry Styles`, `Hasta La Raíz`, `Hatful Of Hollow`, `Head In The Clouds`, `Heard It In A Past Life`, `Heart Shaped World`, `Heartbeat City`, `Heartbreak On A Full Moon / Cuffing Season - 12 Days Of Christmas`, `Heaven Or Hell`, `Heaven knows`, `Hellbilly Deluxe`, `Hellboy`, `Help!`, `Her Loss`, `Here Comes The Cowboy`, `Hey World`, `High School Musical`, `High Tide In The Snake's Nest`, `Historias De Un Capricornio`, `Hndrxx`, `Hombres G (Devuélveme A Mi Chica)`, `Homerun`, `Homework`, `Hot Fuss`, `Hot Pink`, `Hot Sauce / Hello Future`, `Hot Space`, `Hotel Diablo`, `Houses Of The Holy`, `How Big, How Blue, How Beautiful`, `How I'm Feeling`, `How To Be Human`, `How To Save A Life`, `How To: Friend, Love, Freefall`, `Hozier`, `Human`, `Huncho Jack, Jack Huncho`, `Hunter Hayes`, `Hysteria`, `I Am...Sasha Fierce`, `I Can't Handle Change`, `I Met You When I Was 18. (The Playlist)`, `I Never Liked You`, `I Never Loved A Man The Way I Love You`, `I See You`, `I Think You Think Too Much Of Me`, `I Used To Know Her`, `I Used To Think I Could Fly`, `I'm Comin' Over`, `Ich & Keine Maske`, `If You Can Believe Your Eyes & Ears`, `Il Ballo Della Vita`, `Ill Communication`, `Imagination & The Misfit Kid`, `Imagine`, `Immortalized`, `In A Perfect World...`, `In Colour`, `In My Own Words`, `In Rainbows`, `In Return`, `In The Lonely Hour`, `Infest`, `Innuendo`, `Inter Shibuya - La Mafia`, `Interstellar`, `Is This It`, `It Was Written`, `It's Not Me, It's You`, `It's Only Me`, `Ivory`, `JackBoys`, `Jamie`, `Jazz`, `Jibrail & Iblis`, `Jordi`, `Jordin Sparks`, `Jose`, `Just As I Am`, `Just Cause Y'all Waited 2`, `Just Like You`, `Justified`, `K-12 / After School`, `K.I.D.S.`, `K.O.`, `K.O.B. Live`, `KG0516`, `KOD`, `Kane Brown`, `Kid A`, `Kid Krow`, `Kids See Ghosts`, `Kids in Love`, `Kinks (You Really Got Me)`, `Know-It-All`, `Konvicted`, `Kring`, `LANY`, `LM5`, `La Criatura`, `La Flaca`, `La Melodia De La Calle`, `La Revolucion`, `Lady Lady`, `Lady Wood`, `Langit Mong Bughaw`, `Las Que No Iban A Salir`, `Last Day Of Summer`, `Last Year Was Complicated`, `Layers`, `Layover`, `Lazarus`, `Led Zeppelin`, `Left Of The Middle`, `Leftoverture`, `Legends Never Die`, `Let's Skip To The Wedding`, `Let's Talk About Love`, `Licensed To Ill`, `Life In Cartoon Motion`, `Life Thru A Lens`, `Lifelines`, `Like..?`, `Lil Big Pac`, `Lil Boat`, `Lil Boat 2`, `Lil Boat 3.5`, `Lil Kiwi`, `Lil Pump`, `Limon Y Sal`, `Listen Without Prejudice`, `Little Voice`, `Live On Red Barn Radio I & II`, `Lo Que Andábamos Buscando`, `Lofi Fruits Music 2021`, `London Calling`, `Los Campeones Del Pueblo`, `Los Extraterrestres`, `Los Favoritos 2`, `Lost`, `Lost In Love`, `Loud`, `Love Sick`, `Love Story`, `Love Stuff`, `Love Yourself: Tear`, `Lover`, `Luca Brasi 2: Gangsta Grillz`, `Lust For Life`, `Luv Is Rage`, `M!ssundaztood`, `Ma Fleur`, `Made In Lagos`, `Mafia Bidness`, `Magazines Or Novels`, `Mainstream Sellout`, `Majestic`, `Make It Big`, `Make Yourself`, `Making Mirrors`, `Mamma Mia! Here We Go Again`, `Man Of The Woods`, `Manic`, `Me And My Gang`, `Meduza`, `Meet The Orphans`, `Meet The Woo`, `Melim`, `Mellon Collie And The Infinite Sadness`, `Melly vs. Melvin`, `Memories...Do Not Open`, `Menagerie`, `Midnights`, `Minecraft - Volume Alpha`, `Minutes To Midnight`, `Mix Pa Llorar En Tu Cuarto`, `Modo Avión`, `Monkey Business`, `Mono.`, `Montana`, `Montevallo`, `Moosetape`, `Morning View`, `Motivan2`, `Moving Pictures`, `Mr. Davis`, `Mr. Misunderstood`, `Mulan`, `Mura Masa`, `Music From The Edge Of Heaven`, `Music Of The Sun`, `My House`, `My Kinda Party`, `My Krazy Life`, `My Liver Will Handle What My Heart Can't`, `My Moment`, `My Own Lane`, `My Turn`, `My Worlds`, `Na Praia (Ao Vivo)`, `Nakamura`, `Nation Of Two`, `Navegando`, `Need You Now`, `Neon Future III`, `Neotheater`, `Never Trust A Happy Song`, `New English`, `News Of The World`, `Nicole`, `Night & Day`, `Nimmerland`, `Nimrod`, `Nine Track Mind`, `No Angel`, `No Me Pidas Perdón`, `No More Drama`, `No Protection`, `No Strings Attached`, `No Time To Die`, `Nobody Is Listening`, `Non Stop Erotic Cabaret`, `Non-Fiction`, `Northsbest`, `Nostalgia`, `Nostalgia, Ultra`, `Notes On A Conditional Form`, `Now Or Never`, `O Embaixador (Ao Vivo)`, `O My Heart`, `OK Computer`, `Ocean`, `Ocean Avenue`, `Ocean Eyes`, `Odisea`, `Oh My My`, `Oh, What A Life`, `On The 6`, `One In A Million`, `One More Light`, `One Of These Nights`, `Open Up And Say...Ahh!`, `Ordinary Man`, `Origins`, `Out Of The Blue`, `Over It`, `OzuTochi`, `PTSD`, `Pa Las Baby's Y Belikeada`, `Pa Que Hablen`, `Pa' Luego Es Tarde`, `Pa' Otro La 'O`, `Pablo Honey`, `Pain Is Love`, `Pain Is Temporary`, `Painting Pictures`, `Palmen Aus Plastik 2`, `Para Mi Ex`, `Para Siempre`, `Partners In Crime`, `Pawn Shop`, `Pegasus / Neon Shark VS Pegasus`, `Pet Sounds`, `Piece By Piece`, `Pier Pressure`, `Pineapple Sunrise`, `Piseiro 2020 Ao Vivo`, `Planet Pit`, `Plans`, `Play Deep`, `Playa Saturno`, `Por Primera Vez`, `Por Vida`, `Positions`, `Post Human: Survival Horror`, `Poster Girl`, `Prazer, Eu Sou Ferrugem (Ao Vivo)`, `Pretty Girls Like Trap Music`, `Pretty. Odd.`, `Prince Royce`, `Prisma`, `Prometo`, `Providence`, `Puberty 2`, `Punisher`, `Purgatory`, `Purple Rain`, `Que Bendición`, `Queen Of The Clouds`, `Quiero Volver`, `R&G (Rhythm & Gangsta): The Masterpiece`, `Raise!`, `Ransom 2`, `Rapunzel`, `Rare`, `Re Mida`, `Ready To Die`, `Realer`, `Rebelde`, `Reclassified`, `Recovery`, `Recuerden Mi Estilo`, `Reggatta De Blanc`, `Regulate… G Funk Era`, `Reik`, `Reise, Reise`, `Relapse`, `Relaxing Piano Lullabies And Natural Sleep Aid For Baby Sleep Music`, `Religiously. The Album.`, `Replay`, `Results May Vary`, `Revenge`, `Revolve`, `Revolver`, `Ricky Martin`, `Rien 100 Rien`, `Ripcord`, `Rise And Fall, Rage And Grace`, `Rise Of An Empire`, `Robin Hood: Prince Of Thieves`, `Rock N Roll Jesus`, `Romance`, `Romances`, `Ronan`, `Royal Blood`, `Rumours`, `Sad Boyz 4 Life II`, `San Lucas`, `Santana World`, `Saturation III`, `Sauce Boyz`, `Savage Mode`, `Saxobeats`, `Scarlet`, `Schwarzes Herz`, `Seal The Deal & Let's Boogie`, `Section.80`, `Segundo Romance`, `Sehnsucht`, `Shake The Snow Globe`, `Shang-Chi And The Legend Of The Ten Rings: The Album`, `Sheer Heart Attack`, `Shiesty Season`, `Shock Value`, `Shoot For The Stars, Aim For The Moon`, `Signed Sealed And Delivered`, `Signos`, `Silent Alarm`, `Simplemente Gracias`, `Sin Bandera`, `Sing Me A Lullaby, My Sweet Temptation`, `Sinner`, `Sirio`, `Sit Still, Look Pretty`, `Skin`, `Slowhand`, `Smash`, `Smithereens`, `Snow Cougar`, `Social Cues`, `Some Girls`, `Song Hits From Holiday Inn`, `Songs For Dads`, `Songs For The Deaf`, `Songs For You, Truths For Me`, `Songs In The Key Of Life`, `Souled Out`, `Sounds Of Silence`, `Soy Como Quiero Ser`, `Speak Now`, `Speak Your Mind`, `Speakerboxxx/The Love Below`, `Spider-Man: Into The Spider-Verse`, `Split Decision`, `Square Up`, `SremmLife`, `Starboy`, `Stay +`, `Stay Dangerous`, `Staying At Tamara's`, `Steppenwolf`, `Stick Season`, `Still Bill`, `Straight Outta Compton`, `Strange Trails`, `Stronger`, `Suavemente`, `Sublime`, `Suck It and See`, `Sucker`, `Sueños`, `Sugar`, `Summer Forever`, `Summer,`, `Sunset Season`, `Sunshine On Leith`, `Surfer Rosa`, `Sweet Talker`, `SweetSexySavage`, `System Of A Down`, `TA13OO`, `Talk That Talk`, `Talking Heads: 77`, `Tangled Up`, `Tango In The Night`, `Taxi Driver`, `Taylor Swift`, `Tell Me It's Real`, `Ten`, `Ten Summoner's Tales`, `Terra Sem Cep (Ao Vivo)`, `Terral`, `Testing`, `Tha Carter III`, `Thank Me Later`, `That's Christmas To Me`, `The Academy`, `The Adventures Of Bobby Ray`, `The Album`, `The Andy Williams Christmas Album`, `The Aviary`, `The Balcony`, `The Battle Of Los Angeles`, `The Beatles (White Album)`, `The Beginning`, `The Better Life`, `The Big Day`, `The Book`, `The Breakfast Club`, `The Cars`, `The Colour And The Shape`, `The Death Of Peace Of Mind`, `The Diary Of Alicia Keys`, `The Documentary`, `The Emancipation Of Mimi`, `The Eminem Show`, `The End Of Everything`, `The Final Countdown`, `The Forever Story`, `The Foundation`, `The Goat`, `The Golden Child`, `The Good Parts`, `The Greatest Showman: Reimagined`, `The Green Trip`, `The Hardest Love`, `The Head And The Heart`, `The Human Condition`, `The Infamous`, `The Lady Killer`, `The Last Don II`, `The Lion King`, `The Lockdown Sessions`, `The London Sessions`, `The Lord Of The Rings: The Fellowship Of The Ring`, `The Lost Boy`, `The Magic Of Christmas / The Christmas Song`, `The Marshall Mathers LP`, `The Martin Garrix Collection`, `The Melodic Blue`, `The Mockingbird & The Crow`, `The Pains Of Growing`, `The Papercut Chronicles`, `The Perfect Luv Tape`, `The Pinkprint`, `The Predator`, `The Queen Is Dead`, `The ReVe Festival: Finale`, `The Rise And Fall Of Ziggy Stardust And The Spiders From Mars`, `The Rising Tied`, `The River`, `The Stone Roses`, `The Story Of Us`, `The Stranger`, `The Sufferer & The Witness`, `The Sun's Tirade`, `The Temptations Sing Smokey`, `The Time Of Our Lives`, `The Way It Is`, `The Wonderful World Of Sam Cooke`, `The Writing's On The Wall`, `The Young And The Hopeless`, `Therapy`, `Therapy Session`, `There Is More (Live)`, `There Is Nothing Left To Lose`, `These Things Happen`, `Third Eye Blind`, `This Is Me...Then`, `This Unruly Mess I've Made`, `Threat to Survival`, `Thrill Of The Chase`, `Time`, `Timelezz`, `To Let A Good Thing Die`, `To Pimp A Butterfly`, `Toast To Our Differences`, `Todos Os Cantos, Vol. 1 (Ao Vivo)`, `Too Hard`, `Torches X`, `Total Xanarchy`, `Toto IV`, `Toulouse Street`, `Tourist History`, `Toxicity`, `Tragic Kingdom`, `Tranquility Base Hotel & Casino`, `Traumazine`, `Traveler`, `Tres Hombres`, `Trip At Knight`, `Tron: Legacy`, `True Blue`, `True Colors`, `Trustfall`, `Tu Veneno Mortal`, `Tudo Em Paz`, `Ubuntu`, `Ugly Is Beautiful`, `Ultra 2021`, `Una Mattina`, `Unbroken`, `Uncovered`, `Under Pressure`, `Unsponsored Content`, `Unstoppable`, `Unwritten`, `Urban Flora`, `Urban Hymns`, `Use Your Illusion I`, `Veneer`, `Versions Of Me`, `Vibes`, `Vice Versa`, `Vices & Virtues`, `Victory`, `Vida`, `Viejo Marihuano`, `Visualízate`, `Walk Away`, `Walk Me Home...`, `Watch The Throne`, `Wave`, `We Broke The Rules`, `We Love You Tecca`, `We Love You Tecca 2`, `Weezer (Green Album)`, `Welcome To The Madhouse`, `Westlife`, `What A Time To Be Alive`, `What Do You Think About The Car?`, `What Is Love?`, `What Makes You Country`, `What Separates Me From You`, `What You See Is What You Get / What You See Ain't Always What You Get`, `When It's Dark Out`, `When We All Fall Asleep, Where Do We Go?`, `Where The Light Is`, `While The World Was Burning`, `White Pony`, `Whitney`, `Who Really Cares`, `Who You Are`, `Who's Next`, `Wide Open`, `Wilder Mind`, `Wildfire`, `Willy And The Poor Boys`, `Wings / You Never Walk Alone`, `Wish`, `Wish You Were Here`, `Without Warning`, `Wonder`, `X&Y`, `XOXO`, `Y Que Quede Claro`, `YBN: The Mixtape`, `Yo Creo`, `You Will Regret`, `Youngblood`, `Younger Now`, `Youth`], artist: [`$NOT`, `$uicideboy$`, `(G)I-DLE`, `*NSYNC`, `2 Chainz`, `21 Savage`, `6LACK`, `? & The Mysterians`, `A Boogie Wit da Hoodie`, `A Taste of Honey`, `A Tribe Called Quest`, `A-Ha`, `ABBA`, `AC/DC`, `AJ Tracey`, `ATEEZ`, `Ace of Base`, `Adele`, `Ado`, `Aerosmith`, `Agust D`, `Aitana`, `Al Dexter & his Troopers`, `Al Green`, `Al Jolson`, `Al Martino`, `Alan Jackson`, `Alannah Myles`, `Alec Benjamin`, `Alejandro Sanz`, `Alesso`, `Alfredo Olivas`, `Ali Gatie`, `Alice In Chains`, `Alina Baraz`, `All Time Low`, `All-4-One`, `All-American Rejects`, `Alok`, `America`, `American Quartet`, `Amii Stewart`, `Amitabh Bhattacharya`, `Ana Castela`, `Anderson .Paak`, `Andy Grammer`, `Angus & Julia Stone`, `Anirudh Ravichander`, `Anita Ward`, `Anitta`, `Anton Karas`, `Anuel AA`, `Arcade Fire`, `Archie Bell & The Drells`, `Archies`, `Aretha Franklin`, `Arizona Zervas`, `Armin van Buuren`, `Arthur Conley`, `Artie Shaw`, `Asake`, `Asees Kaur`, `Association`, `Atif Aslam`, `Audioslave`, `Aventura`, `Avril Lavigne`, `Aya Nakamura`, `B J Thomas`, `B.o.B`, `BLACKPINK`, `BONES`, `BROCKHAMPTON`, `BTS`, `Baby Keem`, `Bachman-Turner Overdrive`, `Backstreet Boys`, `Bad Bunny`, `Badshah`, `Bailey Zimmerman`, `Banda El Recodo`, `Barbra Streisand`, `Barry White`, `Bazzi`, `Bebe Rexha`, `Becky G`, `Becky Hill`, `Bee Gees`, `Ben Bernie`, `Ben Howard`, `Ben Selvin`, `Berlin`, `Bessie Smith`, `Bethel Music`, `Bette Midler`, `Beyonce`, `Bibi Blocksberg`, `Bibi und Tina`, `BigXthaPlug`, `Bill Doggett`, `Bill Haley & his Comets`, `Bill Withers`, `Billy Davis Jr`, `Billy Joel`, `Billy Paul`, `Billy Preston`, `Billy Swan`, `Birdy`, `Bizarrap`, `Blake Shelton`, `Blur`, `Bob Marley & The Wailers`, `Bob Seger`, `Bobby Darin`, `Bobby Lewis`, `Bobby McFerrin`, `Bobby Vinton`, `Boney M.`, `Bonez MC`, `Bonnie Tyler`, `Booba`, `Boston`, `BoyWithUke`, `Boyce Avenue`, `Bradley Cooper`, `Bread`, `Brent Faiyaz`, `Brett Young`, `Bring Me The Horizon`, `Britney Spears`, `Brooks & Dunn`, `Bruce Channel`, `Bruno & Marrone`, `Bryan Adams`, `Bryce Vine`, `Buddy Holly`, `Burna Boy`, `C. Tangana`, `CKay`, `CRO`, `Camilo`, `Capital Bra`, `Captain & Tennille`, `Cardi B`, `Carin Leon`, `Carlos Vives`, `Carly Simon`, `Carpenters`, `Cavetown`, `Celine Dion`, `Central Cee`, `Chaka Khan`, `Champs`, `Charlie Rich`, `Chayanne`, `Cheat Codes`, `Cher`, `Chic`, `Chicago`, `Chris Brown`, `Chris Isaak`, `Chris Young`, `Christina Aguilera`, `Christina Perri`, `Christopher Cross`, `Chuck Berry`, `Ciara`, `Cigarettes After Sex`, `Cliff Edwards (Ukelele Ike)`, `Cody Johnson`, `Colbie Caillat`, `Colby O'Donis`, `Cole Swindell`, `Coleman Hawkins`, `Contours`, `Coolio`, `Count Basie`, `Cris Mj`, `Culture Club`, `Cyndi Lauper`, `D-Block Europe`, `DAY6`, `DJ Khaled`, `DJ Luian`, `DJ Nelson`, `DMX`, `DNCE`, `DaVido`, `Dadju`, `Daft Punk`, `Dan + Shay`, `Daniel Powter`, `Danny Ocean`, `Darius Rucker`, `Dave`, `David Bowie`, `David Guetta`, `Daya`, `Dean Martin`, `Deee-Lite`, `Deep Purple`, `Deftones`, `Demi Lovato`, `Dennis Lloyd`, `Denzel Curry`, `Dermot Kennedy`, `Desiigner`, `Devo`, `Dewa 19`, `Dexys Midnight Runners`, `Diddy`, `Dido`, `Die drei !!!`, `Diego & Victor Hugo`, `Diljit Dosanjh`, `Dimitri Vegas & Like Mike`, `Dinah Shore`, `Dionne Warwick`, `Dire Straits`, `Disclosure`, `Dixie Cups`, `Doja Cat`, `Dolly Parton`, `Don Diablo`, `Don Henley`, `Don McLean`, `Don Omar`, `Donna Summer`, `Donovan`, `Dr. Dre`, `Drake`, `Dreamville`, `Dua Lipa`, `EMF`, `ENHYPEN`, `Earth, Wind & Fire`, `Ed Sheeran`, `Eddie Cantor`, `Eddie Cochran`, `Eddy Howard`, `Edgar Winter Group`, `Edwin Hawkins Singers`, `Edwin Starr`, `El Alfa`, `Eladio Carrion`, `Electric Light Orchestra`, `Elevation Worship`, `Ella Henderson`, `Ellie Goulding`, `Elton John`, `Elvis Presley`, `Empire of the Sun`, `En Vogue`, `Enrique Iglesias`, `Eslabon Armado`, `Ethel Waters`, `Etta James`, `Evanescence`, `Exile`, `Extreme`, `Faith Hill`, `Fall Out Boy`, `Fanny Brice`, `Farruko`, `Fats Domino`, `Fats Waller`, `Feid`, `Felix Jaehn`, `Fergie`, `Fetty Wap`, `Fiersa Besari`, `Fifth Harmony`, `Fine Young Cannibals`, `Five Finger Death Punch`, `Fleetwood Mac`, `Flo-Rida`, `Florence + The Machine`, `Flume`, `Foo Fighters`, `Foreigner`, `Foster The People`, `Four Aces`, `Frank Ocean`, `Frank Sinatra`, `Frankie Avalon`, `Frankie Valli`, `Fred Astaire`, `Freda Payne`, `Freddie Dredd`, `Freddy Fender`, `French Montana`, `Fuerza Regida`, `Fujii Kaze`, `Future`, `G-Eazy`, `Garfunkel and Oates`, `Gary Lewis & The Playboys`, `Gary Numan`, `Gene Autry`, `Gene Chandler`, `Gene Vincent`, `George Michael`, `George Strait`, `Gera MX`, `Ghost`, `Ghostemane`, `Gigi D'Agostino`, `Gladys Knight & The Pips`, `Glass Animals`, `Glee Cast`, `Gloria Gaynor`, `Godsmack`, `Gorillaz`, `Gotye`, `Grand Funk Railroad`, `Green Day`, `Grouplove`, `Grupo Firme`, `Grupo Marca Registrada`, `Gryffin`, `Gucci Mane`, `Guess Who`, `Gunna`, `Gusttavo Lima`, `Guy Mitchell`, `Gwen Stefani`, `Gzuz`, `H.E.R.`, `HARDY`, `Hailee Steinfeld`, `Halsey`, `Hans Zimmer`, `Harris Jayaraj`, `Harry Chapin`, `Harry James`, `Harry Nilsson`, `Harry Styles`, `Hayley Williams`, `Herb Alpert`, `Herman's Hermits`, `Hillsong UNITED`, `Hillsong Worship`, `Hollywood Undead`, `Honey Cone`, `Hoobastank`, `Hues Corporation`, `I Prevail`, `ITZY`, `IVE`, `Ice Cube`, `Ice Spice`, `Iggy Azalea`, `Imagine Dragons`, `Incubus`, `Internet Money`, `Isaac Hayes`, `J Geils Band`, `J. Cole`, `JAY-Z`, `JJ Lin`, `JP Saxe`, `JVKE`, `Jack Harlow`, `Jack Johnson`, `Jackie Wilson`, `Jacquees`, `James Arthur`, `James Brown`, `James TW`, `James Taylor`, `Jamie Foxx`, `Janet Jackson`, `Janis Joplin`, `Jason Aldean`, `Jason Mraz`, `Jay Chou`, `Jay Sean`, `Jay Wheeler`, `Jaymes Young`, `Jean Knight`, `Jeezy`, `Jennifer Lopez`, `Jennifer Warnes`, `Jeremih`, `Jeremy Zucker`, `Jerry Lee Lewis`, `Jerry Murad's Harmonicats`, `Jess Glynne`, `Jessie J`, `Jewel`, `Jimi Hendrix`, `Jimin`, `Jimmie Rodgers`, `Jimmy Dean`, `Jo Stafford`, `Joan Jett & The Blackhearts`, `Joao Gilberto`, `Joel Corry`, `John Fred & The Playboy Band`, `John Legend`, `John Mayer`, `John Williams`, `Johnnie Ray`, `Johnnie Taylor`, `Johnny Cash`, `Johnny Horton`, `Johnny Mathis`, `Johnny Mercer`, `Johnny Nash`, `Joji`, `Jon Bellion`, `Jonas Blue`, `Jonas Brothers`, `Joni James`, `Jorja Smith`, `Juan Gabriel`, `Juan Luis Guerra 4.40`, `Juanes`, `Juice Newton`, `Julia Michaels`, `Justin Bieber`, `Justin Quiles`, `KALEO`, `KAROL G`, `KAYTRANADA`, `KK`, `KSI`, `KYLE`, `Kacey Musgraves`, `Kane Brown`, `Kanye West`, `Karan Aujla`, `Kate Smith`, `Katy Perry`, `Kay Kyser`, `Ke$ha`, `Kehlani`, `Kelly Clarkson`, `Kenny Chesney`, `Kenny Loggins`, `Kenny Rogers`, `Kenshi Yonezu`, `Kenya Grace`, `Kevin Gates`, `Key Glock`, `Khalid`, `Kim Carnes`, `Kim Petras`, `Kimbra`, `Kina`, `King Gnu`, `Kings of Leon`, `Kingsmen`, `Kitty Kallen`, `Kodak Black`, `Kodaline`, `Kollegah`, `Kool & The Gang`, `Kungs`, `Kygo`, `Kylie Minogue`, `LE SSERAFIM`, `LISA`, `LMFAO`, `LUDMILLA`, `La Adictiva Banda San José de Mesillas`, `La Oreja de Van Gogh`, `Labrinth`, `Lady Antebellum`, `Lady GaGa`, `Lainey Wilson`, `Lana Del Rey`, `Latto`, `Lauryn Hill`, `Lauv`, `League of Legends`, `Lee Brice`, `Leon Bridges`, `Leona Lewis`, `Lesley Gore`, `Leslie Odom Jr.`, `Liam Payne`, `Lifehouse`, `Lil Baby`, `Lil Dicky`, `Lil Durk`, `Lil Mosey`, `Lil Nas X`, `Lil Pump`, `Lil Skies`, `Lil Tjay`, `Lil Uzi Vert`, `Lil Yachty`, `Lil' Kim`, `Lil' Wayne`, `Lin-Manuel Miranda`, `Linkin Park`, `Lionel Richie`, `Lipps Inc`, `Lisa Loeb`, `Little Peggy March`, `Little Richard`, `Lofi Fruits Music`, `Lord Huron`, `Los Del Rio`, `Los Dos Carnales`, `Los Lobos`, `Los Temerarios`, `Los Tigres Del Norte`, `Los Tucanes De Tijuana`, `Lou Reed`, `Loud Luxury`, `Louis Jordan`, `Louis Tomlinson`, `Love Unlimited`, `Lovin' Spoonful`, `Luan Santana`, `Luciano`, `Luis Miguel`, `Luis R Conriquez`, `Lulu`, `Lunay`, `Lupe Fiasco`, `M`, `MAX`, `MC Hammer`, `MC Ryan SP`, `MKTO`, `Mabel`, `Machine Gun Kelly`, `Madison Beer`, `Madonna`, `Mahalini`, `Major Lazer`, `Mambo Kingz`, `Maneskin`, `Marco Antonio Solís`, `Margaret Whiting`, `Maria Becerra`, `Mario`, `Mario Lanza`, `Mark Ronson`, `Maroon 5`, `Marshmello`, `Martin Garrix`, `Mary Ford`, `Mary J Blige`, `Mary J. Blige`, `Mary Wells`, `Matoma`, `Mau y Ricky`, `Meek Mill`, `Megadeth`, `Melanie`, `Melanie Martinez`, `Melendi`, `Men At Work`, `Metro Boomin`, `Michael Bublé`, `Michael Jackson`, `Michael McDonald`, `Michael Sembello`, `Miguel`, `Mike Posner`, `Miley Cyrus`, `Milky Chance`, `Minnie Riperton`, `Miracle Tones`, `Miranda Lambert`, `Mohit Chauhan`, `Mon Laferte`, `Moneybagg Yo`, `Monsta X`, `Mora`, `Morad`, `Morat`, `Mother Mother`, `Motley Crue`, `Ms. Lauryn Hill`, `Mumford & Sons`, `Muse`, `Mya`, `Myke Towers`, `NCT 127`, `NCT DREAM`, `NEFFEX`, `Nadin Amizah`, `Nancy Sinatra`, `Nat King Cole`, `Nate Smith`, `Natti Natasha`, `Nayer`, `Neil Diamond`, `Neil Sedaka`, `Nekfeu`, `Nelly`, `New Vaudeville Band`, `Next`, `Nickelback`, `Nicki Minaj`, `Nicki Nicole`, `Nicky Jam`, `Nina Simone`, `Ninho`, `Nipsey Hussle`, `Nirvana`, `Niska`, `No Doubt`, `Norah Jones`, `Normani`, `OMI`, `ONE OK ROCK`, `Oasis`, `Official HIGE DANdism`, `Offset`, `Old Dominion`, `Oliver Heldens`, `Olivia Rodrigo`, `Omah Lay`, `One Direction`, `Otis Redding`, `OutKast`, `Owl City`, `P Diddy`, `P!nk`, `PLK`, `PNL`, `Pamungkas`, `Passenger`, `Pat Boone`, `Patsy Cline`, `Patti LaBelle`, `Patti Page`, `Paul & Paula`, `Paul Revere & the Raiders`, `Paul Robeson`, `Paul Russell`, `Paul Whiteman`, `Paula Abdul`, `Peaches & Herb`, `Pearl Jam`, `Pee Wee Hunt`, `Pee Wee King`, `Pentatonix`, `Percy Faith`, `Percy Sledge`, `Peso Pluma`, `Peter Cetera`, `Peter Gabriel`, `Peter, Paul & Mary`, `Pharrell Williams`, `Pierce The Veil`, `Pineapple StormTv`, `Pink Floyd`, `Pink Sweat$`, `Piso 21`, `Pitbull`, `Plan B`, `Player`, `Polo G`, `Pop Smoke`, `Portugal. The Man`, `Pouya`, `Prince`, `Prince Royce`, `Pusha T`, `Quality Control`, `Queen`, `Quinn XCII`, `R. Kelly`, `RAF Camora`, `RAYE`, `REM`, `REO Speedwagon`, `Radiohead`, `Rag'n'Bone Man`, `Rage Against The Machine`, `Rahat Fateh Ali Khan`, `Rainbow Kitten Surprise`, `Rammstein`, `Rauw Alejandro`, `Ray Charles`, `Ray Parker Jr`, `Ray Stevens`, `Red Foley`, `Red Hot Chili Peppers`, `Red Velvet`, `Regard`, `Regina Belle`, `Reik`, `Rels B`, `Rema`, `Ricardo Arjona`, `Rich The Kid`, `Rick Astley`, `Rick Dees & his Cast of Idiots`, `Rick Ross`, `Rick Springfield`, `Ricky Martin`, `Ricky Nelson`, `Rihanna`, `Rita Ora`, `Ritchie Valens`, `Rizky Febian`, `Rob Thomas`, `Roberta Flack`, `Robin Schulz`, `Robin Thicke`, `Rod Stewart`, `Rod Wave`, `Roddy Ricch`, `Roger Miller`, `Romeo Santos`, `Rosemary Clooney`, `Roxette`, `Roy Acuff`, `Roy Orbison`, `Rudimental`, `Ruel`, `Ruth B.`, `Ryan Lewis`, `SCH`, `SEVENTEEN`, `SWV`, `Sabaton`, `Sabrina Carpenter`, `Sachet Tandon`, `Sachin-Jigar`, `Sade`, `Sam Cooke`, `Sam Feldt`, `Sam Hunt`, `Sam Smith`, `Sam The Sham & The Pharaohs`, `Sammy Davis Jr`, `Sammy Kaye`, `Santana`, `Sasha Alex Sloan`, `Savage Garden`, `Saweetie`, `Scorpions`, `Sean Kingston`, `Sean Paul`, `Sebastian Yatra`, `Sech`, `Seeb`, `Sezen Aksu`, `Sfera Ebbasta`, `Shaggy`, `Shania Twain`, `Shawn Mendes`, `Sheena Easton`, `Shinedown`, `Shubh`, `Sia`, `Sid Sriram`, `Sidhu Moose Wala`, `Silk`, `Silver Convention`, `Simon & Garfunkel`, `Sinead O'Connor`, `Sir Mix-a-Lot`, `Sister Sledge`, `Ski Mask The Slump God`, `Skillet`, `Skrillex`, `Sleeping At Last`, `Smokey Robinson`, `Snoop Dogg`, `Snow Patrol`, `Soda Stereo`, `Sonu Nigam`, `Sophie Ellis-Bextor`, `Spencer Davis Group`, `Spice Girls`, `Stan Getz`, `Starland Vocal Band`, `Stephen Sanchez`, `Steve Aoki`, `Steve Lacy`, `Steve Winwood`, `Stevie B`, `Sting`, `Stormzy`, `Strawberry Alarm Clock`, `Stray Kids`, `Stromae`, `Sublime`, `Sum 41`, `Summer Walker`, `Supertramp`, `Survivor`, `Swedish House Mafia`, `System Of A Down`, `T-Pain`, `T.I.`, `TAEYEON`, `TKKG`, `TLC`, `TOMORROW X TOGETHER`, `TOTO`, `TWICE`, `Tag Team`, `Tainy`, `Tammi Terrell`, `Tanishk Bagchi`, `Tate McRae`, `Taylor Swift`, `Tears For Fears`, `Tems`, `Tennessee Ernie Ford`, `Terence Trent D'Arby`, `Teresa Brewer`, `Terry Jacks`, `The Ames Brothers`, `The Animals`, `The B52s`, `The Bangles`, `The Beatles`, `The Black Eyed Peas`, `The Black Keys`, `The Box Tops`, `The Chainsmokers`, `The Chiffons`, `The Chordettes`, `The Clash`, `The Coasters`, `The Commodores`, `The Cowsills`, `The Cranberries`, `The Crew-Cuts`, `The Cure`, `The Detroit Spinners`, `The Diamonds`, `The Doobie Brothers`, `The Doors`, `The Drifters`, `The Emotions`, `The Eurythmics`, `The Fireballs`, `The Flamingos`, `The Foundations`, `The Four Seasons`, `The Fray`, `The Game`, `The Go Gos`, `The Goo Goo Dolls`, `The Head And The Heart`, `The Hollies`, `The Ink Spots`, `The Isley Brothers`, `The Jackson 5`, `The Kid LAROI`, `The Killers`, `The Kingston Trio`, `The Kooks`, `The Lemon Pipers`, `The Living Tombstone`, `The Lumineers`, `The Mamas & The Papas`, `The Marvelettes`, `The McCoys`, `The Mills Brothers`, `The Miracles`, `The Monkees`, `The Moody Blues`, `The National`, `The Neighbourhood`, `The Notorious B.I.G.`, `The O'Jays`, `The Offspring`, `The Osmonds`, `The Partridge Family`, `The Penguins`, `The Pet Shop Boys`, `The Platters`, `The Righteous Brothers`, `The Rolling Stones`, `The Ronettes`, `The Score`, `The Script`, `The Seekers`, `The Shangri-Las`, `The Smashing Pumpkins`, `The Staple Singers`, `The Strokes`, `The Supremes`, `The Temptations`, `The Turtles`, `The Vamps`, `The Verve`, `The Village People`, `The Weavers`, `The White Stripes`, `The Young Rascals`, `The Zombies`, `Thelma Houston`, `Thomas Rhett`, `Three Days Grace`, `Three Dog Night`, `Three Man Down`, `Timbaland`, `Timmy Trumpet`, `Toby Keith`, `Tom Jones`, `Tom Petty and the Heartbreakers`, `Tommy Dorsey`, `Tommy Edwards`, `Tommy James & the Shondells`, `Tone Loc`, `Toni Braxton`, `Topic`, `Tory Lanez`, `Tove Lo`, `Trevor Daniel`, `Trey Songz`, `Trippie Redd`, `Trueno`, `Tulsi Kumar`, `Tulus`, `Twenty One Pilots`, `Two Feet`, `Ty Dolla $ign`, `Tyga`, `Tyler Hubbard`, `U2`, `UB40`, `UZI`, `Ufo361`, `Upchurch`, `V`, `Vampire Weekend`, `Van McCoy`, `Van Morrison`, `Vance Joy`, `Vanessa Carlton`, `Vanessa Williams`, `Vera Lynn`, `Vernon Dalhart`, `Vicente Fernandez`, `Vishal-Shekhar`, `Volbeat`, `WILLOW`, `Wale`, `Wallows`, `Weezer`, `Wham!`, `Whitney Houston`, `Why Don't We`, `Wilbert Harrison`, `Wilson Phillips`, `Wiz Khalifa`, `Woody Guthrie`, `Wyclef Jean`, `XXXTENTACION`, `Xavi`, `YG`, `YNW Melly`, `YOASOBI`, `Yandel`, `Years & Years`, `Yeat`, `Yo Gotti`, `Young Dolph`, `Young Miko`, `Young Thug`, `YoungBoy Never Broke Again`, `Yung Gravy`, `Yuuri`, `Yuvan Shankar Raja`, `ZAYN`, `ZZ Top`, `Zac Brown Band`, `Zach Bryan`, `Zara Larsson`, `aespa`, `benny blanco`, `blink-182`, `d4vd`, `deadmau5`, `girl in red`, `gnash`, `iann dior`, `will.i.am`], genre: `Acid House.Acid Jazz.Acid Rock.Acoustic.Acoustic Blues.Afro-Pop.Afrobeat.Alt-Rock.Alternative.Ambient.American Trad Rock.Americana.Anime.Arena Rock.Art-Rock.Avant-Garde.Avant-Punk.Baladas y Boleros.Barbershop.Baroque.Bebop.Big Band.Black Metal.Blue Note.Bluegrass.Blues.Boogaloo.Bop.Bossa Nova.Bounce.Brazilian Funk.Breakbeat.Britpop.CCM.Cajun.Cantopop.Celtic.Celtic Folk.Chamber Music.Chant.Chanukah.Chicago Blues.Chicago House.Chicano.Children’s Music.Chill.Choral.Christian.Christmas.Classical.Club.College Rock.Conjunto.Cool Jazz.Country.Crunk.Dance.Dancehall.Death Metal.Deep House.Delta Blues.Detroit Techno.Dirty South.Disco.Disney.Dixieland.Doo-wop.Downtempo.Dream Pop.Drill.Drinking Songs.Drone.Drum'n'bass.Dub.Dubstep.EDM.Early Music.East Coast Rap.Easter.Easy Listening.Eclectic.Electric Blues.Electro.Electronic.Electronica.Emo.Enka.Environmental.Ethio-jazz.Experimental.Experimental Rock.Flamenco.Folk.Folk-Rock.Forro.French Pop.Funk.Fusion.Gangsta Rap.Garage.German Folk.German Pop.Glam Rock.Gospel.Goth.Grime.Grindcore.Groove.Grunge.Hair Metal.Halloween.Happy.Hard Bop.Hard Dance.Hard Rock.Hardcore.Hardcore Punk.Hardcore Rap.Hardstyle.Healing.Heavy Metal.High Classical.Hip Hop.Holiday.Honky Tonk.House.IDM.Impressionist.Indie.Industrial.Instrumental.J-Dance.J-Idol.J-Pop.J-Punk.J-Rock.J-Ska.J-Synth.Jackin House.Jam Bands.Japanese Pop.Jazz.Jungle.K-Pop.Karaoke.Kayokyoku.Kids.Kitsch.Klezmer.Krautrock.Latin.Latin Jazz.Latin Rap.Local.Lounge.Lullabies.MPB.Mainstream Jazz.Malay.Mandopop.March.Mariachi.Mawwal.Medieval.Meditation.Metal.Metalcore.Minimal Techno.Minimalism.Modern.Motown.Mugham.Musicals.Musique Concrète.Nature.Neo-Soul.Nerdcore.New Acoustic.New Age.New Mex.New Wave.No Wave.Noise.Nordic.Novelty.OPM.Oi!.Old School Rap.Opera.Orchestral.Original Score.Outlaw Country.Pagode.Party.Piano.Polka.Pop.Pop Film.Pop Latino.Post Dubstep.Power Pop.Praise & Worship.Progressive House.Progressive Rock.Proto-punk.Psych Rock.Psychedelic.Punk.Punk Rock.Qawwali.Quiet Storm.R&B.Ragtime.Rainy Day.Rap.Reggae.Reggaeton.Regional Mexicano.Relaxation.Renaissance.Retro.Rock.Rockabilly.Rocksteady.Romance.Romantic.Roots Reggae.Roots Rock.SKA.Sad.Salsa.Samba.Second Line.Sertanejo.Shaabi.Shoegaze.Sleep.Smooth Jazz.Soft Rock.Soul.Soundtrack.Southern Gospel.Southern Rock.Space Rock.Stage And Screen.Steampunk.Summer.Surf.Swamp Pop.Swing.Synth Pop.Tango.Techno.Teen Pop.Tejano.Tex-Mex.Thanksgiving.Traditional.Trance.Trip Hop.Tropical.Underground Rap.Urban.Urban Cowboy.West Coast Rap.Western Swing.World.Worldbeat.Zydeco`.split(`.`), song_name: [`(Everything I Do) I Do it For You`, `(Ghost) Riders in the Sky`, `(I Can't Get No) Satisfaction`, `(I've Got a Gal In) Kalamazoo`, `(I've Had) the Time of My Life`, `(It's No) Sin`, `(Just Like) Starting Over`, `(Let Me Be Your) Teddy Bear`, `(Put Another Nickel In) Music! Music! Music!`, `(Sexual) Healing`, `(Sittin' On) the Dock of the Bay`, `(They Long to Be) Close to You`, `(You Keep Me) Hangin' On`, `(You're My) Soul & Inspiration`, `(Your Love Keeps Lifting Me) Higher & Higher`, `12th Street Rag`, `1999`, `19th Nervous Breakdown`, `50 Ways to Leave Your Lover`, `9 to 5`, `96 Tears`, `A Boy Named Sue`, `A Hard Day's Night`, `A String of Pearls`, `A Thousand Miles`, `A Tree in the Meadow`, `A Whiter Shade of Pale`, `A Whole New World (Aladdin's Theme)`, `A Woman in Love`, `A-Tisket A-Tasket`, `ABC`, `Abracadabra`, `Ac-cent-tchu-ate the Positive`, `Addicted to Love`, `After You've Gone`, `Afternoon Delight`, `Again`, `Against All Odds (Take a Look At Me Now)`, `Ain't Misbehavin'`, `Ain't No Mountain High Enough`, `Ain't No Sunshine`, `Ain't That a Shame`, `Airplanes`, `All Along the Watchtower`, `All I Have to Do is Dream`, `All I Wanna Do`, `All My Lovin' (You're Never Gonna Get It)`, `All Night Long (All Night)`, `All Out of Love`, `All Shook Up`, `All You Need is Love`, `Alone`, `Alone Again (Naturally)`, `Always On My Mind`, `American Pie`, `American Woman`, `Angie`, `Another Brick in the Wall (part 2)`, `Another Day in Paradise`, `Another Night`, `Another One Bites the Dust`, `Apologize`, `April Showers`, `Aquarius/Let The Sunshine In`, `Are You Lonesome Tonight?`, `Arthur's Theme (Best That You Can Do)`, `As Time Goes By`, `At Last`, `At the Hop`, `Auf Wiederseh'n Sweetheart`, `Baby Baby`, `Baby Come Back`, `Baby Got Back`, `Baby Love`, `Baby One More Time`, `Bad Day`, `Bad Girls`, `Bad Moon Rising`, `Bad Romance`, `Bad, Bad Leroy Brown`, `Baker Street`, `Ball of Confusion (That's What the World is Today)`, `Ballad of the Green Berets`, `Ballerina`, `Band On the Run`, `Band of Gold`, `Battle of New Orleans`, `Be Bop a Lula`, `Be My Baby`, `Be My Love`, `Beat It`, `Beautiful Day`, `Beauty & the Beast`, `Because I Love You (The Postman Song)`, `Because You Loved Me`, `Because of You`, `Before The Next Teardrop Falls`, `Begin the Beguine`, `Behind Closed Doors`, `Being With You`, `Believe`, `Ben`, `Bennie & the Jets`, `Besame Mucho`, `Best of My Love`, `Bette Davis Eyes`, `Big Bad John`, `Big Girls Don't Cry`, `Billie Jean`, `Bitter Sweet Symphony`, `Black Or White`, `Black Velvet`, `Blaze of Glory`, `Bleeding Love`, `Blue Suede Shoes`, `Blue Tango`, `Blueberry Hill`, `Blurred Lines`, `Body & Soul`, `Bohemian Rhapsody`, `Boogie Oogie Oogie`, `Boogie Woogie Bugle Boy`, `Boom Boom Pow`, `Born in the USA`, `Born to Be Wild`, `Born to Run`, `Boulevard of Broken Dreams`, `Brand New Key`, `Brandy (You're A Fine Girl)`, `Breaking Up is Hard to Do`, `Breathe`, `Bridge Over Troubled Water`, `Brother Louie`, `Brother, Can You Spare a Dime?`, `Brown Eyed Girl`, `Brown Sugar`, `Build Me Up Buttercup`, `Burn`, `Buttons & Bows`, `Bye Bye Love`, `Bye Bye, Blackbird`, `Bye, Bye, Bye`, `Caldonia Boogie (What Makes Your Big Head So Hard)`, `California Dreamin'`, `California Girls`, `Call Me`, `Call Me Maybe`, `Can You Feel the Love Tonight`, `Can't Buy Me Love`, `Can't Get Enough of Your Love, Babe`, `Can't Help Falling in Love`, `Candle in the Wind '97`, `Candy Man`, `Car Wash`, `Careless Whisper`, `Cars`, `Cat's in the Cradle`, `Cathy's Clown`, `Celebration`, `Centerfold`, `Chain of Fools`, `Chances Are`, `Change the World`, `Chapel of Love`, `Chattanooga Choo Choo`, `Chattanoogie Shoe-Shine Boy`, `Check On It`, `Cheek to Cheek`, `Cherish`, `Cherry Pink & Apple Blossom White`, `Cold, Cold Heart`, `Colors of the Wind`, `Come On Eileen`, `Come On-a My House`, `Come Together`, `Coming Up`, `Cracklin' Rosie`, `Crazy`, `Crazy For You`, `Crazy Little Thing Called Love`, `Crazy in Love`, `Creep`, `Crimson & Clover`, `Crocodile Rock`, `Cry`, `Cry Like a Baby`, `Crying`, `Da Doo Ron Ron (When He Walked Me Home)`, `Dance to the Music`, `Dancing Queen`, `Dancing in the Dark`, `Dancing in the Street`, `Dardanella`, `Daydream Believer`, `December 1963 (Oh What a Night)`, `Delicado`, `Dilemma`, `Disco Duck`, `Disco Lady`, `Disturbia`, `Dizzy`, `Do That to Me One More Time`, `Do Wah Diddy Diddy`, `Do Ya Think I'm Sexy?`, `Do You Love Me?`, `Don't Be Cruel`, `Don't Fence Me In`, `Don't Go Breaking My Heart`, `Don't Leave Me This Way`, `Don't Let the Stars Get in Your Eyes`, `Don't Let the Sun Go Down On Me`, `Don't Speak`, `Don't Stop 'Til You Get Enough`, `Don't Worry Be Happy`, `Don't You (Forget About Me)`, `Don't You Want Me`, `Doo Wop (That Thing)`, `Down`, `Down Hearted Blues`, `Down Under`, `Downtown`, `Dreamlover`, `Dreams`, `Drop it Like It's Hot`, `Drops of Jupiter (Tell Me)`, `Duke of Earl`, `E.T.`, `Earth Angel`, `Ebony & Ivory`, `Eight Days a Week`, `Empire State Of Mind`, `End of the Road`, `Endless Love`, `Escape (The Pina Colada Song)`, `Eve of Destruction`, `Every Breath You Take`, `Every Little Thing She Does is Magic`, `Everybody Loves Somebody`, `Everybody Wants to Rule the World`, `Everyday People`, `Eye of the Tiger`, `Faith`, `Fallin'`, `Fame`, `Family Affair`, `Fantasy`, `Fast Car`, `Feel Good Inc`, `Feel Like Making Love`, `Fire & Rain`, `Firework`, `Flashdance. What a Feeling`, `Fly Robin Fly`, `Foolish Games`, `Footloose`, `For What It's Worth (Stop, Hey What's That Sound)`, `Fortunate Son`, `Frankenstein`, `Freak Me`, `Freebird`, `Frenesi`, `Funkytown`, `Gangsta's Paradise`, `Georgia On My Mind`, `Georgy Girl`, `Get Back`, `Get Down Tonight`, `Get Off of My Cloud`, `Ghostbusters`, `Gimme Some Lovin'`, `Girls Just Wanna Have Fun`, `Give Me Everything`, `Gives You Hell`, `Glamorous`, `Glory of Love`, `Go Your Own Way`, `God Bless America`, `God Bless the Child`, `Gold Digger`, `Gonna Make You Sweat (Everybody Dance Now)`, `Good Lovin'`, `Good Times`, `Good Vibrations`, `Goodbye Yellow Brick Road`, `Goodnight, Irene`, `Got to Give it Up`, `Grease`, `Great Balls of Fire`, `Greatest Love of All`, `Green Onions`, `Green River`, `Green Tambourine`, `Grenade`, `Groove is in the Heart`, `Groovin'`, `Gypsies, Tramps & Thieves`, `Hair`, `Hang On Sloopy`, `Hanging by a Moment`, `Hanky Panky`, `Happy Days Are Here Again`, `Happy Together`, `Harbour Lights`, `Hard to Say I'm Sorry`, `Harper Valley PTA`, `Have You Ever Really Loved a Woman?`, `He'll Have to Go`, `He's So Fine`, `He's a Rebel`, `Heart of Glass`, `Heart of Gold`, `Heartbreak Hotel`, `Hello Dolly`, `Hello, I Love You, Won't You Tell Me Your Name?`, `Help Me, Rhonda`, `Help!`, `Here Without You`, `Here in My Heart`, `Hero`, `Hey Baby`, `Hey Jude`, `Hey Paula`, `Hey There`, `Hey There Delilah`, `Hey Ya!`, `Higher Love`, `Hips don't lie`, `Hit the Road, Jack`, `Hold On`, `Hollaback Girl`, `Honey`, `Honky Tonk`, `Honky Tonk Woman`, `Horse With No Name`, `Hot Child In The City`, `Hot Stuff`, `Hotel California`, `Hound Dog`, `House of the Rising Sun`, `How Deep is Your Love?`, `How Do I Live?`, `How Do You Mend a Broken Heart`, `How High the Moon`, `How Much is That Doggy in the Window?`, `How Will I Know`, `How You Remind Me`, `How to Save a Life`, `Hungry Heart`, `Hurt So Good`, `I Believe I Can Fly`, `I Can Dream, Can't I?`, `I Can Help`, `I Can See Clearly Now`, `I Can't Get Next to You`, `I Can't Get Started`, `I Can't Go For That (No Can Do)`, `I Can't Help Myself (Sugar Pie, Honey Bunch)`, `I Can't Stop Loving You`, `I Don't Want to Miss a Thing`, `I Fall to Pieces`, `I Feel Fine`, `I Feel For You`, `I Feel Love`, `I Get Around`, `I Got You (I Feel Good)`, `I Got You Babe`, `I Gotta Feeling`, `I Heard it Through the Grapevine`, `I Honestly Love You`, `I Just Called to Say I Love You`, `I Just Wanna Be Your Everything`, `I Kissed A Girl`, `I Love Rock 'n' Roll`, `I Need You Now`, `I Only Have Eyes For You`, `I Shot the Sheriff`, `I Still Haven't Found What I'm Looking For`, `I Swear`, `I Think I Love You`, `I Walk the Line`, `I Wanna Dance With Somebody (Who Loves Me)`, `I Wanna Love You`, `I Want You Back`, `I Want to Hold Your Hand`, `I Want to Know What Love Is`, `I Went to Your Wedding`, `I Will Always Love You`, `I Will Follow Him`, `I Will Survive`, `I Write the Songs`, `I'll Be Missing You`, `I'll Be There`, `I'll Make Love to You`, `I'll Never Smile Again`, `I'll Take You There`, `I'll Walk Alone`, `I'll be seeing you`, `I'm Looking Over a Four Leaf Clover`, `I'm So Lonesome I Could Cry`, `I'm Sorry`, `I'm Walking Behind You`, `I'm Your Boogie Man`, `I'm Yours`, `I'm a Believer`, `I've Heard That Song Before`, `If (They Made Me a King)`, `If I Didn't Care`, `If You Don't Know Me By Now`, `If You Leave Me Now`, `Imagine`, `In Da Club`, `In the End`, `In the Ghetto`, `In the Mood`, `In the Summertime`, `In the Year 2525 (Exordium & Terminus)`, `Incense & Peppermints`, `Indian Reservation (The Lament Of The Cherokee Reservation Indian)`, `Instant Karma`, `Iris`, `Ironic`, `Irreplaceable`, `It Had to Be You`, `It's All in the Game`, `It's My Party`, `It's Now Or Never`, `It's Still Rock 'n' Roll to Me`, `It's Too Late`, `Jack & Diane`, `Jailhouse Rock`, `Jessie's Girl`, `Jive Talkin'`, `Johnny B Goode`, `Joy to the World`, `Judy in Disguise (With Glasses)`, `Jump`, `Jumpin' Jack Flash`, `Just Dance`, `Just My Imagination (Running Away With Me)`, `Just the Way You Are`, `Kansas City`, `Karma Chameleon`, `Keep On Loving You`, `Killing Me Softly With His Song`, `King of the Road`, `Kiss`, `Kiss & Say Goodbye`, `Kiss From a Rose`, `Kiss Me`, `Kiss On My List`, `Kiss You All Over`, `Knock On Wood`, `Knock Three Times`, `Kokomo`, `Kryptonite`, `Kung Fu Fighting`, `La Bamba`, `Lady`, `Lady Marmalade (Voulez-Vous Coucher Aver Moi Ce Soir?)`, `Last Train to Clarksville`, `Layla`, `Le Freak`, `Leader of the Pack`, `Lean On Me`, `Leaving, on a Jet Plane`, `Let Me Call You Sweetheart`, `Let Me Love You`, `Let it Be`, `Let it Snow! Let it Snow! Let it Snow!`, `Let's Dance`, `Let's Get it On`, `Let's Groove`, `Let's Hear it For the Boy`, `Let's Stay Together`, `Light My Fire`, `Lights`, `Like a Prayer`, `Like a Rolling Stone`, `Like a Virgin`, `Little Darlin'`, `Little Things Mean a Lot`, `Live & Let Die`, `Livin' La Vida Loca`, `Livin' On a Prayer`, `Living For the City`, `Locked Out Of Heaven`, `Lola`, `Lonely Boy`, `Long Cool Woman in a Black Dress`, `Long Tall Sally`, `Look Away`, `Lookin' Out My Back Door`, `Lose Yourself`, `Losing My Religion`, `Louie Louie`, `Love Child`, `Love Hangover`, `Love In This Club`, `Love Is Blue (L'Amour Est Bleu)`, `Love Letters in the Sand`, `Love Me Do`, `Love Me Tender`, `Love Shack`, `Love Theme From 'A Star is Born' (Evergreen)`, `Love Train`, `Love Will Keep Us Together`, `Love is a Many Splendoured Thing`, `Love to Love You Baby`, `Love's Theme`, `Loving You`, `Low`, `Macarena`, `Mack the Knife`, `Maggie May`, `Magic`, `Magic Carpet Ride`, `Make Love to Me`, `Make it With You`, `Makin' Whoopee`, `Mama Told Me Not to Come`, `Man in the Mirror`, `Manana (Is Soon Enough For Me)`, `Maneater`, `Maniac`, `Maybellene`, `Me & Bobby McGee`, `Me & Mrs Jones`, `Memories Are Made of This`, `Mercy Mercy Me (The Ecology)`, `Mickey`, `Midnight Train to Georgia`, `Minnie the Moocher`, `Miss You`, `Miss You Much`, `Mister Sandman`, `Mmmbop`, `Mona Lisa`, `Monday Monday`, `Money For Nothing`, `Mony Mony`, `Mood Indigo`, `Moonlight Cocktail`, `Moonlight Serenade`, `More Than Words`, `More Than a Feeling`, `Morning Train (Nine to Five)`, `Mr Big Stuff`, `Mr Brightside`, `Mr Tambourine Man`, `Mrs Brown You've Got a Lovely Daughter`, `Mrs Robinson`, `Mule Train`, `Music`, `My Blue Heaven`, `My Boyfriend's Back`, `My Eyes Adored You`, `My Girl`, `My Guy`, `My Heart Will Go On`, `My Life`, `My Love`, `My Man`, `My Prayer`, `My Sharona`, `My Sweet Lord`, `Na Na Hey Hey (Kiss Him Goodbye)`, `Nature Boy`, `Near You`, `Need You Now`, `Need You Tonight`, `Never Gonna Give You Up`, `Night & Day`, `Night Fever`, `Nights in White Satin`, `No One`, `No Scrubs`, `Nobody Does it Better`, `Nothin' on You`, `Nothing Compares 2 U`, `Nothing's Gonna Stop Us Now`, `Ode To Billie Joe`, `Oh Happy Day`, `Oh My Papa (O Mein Papa)`, `Oh, Pretty Woman`, `Ol' Man River`, `Ole Buttermilk Sky`, `On Bended Knee`, `On My Own`, `On the Atchison, Topeka & the Santa Fe`, `One`, `One Bad Apple`, `One More Try`, `One O'Clock Jump`, `One Sweet Day`, `One of These Nights`, `One of Us`, `Only The Lonely (Know The Way I Feel)`, `Only You (And You Alone)`, `Open Arms`, `Over There`, `Over the Rainbow`, `Paint it Black`, `Papa Don't Preach`, `Papa Was a Rolling Stone`, `Papa's Got a Brand New Bag`, `Paper Doll`, `Paper Planes`, `Paperback Writer`, `Party Rock Anthem`, `Peg o' My Heart`, `Peggy Sue`, `Pennies From Heaven`, `Penny Lane`, `People`, `People Got to Be Free`, `Personality`, `Philadelphia Freedom`, `Physical`, `Piano Man`, `Pick Up the Pieces`, `Pistol Packin' Mama`, `Play That Funky Music`, `Please Mr Postman`, `Poker Face`, `Pon De Replay`, `Pony Time`, `Pop Muzik`, `Prisoner of Love`, `Private Eyes`, `Promiscuous`, `Proud Mary`, `Purple Haze`, `Purple Rain`, `Puttin' on the Ritz`, `Que sera sera (Whatever will be will be)`, `Queen of Hearts`, `Rag Doll`, `Rag Mop`, `Rags to Riches`, `Raindrops Keep Falling On My Head`, `Rapture`, `Ray of Light`, `Reach Out (I'll Be There)`, `Red Red Wine`, `Rehab`, `Respect`, `Return to Sender`, `Reunited`, `Revolution`, `Rhapsody in Blue`, `Rhinestone Cowboy`, `Rich Girl`, `Riders On the Storm`, `Right Back Where We Started From`, `Ring My Bell`, `Ring of Fire`, `Rock Around the Clock`, `Rock With You`, `Rock Your Baby`, `Rock the Boat`, `Rock the Casbah`, `Roll Over Beethoven`, `Roll With It`, `Rolling In The Deep`, `Rosanna`, `Roses Are Red`, `Royals`, `Ruby Tuesday`, `Rudolph, the Red-Nosed Reindeer`, `Rum & Coca-Cola`, `Runaround Sue`, `Runaway`, `Running Scared`, `Rush Rush`, `Sailing`, `Save the Best For Last`, `Save the Last Dance For Me`, `Say It Right`, `Say My Name`, `Say Say Say`, `Say You, Say Me`, `School's Out`, `Seasons in the Sun`, `Secret Love`, `Sentimental Journey`, `Sexyback`, `Sh-Boom (Life Could Be a Dream)`, `Shadow Dancing`, `Shake Down`, `Shake You Down`, `She Drives Me Crazy`, `She Loves You`, `She's a Lady`, `Shining Star`, `Shop Around`, `Shout`, `Silly Love Songs`, `Since U Been Gone`, `Sing, Sing, Sing (With A Swing)`, `Singing The Blues`, `Single Ladies (Put A Ring On It)`, `Sir Duke`, `Sixteen Tons`, `Sledgehammer`, `Sleep Walk`, `Sleepy Lagoon`, `Slow Poke`, `Smells Like Teen Spirit`, `Smoke Gets in Your Eyes`, `Smoke On the Water`, `Smoke! Smoke! Smoke! (That Cigarette)`, `Smooth`, `So Much in Love`, `Soldier Boy`, `Some Enchanted Evening`, `Some of These Days`, `Somebody That I Used to Know`, `Somebody to Love`, `Someday`, `Somethin' Stupid`, `Something`, `Soul Man`, `Spanish Harlem`, `Spill the Wine`, `Spinning Wheel`, `Spirit in the Sky`, `St George & the Dragonette`, `St Louis Blues`, `Stagger Lee`, `Stairway to Heaven`, `Stand By Me`, `Stardust`, `Stars & Stripes Forever`, `Stay (I Missed You)`, `Stayin' Alive`, `Stop! in the Name of Love`, `Stormy Weather (Keeps Rainin' All the Time)`, `Straight Up`, `Strange Fruit`, `Stranger On the Shore`, `Strangers in the Night`, `Strawberry Fields Forever`, `Streets of Philadelphia`, `Stronger`, `Stuck On You`, `Sugar Shack`, `Sugar Sugar`, `Summer in the City`, `Summertime Blues`, `Sunday, Monday or Always`, `Sunshine Superman`, `Sunshine of Your Love`, `Superstar`, `Superstition`, `Surfin' USA`, `Suspicious Minds`, `Swanee`, `Sweet Caroline (Good Times Never Seemed So Good)`, `Sweet Child O' Mine`, `Sweet Dreams (Are Made of This)`, `Sweet Georgia Brown`, `Sweet Home Alabama`, `Sweet Soul Music`, `Swinging On a Star`, `T For Texas (Blue Yodel No 1)`, `TSOP (The Sound of Philadelphia)`, `Take Me Home, Country Roads`, `Take My Breath Away`, `Take On Me`, `Take The 'A' Train`, `Take a Bow`, `Tammy`, `Tangerine`, `Tears in Heaven`, `Tears of a Clown`, `Temperature`, `Tennessee Waltz`, `Tequila`, `Tha Crossroads`, `Thank You (Falettinme be Mice Elf Again)`, `That Lucky Old Sun (Just Rolls Around Heaven All Day)`, `That Old Black Magic`, `That'll Be the Day`, `That's Amore`, `That's What Friends Are For`, `That's the Way (I Like It)`, `That's the Way Love Goes`, `The Boy is Mine`, `The Boys of Summer`, `The Christmas Song (Chestnuts Roasting On An Open Fire)`, `The End of the World`, `The First Time Ever I Saw Your Face`, `The Girl From Ipanema`, `The Glow-Worm`, `The Great Pretender`, `The Gypsy`, `The Hustle`, `The Joker`, `The Last Dance`, `The Letter`, `The Loco-Motion`, `The Long & Winding Road`, `The Love You Save`, `The Morning After`, `The Power of Love`, `The Prisoner's Song`, `The Reason`, `The Rose`, `The Sign`, `The Song From Moulin Rouge (Where Is Your Heart)`, `The Sounds of Silence`, `The Streak`, `The Sweet Escape`, `The Thing`, `The Tide is High`, `The Tracks of My Tears`, `The Twist`, `The Wanderer`, `The Way We Were`, `The Way You Look Tonight`, `The Way You Move`, `Theme From 'A Summer Place'`, `Theme From 'Greatest American Hero' (Believe It Or Not)`, `Theme From 'Shaft'`, `There goes my baby`, `These Boots Are Made For Walking`, `Third Man Theme`, `This Diamond Ring`, `This Guy's in Love With You`, `This Land is Your Land`, `This Love`, `This Ole House`, `This Used to Be My Playground`, `Three Coins in the Fountain`, `Three Times a Lady`, `Thrift Shop`, `Thriller`, `Ticket to Ride`, `Tie a Yellow Ribbon 'round the Old Oak Tree`, `Tiger Rag`, `Tighten Up`, `Tik-Toc`, `Till I Waltz Again With You`, `Till The End of Time`, `Time After Time`, `Time of the Season`, `To Sir, with Love`, `Tom Dooley`, `Tonight's the Night (Gonna Be Alright)`, `Too Close`, `Too Young`, `Tossing & Turning`, `Total Eclipse of the Heart`, `Touch Me`, `Toxic`, `Travellin' Band`, `Travellin' Man`, `Truly Madly Deeply`, `Turn! Turn! Turn! (To Everything There is a Season)`, `Tutti Frutti`, `Twist & Shout`, `Two Hearts`, `U Can't Touch This`, `U Got it Bad`, `Umbrella`, `Un-Break My Heart`, `Unbelievable`, `Unchained Melody`, `Uncle Albert (Admiral Halsey)`, `Under the Boardwalk`, `Under the Bridge`, `Unforgettable`, `Up Around the Bend`, `Up Up & Away`, `Up Where We Belong`, `Upside Down`, `Use Somebody`, `Vaya Con Dios (may God Be With You)`, `Venus`, `Vision of Love`, `Viva La Vida`, `Vogue`, `Volare`, `Wabash Cannonball`, `Waiting For a Girl Like You`, `Wake Me Up Before You Go Go`, `Wake Up Little Susie`, `Walk Don't Run`, `Walk Like a Man`, `Walk Like an Egyptian`, `Walk On By`, `Walk On the Wild Side`, `Walk This Way`, `Wannabe`, `Want Ads`, `Wanted`, `War`, `Waterfalls`, `Wayward Wind`, `We Are Family`, `We Are Young`, `We Are the Champions`, `We Are the World`, `We Belong Together`, `We Built This City`, `We Can Work it Out`, `We Didn't Start the Fire`, `We Found Love`, `We Got The Beat`, `We Will Rock You`, `We've Only Just Begun`, `Weak`, `Wedding Bell Blues`, `West End Blues`, `West End Girls`, `What Goes Around Comes Around`, `What a Fool Believes`, `What'd I Say`, `What's Going On?`, `What's Love Got to Do With It?`, `Whatcha Say`, `Wheel of Fortune`, `When Doves Cry`, `When You Wish Upon a Star`, `When a Man Loves a Woman`, `Where Did Our Love Go`, `Where is the Love?`, `Whip It`, `Whispering`, `White Christmas`, `White Rabbit`, `Whole Lotta Love`, `Whole Lotta Shakin' Goin' On`, `Whoomp! (There it Is)`, `Why Do Fools Fall in Love?`, `Why Don't You Believe Me?`, `Wichita Lineman`, `Wicked Game`, `Wild Thing`, `Wild Wild West`, `Will It Go Round In Circles`, `Will You Love Me Tomorrow`, `Winchester Cathedral`, `Wind Beneath My Wings`, `Wipe Out`, `Wishing Well`, `With Or Without You`, `Without Me`, `Without You`, `Woman`, `Won't Get Fooled Again`, `Wooly Bully`, `Working My Way Back to You`, `YMCA`, `Yakety Yak`, `Yeah!`, `Yellow Rose of Texas`, `Yesterday`, `You Ain't Seen Nothin' Yet`, `You Always Hurt the One You Love`, `You Are the Sunshine of My Life`, `You Belong With Me`, `You Belong to Me`, `You Can't Hurry Love`, `You Don't Bring Me Flowers`, `You Don't Have to Be a Star (To Be in My Show)`, `You Light Up My Life`, `You Make Me Feel Brand New`, `You Make Me Feel Like Dancing`, `You Really Got Me`, `You Send Me`, `You Sexy Thing`, `You Were Meant for Me`, `You make Me Wanna`, `You'll Never Know`, `You're Beautiful`, `You're So Vain`, `You're Still the One`, `You're the One That I Want`, `You've Got a Friend`, `You've Lost That Lovin' Feelin'`, `Your Cheatin' Heart`, `Your Song`] }, person: { bio_part: `activist.artist.author.blogger.business owner.coach.creator.designer.developer.dreamer.educator.engineer.entrepreneur.environmentalist.film lover.filmmaker.foodie.founder.friend.gamer.geek.grad.inventor.leader.model.musician.nerd.parent.patriot.person.philosopher.photographer.public speaker.scientist.singer.streamer.student.teacher.traveler.veteran.writer`.split(`.`), bio_pattern: [`{{person.bio_part}}`, `{{person.bio_part}}, {{person.bio_part}}`, `{{person.bio_part}}, {{person.bio_part}}, {{person.bio_part}}`, `{{person.bio_part}}, {{person.bio_part}}, {{person.bio_part}} {{internet.emoji}}`, `{{word.noun}} {{person.bio_supporter}}`, `{{word.noun}} {{person.bio_supporter}}  {{internet.emoji}}`, `{{word.noun}} {{person.bio_supporter}}, {{person.bio_part}}`, `{{word.noun}} {{person.bio_supporter}}, {{person.bio_part}} {{internet.emoji}}`], bio_supporter: [`advocate`, `devotee`, `enthusiast`, `fan`, `junkie`, `lover`, `supporter`], first_name: { generic: `Addison.Adell.Adrien.Alejandrin.Alexie.Alexis.Alexys.Ali.Alva.Alvis.Amani.Amari.Angel.Ara.Arden.Ari.Ariel.Arlie.Armani.Asa.Ashton.Aubrey.Audie.August.Austyn.Avery.Baby.Bailey.Bell.Berry.Bethel.Blair.Brook.Brown.Burdette.Burnice.Cali.Carey.Carroll.Cary.Casey.Chandler.Charley.Chesley.Clair.Claudie.Clemmie.Cleo.Cordie.Coty.Cruz.Dakota.Dallas.Dannie.Darby.Darian.Dee.Dell.Delta.Demetris.Devan.Devon.Devyn.Dominique.Dorian.Dusty.Eden.Elisha.Emery.Emmanuelle.Emory.Estel.Florida.Floy.Francis.Frankie.Garnet.Garnett.Germaine.Golden.Guadalupe.Hadley.Harley.Hassie.Haven.Hazle.Hollis.Ira.Ivory.Jacky.Jaden.Jadyn.Jaeden.Jaiden.Jalyn.Jamey.Jamie.Jammie.Jan.Jaycee.Jaylan.Jaylin.Jayme.Jennings.Jensen.Jess.Jessie.Jessy.Joany.Jody.Johnnie.Jordan.Jordane.Jude.Jules.Justice.Kacey.Karson.Kasey.Kaya.Kayden.Kendall.Kennedy.Kenyatta.Kerry.Kris.Kristian.Lane.Larue.Lavern.Lavon.Layne.Lee.Lennie.Leone.Linnie.London.Lonie.Loren.Lou.Loy.Loyal.Lue.Lupe.Marion.Marley.Marlin.Maxie.Maximillia.Merl.Merle.Merlin.Merritt.Michale.Michel.Milan.Miller.Mina.Monroe.Monserrate.Montana.Morgan.Mossie.Mozell.Murl.Murphy.Myrl.Nakia.Nicola.Nikita.Nova.Ocie.Oda.Odie.Ollie.Oma.Onie.Orie.Ova.Paris.Pat.Paxton.Payton.Peyton.Pink.Presley.Providenci.Quinn.Raleigh.Reagan.Reese.Regan.Reilly.Rickie.Riley.River.Robbie.Robin.Roma.Romaine.Rowan.Royal.Ryann.Ryley.Sage.Sammie.Sammy.Schuyler.Shanon.Shayne.Shea.Sheridan.Sidney.Sincere.Skye.Skylar.Stevie.Sunny.Taylor.Teagan.Telly.Terry.Tommie.Torey.Toy.Tristin.Unique.Urban.Valentine.Van.Vernie.Zion`.split(`.`), female: `Aaliyah.Abagail.Abbey.Abbie.Abbigail.Abby.Abigail.Abigale.Abigayle.Ada.Adah.Adaline.Addie.Adela.Adele.Adelia.Adeline.Adella.Adelle.Adriana.Adrianna.Adrienne.Afton.Aglae.Agnes.Agustina.Aida.Aileen.Aimee.Aisha.Aiyana.Alaina.Alana.Alanis.Alanna.Alayna.Alba.Alberta.Albertha.Albina.Alda.Aleen.Alejandra.Alena.Alene.Alessandra.Alessia.Aletha.Alexa.Alexandra.Alexandrea.Alexandria.Alexandrine.Alexane.Alexanne.Alfreda.Alia.Alice.Alicia.Alisa.Alisha.Alison.Alivia.Aliya.Aliyah.Aliza.Alize.Allene.Allie.Allison.Ally.Alma.Alta.Althea.Alvena.Alvera.Alverta.Alvina.Alyce.Alycia.Alysa.Alysha.Alyson.Alyssa.Alysson.Amalia.Amanda.Amara.Amaya.Amber.Amelia.Amelie.Amely.America.Amie.Amina.Amira.Amiya.Amparo.Amy.Amya.Ana.Anabel.Anabelle.Anahi.Anais.Anastasia.Andrea.Andreane.Andreanne.Angela.Angelica.Angelina.Angeline.Angelita.Angie.Anika.Anissa.Anita.Aniya.Aniyah.Anjali.Ann.Anna.Annabel.Annabell.Annabelle.Annalise.Annamae.Annamarie.Anne.Annetta.Annette.Annie.Ansley.Antoinette.Antonetta.Antonette.Antonia.Antonietta.Antonina.Anya.April.Araceli.Aracely.Ardella.Ardith.Arely.Ariane.Arianna.Arielle.Arlene.Arvilla.Aryanna.Asha.Ashlee.Ashleigh.Ashley.Ashly.Ashlynn.Ashtyn.Asia.Assunta.Astrid.Athena.Aubree.Audra.Audreanne.Audrey.Augusta.Aurelia.Aurelie.Aurore.Autumn.Ava.Avis.Ayana.Ayla.Aylin.Bailee.Barbara.Baylee.Beatrice.Beaulah.Becky.Belinda.Bella.Belle.Berenice.Bernadette.Bernadine.Berneice.Bernice.Berniece.Bernita.Berta.Bertha.Beryl.Bessie.Beth.Bethany.Betsy.Bette.Bettie.Betty.Bettye.Beulah.Beverly.Bianka.Billie.Birdie.Blanca.Blanche.Bobbie.Bonita.Bonnie.Brandi.Brandy.Breana.Breanna.Breanne.Brenda.Brenna.Bria.Briana.Brianne.Bridget.Bridgette.Bridie.Brielle.Brigitte.Brionna.Brisa.Britney.Brittany.Brooke.Brooklyn.Bryana.Bulah.Caitlyn.Caleigh.Calista.Callie.Camila.Camilla.Camille.Camryn.Camylle.Candace.Candice.Candida.Cara.Carissa.Carla.Carlee.Carley.Carli.Carlie.Carlotta.Carmel.Carmela.Carmella.Carmen.Carol.Carolanne.Carole.Carolina.Caroline.Carolyn.Carolyne.Carrie.Casandra.Cassandra.Cassandre.Cassidy.Cassie.Catalina.Caterina.Catharine.Catherine.Cathrine.Cathryn.Cathy.Cayla.Cecelia.Cecile.Cecilia.Celestine.Celia.Celine.Chanel.Chanelle.Charity.Charlene.Charlotte.Chasity.Chaya.Chelsea.Chelsey.Chelsie.Cheryl.Cheyanne.Cheyenne.Chloe.Christa.Christelle.Christiana.Christie.Christina.Christine.Christy.Chyna.Ciara.Cielo.Cierra.Cindy.Citlalli.Claire.Clara.Clarabelle.Clare.Clarissa.Claudia.Claudine.Clementina.Clementine.Cleora.Cleta.Clotilde.Colleen.Concepcion.Connie.Constance.Consuelo.Cora.Coralie.Cordelia.Cordia.Corene.Corine.Corrine.Cortney.Courtney.Creola.Cristal.Cristina.Crystal.Crystel.Cydney.Cynthia.Dagmar.Dahlia.Daija.Daisha.Daisy.Damaris.Dana.Daniela.Daniella.Danielle.Danika.Danyka.Daphne.Daphnee.Daphney.Dariana.Darla.Darlene.Dasia.Dawn.Dayana.Dayna.Deanna.Debbie.Deborah.Debra.Deja.Dejah.Delaney.Delfina.Delia.Delilah.Della.Delores.Delpha.Delphia.Delphine.Dena.Denise.Desiree.Dessie.Destany.Destinee.Destiney.Destini.Destiny.Diamond.Diana.Diane.Dianna.Dianne.Dina.Dixie.Dolly.Dolores.Domenica.Donna.Dora.Dorcas.Doreen.Doris.Dorothea.Dorothy.Dorris.Dortha.Dorthy.Dovie.Dulce.Earlene.Earline.Earnestine.Easter.Ebba.Ebony.Eda.Edith.Edna.Edwina.Edyth.Edythe.Effie.Eileen.Elaina.Elaine.Elda.Eldora.Eleanor.Eleanora.Eleanore.Electa.Elena.Elenor.Elenora.Eleonore.Elfrieda.Eliane.Elinor.Elinore.Elisa.Elisabeth.Elise.Elissa.Eliza.Elizabeth.Ella.Ellen.Ellie.Elmira.Elna.Elnora.Elody.Eloisa.Eloise.Elouise.Elsa.Else.Elsie.Elta.Elva.Elvera.Elvie.Elvira.Elyse.Elyssa.Elza.Emelia.Emelie.Emely.Emerald.Emie.Emilia.Emilie.Emily.Emma.Emmalee.Emmie.Emmy.Ena.Enid.Enola.Era.Erica.Ericka.Erika.Erin.Erma.Erna.Ernestina.Ernestine.Eryn.Esmeralda.Esperanza.Essie.Esta.Estefania.Estell.Estella.Estelle.Esther.Estrella.Etha.Ethel.Ethelyn.Ethyl.Ettie.Eudora.Eugenia.Eula.Eulah.Eulalia.Euna.Eunice.Eva.Evalyn.Evangeline.Eve.Eveline.Evelyn.Evie.Fabiola.Fae.Faith.Fannie.Fanny.Fatima.Fay.Faye.Felicia.Felicita.Felicity.Felipa.Fern.Ferne.Filomena.Fiona.Flavie.Fleta.Flo.Flora.Florence.Florine.Flossie.Frances.Francesca.Francisca.Freda.Frederique.Freeda.Freida.Frida.Frieda.Gabriella.Gabrielle.Gail.Gayle.Genesis.Geneva.Genevieve.Genoveva.Georgette.Georgia.Georgiana.Georgianna.Geraldine.Gerda.Gertrude.Gia.Gilda.Gillian.Gina.Ginger.Giovanna.Gisselle.Gladyce.Gladys.Glenda.Glenna.Glennie.Gloria.Golda.Grace.Gracie.Graciela.Grayce.Gregoria.Greta.Gretchen.Gudrun.Gussie.Gwen.Gwendolyn.Hailee.Hailey.Hailie.Haleigh.Haley.Halie.Halle.Hallie.Hanna.Hannah.Harmony.Harriet.Hattie.Haylee.Hayley.Haylie.Hazel.Heather.Heaven.Heidi.Helen.Helena.Helene.Helga.Hellen.Heloise.Henrietta.Henriette.Hermina.Herminia.Herta.Hertha.Hester.Hettie.Hilda.Hildegard.Hillary.Hilma.Hollie.Holly.Hope.Hortense.Hulda.Icie.Ida.Idell.Idella.Ila.Ilene.Iliana.Ima.Imani.Imelda.Imogene.Ines.Inez.Irene.Iris.Irma.Isabel.Isabell.Isabella.Isabelle.Isobel.Itzel.Iva.Ivah.Ivy.Izabella.Jacey.Jacinthe.Jackeline.Jackie.Jacklyn.Jaclyn.Jacqueline.Jacquelyn.Jacynthe.Jada.Jade.Jaida.Jailyn.Jakayla.Jana.Janae.Jane.Janelle.Janessa.Janet.Janice.Janie.Janis.Janiya.Jannie.Jany.Jaquelin.Jaqueline.Jasmin.Jasmine.Jaunita.Jayda.Jayde.Jayne.Jazlyn.Jazmin.Jazmyn.Jazmyne.Jean.Jeanette.Jeanie.Jeanne.Jeannette.Jeannie.Jena.Jenifer.Jenna.Jennie.Jennifer.Jenny.Jennyfer.Jessica.Jessika.Jessyca.Jettie.Jewel.Jewell.Jill.Jillian.Jo.Joan.Joana.Joanie.Joann.Joanna.Joanne.Joannie.Joanny.Jocelyn.Jodi.Jodie.Joelle.Johanna.Jolie.Jordyn.Josefa.Josefina.Josephine.Josiane.Josianne.Josie.Joy.Joyce.Juana.Juanita.Judith.Judy.Julia.Juliana.Julianne.Julie.Juliet.June.Justina.Justine.Kaci.Kacie.Kaela.Kaelyn.Kaia.Kailee.Kailey.Kailyn.Kaitlin.Kaitlyn.Kaleigh.Kaley.Kali.Kallie.Kamille.Kamryn.Kara.Karelle.Karen.Kari.Kariane.Karianne.Karina.Karine.Karla.Karlee.Karley.Karli.Karlie.Karolann.Kasandra.Kassandra.Katarina.Kate.Katelin.Katelyn.Katelynn.Katharina.Katherine.Katheryn.Kathleen.Kathlyn.Kathryn.Kathryne.Kathy.Katie.Katlyn.Katlynn.Katrina.Katrine.Kattie.Kay.Kaycee.Kayla.Kaylah.Kaylee.Kayleigh.Kayley.Kayli.Kaylie.Kaylin.Keara.Keeley.Keely.Keira.Kelley.Kelli.Kellie.Kelly.Kelsi.Kelsie.Kendra.Kenna.Kennedi.Kenya.Kiana.Kianna.Kiara.Kiarra.Kiera.Kiley.Kim.Kimberly.Kira.Kirsten.Kirstin.Kitty.Krista.Kristen.Kristi.Kristie.Kristin.Kristina.Kristine.Kristy.Krystal.Krystel.Krystina.Kyla.Kylee.Kyleigh.Kylie.Kyra.Lacey.Lacy.Laila.Laisha.Lana.Laney.Larissa.Latoya.Laura.Laurel.Lauren.Lauretta.Lauriane.Laurianne.Laurie.Laurine.Laury.Lauryn.Lavada.Laverna.Laverne.Lavina.Lavinia.Lavonne.Layla.Lea.Leah.Leann.Leanna.Leanne.Leatha.Leda.Leigh.Leila.Leilani.Lela.Lelah.Lelia.Lempi.Lena.Lenna.Lenora.Lenore.Leola.Leona.Leonie.Leonor.Leonora.Leora.Lera.Lesley.Leslie.Lesly.Lessie.Leta.Letha.Leticia.Letitia.Lexi.Lexie.Lexus.Lia.Liana.Libbie.Libby.Lila.Lilian.Liliana.Liliane.Lilla.Lillian.Lilliana.Lillie.Lilly.Lily.Lilyan.Lina.Linda.Lindsay.Lindsey.Linnea.Lisa.Lisette.Litzy.Liza.Lizeth.Lizzie.Lois.Lola.Lolita.Loma.Lora.Loraine.Lorena.Lorene.Lorenza.Loretta.Lori.Lorine.Lorna.Lorraine.Lottie.Louisa.Louise.Lourdes.Louvenia.Loyce.Lucia.Lucie.Lucienne.Lucile.Lucille.Lucinda.Lucy.Ludie.Luella.Luisa.Lula.Lulu.Luna.Lura.Lurline.Luz.Lyda.Lydia.Lyla.Lynda.Lynette.Lynn.Lynne.Lyric.Lysanne.Mabel.Mabelle.Mable.Macey.Maci.Macie.Mackenzie.Macy.Madaline.Madalyn.Maddison.Madeline.Madelyn.Madelynn.Madge.Madie.Madilyn.Madisen.Madison.Madisyn.Madonna.Madyson.Mae.Maegan.Maeve.Mafalda.Magali.Magdalen.Magdalena.Maggie.Magnolia.Maia.Maida.Maiya.Makayla.Makenna.Makenzie.Malika.Malinda.Mallie.Mallory.Malvina.Mamie.Mandy.Manuela.Mara.Marcelina.Marcella.Marcelle.Marcia.Margaret.Margarete.Margarett.Margaretta.Margarette.Margarita.Marge.Margie.Margot.Margret.Marguerite.Maria.Mariah.Mariam.Marian.Mariana.Mariane.Marianna.Marianne.Maribel.Marie.Mariela.Marielle.Marietta.Marilie.Marilou.Marilyn.Marilyne.Marina.Marisa.Marisol.Maritza.Marjolaine.Marjorie.Marjory.Marlee.Marlen.Marlene.Marsha.Marta.Martha.Martina.Martine.Mary.Maryam.Maryann.Maryjane.Maryse.Mathilde.Matilda.Matilde.Mattie.Maud.Maude.Maudie.Maureen.Maurine.Mavis.Maxine.May.Maya.Maybell.Maybelle.Maye.Maymie.Mayra.Mazie.Mckayla.Mckenna.Mckenzie.Meagan.Meaghan.Meda.Megan.Megane.Meggie.Meghan.Melanie.Melany.Melba.Melinda.Melisa.Melissa.Mellie.Melody.Melvina.Melyna.Melyssa.Mercedes.Meredith.Mertie.Meta.Mia.Micaela.Michaela.Michele.Michelle.Mikayla.Mildred.Millie.Mindy.Minerva.Minnie.Miracle.Miranda.Mireille.Mireya.Miriam.Missouri.Misty.Mittie.Modesta.Mollie.Molly.Mona.Monica.Monique.Monserrat.Moriah.Mozelle.Muriel.Mya.Myah.Mylene.Myra.Myriam.Myrna.Myrtice.Myrtie.Myrtis.Myrtle.Nadia.Nadine.Nancy.Nannie.Naomi.Naomie.Natalia.Natalie.Natasha.Nayeli.Nedra.Neha.Nelda.Nella.Nelle.Nellie.Neoma.Nettie.Neva.Nia.Nichole.Nicole.Nicolette.Nikki.Nina.Noelia.Noemi.Noemie.Noemy.Nola.Nona.Nora.Norene.Norma.Novella.Nya.Nyah.Nyasia.Oceane.Octavia.Odessa.Ofelia.Ola.Oleta.Olga.Olive.Olivia.Ona.Opal.Ophelia.Ora.Orpha.Otilia.Ottilie.Ozella.Paige.Palma.Pam.Pamela.Pansy.Pascale.Patience.Patricia.Patsy.Patti.Pattie.Patty.Paula.Paulette.Pauline.Pearl.Pearlie.Pearline.Peggie.Peggy.Penelope.Penny.Petra.Phoebe.Phyllis.Pinkie.Piper.Polly.Precious.Princess.Priscilla.Prudence.Queen.Queenie.Rachael.Rachel.Rachelle.Rae.Raegan.Rafaela.Raina.Ramona.Randi.Raphaelle.Raquel.Raven.Reanna.Reba.Rebeca.Rebecca.Rebeka.Rebekah.Regina.Reina.Renee.Ressie.Reta.Retha.Retta.Reva.Reyna.Rhea.Rhianna.Rhiannon.Rhoda.Rhonda.Rita.Roberta.Robyn.Rochelle.Rocio.Rosa.Rosalee.Rosalia.Rosalie.Rosalind.Rosalinda.Rosalyn.Rosamond.Rosanna.Rosario.Rose.Rosella.Roselyn.Rosemarie.Rosemary.Rosetta.Rosie.Rosina.Roslyn.Rossie.Rowena.Roxane.Roxanne.Rozella.Rubie.Ruby.Rubye.Ruth.Ruthe.Ruthie.Rylee.Ryleigh.Sabina.Sabrina.Sabryna.Sadie.Sadye.Saige.Sallie.Sally.Salma.Samanta.Samantha.Samara.Sandra.Sandrine.Sandy.Santa.Santina.Sara.Sarah.Sarai.Sarina.Sasha.Savanah.Savanna.Savannah.Scarlett.Selena.Selina.Serena.Serenity.Shaina.Shakira.Shana.Shanel.Shanelle.Shania.Shanie.Shaniya.Shanna.Shannon.Shanny.Shany.Shari.Sharon.Shawna.Shaylee.Shayna.Sheila.Shelia.Shelley.Shelly.Sheri.Sherri.Sherry.Sheryl.Shirley.Shyann.Shyanne.Sibyl.Sienna.Sierra.Sigrid.Silvia.Simone.Sister.Skyla.Sofia.Soledad.Sonia.Sonja.Sonya.Sophia.Sophie.Stacey.Stacy.Stefanie.Stella.Stephania.Stephanie.Stephany.Sue.Summer.Susan.Susana.Susanna.Susie.Suzanne.Syble.Sydnee.Sydney.Sydni.Sydnie.Sylvia.Tabitha.Talia.Tamara.Tami.Tamia.Tammy.Tania.Tanya.Tara.Taryn.Tasha.Tatum.Tatyana.Taya.Teresa.Teri.Terri.Tess.Tessie.Thalia.Thea.Thelma.Theodora.Theresa.Therese.Theresia.Thora.Tia.Tiana.Tianna.Tiara.Tierra.Tiffany.Tina.Tomasa.Toni.Tonya.Tracey.Traci.Tracy.Tressa.Tressie.Treva.Tricia.Trinity.Trisha.Trudie.Trycia.Twila.Tyra.Una.Ursula.Vada.Valentina.Valerie.Vallie.Vanessa.Veda.Velda.Vella.Velma.Velva.Vena.Vera.Verda.Verdie.Vergie.Verla.Verlie.Verna.Vernice.Verona.Veronica.Vesta.Vicenta.Vicki.Vickie.Vicky.Victoria.Vida.Vilma.Vincenza.Viola.Violet.Violette.Virgie.Virginia.Virginie.Vita.Viva.Vivian.Viviane.Vivianne.Vivien.Vivienne.Wanda.Wava.Wendy.Whitney.Wilhelmine.Willa.Willow.Wilma.Winifred.Winnifred.Winona.Yadira.Yasmeen.Yasmin.Yasmine.Yazmin.Yesenia.Yessenia.Yolanda.Yoshiko.Yvette.Yvonne.Zaria.Zelda.Zella.Zelma.Zena.Zetta.Zita.Zoe.Zoey.Zoie.Zoila.Zola.Zora.Zula`.split(`.`), male: `Aaron.Abdiel.Abdul.Abdullah.Abe.Abel.Abelardo.Abner.Abraham.Adalberto.Adam.Adan.Adelbert.Aditya.Adolf.Adolfo.Adolph.Adolphus.Adonis.Adrain.Adrian.Adriel.Agustin.Ahmad.Ahmed.Aidan.Aiden.Akeem.Al.Alan.Albert.Alberto.Albin.Alden.Alec.Alejandro.Alek.Alessandro.Alex.Alexander.Alexandre.Alexandro.Alexzander.Alf.Alfonso.Alfonzo.Alford.Alfred.Alfredo.Allan.Allen.Alonzo.Alphonso.Alton.Alvah.Alvin.Ambrose.Americo.Amir.Amos.Anastacio.Anderson.Andre.Andres.Andrew.Andy.Angelo.Angus.Anibal.Ansel.Anthony.Antone.Antonio.Antwan.Antwon.Arch.Archibald.Archie.Aric.Arjun.Arlo.Armand.Armando.Arnaldo.Arne.Arno.Arnold.Arnoldo.Arnulfo.Aron.Art.Arthur.Arturo.Arvel.Arvid.Augustine.Augustus.Aurelio.Austen.Austin.Axel.Ayden.Barney.Baron.Barrett.Barry.Bart.Bartholome.Barton.Beau.Ben.Benedict.Benjamin.Bennett.Bennie.Benny.Benton.Bernard.Bernardo.Bernhard.Bernie.Bert.Bertram.Bertrand.Bill.Billy.Blaise.Blake.Blaze.Bo.Bob.Bobby.Boris.Boyd.Brad.Braden.Bradford.Bradley.Bradly.Brady.Braeden.Brain.Brando.Brandon.Brandt.Brandyn.Brannon.Branson.Brant.Braulio.Braxton.Brayan.Brendan.Brenden.Brendon.Brennan.Brennon.Brent.Bret.Brett.Brian.Brice.Brock.Broderick.Brody.Brooks.Bruce.Bryan.Bryant.Bryce.Brycen.Bryon.Buck.Bud.Buddy.Buford.Burley.Buster.Byron.Cade.Caden.Caesar.Cale.Caleb.Calvin.Camden.Cameron.Camren.Camron.Candelario.Candido.Carl.Carleton.Carlo.Carlos.Carlton.Carmelo.Carmine.Carson.Carter.Casimer.Casimir.Casper.Ceasar.Cecil.Cedric.Cedrick.Celestino.Cesar.Chad.Chadd.Chadrick.Chaim.Chance.Charles.Charlie.Chase.Chauncey.Chaz.Chester.Chet.Chris.Christ.Christian.Christop.Christophe.Christopher.Cicero.Clarence.Clark.Claud.Claude.Clay.Clayton.Clemens.Clement.Cletus.Cleve.Cleveland.Clifford.Clifton.Clint.Clinton.Clovis.Cloyd.Clyde.Coby.Cody.Colby.Cole.Coleman.Colin.Collin.Colt.Colten.Colton.Columbus.Conner.Connor.Conor.Conrad.Constantin.Cooper.Corbin.Cordell.Corey.Cornelius.Cornell.Cortez.Cory.Coy.Craig.Crawford.Cristian.Cristobal.Cristopher.Cullen.Curt.Curtis.Cyril.Cyrus.D'angelo.Dale.Dallin.Dalton.Dameon.Damian.Damien.Damion.Damon.Dan.Dandre.Dane.Dangelo.Danial.Daniel.Danny.Dante.Daren.Darien.Darin.Dario.Darion.Darius.Darnell.Daron.Darrel.Darrell.Darren.Darrick.Darrin.Darrion.Darron.Darryl.Darwin.Daryl.Dashawn.Dave.David.Davin.Davion.Davon.Davonte.Dawson.Dax.Dayne.Dayton.Dean.Deangelo.Declan.Dedric.Dedrick.Deion.Dejon.Dejuan.Delbert.Delmer.Demarco.Demarcus.Demario.Demetrius.Demond.Denis.Dennis.Deon.Deondre.Deontae.Deonte.Dereck.Derek.Derick.Deron.Derrick.Deshaun.Deshawn.Desmond.Destin.Devante.Deven.Devin.Devonte.Dewayne.Dewey.Dewitt.Dexter.Diego.Dillan.Dillon.Dimitri.Dino.Dion.Dock.Domenic.Domenick.Domenico.Domingo.Dominic.Dominick.Don.Donald.Donato.Donavon.Donnell.Donnie.Donny.Doug.Douglas.Doyle.Drake.Drew.Duane.Dudley.Duncan.Durward.Dustin.Dwayne.Dwight.Dylan.Earl.Earnest.Easton.Ed.Edd.Eddie.Edgar.Edgardo.Edison.Edmond.Edmund.Eduardo.Edward.Edwardo.Edwin.Efrain.Efren.Einar.Eino.Eladio.Elbert.Eldon.Eldred.Eldridge.Eleazar.Eli.Elian.Elias.Eliezer.Elijah.Eliseo.Elliot.Elliott.Ellis.Ellsworth.Elmer.Elmo.Elmore.Eloy.Elroy.Elton.Elvis.Elwin.Elwyn.Emanuel.Emerson.Emil.Emile.Emiliano.Emilio.Emmanuel.Emmet.Emmett.Emmitt.Enoch.Enos.Enrico.Enrique.Ephraim.Eriberto.Eric.Erich.Erick.Erik.Erling.Ernest.Ernesto.Ernie.Ervin.Erwin.Esteban.Estevan.Ethan.Eugene.Eusebio.Evan.Evans.Everardo.Everett.Everette.Evert.Ewald.Ewell.Ezekiel.Ezequiel.Ezra.Fabian.Faustino.Fausto.Favian.Federico.Felipe.Felix.Felton.Fermin.Fernando.Fidel.Filiberto.Finn.Flavio.Fletcher.Florencio.Florian.Floyd.Ford.Forest.Forrest.Foster.Francesco.Francisco.Franco.Frank.Franklin.Franz.Fred.Freddie.Freddy.Frederic.Frederick.Frederik.Fredrick.Fredy.Freeman.Friedrich.Fritz.Furman.Gabe.Gabriel.Gaetano.Gage.Gardner.Garett.Garfield.Garland.Garret.Garrett.Garrick.Garrison.Garry.Garth.Gary.Gaston.Gavin.Gene.General.Gennaro.Geo.Geoffrey.George.Geovanni.Geovanny.Geovany.Gerald.Gerard.Gerardo.Gerhard.German.Gerry.Gerson.Gianni.Gideon.Gilbert.Gilberto.Giles.Gino.Giovani.Giovanni.Giovanny.Giuseppe.Glen.Glenn.Godfrey.Gonzalo.Gordon.Grady.Graham.Grant.Granville.Grayson.Green.Greg.Gregg.Gregorio.Gregory.Greyson.Griffin.Grover.Guido.Guillermo.Guiseppe.Gunnar.Gunner.Gus.Gust.Gustave.Gustavo.Guy.Hal.Hank.Hans.Hardy.Harmon.Harold.Harrison.Harry.Harvey.Haskell.Hassan.Hayden.Heath.Heber.Hector.Helmer.Henderson.Henri.Henry.Herbert.Herman.Hermann.Herminio.Hershel.Hilario.Hilbert.Hillard.Hilton.Hipolito.Hiram.Hobart.Holden.Homer.Horace.Horacio.Hosea.Houston.Howard.Howell.Hoyt.Hubert.Hudson.Hugh.Hugo.Humberto.Hunter.Hyman.Ian.Ibrahim.Ignacio.Ignatius.Ike.Immanuel.Irvin.Irving.Irwin.Isaac.Isac.Isadore.Isai.Isaiah.Isaias.Isidro.Ismael.Isom.Israel.Issac.Ivan.Izaiah.Jabari.Jace.Jacinto.Jack.Jackson.Jacob.Jacques.Jadon.Jaime.Jairo.Jake.Jakob.Jaleel.Jalen.Jalon.Jamaal.Jamal.Jamar.Jamarcus.Jamel.James.Jameson.Jamil.Jamir.Jamison.Janick.Jaquan.Jared.Jaren.Jarod.Jaron.Jarred.Jarrell.Jarret.Jarrett.Jarrod.Jarvis.Jasen.Jason.Jasper.Javier.Javon.Javonte.Jay.Jayce.Jayden.Jaydon.Jaylen.Jaylon.Jayson.Jed.Jedediah.Jedidiah.Jeff.Jefferey.Jeffery.Jeffrey.Jeffry.Jerad.Jerald.Jeramie.Jeramy.Jerel.Jeremiah.Jeremie.Jeremy.Jermain.Jermaine.Jermey.Jerod.Jerome.Jeromy.Jerrell.Jerrod.Jerrold.Jerry.Jesse.Jesus.Jett.Jevon.Jim.Jimmie.Jimmy.Joaquin.Joe.Joel.Joesph.Joey.Johan.Johann.Johathan.John.Johnathan.Johnathon.Johnny.Johnpaul.Johnson.Jon.Jonas.Jonatan.Jonathan.Jonathon.Jordi.Jordon.Jordy.Jorge.Jose.Joseph.Josh.Joshua.Joshuah.Josiah.Josue.Jovan.Jovani.Jovanny.Jovany.Juan.Judah.Judd.Judge.Judson.Julian.Julien.Julio.Julius.Junior.Junius.Justen.Justin.Juston.Justus.Justyn.Juvenal.Juwan.Kade.Kaden.Kadin.Kale.Kaleb.Kameron.Kamren.Kamron.Kane.Kareem.Karl.Kavon.Keagan.Keanu.Keaton.Keegan.Keenan.Keith.Kellen.Kelton.Kelvin.Ken.Kendrick.Kenneth.Kennith.Kenny.Kent.Kenton.Kenyon.Keon.Keshaun.Keshawn.Keven.Kevin.Kevon.Keyon.Keyshawn.Khalid.Khalil.Kian.Kiel.Kieran.King.Kip.Kirk.Kobe.Koby.Kody.Kolby.Kole.Korbin.Korey.Kory.Kraig.Kristofer.Kristoffer.Kristopher.Kurt.Kurtis.Kyle.Kyler.Ladarius.Lafayette.Lamar.Lambert.Lamont.Lance.Landen.Laron.Larry.Laurence.Lawrence.Lawson.Lazaro.Leif.Leland.Lemuel.Lenny.Leo.Leon.Leonard.Leonardo.Leonel.Leopold.Leopoldo.Leroy.Lester.Levi.Lew.Lewis.Liam.Lincoln.Linwood.Lionel.Lisandro.Llewellyn.Lloyd.Logan.Lon.Lonnie.Lonny.Lonzo.Lorenz.Lorenzo.Louie.Louis.Lowell.Lucas.Luciano.Lucio.Lucious.Lucius.Ludwig.Luigi.Luis.Lukas.Luke.Luther.Lyle.Mac.Mack.Magnus.Major.Malachi.Malcolm.Manley.Manuel.Marc.Marcel.Marcelino.Marcellus.Marcelo.Marco.Marcos.Marcus.Mariano.Mario.Mark.Markus.Marlon.Marques.Marquis.Marquise.Marshall.Martin.Marty.Marvin.Mason.Mateo.Mathew.Mathias.Matt.Matteo.Matthew.Maurice.Mauricio.Maverick.Max.Maxime.Maximilian.Maximillian.Maximo.Maximus.Maxwell.Maynard.Mekhi.Melvin.Mervin.Micah.Michael.Micheal.Miguel.Mike.Mikel.Miles.Milford.Milo.Milton.Misael.Mitchel.Mitchell.Modesto.Mohamed.Mohammad.Mohammed.Moises.Monte.Monty.Morris.Mortimer.Morton.Mose.Moses.Moshe.Muhammad.Murray.Mustafa.Myles.Myron.Name.Napoleon.Narciso.Nash.Nasir.Nat.Nathan.Nathanael.Nathanial.Nathaniel.Nathen.Neal.Ned.Neil.Nels.Nelson.Nestor.Newell.Newton.Nicholas.Nicholaus.Nick.Nicklaus.Nickolas.Nico.Nicolas.Nigel.Nikko.Niko.Nikolas.Nils.Noah.Noble.Noe.Noel.Nolan.Norbert.Norberto.Norman.Norris.Norval.Norwood.Obie.Odell.Okey.Olaf.Ole.Olen.Olin.Oliver.Omar.Omari.Omer.Oral.Oran.Oren.Orin.Orion.Orland.Orlando.Orlo.Orrin.Orval.Orville.Osbaldo.Osborne.Oscar.Osvaldo.Oswald.Oswaldo.Otha.Otho.Otis.Ottis.Otto.Owen.Pablo.Paolo.Parker.Pasquale.Patrick.Paul.Pedro.Percival.Percy.Perry.Pete.Peter.Phil.Philip.Phillip.Pierce.Pierre.Pietro.Porter.Preston.Price.Prince.Quentin.Quincy.Quinten.Quinton.Rafael.Raheem.Rahsaan.Rahul.Ralph.Ramiro.Ramon.Randal.Randall.Randolph.Randy.Ransom.Raoul.Raphael.Rashad.Rashawn.Rasheed.Raul.Ray.Raymond.Raymundo.Reece.Reed.Reggie.Reginald.Reid.Reinhold.Remington.Rene.Reuben.Rex.Rey.Reyes.Reymundo.Reynold.Rhett.Ricardo.Richard.Richie.Richmond.Rick.Rickey.Ricky.Rico.Rigoberto.Robb.Robert.Roberto.Rocky.Rod.Roderick.Rodger.Rodney.Rodolfo.Rodrick.Rodrigo.Roel.Rogelio.Roger.Rogers.Roland.Rolando.Rollin.Roman.Ron.Ronald.Ronaldo.Ronnie.Ronny.Roosevelt.Rory.Roscoe.Rosendo.Ross.Rowland.Roy.Royce.Ruben.Rudolph.Rudy.Rufus.Rupert.Russ.Russel.Russell.Rusty.Ryan.Ryder.Rylan.Salvador.Salvatore.Sam.Samir.Samson.Samuel.Sanford.Santiago.Santino.Santos.Saul.Savion.Scot.Scott.Scottie.Scotty.Seamus.Sean.Sebastian.Sedrick.Selmer.Sergio.Seth.Shad.Shane.Shaun.Shawn.Sheldon.Shemar.Sherman.Sherwood.Sid.Sigmund.Sigurd.Silas.Sim.Simeon.Simon.Solon.Sonny.Spencer.Stan.Stanford.Stanley.Stanton.Stefan.Stephan.Stephen.Stephon.Sterling.Steve.Steven.Stewart.Stone.Stuart.Sven.Sylvan.Sylvester.Tad.Talon.Tanner.Tate.Taurean.Tavares.Ted.Terence.Terrance.Terrell.Terrence.Terrill.Tevin.Thad.Thaddeus.Theo.Theodore.Theron.Thomas.Thurman.Tillman.Tim.Timmothy.Timmy.Timothy.Tito.Titus.Tobin.Toby.Tod.Todd.Tom.Tomas.Tommy.Toney.Tony.Torrance.Torrey.Trace.Travis.Travon.Tre.Tremaine.Tremayne.Trent.Trenton.Trever.Trevion.Trevor.Trey.Tristian.Triston.Troy.Trystan.Turner.Tyler.Tyree.Tyreek.Tyrel.Tyrell.Tyrese.Tyrique.Tyrone.Tyshawn.Tyson.Ubaldo.Ulices.Ulises.Uriah.Uriel.Valentin.Vance.Vaughn.Vern.Verner.Vernon.Vicente.Victor.Vidal.Vince.Vincent.Vincenzo.Vinnie.Virgil.Vito.Vladimir.Wade.Waino.Waldo.Walker.Wallace.Walter.Walton.Ward.Warren.Watson.Waylon.Wayne.Webster.Weldon.Wellington.Wendell.Werner.Wesley.Westley.Weston.Wilber.Wilbert.Wilbur.Wilburn.Wiley.Wilford.Wilfred.Wilfredo.Wilfrid.Wilhelm.Will.Willard.William.Willie.Willis.Willy.Wilmer.Wilson.Wilton.Winfield.Winston.Wm.Woodrow.Wyatt.Wyman.Xander.Xavier.Xzavier.Zachariah.Zachary.Zachery.Zack.Zackary.Zackery.Zakary.Zander.Zane.Zechariah`.split(`.`) }, gender: `Agender.Androgyne.Androgynous.Bigender.Cis female.Cis male.Cis man.Cis woman.Cis.Cisgender female.Cisgender male.Cisgender man.Cisgender woman.Cisgender.Demi-boy.Demi-girl.Demi-man.Demi-woman.Demiflux.Demigender.F2M.FTM.Female to male trans man.Female to male transgender man.Female to male transsexual man.Female to male.Gender fluid.Gender neutral.Gender nonconforming.Gender questioning.Gender variant.Genderflux.Genderqueer.Hermaphrodite.Intersex man.Intersex person.Intersex woman.Intersex.M2F.MTF.Male to female trans woman.Male to female transgender woman.Male to female transsexual woman.Male to female.Man.Multigender.Neither.Neutrois.Non-binary.Omnigender.Other.Pangender.Polygender.T* man.T* woman.Trans female.Trans male.Trans man.Trans person.Trans woman.Trans.Transsexual female.Transsexual male.Transsexual man.Transsexual person.Transsexual woman.Transsexual.Transgender female.Transgender person.Transmasculine.Trigender.Two* person.Two-spirit person.Two-spirit.Woman.Xenogender`.split(`.`), job_area: `Solutions.Program.Brand.Security.Research.Marketing.Directives.Implementation.Integration.Functionality.Response.Paradigm.Tactics.Identity.Markets.Group.Division.Applications.Optimization.Operations.Infrastructure.Intranet.Communications.Web.Branding.Quality.Assurance.Mobility.Accounts.Data.Creative.Configuration.Accountability.Interactions.Factors.Usability.Metrics`.split(`.`), job_descriptor: [`Lead`, `Senior`, `Direct`, `Corporate`, `Dynamic`, `Future`, `Product`, `National`, `Regional`, `District`, `Central`, `Global`, `Customer`, `Investor`, `International`, `Legacy`, `Forward`, `Internal`, `Human`, `Chief`, `Principal`], job_title_pattern: [`{{person.jobDescriptor}} {{person.jobArea}} {{person.jobType}}`], job_type: [`Supervisor`, `Associate`, `Executive`, `Liaison`, `Officer`, `Manager`, `Engineer`, `Specialist`, `Director`, `Coordinator`, `Administrator`, `Architect`, `Analyst`, `Designer`, `Planner`, `Orchestrator`, `Technician`, `Developer`, `Producer`, `Consultant`, `Assistant`, `Facilitator`, `Agent`, `Representative`, `Strategist`], last_name: { generic: `Abbott.Abernathy.Abshire.Adams.Altenwerth.Anderson.Ankunding.Armstrong.Auer.Aufderhar.Bahringer.Bailey.Balistreri.Barrows.Bartell.Bartoletti.Barton.Bashirian.Batz.Bauch.Baumbach.Bayer.Beahan.Beatty.Bechtelar.Becker.Bednar.Beer.Beier.Berge.Bergnaum.Bergstrom.Bernhard.Bernier.Bins.Blanda.Blick.Block.Bode.Boehm.Bogan.Bogisich.Borer.Bosco.Botsford.Boyer.Boyle.Bradtke.Brakus.Braun.Breitenberg.Brekke.Brown.Bruen.Buckridge.Carroll.Carter.Cartwright.Casper.Cassin.Champlin.Christiansen.Cole.Collier.Collins.Conn.Connelly.Conroy.Considine.Corkery.Cormier.Corwin.Cremin.Crist.Crona.Cronin.Crooks.Cruickshank.Cummerata.Cummings.D'Amore.Dach.Daniel.Dare.Daugherty.Davis.Deckow.Denesik.Dibbert.Dickens.Dicki.Dickinson.Dietrich.Donnelly.Dooley.Douglas.Doyle.DuBuque.Durgan.Ebert.Effertz.Emard.Emmerich.Erdman.Ernser.Fadel.Fahey.Farrell.Fay.Feeney.Feest.Feil.Ferry.Fisher.Flatley.Frami.Franecki.Franey.Friesen.Fritsch.Funk.Gerhold.Gerlach.Gibson.Gislason.Gleason.Gleichner.Glover.Goldner.Goodwin.Gorczany.Gottlieb.Goyette.Grady.Graham.Grant.Green.Greenfelder.Greenholt.Grimes.Gulgowski.Gusikowski.Gutkowski.Gutmann.Haag.Hackett.Hagenes.Hahn.Haley.Halvorson.Hamill.Hammes.Hand.Hane.Hansen.Harber.Harris.Hartmann.Harvey.Hauck.Hayes.Heaney.Heathcote.Hegmann.Heidenreich.Heller.Herman.Hermann.Hermiston.Herzog.Hessel.Hettinger.Hickle.Hilll.Hills.Hilpert.Hintz.Hirthe.Hodkiewicz.Hoeger.Homenick.Hoppe.Howe.Howell.Hudson.Huel.Huels.Hyatt.Jacobi.Jacobs.Jacobson.Jakubowski.Jaskolski.Jast.Jenkins.Jerde.Johns.Johnson.Johnston.Jones.Kassulke.Kautzer.Keebler.Keeling.Kemmer.Kerluke.Kertzmann.Kessler.Kiehn.Kihn.Kilback.King.Kirlin.Klein.Kling.Klocko.Koch.Koelpin.Koepp.Kohler.Konopelski.Koss.Kovacek.Kozey.Krajcik.Kreiger.Kris.Kshlerin.Kub.Kuhic.Kuhlman.Kuhn.Kulas.Kunde.Kunze.Kuphal.Kutch.Kuvalis.Labadie.Lakin.Lang.Langosh.Langworth.Larkin.Larson.Leannon.Lebsack.Ledner.Leffler.Legros.Lehner.Lemke.Lesch.Leuschke.Lind.Lindgren.Littel.Little.Lockman.Lowe.Lubowitz.Lueilwitz.Luettgen.Lynch.MacGyver.Macejkovic.Maggio.Mann.Mante.Marks.Marquardt.Marvin.Mayer.Mayert.McClure.McCullough.McDermott.McGlynn.McKenzie.McLaughlin.Medhurst.Mertz.Metz.Miller.Mills.Mitchell.Moen.Mohr.Monahan.Moore.Morar.Morissette.Mosciski.Mraz.Mueller.Muller.Murazik.Murphy.Murray.Nader.Nicolas.Nienow.Nikolaus.Nitzsche.Nolan.O'Connell.O'Conner.O'Hara.O'Keefe.O'Kon.O'Reilly.Oberbrunner.Okuneva.Olson.Ondricka.Orn.Ortiz.Osinski.Pacocha.Padberg.Pagac.Parisian.Parker.Paucek.Pfannerstill.Pfeffer.Pollich.Pouros.Powlowski.Predovic.Price.Prohaska.Prosacco.Purdy.Quigley.Quitzon.Rath.Ratke.Rau.Raynor.Reichel.Reichert.Reilly.Reinger.Rempel.Renner.Reynolds.Rice.Rippin.Ritchie.Robel.Roberts.Rodriguez.Rogahn.Rohan.Rolfson.Romaguera.Roob.Rosenbaum.Rowe.Ruecker.Runolfsdottir.Runolfsson.Runte.Russel.Rutherford.Ryan.Sanford.Satterfield.Sauer.Sawayn.Schaden.Schaefer.Schamberger.Schiller.Schimmel.Schinner.Schmeler.Schmidt.Schmitt.Schneider.Schoen.Schowalter.Schroeder.Schulist.Schultz.Schumm.Schuppe.Schuster.Senger.Shanahan.Shields.Simonis.Sipes.Skiles.Smith.Smitham.Spencer.Spinka.Sporer.Stamm.Stanton.Stark.Stehr.Steuber.Stiedemann.Stokes.Stoltenberg.Stracke.Streich.Stroman.Strosin.Swaniawski.Swift.Terry.Thiel.Thompson.Tillman.Torp.Torphy.Towne.Toy.Trantow.Tremblay.Treutel.Tromp.Turcotte.Turner.Ullrich.Upton.Vandervort.Veum.Volkman.Von.VonRueden.Waelchi.Walker.Walsh.Walter.Ward.Waters.Watsica.Weber.Wehner.Weimann.Weissnat.Welch.West.White.Wiegand.Wilderman.Wilkinson.Will.Williamson.Willms.Windler.Wintheiser.Wisoky.Wisozk.Witting.Wiza.Wolf.Wolff.Wuckert.Wunsch.Wyman.Yost.Yundt.Zboncak.Zemlak.Ziemann.Zieme.Zulauf`.split(`.`) }, last_name_pattern: { generic: [{ value: `{{person.last_name.generic}}`, weight: 95 }, { value: `{{person.last_name.generic}}-{{person.last_name.generic}}`, weight: 5 }] }, middle_name: { generic: `Addison.Angel.Arden.Arya.Ashton.August.Avery.Bailey.Bay.Blair.Blue.Bowie.Caylen.Dakota.Devine.Devon.Dior.Eden.Elein.Eyre.Finley.Flynn.France.Francis.Gray.Greer.Harley.Harper.Isa.Jaden.Jamie.Jazz.Jess.Jordan.Journey.Jude.Jules.Justice.Kai.Kendall.Kennedy.Lake.Lane.Lee.London.Lou.Love.Lucky.Lux.Marlowe.Medusa.Monroe.Morgan.Nova.Ocean.Phoenix.Quinn.Rain.Raye.Reagan.Rebel.Reese.Regan.Reign.Riley.River.Robin.Rowan.Royal.Sage.Saturn.Scout.Shiloh.Sky.Skylar.Skyler.Storm.Taylen.Taylor.Teagan.Winter.Zion.Zyair`.split(`.`), female: `Abigail.Adele.Alice.Alisha.Amber.Amelia.Amora.Anaïs.Anika.Anise.Annabel.Anne.Aphrodite.Aretha.Aster.Audrey.Bailee.Belle.Beth.Billie.Blanche.Bree.Brielle.Brienne.Brooke.Brooklyn.Caleen.Candice.Caprice.Carelyn.Celine.Cerise.Cia.Claire.Claudia.Clementine.Coral.Coraline.Dahlia.Dawn.Della.Demi.Denise.Diana.Ebony.Eleanor.Elizabeth.Ellen.Elodie.Eloise.Ember.Emma.Erin.Faith.Farrah.Fawn.Fayre.Fern.Frida.Genisis.Georgia.Grace.Gwen.Hazel.Helen.Hippolyta.Holly.Hope.Imani.Iowa.Ireland.Irene.Iris.Isla.Ivy.Jade.Jane.Jean.Jo.Joan.Jolie.Josie.Joy.Juliet.Juniper.Kali.Karma.Karsyn.Kat.Kate.Keva.Kylie.Lark.Layla.Leigh.Leona.Leslie.Lexi.Louise.Luna.Lynn.Lyric.Maddie.Mae.Marie.Matilda.Maude.Maybel.Meadow.Mercy.Michelle.Mirabel.Nalia.Naomi.Olive.Paige.Pearl.Penelope.Rae.Raven.Rose.Ruth.Rylie.Sasha.Serena.Sofia.Sophia.Sue.Suzanne.Sydney.Tempest.Tenley.Thea.Trinity.Valerie.Venus.Vera.Violet.Willow.Xena.Zaylee.Zoe`.split(`.`), male: `Ace.Aiden.Alex.Alexander.Ander.Anderson.Angelou.Anthony.Asher.Austin.Aziel.Bear.Beckham.Benjamin.Blaise.Blake.Buddy.Calvin.Cameron.Carter.Charles.Charlie.Christopher.Clyde.Cooper.Corey.Daniel.David.Denver.Drew.Dylan.Elijah.Elliott.Ellis.Emerson.Ethan.Ezra.Fletcher.Gabriel.Grayson.Gus.Hank.Harrison.Hayden.Hendrix.Henry.Houston.Hudson.Hugh.Isaac.Jack.Jackson.Jacob.Jakobe.James.Jaxon.Jaxtyn.Jayden.Jett.John.Joseph.Josiah.Julian.Julien.Kenji.Kobe.Kyle.Kylo.Lennon.Leo.Levi.Liam.Lincoln.Logan.Louis.Lucas.Luke.Mason.Mateo.Matthew.Maverick.Micah.Michael.Nico.Nixon.Noah.North.Oliver.Otis.Otto.Owen.Ozzy.Parker.Pax.Ray.Reeve.Rocky.Rory.Ryan.Sam.Samuel.Sawyer.Sebastian.Shawn.Sonny.Teddy.Theo.Theodore.Thomas.Truett.Walter.Warren.Watson.William.Wison.Wyatt.Ziggy`.split(`.`) }, name: [{ value: `{{person.firstName}} {{person.lastName}}`, weight: 49 }, { value: `{{person.prefix}} {{person.firstName}} {{person.lastName}}`, weight: 7 }, { value: `{{person.firstName}} {{person.lastName}} {{person.suffix}}`, weight: 7 }, { value: `{{person.prefix}} {{person.firstName}} {{person.lastName}} {{person.suffix}}`, weight: 1 }], prefix: { generic: [`Dr.`], female: [`Miss`, `Mrs.`, `Ms.`], male: [`Mr.`] }, sex: [`female`, `male`], suffix: [`Jr.`, `Sr.`, `I`, `II`, `III`, `IV`, `V`, `MD`, `DDS`, `PhD`, `DVM`], western_zodiac_sign: [`Aquarius`, `Pisces`, `Aries`, `Taurus`, `Gemini`, `Cancer`, `Leo`, `Virgo`, `Libra`, `Scorpio`, `Sagittarius`, `Capricorn`] }, phone_number: { format: { human: [`!##-!##-####`, `!##-!##-#### x###`, `!##-!##-#### x####`, `!##-!##-#### x#####`, `!##.!##.####`, `!##.!##.#### x###`, `!##.!##.#### x####`, `!##.!##.#### x#####`, `(!##) !##-####`, `(!##) !##-#### x###`, `(!##) !##-#### x####`, `(!##) !##-#### x#####`, `1-!##-!##-####`, `1-!##-!##-#### x###`, `1-!##-!##-#### x####`, `1-!##-!##-#### x#####`], international: [`+1!##!######`], mobile: [`!##!######`], national: [`(!##) !##-####`] } }, science: { chemical_element: [{ symbol: `H`, name: `Hydrogen`, atomicNumber: 1 }, { symbol: `He`, name: `Helium`, atomicNumber: 2 }, { symbol: `Li`, name: `Lithium`, atomicNumber: 3 }, { symbol: `Be`, name: `Beryllium`, atomicNumber: 4 }, { symbol: `B`, name: `Boron`, atomicNumber: 5 }, { symbol: `C`, name: `Carbon`, atomicNumber: 6 }, { symbol: `N`, name: `Nitrogen`, atomicNumber: 7 }, { symbol: `O`, name: `Oxygen`, atomicNumber: 8 }, { symbol: `F`, name: `Fluorine`, atomicNumber: 9 }, { symbol: `Ne`, name: `Neon`, atomicNumber: 10 }, { symbol: `Na`, name: `Sodium`, atomicNumber: 11 }, { symbol: `Mg`, name: `Magnesium`, atomicNumber: 12 }, { symbol: `Al`, name: `Aluminium`, atomicNumber: 13 }, { symbol: `Si`, name: `Silicon`, atomicNumber: 14 }, { symbol: `P`, name: `Phosphorus`, atomicNumber: 15 }, { symbol: `S`, name: `Sulfur`, atomicNumber: 16 }, { symbol: `Cl`, name: `Chlorine`, atomicNumber: 17 }, { symbol: `Ar`, name: `Argon`, atomicNumber: 18 }, { symbol: `K`, name: `Potassium`, atomicNumber: 19 }, { symbol: `Ca`, name: `Calcium`, atomicNumber: 20 }, { symbol: `Sc`, name: `Scandium`, atomicNumber: 21 }, { symbol: `Ti`, name: `Titanium`, atomicNumber: 22 }, { symbol: `V`, name: `Vanadium`, atomicNumber: 23 }, { symbol: `Cr`, name: `Chromium`, atomicNumber: 24 }, { symbol: `Mn`, name: `Manganese`, atomicNumber: 25 }, { symbol: `Fe`, name: `Iron`, atomicNumber: 26 }, { symbol: `Co`, name: `Cobalt`, atomicNumber: 27 }, { symbol: `Ni`, name: `Nickel`, atomicNumber: 28 }, { symbol: `Cu`, name: `Copper`, atomicNumber: 29 }, { symbol: `Zn`, name: `Zinc`, atomicNumber: 30 }, { symbol: `Ga`, name: `Gallium`, atomicNumber: 31 }, { symbol: `Ge`, name: `Germanium`, atomicNumber: 32 }, { symbol: `As`, name: `Arsenic`, atomicNumber: 33 }, { symbol: `Se`, name: `Selenium`, atomicNumber: 34 }, { symbol: `Br`, name: `Bromine`, atomicNumber: 35 }, { symbol: `Kr`, name: `Krypton`, atomicNumber: 36 }, { symbol: `Rb`, name: `Rubidium`, atomicNumber: 37 }, { symbol: `Sr`, name: `Strontium`, atomicNumber: 38 }, { symbol: `Y`, name: `Yttrium`, atomicNumber: 39 }, { symbol: `Zr`, name: `Zirconium`, atomicNumber: 40 }, { symbol: `Nb`, name: `Niobium`, atomicNumber: 41 }, { symbol: `Mo`, name: `Molybdenum`, atomicNumber: 42 }, { symbol: `Tc`, name: `Technetium`, atomicNumber: 43 }, { symbol: `Ru`, name: `Ruthenium`, atomicNumber: 44 }, { symbol: `Rh`, name: `Rhodium`, atomicNumber: 45 }, { symbol: `Pd`, name: `Palladium`, atomicNumber: 46 }, { symbol: `Ag`, name: `Silver`, atomicNumber: 47 }, { symbol: `Cd`, name: `Cadmium`, atomicNumber: 48 }, { symbol: `In`, name: `Indium`, atomicNumber: 49 }, { symbol: `Sn`, name: `Tin`, atomicNumber: 50 }, { symbol: `Sb`, name: `Antimony`, atomicNumber: 51 }, { symbol: `Te`, name: `Tellurium`, atomicNumber: 52 }, { symbol: `I`, name: `Iodine`, atomicNumber: 53 }, { symbol: `Xe`, name: `Xenon`, atomicNumber: 54 }, { symbol: `Cs`, name: `Caesium`, atomicNumber: 55 }, { symbol: `Ba`, name: `Barium`, atomicNumber: 56 }, { symbol: `La`, name: `Lanthanum`, atomicNumber: 57 }, { symbol: `Ce`, name: `Cerium`, atomicNumber: 58 }, { symbol: `Pr`, name: `Praseodymium`, atomicNumber: 59 }, { symbol: `Nd`, name: `Neodymium`, atomicNumber: 60 }, { symbol: `Pm`, name: `Promethium`, atomicNumber: 61 }, { symbol: `Sm`, name: `Samarium`, atomicNumber: 62 }, { symbol: `Eu`, name: `Europium`, atomicNumber: 63 }, { symbol: `Gd`, name: `Gadolinium`, atomicNumber: 64 }, { symbol: `Tb`, name: `Terbium`, atomicNumber: 65 }, { symbol: `Dy`, name: `Dysprosium`, atomicNumber: 66 }, { symbol: `Ho`, name: `Holmium`, atomicNumber: 67 }, { symbol: `Er`, name: `Erbium`, atomicNumber: 68 }, { symbol: `Tm`, name: `Thulium`, atomicNumber: 69 }, { symbol: `Yb`, name: `Ytterbium`, atomicNumber: 70 }, { symbol: `Lu`, name: `Lutetium`, atomicNumber: 71 }, { symbol: `Hf`, name: `Hafnium`, atomicNumber: 72 }, { symbol: `Ta`, name: `Tantalum`, atomicNumber: 73 }, { symbol: `W`, name: `Tungsten`, atomicNumber: 74 }, { symbol: `Re`, name: `Rhenium`, atomicNumber: 75 }, { symbol: `Os`, name: `Osmium`, atomicNumber: 76 }, { symbol: `Ir`, name: `Iridium`, atomicNumber: 77 }, { symbol: `Pt`, name: `Platinum`, atomicNumber: 78 }, { symbol: `Au`, name: `Gold`, atomicNumber: 79 }, { symbol: `Hg`, name: `Mercury`, atomicNumber: 80 }, { symbol: `Tl`, name: `Thallium`, atomicNumber: 81 }, { symbol: `Pb`, name: `Lead`, atomicNumber: 82 }, { symbol: `Bi`, name: `Bismuth`, atomicNumber: 83 }, { symbol: `Po`, name: `Polonium`, atomicNumber: 84 }, { symbol: `At`, name: `Astatine`, atomicNumber: 85 }, { symbol: `Rn`, name: `Radon`, atomicNumber: 86 }, { symbol: `Fr`, name: `Francium`, atomicNumber: 87 }, { symbol: `Ra`, name: `Radium`, atomicNumber: 88 }, { symbol: `Ac`, name: `Actinium`, atomicNumber: 89 }, { symbol: `Th`, name: `Thorium`, atomicNumber: 90 }, { symbol: `Pa`, name: `Protactinium`, atomicNumber: 91 }, { symbol: `U`, name: `Uranium`, atomicNumber: 92 }, { symbol: `Np`, name: `Neptunium`, atomicNumber: 93 }, { symbol: `Pu`, name: `Plutonium`, atomicNumber: 94 }, { symbol: `Am`, name: `Americium`, atomicNumber: 95 }, { symbol: `Cm`, name: `Curium`, atomicNumber: 96 }, { symbol: `Bk`, name: `Berkelium`, atomicNumber: 97 }, { symbol: `Cf`, name: `Californium`, atomicNumber: 98 }, { symbol: `Es`, name: `Einsteinium`, atomicNumber: 99 }, { symbol: `Fm`, name: `Fermium`, atomicNumber: 100 }, { symbol: `Md`, name: `Mendelevium`, atomicNumber: 101 }, { symbol: `No`, name: `Nobelium`, atomicNumber: 102 }, { symbol: `Lr`, name: `Lawrencium`, atomicNumber: 103 }, { symbol: `Rf`, name: `Rutherfordium`, atomicNumber: 104 }, { symbol: `Db`, name: `Dubnium`, atomicNumber: 105 }, { symbol: `Sg`, name: `Seaborgium`, atomicNumber: 106 }, { symbol: `Bh`, name: `Bohrium`, atomicNumber: 107 }, { symbol: `Hs`, name: `Hassium`, atomicNumber: 108 }, { symbol: `Mt`, name: `Meitnerium`, atomicNumber: 109 }, { symbol: `Ds`, name: `Darmstadtium`, atomicNumber: 110 }, { symbol: `Rg`, name: `Roentgenium`, atomicNumber: 111 }, { symbol: `Cn`, name: `Copernicium`, atomicNumber: 112 }, { symbol: `Nh`, name: `Nihonium`, atomicNumber: 113 }, { symbol: `Fl`, name: `Flerovium`, atomicNumber: 114 }, { symbol: `Mc`, name: `Moscovium`, atomicNumber: 115 }, { symbol: `Lv`, name: `Livermorium`, atomicNumber: 116 }, { symbol: `Ts`, name: `Tennessine`, atomicNumber: 117 }, { symbol: `Og`, name: `Oganesson`, atomicNumber: 118 }], unit: [{ name: `meter`, symbol: `m` }, { name: `second`, symbol: `s` }, { name: `mole`, symbol: `mol` }, { name: `ampere`, symbol: `A` }, { name: `kelvin`, symbol: `K` }, { name: `candela`, symbol: `cd` }, { name: `kilogram`, symbol: `kg` }, { name: `radian`, symbol: `rad` }, { name: `hertz`, symbol: `Hz` }, { name: `newton`, symbol: `N` }, { name: `pascal`, symbol: `Pa` }, { name: `joule`, symbol: `J` }, { name: `watt`, symbol: `W` }, { name: `coulomb`, symbol: `C` }, { name: `volt`, symbol: `V` }, { name: `ohm`, symbol: `Ω` }, { name: `tesla`, symbol: `T` }, { name: `degree Celsius`, symbol: `°C` }, { name: `lumen`, symbol: `lm` }, { name: `becquerel`, symbol: `Bq` }, { name: `gray`, symbol: `Gy` }, { name: `sievert`, symbol: `Sv` }, { name: `steradian`, symbol: `sr` }, { name: `farad`, symbol: `F` }, { name: `siemens`, symbol: `S` }, { name: `weber`, symbol: `Wb` }, { name: `henry`, symbol: `H` }, { name: `lux`, symbol: `lx` }, { name: `katal`, symbol: `kat` }] }, team: { creature: `ants.bats.bears.bees.birds.buffalo.cats.chickens.cattle.dogs.dolphins.ducks.elephants.fishes.foxes.frogs.geese.goats.horses.kangaroos.lions.monkeys.owls.oxen.penguins.people.pigs.rabbits.sheep.tigers.whales.wolves.zebras.banshees.crows.black cats.chimeras.ghosts.conspirators.dragons.dwarves.elves.enchanters.exorcists.sons.foes.giants.gnomes.goblins.gooses.griffins.lycanthropes.nemesis.ogres.oracles.prophets.sorcerors.spiders.spirits.vampires.warlocks.vixens.werewolves.witches.worshipers.zombies.druids`.split(`.`), name: [`{{location.state}} {{team.creature}}`] }, vehicle: { bicycle_type: [`Adventure Road Bicycle`, `BMX Bicycle`, `City Bicycle`, `Cruiser Bicycle`, `Cyclocross Bicycle`, `Dual-Sport Bicycle`, `Fitness Bicycle`, `Flat-Foot Comfort Bicycle`, `Folding Bicycle`, `Hybrid Bicycle`, `Mountain Bicycle`, `Recumbent Bicycle`, `Road Bicycle`, `Tandem Bicycle`, `Touring Bicycle`, `Track/Fixed-Gear Bicycle`, `Triathlon/Time Trial Bicycle`, `Tricycle`], fuel: [`Diesel`, `Electric`, `Gasoline`, `Hybrid`], manufacturer: `Aston Martin.Audi.BMW.BYD.Bentley.Bugatti.Cadillac.Chevrolet.Chrysler.Citroën.Dodge.Ferrari.Fiat.Ford.Honda.Hyundai.Jaguar.Jeep.Kia.Lamborghini.Land Rover.MG.Mahindra & Mahindra.Maruti.Maserati.Mazda.Mercedes Benz.Mini.Mitsubishi.NIO.Nissan.Peugeot.Polestar.Porsche.Renault.Rivian.Rolls Royce.Skoda.Smart.Subaru.Suzuki.Tata.Tesla.Toyota.Vauxhall.Volkswagen.Volvo`.split(`.`), model: `1.2.911.A4.A8.ATS.Accord.Alpine.Altima.Aventador.Beetle.CTS.CX-9.Camaro.Camry.Challenger.Charger.Civic.Colorado.Corvette.Countach.Cruze.Durango.El Camino.Element.Escalade.Expedition.Explorer.F-150.Fiesta.Focus.Fortwo.Golf.Grand Caravan.Grand Cherokee.Impala.Jetta.Land Cruiser.LeBaron.Malibu.Model 3.Model S.Model T.Model X.Model Y.Murcielago.Mustang.PT Cruiser.Prius.Ranchero.Roadster.Sentra.Silverado.Spyder.Taurus.V90.Volt.Wrangler.XC90.XTS`.split(`.`), type: [`Cargo Van`, `Convertible`, `Coupe`, `Crew Cab Pickup`, `Extended Cab Pickup`, `Hatchback`, `Minivan`, `Passenger Van`, `SUV`, `Sedan`, `Wagon`] }, word: { adjective: `abandoned.able.acceptable.acclaimed.accomplished.accurate.aching.acidic.actual.admired.adolescent.advanced.affectionate.afraid.aged.aggravating.aggressive.agile.agitated.agreeable.ajar.alarmed.alert.alienated.alive.all.altruistic.amazing.ambitious.ample.amused.angelic.anguished.animated.annual.another.antique.any.apprehensive.appropriate.apt.arid.artistic.ashamed.assured.astonishing.athletic.austere.authentic.authorized.avaricious.average.aware.awesome.awful.babyish.back.bad.baggy.bare.basic.beloved.beneficial.best.better.big.biodegradable.bitter.black.black-and-white.blank.blaring.bleak.blind.blond.blue.blushing.bogus.boiling.bony.boring.bossy.both.bouncy.bowed.brave.breakable.bright.brilliant.brisk.broken.brown.bruised.bulky.burdensome.burly.bustling.busy.buttery.buzzing.calculating.candid.carefree.careless.caring.cautious.cavernous.celebrated.charming.cheap.cheerful.chilly.chubby.circular.classic.clean.clear.clear-cut.close.closed.cloudy.clueless.clumsy.cluttered.coarse.colorful.colorless.colossal.comfortable.common.compassionate.competent.complete.complicated.concerned.concrete.confused.considerate.content.cool.cooperative.coordinated.corny.corrupt.courageous.courteous.crafty.crazy.creamy.creative.criminal.critical.crooked.crowded.cruel.crushing.cuddly.cultivated.cumbersome.curly.cute.damaged.damp.dapper.dark.darling.dazzling.dead.deadly.deafening.dearest.decent.decisive.deep.defenseless.defensive.deficient.definite.definitive.delectable.delicious.delirious.dense.dental.dependable.dependent.descriptive.deserted.determined.devoted.different.difficult.digital.diligent.dim.direct.dirty.discrete.disloyal.dismal.distant.distinct.distorted.doting.downright.drab.dramatic.dreary.dual.dull.dutiful.each.early.earnest.easy.ecstatic.edible.educated.elastic.elderly.electric.elegant.elementary.elliptical.eminent.emotional.empty.enchanted.enchanting.energetic.enlightened.enraged.entire.equatorial.essential.esteemed.ethical.everlasting.every.evil.exalted.excellent.excitable.excited.exhausted.exotic.expensive.experienced.expert.extra-large.extroverted.failing.faint.fair.fake.familiar.fantastic.far.far-flung.far-off.faraway.fat.fatal.fatherly.favorable.favorite.fearless.feline.filthy.fine.finished.firm.first.firsthand.fixed.flashy.flawed.flawless.flickering.flimsy.flowery.fluffy.flustered.focused.fond.foolhardy.foolish.forceful.formal.forsaken.fortunate.fragrant.frail.frank.free.french.frequent.friendly.frightened.frilly.frivolous.frizzy.front.frozen.frugal.fruitful.functional.funny.fussy.fuzzy.gaseous.general.gentle.genuine.gifted.gigantic.giving.glaring.glass.gleaming.glittering.gloomy.glorious.glossy.glum.golden.good.good-natured.gorgeous.graceful.gracious.grandiose.granular.grave.gray.great.greedy.grim.grimy.gripping.grizzled.grouchy.grounded.growing.grown.grubby.gruesome.grumpy.guilty.gullible.gummy.hairy.handsome.handy.happy.happy-go-lucky.hard-to-find.harmful.hasty.hateful.haunting.heartfelt.heavenly.heavy.hefty.helpful.helpless.hidden.hoarse.hollow.homely.honorable.honored.hopeful.hospitable.hot.huge.humble.humiliating.hungry.hurtful.husky.icy.ideal.idealistic.idolized.ignorant.ill.ill-fated.illiterate.illustrious.imaginary.imaginative.immaculate.immediate.immense.impartial.impassioned.impeccable.impish.impolite.important.impossible.impractical.impressionable.impressive.improbable.impure.inborn.incomparable.incomplete.inconsequential.indelible.indolent.inexperienced.infamous.infatuated.inferior.infinite.informal.innocent.insecure.insidious.insignificant.insistent.instructive.intelligent.intent.interesting.internal.international.intrepid.ironclad.irresponsible.jagged.jam-packed.jaunty.jealous.jittery.joyful.joyous.jubilant.judicious.juicy.jumbo.junior.juvenile.kaleidoscopic.key.knotty.knowledgeable.known.kooky.kosher.lanky.last.lasting.late.lavish.lawful.lazy.leading.lean.left.legal.light.lighthearted.likable.likely.limited.limp.limping.linear.lined.liquid.little.live.lively.livid.lone.lonely.long.long-term.lost.lovable.lovely.low.lucky.lumbering.lumpy.lustrous.mad.made-up.magnificent.majestic.major.male.mammoth.married.marvelous.massive.mature.meager.mealy.mean.measly.meaty.mediocre.medium.memorable.menacing.merry.messy.metallic.mild.milky.mindless.minor.minty.miserable.miserly.misguided.mixed.moist.monstrous.monthly.monumental.moral.motionless.muddy.muffled.multicolored.mundane.murky.mushy.musty.muted.mysterious.narrow.natural.naughty.nautical.near.neat.necessary.needy.negative.neglected.negligible.neighboring.nervous.new.next.nice.nifty.nimble.nippy.nocturnal.normal.noted.noteworthy.noxious.numb.nutritious.obedient.oblong.obvious.odd.oddball.official.oily.old.old-fashioned.only.optimal.optimistic.orange.orderly.ordinary.ornate.ornery.other.our.outgoing.outlandish.outlying.outrageous.outstanding.oval.overcooked.overdue.palatable.pale.paltry.parallel.parched.partial.passionate.pastel.peaceful.peppery.perfumed.perky.personal.pertinent.pessimistic.petty.phony.physical.pink.pitiful.plain.pleasant.pleased.pleasing.plump.pointed.pointless.polished.polite.political.poor.portly.posh.possible.potable.powerful.powerless.practical.precious.present.prestigious.pretty.pricey.prickly.primary.prime.private.probable.productive.profitable.profuse.proper.proud.prudent.punctual.puny.pure.purple.pushy.putrid.puzzled.qualified.quarrelsome.quarterly.queasy.querulous.questionable.quick.quick-witted.quiet.quintessential.quixotic.radiant.ragged.rapid.rare.raw.realistic.reasonable.recent.reckless.rectangular.red.reflecting.regal.regular.remarkable.remorseful.repentant.respectful.responsible.rewarding.rich.right.rigid.ripe.roasted.robust.rosy.rotating.rotten.rough.round.rowdy.royal.rubbery.ruddy.rundown.runny.rural.rusty.sad.salty.same.sandy.sarcastic.sardonic.scaly.scared.scary.scented.scientific.scornful.scratchy.second.second-hand.secondary.secret.self-assured.self-reliant.selfish.sentimental.separate.serene.serpentine.severe.shabby.shadowy.shady.shallow.shameful.shameless.shimmering.shiny.shocked.shoddy.short.short-term.showy.shrill.shy.sick.silent.silky.silver.similar.simple.simplistic.sinful.sizzling.skeletal.sleepy.slight.slimy.slow.slushy.small.smart.smoggy.smooth.smug.snappy.snarling.sneaky.sniveling.snoopy.sociable.soft.soggy.somber.some.sophisticated.sore.sorrowful.soulful.soupy.sour.spanish.sparkling.sparse.specific.speedy.spherical.spiffy.spirited.spiteful.splendid.spotless.square.squeaky.squiggly.stable.staid.stained.stale.standard.stark.steel.steep.sticky.stiff.stingy.stormy.straight.strange.strict.strident.striking.strong.stunning.stupendous.sturdy.stylish.subdued.submissive.substantial.subtle.suburban.sudden.sugary.sunny.super.superb.superficial.superior.supportive.sure-footed.surprised.svelte.sweet.swift.talkative.tall.tame.tangible.tasty.tattered.taut.tedious.teeming.tempting.tender.tense.tepid.terrible.that.these.thick.thin.thorny.thorough.those.thrifty.tidy.tight.timely.tinted.tiny.tired.torn.total.tough.tragic.trained.triangular.tricky.trim.trivial.troubled.true.trusting.trustworthy.trusty.turbulent.twin.ugly.ultimate.unaware.uncomfortable.uncommon.unconscious.understated.uneven.unfinished.unfit.unfortunate.unhappy.unhealthy.uniform.unimportant.unique.unkempt.unknown.unlawful.unlined.unlucky.unpleasant.unrealistic.unripe.unruly.unselfish.unsightly.unsteady.unsung.untidy.untimely.untried.untrue.unused.unusual.unwelcome.unwieldy.unwilling.unwritten.upbeat.upright.upset.urban.usable.useless.utilized.utter.vague.vain.valuable.variable.vast.velvety.vengeful.vibrant.victorious.violent.vivacious.vivid.voluminous.warlike.warm.warmhearted.warped.wasteful.waterlogged.watery.wavy.wealthy.weary.webbed.wee.weekly.weighty.weird.well-documented.well-groomed.well-lit.well-made.well-off.well-to-do.well-worn.which.whimsical.whirlwind.whispered.white.whole.whopping.wicked.wide.wide-eyed.wiggly.willing.wilted.winding.windy.winged.wise.witty.wobbly.woeful.wonderful.wordy.worldly.worse.worst.worthless.worthwhile.worthy.wrathful.wretched.writhing.wrong.wry.yearly.yellow.yellowish.young.youthful.yummy.zany.zealous.zesty`.split(`.`), adverb: `abnormally.absentmindedly.accidentally.acidly.actually.adventurously.afterwards.almost.always.angrily.annually.anxiously.arrogantly.awkwardly.badly.bashfully.beautifully.bitterly.bleakly.blindly.blissfully.boastfully.boldly.bravely.briefly.brightly.briskly.broadly.busily.calmly.carefully.carelessly.cautiously.certainly.cheerfully.clearly.cleverly.closely.coaxingly.colorfully.commonly.continually.coolly.correctly.courageously.crossly.cruelly.curiously.daily.daintily.dearly.deceivingly.deeply.defiantly.deliberately.delightfully.diligently.dimly.doubtfully.dreamily.easily.elegantly.energetically.enormously.enthusiastically.equally.especially.even.evenly.eventually.exactly.excitedly.extremely.fairly.faithfully.famously.far.fast.fatally.ferociously.fervently.fiercely.fondly.foolishly.fortunately.frankly.frantically.freely.frenetically.frightfully.fully.furiously.generally.generously.gently.gladly.gleefully.gracefully.gratefully.greatly.greedily.happily.hastily.healthily.heavily.helpfully.helplessly.highly.honestly.hopelessly.hourly.hungrily.immediately.innocently.inquisitively.instantly.intensely.intently.interestingly.inwardly.irritably.jaggedly.jealously.joshingly.jovially.joyfully.joyously.jubilantly.judgementally.justly.keenly.kiddingly.kindheartedly.kindly.kissingly.knavishly.knottily.knowingly.knowledgeably.kookily.lazily.less.lightly.likely.limply.lively.loftily.longingly.loosely.loudly.lovingly.loyally.madly.majestically.meaningfully.mechanically.merrily.miserably.mockingly.monthly.more.mortally.mostly.mysteriously.naturally.nearly.neatly.needily.nervously.never.nicely.noisily.not.obediently.obnoxiously.oddly.offensively.officially.often.only.openly.optimistically.overconfidently.owlishly.painfully.partially.patiently.perfectly.physically.playfully.politely.poorly.positively.potentially.powerfully.promptly.properly.punctually.quaintly.quarrelsomely.queasily.questionably.questioningly.quicker.quickly.quietly.quirkily.quizzically.rapidly.rarely.readily.really.reassuringly.recklessly.regularly.reluctantly.repeatedly.reproachfully.restfully.righteously.rightfully.rigidly.roughly.rudely.sadly.safely.scarcely.scarily.searchingly.sedately.seemingly.seldom.selfishly.separately.seriously.shakily.sharply.sheepishly.shrilly.shyly.silently.sleepily.slowly.smoothly.softly.solemnly.solidly.sometimes.soon.speedily.stealthily.sternly.strictly.successfully.suddenly.surprisingly.suspiciously.sweetly.swiftly.sympathetically.tenderly.tensely.terribly.thankfully.thoroughly.thoughtfully.tightly.tomorrow.too.tremendously.triumphantly.truly.truthfully.ultimately.unabashedly.unaccountably.unbearably.unethically.unexpectedly.unfortunately.unimpressively.unnaturally.unnecessarily.upbeat.upliftingly.upright.upside-down.upward.upwardly.urgently.usefully.uselessly.usually.utterly.vacantly.vaguely.vainly.valiantly.vastly.verbally.very.viciously.victoriously.violently.vivaciously.voluntarily.warmly.weakly.wearily.well.wetly.wholly.wildly.willfully.wisely.woefully.wonderfully.worriedly.wrongly.yawningly.yearly.yearningly.yesterday.yieldingly.youthfully`.split(`.`), conjunction: `after.although.and.as.because.before.but.consequently.even.finally.for.furthermore.hence.how.however.if.inasmuch.incidentally.indeed.instead.lest.likewise.meanwhile.nor.now.once.or.provided.since.so.supposing.than.that.though.till.unless.until.what.when.whenever.where.whereas.wherever.whether.which.while.who.whoever.whose.why.yet`.split(`.`), interjection: `yuck.oh.phooey.blah.boo.whoa.yowza.huzzah.boohoo.fooey.geez.pfft.ew.ah.yum.brr.hm.yahoo.aha.woot.drat.gah.meh.psst.aw.ugh.yippee.eek.gee.bah.gadzooks.duh.ha.mmm.ouch.phew.ack.uh-huh.gosh.hmph.pish.zowie.er.ick.oof.um`.split(`.`), noun: `CD.SUV.abacus.academics.accelerator.accompanist.account.accountability.acquaintance.ad.adaptation.address.adrenalin.adult.advancement.advertisement.adviser.affect.affiliate.aftermath.agreement.airbus.aircraft.airline.airmail.airman.airport.alb.alert.allegation.alliance.alligator.allocation.almighty.amendment.amnesty.analogy.angle.annual.antelope.anticodon.apparatus.appliance.approach.apricot.arcade.archaeology.armchair.armoire.asset.assist.atrium.attraction.availability.avalanche.awareness.babushka.backbone.backburn.bakeware.bandwidth.bar.barge.baritone.barracks.baseboard.basket.bathhouse.bathrobe.battle.begonia.behest.bell.bench.bend.beret.best-seller.bid.bidet.bin.birdbath.birdcage.birth.blight.blossom.blowgun.bob.bog.bonfire.bonnet.bookcase.bookend.boulevard.bourgeoisie.bowler.bowling.boyfriend.brace.bracelet.bran.breastplate.brief.brochure.brook.brush.bug.bump.bungalow.cafe.cake.calculus.cannon.cantaloupe.cap.cappelletti.captain.caption.carboxyl.cardboard.carnival.case.casement.cash.casket.cassava.castanet.catalyst.cauliflower.cellar.celsius.cemetery.ceramic.ceramics.certification.chainstay.chairperson.challenge.championship.chap.chapel.character.characterization.charlatan.charm.chasuble.cheese.cheetah.chiffonier.chops.chow.cinder.cinema.circumference.citizen.clamp.clavicle.cleaner.climb.co-producer.coal.coast.cod.coil.coin.coliseum.collaboration.collectivization.colon.colonialism.comestible.commercial.commodity.community.comparison.completion.complication.compromise.concentration.configuration.confusion.conservation.conservative.consistency.contractor.contrail.convection.conversation.cook.coordination.cop-out.cope.cork.cornet.corporation.corral.cosset.costume.couch.council.councilman.countess.courtroom.cow.creator.creature.crest.cricket.crocodile.cross-contamination.cruelty.cuckoo.curl.custody.custom.cutlet.cutover.cycle.daddy.dandelion.dash.daughter.dead.decision.deck.declaration.decongestant.decryption.deduction.deed.deer.defendant.density.department.dependency.deployment.depot.derby.descendant.descent.design.designation.desk.detective.devastation.developing.developmental.devil.diagram.digestive.digit.dime.director.disadvantage.disappointment.disclosure.disconnection.discourse.dish.disk.disposer.distinction.diver.diversity.dividend.divine.doing.doorpost.doubter.draft.draw.dream.dredger.dress.drive.drug.duffel.dulcimer.dusk.duster.dwell.e-mail.earth.ecliptic.ectoderm.edge.editor.effector.eggplant.electronics.elevation.elevator.elver.embarrassment.embossing.emergent.encouragement.entry.epic.equal.essence.eternity.ethyl.euphonium.event.exasperation.excess.executor.exhaust.expansion.expense.experience.exploration.extension.extent.exterior.eyebrow.eyeliner.farm.farmer.fat.fax.feather.fedora.fellow.fen.fencing.ferret.festival.fibre.filter.final.finding.finer.finger.fireplace.fisherman.fishery.fit.flame.flat.fledgling.flight.flint.flood.flu.fog.fold.folklore.follower.following.foodstuffs.footrest.forage.forager.forgery.fork.formamide.formation.formula.fort.fowl.fraudster.freckle.freezing.freight.fuel.fun.fund.fundraising.futon.gallery.galoshes.gastropod.gazebo.gerbil.ghost.giant.gift.giggle.glider.gloom.goat.godfather.godparent.going.goodwill.governance.government.gown.gradient.graffiti.grandpa.grandson.granny.grass.gray.gripper.grouper.guacamole.guard.guidance.guide.gym.gymnast.habit.haircut.halt.hamburger.hammock.handful.handle.handover.harp.haversack.hawk.heartache.heartbeat.heating.hello.help.hepatitis.heroine.hexagon.hierarchy.hippodrome.honesty.hoof.hope.horde.hornet.horst.hose.hospitalization.hovel.hovercraft.hubris.humidity.humor.hundred.hunger.hunt.husband.hutch.hydrant.hydrocarbon.hydrolyse.hydrolyze.hyena.hygienic.hyphenation.ice-cream.icebreaker.igloo.ignorance.illusion.impact.import.importance.impostor.in-joke.incandescence.independence.individual.information.injunction.innovation.insolence.inspection.instance.institute.instruction.instructor.integer.intellect.intent.interchange.interior.intervention.interviewer.invite.iridescence.issue.jacket.jazz.jellyfish.jet.jogging.joy.juggernaut.jump.jungle.junior.jury.kettledrum.kick.kielbasa.kinase.king.kiss.kit.knickers.knight.knitting.knuckle.label.labourer.lace.lady.lamp.language.larva.lashes.laughter.lava.lawmaker.lay.leading.league.legend.legging.legislature.lender.license.lid.lieu.lifestyle.lift.linseed.litter.loaf.lobster.longboat.lotion.lounge.louse.lox.loyalty.luck.lyre.maestro.mainstream.maintainer.majority.makeover.making.mallard.management.manner.mantua.marathon.march.marimba.marketplace.marksman.markup.marten.massage.masterpiece.mathematics.meadow.meal.meander.meatloaf.mechanic.median.membership.mentor.merit.metabolite.metal.middle.midwife.milestone.millet.minion.minister.minor.minority.mixture.mobility.molasses.mom.moment.monasticism.monocle.monster.morbidity.morning.mortise.mountain.mouser.mousse.mozzarella.muscat.mythology.napkin.necklace.nectarine.negotiation.nephew.nerve.netsuke.newsletter.newsprint.newsstand.nightlife.noon.nougat.nucleotidase.nudge.numeracy.numeric.nun.obedience.obesity.object.obligation.ocelot.octave.offset.oil.omelet.onset.opera.operating.optimal.orchid.order.ostrich.other.outlaw.outrun.outset.overcoat.overheard.overload.ownership.pacemaker.packaging.paintwork.palate.pants.pantyhose.papa.parade.parsnip.partridge.passport.pasta.patroller.pear.pearl.pecan.pendant.peninsula.pension.peony.pepper.perfection.permafrost.perp.petal.petticoat.pharmacopoeia.phrase.pick.piglet.pigpen.pigsty.pile.pillbox.pillow.pilot.pine.pinstripe.place.plain.planula.plastic.platter.platypus.pleasure.pliers.plugin.plumber.pneumonia.pocket-watch.poetry.polarisation.polyester.pomelo.pop.poppy.popularity.populist.porter.possession.postbox.precedent.premeditation.premier.premise.premium.pressure.presume.priesthood.printer.privilege.procurement.produce.programme.prohibition.promise.pronoun.providence.provider.provision.publication.publicity.pulse.punctuation.pupil.puppet.puritan.quart.quinoa.quit.railway.range.rationale.ravioli.rawhide.reach.reasoning.reboot.receptor.recommendation.reconsideration.recovery.redesign.relative.release.remark.reorganisation.repeat.replacement.reporter.representation.republican.request.requirement.reservation.resolve.resource.responsibility.restaurant.retention.retrospectivity.reward.ribbon.rim.riser.roadway.role.rosemary.roundabout.rubric.ruin.rule.runway.rust.safe.sailor.saloon.sand.sandbar.sanity.sarong.sauerkraut.saw.scaffold.scale.scarification.scenario.schedule.schnitzel.scholarship.scorn.scorpion.scout.scrap.scratch.seafood.seagull.seal.season.secrecy.secret.section.sediment.self-confidence.sermon.sesame.settler.shadowbox.shark.shipper.shore.shoulder.sideboard.siege.sightseeing.signature.silk.simple.singing.skean.skeleton.skyline.skyscraper.slide.slime.slipper.smog.smoke.sock.soliloquy.solution.solvency.someplace.sonar.sonata.sonnet.soup.soybean.space.spear.spirit.spork.sport.spring.sprinkles.squid.stall.starboard.statue.status.stay.steak.steeple.step.step-mother.sticker.stir-fry.stitcher.stock.stool.story.strait.stranger.strategy.straw.stump.subexpression.submitter.subsidy.substitution.suitcase.summary.summer.sunbeam.sundae.supplier.surface.sushi.suspension.sustenance.swanling.swath.sweatshop.swim.swine.swing.switch.switchboard.swordfish.synergy.t-shirt.tabletop.tackle.tail.tapioca.taro.tarragon.taxicab.teammate.technician.technologist.tectonics.tenant.tenement.tennis.tentacle.teriyaki.term.testimonial.testing.thigh.thongs.thorn.thread.thunderbolt.thyme.tinderbox.toaster.tomatillo.tomb.tomography.tool.tooth.toothbrush.toothpick.topsail.traditionalism.traffic.translation.transom.transparency.trash.travel.tray.trench.tribe.tributary.trick.trolley.tuba.tuber.tune-up.turret.tusk.tuxedo.typeface.typewriter.unblinking.underneath.underpants.understanding.unibody.unique.unit.utilization.valentine.validity.valley.valuable.vanadyl.vein.velocity.venom.version.verve.vestment.veto.viability.vibraphone.vibration.vicinity.video.violin.vision.vista.vol.volleyball.wafer.waist.wallaby.warming.wasabi.waterspout.wear.wedding.whack.whale.wheel.widow.wilderness.willow.window.wombat.word.worth.wriggler.yak.yarmulke.yeast.yin.yogurt.zebra.zen`.split(`.`), preposition: `a.abaft.aboard.about.above.absent.across.afore.after.against.along.alongside.amid.amidst.among.amongst.an.anenst.anti.apropos.apud.around.as.aside.astride.at.athwart.atop.barring.before.behind.below.beneath.beside.besides.between.beyond.but.by.circa.concerning.considering.despite.down.during.except.excepting.excluding.failing.following.for.forenenst.from.given.in.including.inside.into.lest.like.mid.midst.minus.modulo.near.next.notwithstanding.of.off.on.onto.opposite.out.outside.over.pace.past.per.plus.pro.qua.regarding.round.sans.save.since.than.the.through.throughout.till.times.to.toward.towards.under.underneath.unlike.until.unto.up.upon.versus.via.vice.with.within.without.worth`.split(`.`), verb: `abnegate.abscond.abseil.absolve.accentuate.accept.access.accessorise.accompany.account.accredit.achieve.acknowledge.acquire.adjourn.adjudge.admonish.adumbrate.advocate.afford.airbrush.ameliorate.amend.amount.anaesthetise.analyse.anesthetize.anneal.annex.antagonize.ape.apologise.apostrophize.appertain.appreciate.appropriate.approximate.arbitrate.archive.arraign.arrange.ascertain.ascribe.assail.atomize.attend.attest.attribute.augment.avow.axe.baa.banish.bank.baptise.battle.beard.beep.behold.belabor.bemuse.besmirch.bestride.better.bewail.bicycle.bide.bind.biodegrade.blacken.blaspheme.bleach.blend.blink.bliss.bloom.bludgeon.bobble.boggle.bolster.book.boom.bootleg.border.bore.boss.braid.brand.brandish.break.breed.broadcast.broadside.brood.browse.buck.burgeon.bus.butter.buzzing.camouflage.cannibalise.canter.cap.capitalise.capitalize.capsize.card.carouse.carp.carpool.catalog.catalyze.catch.categorise.cease.celebrate.censor.certify.char.charter.chase.chatter.chime.chip.christen.chromakey.chunder.chunter.cinch.circle.circulate.circumnavigate.clamor.clamour.claw.cleave.clinch.clinking.clone.clonk.coagulate.coexist.coincide.collaborate.colligate.colorize.colour.comb.come.commandeer.commemorate.communicate.compete.conceal.conceptualize.conclude.concrete.condense.cone.confide.confirm.confiscate.confound.confute.congregate.conjecture.connect.consign.construe.contradict.contrast.contravene.controvert.convalesce.converse.convince.convoke.coop.cop.corner.covenant.cow.crackle.cram.crank.creak.creaking.cripple.croon.cross.crumble.crystallize.culminate.culture.curry.curse.customise.cycle.dally.dampen.darn.debit.debut.decide.decode.decouple.decriminalize.deduce.deduct.deflate.deflect.deform.defrag.degenerate.degrease.delete.delight.deliquesce.demob.demobilise.democratize.demonstrate.denitrify.deny.depart.depend.deplore.deploy.deprave.depute.dereference.describe.desecrate.deselect.destock.detain.develop.devise.dial.dicker.digitize.dilate.disapprove.disarm.disbar.discontinue.disgorge.dishearten.dishonor.disinherit.dislocate.dispense.display.dispose.disrespect.dissemble.ditch.divert.dock.doodle.downchange.downshift.dowse.draft.drag.drain.dramatize.drowse.drum.dwell.economise.edge.efface.egg.eke.electrify.embalm.embed.embody.emboss.emerge.emphasise.emphasize.emulsify.encode.endow.enfold.engage.engender.enhance.enlist.enrage.enrich.enroll.entice.entomb.entrench.entwine.equate.essay.etch.eulogise.even.evince.exacerbate.exaggerate.exalt.exempt.exonerate.expatiate.explode.expostulate.extract.extricate.eyeglasses.fabricate.facilitate.factorise.factorize.fail.fall.familiarize.fashion.father.fathom.fax.federate.feminize.fence.fess.fictionalize.fiddle.fidget.fill.flash.fleck.flight.floodlight.floss.fluctuate.fluff.fly.focalise.foot.forearm.forecast.foretell.forgather.forgo.fork.form.forswear.founder.fraternise.fray.frizz.fumigate.function.furlough.fuss.gad.gallivant.galvanize.gape.garage.garrote.gasp.gestate.give.glimmer.glisten.gloat.gloss.glow.gnash.gnaw.goose.govern.grade.graduate.graft.grok.guest.guilt.gulp.gum.gurn.gust.gut.guzzle.ham.harangue.harvest.hassle.haul.haze.headline.hearten.heighten.highlight.hoick.hold.hole.hollow.holster.home.homeschool.hoot.horn.horse.hotfoot.house.hover.howl.huddle.huff.hunger.hunt.husk.hype.hypothesise.hypothesize.idle.ignite.imagineer.impact.impanel.implode.incinerate.incline.inculcate.industrialize.ingratiate.inhibit.inject.innovate.inscribe.insert.insist.inspect.institute.institutionalize.intend.intermarry.intermesh.intermix.internalise.internalize.internationalize.intrigue.inure.inveigle.inventory.investigate.irk.iterate.jaywalk.jell.jeopardise.jiggle.jive.joint.jot.jut.keel.knife.knit.know.kowtow.lack.lampoon.large.leap.lecture.legitimize.lend.libel.liberalize.license.ligate.list.lobotomise.lock.log.loose.low.lowball.machine.magnetize.major.make.malfunction.manage.manipulate.maroon.masculinize.mash.mask.masquerade.massage.masticate.materialise.matter.maul.memorise.merge.mesh.metabolise.microblog.microchip.micromanage.militate.mill.minister.minor.misappropriate.miscalculate.misfire.misjudge.miskey.mismatch.mispronounce.misread.misreport.misspend.mob.mobilise.mobilize.moisten.mooch.moor.moralise.mortar.mosh.mothball.motivate.motor.mould.mount.muddy.mummify.mutate.mystify.nab.narrate.narrowcast.nasalise.nauseate.navigate.neaten.neck.neglect.norm.notarize.object.obscure.observe.obsess.obstruct.obtrude.offend.offset.option.orchestrate.orient.orientate.outbid.outdo.outfit.outflank.outfox.outnumber.outrank.outrun.outsource.overburden.overcharge.overcook.overdub.overfeed.overload.overplay.overproduce.overreact.override.overspend.overstay.overtrain.overvalue.overwork.own.oxidise.oxidize.oxygenate.pace.pack.pale.pant.paralyse.parody.part.pause.pave.penalise.persecute.personalise.perspire.pertain.peter.pike.pillory.pinion.pip.pity.pivot.pixellate.plagiarise.plait.plan.please.pluck.ponder.popularize.portray.prance.preclude.preheat.prejudge.preregister.presell.preside.pretend.print.prioritize.probate.probe.proceed.procrastinate.profane.progress.proliferate.proofread.propound.proselytise.provision.pry.publicize.puff.pull.pulp.pulverize.purse.put.putrefy.quadruple.quaff.quantify.quarrel.quash.quaver.question.quiet.quintuple.quip.quit.rag.rally.ramp.randomize.rationalise.rationalize.ravage.ravel.react.readies.readjust.readmit.ready.reapply.rear.reassemble.rebel.reboot.reborn.rebound.rebuff.rebuild.rebuke.recede.reckon.reclassify.recompense.reconstitute.record.recount.redact.redevelop.redound.redraw.redress.reel.refer.reference.refine.reflate.refute.regulate.reiterate.rejigger.rejoin.rekindle.relaunch.relieve.remand.remark.reopen.reorient.replicate.repossess.represent.reprimand.reproach.reprove.repurpose.requite.reschedule.resort.respray.restructure.retool.retract.revere.revitalise.revoke.reword.rewrite.ride.ridge.rim.ring.rise.rival.roger.rosin.rot.rout.row.rue.rule.safeguard.sashay.sate.satirise.satirize.satisfy.saturate.savour.scale.scamper.scar.scare.scarper.scent.schematise.scheme.schlep.scoff.scoop.scope.scotch.scowl.scrabble.scram.scramble.scrape.screw.scruple.scrutinise.scuffle.scuttle.search.secularize.see.segregate.sell.sense.sensitize.sequester.serenade.serialize.serve.service.settle.sew.shaft.sham.shampoo.shanghai.shear.sheathe.shell.shinny.shirk.shoot.shoulder.shout.shovel.showboat.shred.shrill.shudder.shush.sidetrack.sign.silt.sin.singe.sit.sizzle.skateboard.ski.slake.slap.slather.sleet.slink.slip.slope.slump.smarten.smuggle.snack.sneak.sniff.snoop.snow.snowplow.snuggle.soap.solace.solder.solicit.source.spark.spattering.spectacles.spectate.spellcheck.spew.spice.spirit.splash.splay.split.splosh.splurge.spook.square.squirm.stabilise.stable.stack.stage.stake.starch.state.statement.stiffen.stigmatize.sting.stint.stoop.store.storyboard.stratify.structure.stuff.stunt.substantiate.subtract.suckle.suffice.suffocate.summarise.sun.sunbathe.sunder.sup.surge.surprise.swat.swathe.sway.swear.swelter.swerve.swill.swing.symbolise.synthesise.syringe.table.tabulate.tag.tame.tank.tankful.tarry.task.taxicab.team.telescope.tenant.terraform.terrorise.testify.think.throbbing.thump.tighten.toady.toe.tough.tousle.traduce.train.transcend.transplant.trash.treasure.treble.trek.trial.tromp.trouser.trust.tune.tut.twine.twist.typify.unbalance.uncork.uncover.underachieve.undergo.underplay.unearth.unfreeze.unfurl.unlearn.unscramble.unzip.uproot.upsell.usher.vacation.vamoose.vanish.vary.veg.venture.verify.vet.veto.volunteer.vulgarise.waft.wallop.waltz.warp.wash.waver.weary.weatherize.wedge.weep.weight.welcome.westernise.westernize.while.whine.whisper.whistle.whitewash.whup.wilt.wing.wire.wisecrack.wolf.wound.wring.writ.yak.yawn.yearn.yuppify`.split(`.`) } };
 
 // node_modules/.bun/@faker-js+faker@10.6.0/node_modules/@faker-js/faker/dist/index.js
-var fn = function(e3) {
-  return e3.Fail = `fail`, e3.Closest = `closest`, e3.Shortest = `shortest`, e3.Longest = `longest`, e3.AnyLength = `any-length`, e3;
+var fn = function(e) {
+  return e.Fail = `fail`, e.Closest = `closest`, e.Shortest = `shortest`, e.Longest = `longest`, e.AnyLength = `any-length`, e;
 }({});
 
 // packages/generator/src/generators/wasm/sample-data.ts
 function hashSeed(text) {
-  let h2 = 1779033703 ^ text.length;
-  for (let i2 = 0;i2 < text.length; i2++) {
-    h2 = Math.imul(h2 ^ text.charCodeAt(i2), 3432918353);
-    h2 = h2 << 13 | h2 >>> 19;
+  let h = 1779033703 ^ text.length;
+  for (let i = 0;i < text.length; i++) {
+    h = Math.imul(h ^ text.charCodeAt(i), 3432918353);
+    h = h << 13 | h >>> 19;
   }
-  h2 ^= h2 >>> 16;
-  return h2 >>> 0;
+  h ^= h >>> 16;
+  return h >>> 0;
 }
 
 class Draw {
@@ -30534,153 +30367,153 @@ class Draw {
 }
 var DOMAINS = ["example.com", "example.org", "example.net"];
 var UNITS = ["each", "box", "case", "pallet", "kg", "litre"];
-function flavourOf(column, entity2) {
-  const n2 = column.toLowerCase();
-  if (/^first_?name$/.test(n2))
+function flavourOf(column, entity) {
+  const n = column.toLowerCase();
+  if (/^first_?name$/.test(n))
     return "firstName";
-  if (/^(last|sur)_?name$/.test(n2))
+  if (/^(last|sur)_?name$/.test(n))
     return "lastName";
-  if (/^(full_?name|display_?name)$/.test(n2))
+  if (/^(full_?name|display_?name)$/.test(n))
     return "person";
-  if (/^(contact|person|customer|client|employee|user|approver|owner)_name$/.test(n2))
+  if (/^(contact|person|customer|client|employee|user|approver|owner)_name$/.test(n))
     return "person";
-  if (/^(company|vendor|supplier|organisation|organization|account|insurer)_name$/.test(n2))
+  if (/^(company|vendor|supplier|organisation|organization|account|insurer)_name$/.test(n))
     return "company";
-  if (/(^|_)currency(_code)?$/.test(n2) || /(^|_)iso_currency$/.test(n2))
+  if (/(^|_)currency(_code)?$/.test(n) || /(^|_)iso_currency$/.test(n))
     return "currency";
-  if (/^(country_code|iso_country|country_iso)$/.test(n2))
+  if (/^(country_code|iso_country|country_iso)$/.test(n))
     return "countryCode";
-  if (/^(sku|code|.*_code|barcode)$/.test(n2))
+  if (/^(sku|code|.*_code|barcode)$/.test(n))
     return "code";
-  if (/(number|reference|ref|invoice_no|po_no)$/.test(n2))
+  if (/(number|reference|ref|invoice_no|po_no)$/.test(n))
     return "reference";
-  if (/^(job_?title|position|designation)$/.test(n2))
+  if (/^(job_?title|position|designation)$/.test(n))
     return "jobTitle";
-  if (/(title|subject|summary|label)$/.test(n2))
+  if (/(title|subject|summary|label)$/.test(n))
     return "title";
-  if (/(city|town)$/.test(n2))
+  if (/(city|town)$/.test(n))
     return "city";
-  if (/(country|nation)$/.test(n2))
+  if (/(country|nation)$/.test(n))
     return "country";
-  if (/^(region|state|province|county)$/.test(n2))
+  if (/^(region|state|province|county)$/.test(n))
     return "region";
-  if (/(address|street|line1|line2)$/.test(n2))
+  if (/(address|street|line1|line2)$/.test(n))
     return "address";
-  if (/^(uom|unit|unit_of_measure|measure)$/.test(n2))
+  if (/^(uom|unit|unit_of_measure|measure)$/.test(n))
     return "uom";
-  if (n2 === "name") {
-    const e3 = entity2.toLowerCase();
-    if (/(vendor|supplier|company|account|customer|client|insurer|organisation)/.test(e3))
+  if (n === "name") {
+    const e = entity.toLowerCase();
+    if (/(vendor|supplier|company|account|customer|client|insurer|organisation)/.test(e))
       return "company";
-    if (/(product|item|material|medication|part|sku)/.test(e3))
+    if (/(product|item|material|medication|part|sku)/.test(e))
       return "product";
-    if (/(user|person|staff|employee|contact|patient|owner)/.test(e3))
+    if (/(user|person|staff|employee|contact|patient|owner)/.test(e))
       return "person";
     return "title";
   }
   return "word";
 }
 function integerRange(column) {
-  const n2 = column.toLowerCase();
-  if (/(quantity|qty|count|units|items|seats|capacity)/.test(n2))
+  const n = column.toLowerCase();
+  if (/(quantity|qty|count|units|items|seats|capacity)/.test(n))
     return [1, 40];
-  if (/(stock|on_hand|inventory|level)/.test(n2))
+  if (/(stock|on_hand|inventory|level)/.test(n))
     return [0, 500];
-  if (/(age|years)/.test(n2))
+  if (/(age|years)/.test(n))
     return [1, 60];
-  if (/(duration|minutes|days|weeks|months)/.test(n2))
+  if (/(duration|minutes|days|weeks|months)/.test(n))
     return [1, 90];
-  if (/(line_?number|seq|sequence|position|order_?no)/.test(n2))
+  if (/(line_?number|seq|sequence|position|order_?no)/.test(n))
     return [1, 20];
-  if (/(percent|percentage|rate|score)/.test(n2))
+  if (/(percent|percentage|rate|score)/.test(n))
     return [0, 100];
-  if (/(attempts|retries|version)/.test(n2))
+  if (/(attempts|retries|version)/.test(n))
     return [1, 5];
   return [1, 100];
 }
 function amountRange(column) {
-  const n2 = column.toLowerCase();
-  if (/(unit_?price|price|rate|fee|cost_?per)/.test(n2))
+  const n = column.toLowerCase();
+  if (/(unit_?price|price|rate|fee|cost_?per)/.test(n))
     return [4, 480];
-  if (/(variance|discount|adjustment|tax)/.test(n2))
+  if (/(variance|discount|adjustment|tax)/.test(n))
     return [0, 90];
-  if (/(total|amount|balance|value|subtotal|claimed|settled|paid)/.test(n2))
+  if (/(total|amount|balance|value|subtotal|claimed|settled|paid)/.test(n))
     return [50, 9500];
   return [5, 1200];
 }
 function dayOffsetRange(column) {
-  const n2 = column.toLowerCase();
-  if (/(due|expected|next|valid_until|expiry|expires|scheduled)/.test(n2))
+  const n = column.toLowerCase();
+  if (/(due|expected|next|valid_until|expiry|expires|scheduled)/.test(n))
     return [1, 45];
-  if (/(created|opened|registered|joined|started|requested|submitted|captured)/.test(n2))
+  if (/(created|opened|registered|joined|started|requested|submitted|captured)/.test(n))
     return [-120, -10];
-  if (/(issued|invoice_date|order_date|ordered|billed|raised)/.test(n2))
+  if (/(issued|invoice_date|order_date|ordered|billed|raised)/.test(n))
     return [-90, -5];
-  if (/(closed|resolved|completed|decided|approved|paid|settled|received|dispatched|sent)/.test(n2))
+  if (/(closed|resolved|completed|decided|approved|paid|settled|received|dispatched|sent)/.test(n))
     return [-30, -1];
-  if (/(birth|dob)/.test(n2))
+  if (/(birth|dob)/.test(n))
     return [-16000, -700];
   return [-60, 20];
 }
 function iso(date, withTime) {
   return withTime ? date.toISOString() : date.toISOString().split("T")[0];
 }
-function stringValue(draw, column, entity2, row) {
-  const f2 = draw.faker;
-  switch (flavourOf(column, entity2)) {
+function stringValue(draw, column, entity, row) {
+  const f = draw.faker;
+  switch (flavourOf(column, entity)) {
     case "firstName":
-      return f2.person.firstName();
+      return f.person.firstName();
     case "lastName":
-      return f2.person.lastName();
+      return f.person.lastName();
     case "person":
-      return f2.person.fullName();
+      return f.person.fullName();
     case "company":
-      return f2.company.name();
+      return f.company.name();
     case "product":
-      return f2.commerce.productName();
+      return f.commerce.productName();
     case "city":
-      return f2.location.city();
+      return f.location.city();
     case "country":
-      return f2.location.country();
+      return f.location.country();
     case "countryCode":
-      return f2.location.countryCode();
+      return f.location.countryCode();
     case "region":
-      return f2.location.state();
+      return f.location.state();
     case "address":
-      return `${f2.location.streetAddress()}, ${f2.location.city()}`;
+      return `${f.location.streetAddress()}, ${f.location.city()}`;
     case "code":
-      return `${initials(entity2)}-${String(1000 + row * 7 + draw.int(0, 6)).slice(0, 4)}`;
+      return `${initials(entity)}-${String(1000 + row * 7 + draw.int(0, 6)).slice(0, 4)}`;
     case "reference":
-      return `${initials(entity2)}${new Date().getFullYear()}-${String(row + 1).padStart(4, "0")}`;
+      return `${initials(entity)}${new Date().getFullYear()}-${String(row + 1).padStart(4, "0")}`;
     case "title":
-      return `${f2.commerce.productAdjective()} ${f2.word.noun()}`;
+      return `${f.commerce.productAdjective()} ${f.word.noun()}`;
     case "jobTitle":
-      return f2.person.jobTitle();
+      return f.person.jobTitle();
     case "uom":
       return draw.pick(UNITS);
     case "currency":
-      return f2.finance.currencyCode();
+      return f.finance.currencyCode();
     default:
-      return capitalise(f2.word.noun());
+      return capitalise(f.word.noun());
   }
 }
-function initials(entity2) {
-  const letters = entity2.replace(/[^A-Za-z]/g, "");
-  const caps2 = letters.match(/[A-Z]/g);
-  return (caps2 && caps2.length >= 2 ? caps2.join("") : letters.slice(0, 3)).toUpperCase().slice(0, 4);
+function initials(entity) {
+  const letters = entity.replace(/[^A-Za-z]/g, "");
+  const caps = letters.match(/[A-Z]/g);
+  return (caps && caps.length >= 2 ? caps.join("") : letters.slice(0, 3)).toUpperCase().slice(0, 4);
 }
 function capitalise(word) {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 function fkTarget(column, personEntity) {
-  const n2 = column.toLowerCase();
-  if (n2.endsWith("_by") || n2.endsWith("_by_id"))
+  const n = column.toLowerCase();
+  if (n.endsWith("_by") || n.endsWith("_by_id"))
     return personEntity;
-  if (PERSON_COLUMNS.has(n2))
+  if (PERSON_COLUMNS.has(n))
     return personEntity;
-  if (!n2.endsWith("_id"))
+  if (!n.endsWith("_id"))
     return;
-  return n2.slice(0, -3).replace(/(^|_)([a-z])/g, (_m, _sep, ch) => ch.toUpperCase());
+  return n.slice(0, -3).replace(/(^|_)([a-z])/g, (_m, _sep, ch) => ch.toUpperCase());
 }
 var PERSON_COLUMNS = new Set([
   "assigned_to",
@@ -30693,14 +30526,14 @@ var PERSON_COLUMNS = new Set([
   "remediation_owner_id",
   "user_id"
 ]);
-var overrideKey = (entity2, column) => `${entity2}.${column}`.toLowerCase();
+var overrideKey = (entity, column) => `${entity}.${column}`.toLowerCase();
 function buildFkOverrides(entities, relationships, personEntity) {
-  const byName = new Map(entities.map((entity2) => [entity2.name.toLowerCase(), entity2.name]));
+  const byName = new Map(entities.map((entity) => [entity.name.toLowerCase(), entity.name]));
   const overrides = new Map;
-  for (const entity2 of entities) {
-    const foreignKeys = entity2.columns.filter((column) => column.isForeignKey);
+  for (const entity of entities) {
+    const foreignKeys = entity.columns.filter((column) => column.isForeignKey);
     const claimed = new Set(foreignKeys.map((column) => fkTarget(column.columnName, personEntity)?.toLowerCase()).filter((name) => !!name && byName.has(name)));
-    const parents = relationships.filter((relationship) => relationship.targetEntity.toLowerCase() === entity2.name.toLowerCase()).map((relationship) => byName.get(relationship.sourceEntity.toLowerCase())).filter((name) => !!name);
+    const parents = relationships.filter((relationship) => relationship.targetEntity.toLowerCase() === entity.name.toLowerCase()).map((relationship) => byName.get(relationship.sourceEntity.toLowerCase())).filter((name) => !!name);
     for (const column of foreignKeys) {
       const derived = fkTarget(column.columnName, personEntity);
       if (derived && byName.has(derived.toLowerCase()))
@@ -30708,49 +30541,49 @@ function buildFkOverrides(entities, relationships, personEntity) {
       const free = parents.find((parent) => !claimed.has(parent.toLowerCase()));
       if (!free)
         continue;
-      overrides.set(overrideKey(entity2.name, column.columnName), free);
+      overrides.set(overrideKey(entity.name, column.columnName), free);
       claimed.add(free.toLowerCase());
     }
   }
   return overrides;
 }
-function resolveTarget(entity2, column, personEntity, overrides) {
-  return overrides.get(overrideKey(entity2, column.columnName)) ?? fkTarget(column.columnName, personEntity);
+function resolveTarget(entity, column, personEntity, overrides) {
+  return overrides.get(overrideKey(entity, column.columnName)) ?? fkTarget(column.columnName, personEntity);
 }
 function inDependencyOrder(entities, personEntity, overrides) {
-  const byName = new Map(entities.map((entity2) => [entity2.name, entity2]));
+  const byName = new Map(entities.map((entity) => [entity.name, entity]));
   const pending = new Map;
-  for (const entity2 of entities) {
+  for (const entity of entities) {
     const parents = new Set;
-    for (const column of entity2.columns) {
+    for (const column of entity.columns) {
       if (!column.isForeignKey)
         continue;
-      const target = resolveTarget(entity2.name, column, personEntity, overrides);
-      if (target && target !== entity2.name && byName.has(target))
+      const target = resolveTarget(entity.name, column, personEntity, overrides);
+      if (target && target !== entity.name && byName.has(target))
         parents.add(target);
     }
-    pending.set(entity2.name, parents);
+    pending.set(entity.name, parents);
   }
   const ordered = [];
   const done = new Set;
-  const emit = (entity2) => {
-    ordered.push(entity2);
-    done.add(entity2.name);
+  const emit = (entity) => {
+    ordered.push(entity);
+    done.add(entity.name);
   };
   while (ordered.length < entities.length) {
     let progress = false;
-    for (const entity2 of entities) {
-      if (done.has(entity2.name))
+    for (const entity of entities) {
+      if (done.has(entity.name))
         continue;
-      const parents = pending.get(entity2.name);
+      const parents = pending.get(entity.name);
       if ([...parents].every((parent) => done.has(parent))) {
-        emit(entity2);
+        emit(entity);
         progress = true;
       }
     }
     if (progress)
       continue;
-    const remaining = entities.filter((entity2) => !done.has(entity2.name));
+    const remaining = entities.filter((entity) => !done.has(entity.name));
     const outstanding = (name) => [...pending.get(name)].filter((parent) => !done.has(parent));
     const inCycle = (start) => {
       const seen = new Set;
@@ -30766,7 +30599,7 @@ function inDependencyOrder(entities, personEntity, overrides) {
       }
       return false;
     };
-    const candidates = remaining.filter((entity2) => inCycle(entity2.name));
+    const candidates = remaining.filter((entity) => inCycle(entity.name));
     const pool = candidates.length > 0 ? candidates : remaining;
     emit(pool[0]);
   }
@@ -30779,11 +30612,11 @@ function buildSampleData(parsed, options) {
   const nullRate = options.nullRate ?? 0.15;
   const salt = options.seed ?? "appwithai";
   const faker = new Ct({ locale: [e2, Dt] });
-  const entities = parsed.entities.map((entity2) => ({
-    name: entity2.name,
-    table: tableNameFor(entity2),
-    primaryKey: entity2.primaryKey || "id",
-    columns: entity2.attributes.map((attribute) => ({
+  const entities = parsed.entities.map((entity) => ({
+    name: entity.name,
+    table: tableNameFor(entity),
+    primaryKey: entity.primaryKey || "id",
+    columns: entity.attributes.map((attribute) => ({
       name: attribute.name,
       columnName: attribute.name,
       type: attribute.type,
@@ -30792,16 +30625,16 @@ function buildSampleData(parsed, options) {
       maxLength: attribute.maxLength,
       isForeignKey: !!attribute.isForeignKey,
       enumValues: attribute.enumValues,
-      referenceId: referenceIdFor(attribute, attribute.name === (entity2.primaryKey || "id"))
+      referenceId: referenceIdFor(attribute, attribute.name === (entity.primaryKey || "id"))
     }))
   }));
-  const personEntity = entities.find((entity2) => entity2.name === "User")?.name ?? entities.find((entity2) => /^(user|staff|employee|person|account)s?$/i.test(entity2.name))?.name;
+  const personEntity = entities.find((entity) => entity.name === "User")?.name ?? entities.find((entity) => /^(user|staff|employee|person|account)s?$/i.test(entity.name))?.name;
   const fkOverrides = buildFkOverrides(entities, parsed.relationships ?? [], personEntity);
-  const declared = new Set(entities.map((entity2) => entity2.name));
+  const declared = new Set(entities.map((entity) => entity.name));
   const ids = new Map;
   const data = {};
-  for (const entity2 of inDependencyOrder(entities, personEntity, fkOverrides)) {
-    const full = entities.find((candidate) => candidate.name === entity2.name);
+  for (const entity of inDependencyOrder(entities, personEntity, fkOverrides)) {
+    const full = entities.find((candidate) => candidate.name === entity.name);
     if (!full)
       continue;
     const rows = [];
@@ -30839,7 +30672,7 @@ function buildSampleData(parsed, options) {
   }
   return data;
 }
-function valueFor(column, entity2, row, draw, context) {
+function valueFor(column, entity, row, draw, context) {
   if (column.isForeignKey) {
     const target = resolveTarget(context.entityName, column, context.personEntity, context.fkOverrides);
     const pool = target === context.entityName ? context.selfIds.slice(0, row) : context.ids.get(target ?? "");
@@ -30863,16 +30696,16 @@ function valueFor(column, entity2, row, draw, context) {
   }
   if (column.enumValues?.length)
     return draw.pick(column.enumValues);
-  const f2 = draw.faker;
+  const f = draw.faker;
   switch (column.referenceId) {
     case ReferenceType.EMAIL:
       return emailFor(draw);
     case ReferenceType.PHONE:
-      return f2.phone.number({ style: "international" });
+      return f.phone.number({ style: "international" });
     case ReferenceType.URL:
-      return `https://www.${draw.pick(DOMAINS)}/${f2.lorem.slug(1)}`;
+      return `https://www.${draw.pick(DOMAINS)}/${f.lorem.slug(1)}`;
     case ReferenceType.COLOR:
-      return f2.color.rgb({ format: "hex", casing: "lower" });
+      return f.color.rgb({ format: "hex", casing: "lower" });
     case ReferenceType.PASSWORD:
       return "not-a-real-password";
     default:
@@ -30898,14 +30731,14 @@ function valueFor(column, entity2, row, draw, context) {
       return iso(when, column.type === "datetime");
     }
     case "json":
-      return { source: "sample", note: f2.word.noun(), index: row + 1 };
+      return { source: "sample", note: f.word.noun(), index: row + 1 };
     case "text": {
-      const flavour = flavourOf(column.columnName, entity2);
-      return flavour === "word" || flavour === "title" ? f2.lorem.sentence() : stringValue(draw, column.columnName, entity2, row);
+      const flavour = flavourOf(column.columnName, entity);
+      return flavour === "word" || flavour === "title" ? f.lorem.sentence() : stringValue(draw, column.columnName, entity, row);
     }
     default: {
-      const flavour = flavourOf(column.columnName, entity2);
-      const base = stringValue(draw, column.columnName, entity2, row);
+      const flavour = flavourOf(column.columnName, entity);
+      const base = stringValue(draw, column.columnName, entity, row);
       const selfUnique = flavour === "code" || flavour === "reference";
       const value = column.unique && !selfUnique ? `${base} ${row + 1}` : base;
       return column.maxLength && value.length > column.maxLength ? value.slice(0, column.maxLength) : value;
@@ -30913,9 +30746,9 @@ function valueFor(column, entity2, row, draw, context) {
   }
 }
 function emailFor(draw) {
-  const f2 = draw.faker;
-  const first = f2.person.firstName().toLowerCase().replace(/[^a-z]/g, "");
-  const last = f2.person.lastName().toLowerCase().replace(/[^a-z]/g, "");
+  const f = draw.faker;
+  const first = f.person.firstName().toLowerCase().replace(/[^a-z]/g, "");
+  const last = f.person.lastName().toLowerCase().replace(/[^a-z]/g, "");
   return `${first}.${last}.${draw.int(1, 999)}@${draw.pick(DOMAINS)}`;
 }
 
@@ -30961,8 +30794,8 @@ function generateWasmApp(parsed, options) {
     description: options.description,
     stack: "wasm-browser",
     database: "pglite (postgresql/wasm)",
-    entities: parsed.entities.map((entity2) => entity2.name),
-    rules: parsed.rules.map((rule2) => rule2.name),
+    entities: parsed.entities.map((entity) => entity.name),
+    rules: parsed.rules.map((rule) => rule.name),
     workflows: parsed.workflows.map((workflow) => workflow.name),
     sagas: parsed.sagas.map((saga) => saga.name),
     generatedAt: new Date().toISOString(),
@@ -31055,8 +30888,8 @@ once: \`serve.mjs\` and the Node host then use the installed package.
 
 ## This model
 
-- **${parsed.entities.length}** entities: ${parsed.entities.map((entity2) => entity2.name).join(", ") || "—"}
-- **${parsed.rules.length}** rules${parsed.rules.length ? `: ${parsed.rules.map((rule2) => rule2.name).join(", ")}` : ""}
+- **${parsed.entities.length}** entities: ${parsed.entities.map((entity) => entity.name).join(", ") || "—"}
+- **${parsed.rules.length}** rules${parsed.rules.length ? `: ${parsed.rules.map((rule) => rule.name).join(", ")}` : ""}
 - **${parsed.workflows.length}** state machines, **${parsed.sagas.length}** sagas
 - **${parsed.hooks.length}** lifecycle hooks
 - **${parsed.rbac.operations.length + parsed.rbac.transitions.length}** access restrictions
@@ -31116,11 +30949,11 @@ function generateFromSource(options) {
     files: Object.fromEntries(generated.files),
     summary: {
       project: name,
-      entities: parsed.entities.map((entity2) => entity2.name),
+      entities: parsed.entities.map((entity) => entity.name),
       categories: parsed.categories.map((category) => category.name),
       relationships: parsed.relationships.length,
       enums: parsed.enums.length,
-      rules: parsed.rules.map((rule2) => rule2.name),
+      rules: parsed.rules.map((rule) => rule.name),
       hooks: parsed.hooks.length,
       workflows: parsed.workflows.map((workflow) => workflow.name),
       sagas: parsed.sagas.map((saga) => saga.name),
