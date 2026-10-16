@@ -420,8 +420,8 @@ Two things make it easy to get wrong:
   byte-wrong for CI while looking right locally. `scripts/lib/build-env.ts` reads that
   pin out of the workflow and says which case a mismatch is, rather than "out of date"
   — which is true of a stale build and misleading about a foreign one. The branch this
-  arrived on had been built on bun 1.3.11: it passed `--check` on its author's machine
-  and failed on CI's runtime.
+  arrived on had been built on an older bun: it passed `--check` on its author's
+  machine and failed on CI's runtime.
 - **`check:language-tools` is a CI step of its own.** The `language` job does not run
   `bun run check` — it runs `check:models`, `type-check` and `lint` separately — so
   adding a check to that script alone would never run in CI.
