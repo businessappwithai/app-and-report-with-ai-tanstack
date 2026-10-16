@@ -10,7 +10,17 @@
 //   const { source, ok, remaining } = checkAndFix(model);
 //
 // Loaded without a bound import, it also answers to globalThis.EMLFixer.
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+var __esm = (fn, res, err) => () => {
+  if (fn)
+    try {
+      res = fn(fn = 0);
+    } catch (e) {
+      err = [e];
+    }
+  if (err)
+    throw err[0];
+  return res;
+};
 
 // node-stub:node:fs
 var missing = () => {
@@ -1957,18 +1967,18 @@ function parseHookFields(paramsRaw) {
 }
 function applyEntityMeta(model, name, key, value) {
   const ensure = () => {
-    let e2 = model.entities.find((x) => x.name === name);
-    if (!e2) {
-      e2 = {
+    let e = model.entities.find((x) => x.name === name);
+    if (!e) {
+      e = {
         name,
         tableName: toSnakeCase(name),
         attributes: [],
         primaryKey: "id",
         timestamps: true
       };
-      model.entities.push(e2);
+      model.entities.push(e);
     }
-    return e2;
+    return e;
   };
   const e = ensure();
   if (key === "audited")
@@ -3029,7 +3039,7 @@ class CheckEngine {
   }
   checkHelpText() {
     const entityHelp = new Map;
-    const fieldHelp2 = new Map;
+    const fieldHelp = new Map;
     for (const { lineNo, text } of this.src.findAll(/^\s*%%entity\b/)) {
       const m = text.trim().match(/^%%entity\s+(\w+)\s+(?:help|description)\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
@@ -3038,7 +3048,7 @@ class CheckEngine {
     for (const { lineNo, text } of this.src.findAll(/^\s*%%field\b/)) {
       const m = text.trim().match(/^%%field\s+([\w.]+)\s+help\s*:\s*(.+)$/);
       if (m?.[1] && m[2])
-        fieldHelp2.set(m[1], { text: m[2], line: lineNo });
+        fieldHelp.set(m[1], { text: m[2], line: lineNo });
     }
     for (const entity of this.model.entities) {
       const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
@@ -3057,7 +3067,7 @@ class CheckEngine {
           });
         }
       }
-      const undocumented = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp2.has(`${entity.name}.${attribute.name}`)).map((attribute) => attribute.name);
+      const undocumented = entity.attributes.filter((attribute) => !MANAGED_COLUMN_NAMES.has(attribute.name.toLowerCase())).filter((attribute) => !attribute.isPrimaryKey).filter((attribute) => !fieldHelp.has(`${entity.name}.${attribute.name}`)).map((attribute) => attribute.name);
       if (undocumented.length > 0) {
         const shown = undocumented.slice(0, 6).join(", ");
         const rest = undocumented.length > 6 ? `, and ${undocumented.length - 6} more` : "";
@@ -3067,7 +3077,7 @@ class CheckEngine {
         });
       }
       for (const attribute of entity.attributes) {
-        const field = fieldHelp2.get(`${entity.name}.${attribute.name}`);
+        const field = fieldHelp.get(`${entity.name}.${attribute.name}`);
         if (!field)
           continue;
         const why = this.restatedHelp(`${entity.name}.${attribute.name}`, field.text);
@@ -3386,9 +3396,9 @@ class CheckEngine {
           hint: 'Add a condition, e.g. when: severity == "critical". Use when: true to say "always" on purpose.'
         });
       }
-      const missing2 = contract.required.filter((key) => !has(key));
-      if (missing2.length > 0) {
-        this.error("EML283", `%%action "${name}" (${typeName}) is missing: ${missing2.join(", ")}.`, {
+      const missing = contract.required.filter((key) => !has(key));
+      if (missing.length > 0) {
+        this.error("EML283", `%%action "${name}" (${typeName}) is missing: ${missing.join(", ")}.`, {
           line: lineNo,
           hint: `${typeName} requires ${contract.required.join(", ")}.`
         });
@@ -3478,24 +3488,24 @@ class CheckEngine {
           });
         }
         const has = (key) => (props[key] ?? "").trim().length > 0;
-        const missing2 = [];
+        const missing = [];
         for (const key of contract.required ?? []) {
           if (!has(key))
-            missing2.push(key);
+            missing.push(key);
         }
         for (const group of contract.oneOf ?? []) {
           if (!group.some((key) => has(key)))
-            missing2.push(`one of ${group.join(" / ")}`);
+            missing.push(`one of ${group.join(" / ")}`);
         }
         if (typeName === "Formula" && has("operation")) {
           const extra = contract.perOperation?.[props.operation.trim()]?.required ?? [];
           for (const key of extra) {
             if (!has(key))
-              missing2.push(key);
+              missing.push(key);
           }
         }
-        if (missing2.length > 0) {
-          this.error("EML262", `%%step ${nodeId} (${typeName}) is missing: ${missing2.join(", ")}.`, {
+        if (missing.length > 0) {
+          this.error("EML262", `%%step ${nodeId} (${typeName}) is missing: ${missing.join(", ")}.`, {
             line: lineNo,
             hint: `${typeName} requires ${(contract.required ?? []).join(", ") || "no fixed properties"}. See spec/03-workflows.md.`
           });
@@ -3626,18 +3636,18 @@ class CheckEngine {
       const line = text.trim();
       const typeLine = line.match(AUTO_TYPE_DIRECTIVE);
       if (typeLine) {
-        const [, nodeId2 = "", typeName2 = "", rest2 = ""] = typeLine;
-        const entry = entryFor(nodeId2, lineNo, text);
-        entry.typeName = typeName2;
+        const [, nodeId = "", typeName = "", rest = ""] = typeLine;
+        const entry = entryFor(nodeId, lineNo, text);
+        entry.typeName = typeName;
         entry.lineNo = lineNo;
         entry.text = text;
-        Object.assign(entry.props, this.parseStepProps(rest2));
+        Object.assign(entry.props, this.parseStepProps(rest));
         continue;
       }
       const propLine = line.match(AUTO_PROP_DIRECTIVE);
       if (propLine && propLine[2] !== "type") {
-        const [, nodeId2 = "", key = "", value = ""] = propLine;
-        entryFor(nodeId2, lineNo, text).props[key] = value.trim();
+        const [, nodeId = "", key = "", value = ""] = propLine;
+        entryFor(nodeId, lineNo, text).props[key] = value.trim();
         continue;
       }
       const match = line.match(/^%%step\s+([A-Za-z_]\w*)\s+([A-Za-z]\w*)\s*(.*)$/);

@@ -237,8 +237,11 @@ missing `./deps.sh`, not a broken repository.
 
 ### Use bun, never npm or pnpm
 
-Bun is the runtime, the package manager and the test runner. CI pins
-`BUN_VERSION: "1.3.11"`; the manifest requires `>=1.3.11`.
+Bun is the runtime, the package manager and the test runner. Everything runs
+on **Bun 1.4.3** — CI's `BUN_VERSION`, the `report` and `seeder` images, and the
+nightly build — except the `appwithai-wasm` CLI, which ships on Bun 1.3 and is
+checked on `BUN_VERSION_WASM: "1.3.11"` in a job of its own. That job is why the
+manifest's floor stays `>=1.3.11`.
 
 ---
 
@@ -413,12 +416,12 @@ the built one contains both.
 Two things make it easy to get wrong:
 
 - **`Bun.build` output depends on the bun version *and* the platform.** `root-ci.yml`
-  pins `BUN_VERSION: 1.4.0` and runs on `linux-x64`; a bundle built on anything else is
+  pins `BUN_VERSION: 1.4.3` and runs on `linux-x64`; a bundle built on anything else is
   byte-wrong for CI while looking right locally. `scripts/lib/build-env.ts` reads that
   pin out of the workflow and says which case a mismatch is, rather than "out of date"
   — which is true of a stale build and misleading about a foreign one. The branch this
-  arrived on had been built on bun 1.3.11: it passed `--check` on its author's machine
-  and failed on CI's runtime.
+  arrived on had been built on an older bun: it passed `--check` on its author's
+  machine and failed on CI's runtime.
 - **`check:language-tools` is a CI step of its own.** The `language` job does not run
   `bun run check` — it runs `check:models`, `type-check` and `lint` separately — so
   adding a check to that script alone would never run in CI.

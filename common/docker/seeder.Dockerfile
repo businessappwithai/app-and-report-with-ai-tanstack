@@ -22,7 +22,7 @@
 # which is why there is no `--from=common` here any more.
 
 # syntax=docker/dockerfile:1.7
-FROM oven/bun:1.3
+FROM oven/bun:1.4.3
 
 WORKDIR /app
 
@@ -33,9 +33,8 @@ COPY package.json bun.lock tsconfig.json ./
 # `bun.lock` at enterprise_reporting_tanstack@main disagrees with the
 # `package.json` beside it: the lock still carries `falkordb` and its subtree
 # (`@js-temporal/polyfill`, `jsbi`, `generic-pool`), which the manifest no
-# longer depends on. Bun refuses a frozen install against that — under 1.3.11
-# and 1.3.14 alike, and in that repository's own Dockerfile as much as this
-# one. A frozen install here would fail every build, not catch drift.
+# longer depends on. Bun refuses a frozen install against that — under every
+# version tried, and in that repository's own Dockerfile as much as this one. A frozen install here would fail every build, not catch drift.
 #
 # Reproducibility does not rest on this line anyway: the orchestrator pins the
 # commit each repository is built from (APP_REPO_REF / REPORT_REPO_REF), so a
