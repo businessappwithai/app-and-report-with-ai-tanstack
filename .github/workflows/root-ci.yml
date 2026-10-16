@@ -98,7 +98,7 @@ permissions:
 
 # Two pins, because the two command-line interfaces do not share a runtime.
 #
-#   BUN_VERSION       1.4 — what app-with-ai-tanstack itself pins, and what the
+#   BUN_VERSION       1.4.3 — what app-with-ai-tanstack itself pins, and what the
 #                     Dockerfiles the `appwithai` CLI generates run on. Every
 #                     job here uses it unless it is named below. It is also the
 #                     version the `--frozen-lockfile` install of that workspace
@@ -113,7 +113,7 @@ permissions:
 #
 # Moving either forward is a deliberate step, taken by running the checks.
 env:
-  BUN_VERSION: "1.4.0"
+  BUN_VERSION: "1.4.3"
   BUN_VERSION_WASM: "1.3.11"
 
 concurrency:
