@@ -6259,6 +6259,24 @@ var appwithai_language_default = {
         EML103: "A column the generator manages, declared in the model - the declaration is ignored."
       }
     },
+    optimisticLocking: {
+      description: "Every generated stack refuses a save made against a record version someone else has already moved past, instead of letting the second save silently overwrite the first. It rides on the managed `version` column, so a model declares nothing to get it.",
+      contract: {
+        version: "Starts at 1 on insert and is raised by one on every update, by the application - a `version` supplied in a request body is ignored.",
+        read: 'GET of one record answers with `ETag: "<version>"`; the record body carries `version` too.',
+        write: 'PUT and PATCH take `If-Match: "<version>"` - the version the caller read. `"3"`, `3`, `W/"3"` and `v3` are accepted; a value naming no version is a 400. With no header, or `*`, the save is unconditional.',
+        conflict: 'A save whose If-Match is older than the stored version is refused with 409 and `details: { code: "VERSION_CONFLICT", entity, id, expectedVersion, currentVersion }`. The record itself is not in the body: the client re-reads it through GET, which applies field access.',
+        atomicity: "The comparison and the write are one step - the NestJS stack locks the row (SELECT ... FOR UPDATE) and updates WHERE version = the version it read, the browser stack updates WHERE version = ..., and the node-rest runtime checks and writes synchronously. Two saves of one version therefore produce exactly one 200 and one 409, never two 200s."
+      },
+      form: "The record form sends the version it opened. On VERSION_CONFLICT it lists the fields the other save changed - theirs beside yours, marking fields both changed - and offers Reload their version (discard my edits), Overwrite with mine (save again against the version just read, itself checked) or Keep editing. The NestJS front end draws it as a dialog; the browser build as an inline panel, because it runs inside an iframe where a modal is not guaranteed.",
+      stacks: {
+        "tanstack-nestjs": "bus.controller (If-Match, ETag) and bus.service (row lock + versioned UPDATE); frontend lib/version-conflict.ts and components/admin/version-conflict-dialog.tsx; generated test suite 22-optimistic-locking.",
+        browser: "server/modules/bus.routes.js and ui/views/entity-form.js in the standalone runtime; the same 409 body as the NestJS stack.",
+        "node-rest": "services.js and server.js in the zero-dependency runtime: version, ETag, If-Match and the same 409 body.",
+        "enterprise-reporting": "The generated update server function takes the version the form read and refuses a stale one with VERSION_CONFLICT."
+      },
+      manual: "The generated manual carries a section, When two people change the same record, naming the three choices."
+    },
     alsoDerived: [
       "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
       "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
@@ -6285,6 +6303,20 @@ var appwithai_language_default = {
         EML152: "warning — an entity with no `%%entity ... help:` at all.",
         EML153: "warning — the columns of one entity with no `%%field ... help:`, reported once per entity and naming them. One diagnostic per column would bury every other finding on a model that skipped help entirely, which is the common case."
       }
+    },
+    completeness: {
+      description: "Every Application Dictionary value is mandatory, in the model itself. The generated application has no screen, label, lookup, dropdown or explanation the model does not declare, and nothing after authoring adds one — so a value the model leaves out is a gap in every application generated from it.",
+      codes: {
+        EML119: "the FK modifier on a reference column — without it the lookup is lost",
+        EML146: "the %%field ... enum: binding on a status, state or stage column — without it the dropdown is lost",
+        EML151: "help that describes its subject rather than restating its name",
+        EML152: "%%entity <Name> help: on an entity",
+        EML153: "%%field <Entity>.<column> help: on every column but the primary key",
+        EML154: "name: on a %%category — without it the grouping is dropped"
+      },
+      required: "A delivered model carries none of these six. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
+      planFirst: "Decide every value before writing the document — per entity its help, category and parent; per column its type, modifiers, FK target, enum binding and help; per cross-entity step the row it aims at (targetSource or targetField, else EML265). A value improvised while typing the ERD is the one that comes out as a restatement.",
+      reviewUntilClean: "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the six codes and a 22/0 audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
     },
     masterDetail: {
       description: "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
@@ -6876,8 +6908,8 @@ var appwithai_language_default = {
         },
         {
           type: "UpdateEntity",
-          purpose: "Write a field, by default on the triggering record.",
-          properties: ["entity", "field", "value"],
+          purpose: "Write a field, by default on the triggering record. To write another entity, name it and say which row: `target: {{id}}` (a value an earlier step published) or `target: <fk_column>` (a column on that entity matched against the triggering record).",
+          properties: ["entity", "target", "field", "value"],
           example: `%%step s3 type: UpdateEntity
 %%step s3 field: status
 %%step s3 value: {{tier}}`
@@ -7169,7 +7201,7 @@ var appwithai_language_default = {
           chartNeedsAxes: "`chart:` without both `x:` and `y:` is an error (EML294) rather than a silent fall back to a table: a chart that cannot say what it plots renders empty, which reads as no data rather than as a missing declaration.",
           namesAreKeys: "The name is the pack key, so a duplicate silently replaces the earlier report. Declared twice is an error (EML292).",
           againstWhichSchema: "The query runs against the *generated application's* database, so it names `bus_` tables. It is not checked against a live schema at author time - the checker has no database - but `check-reporting-pack.ts in the orchestrator` executes every query in the pack against a real generated schema in CI.",
-          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. That platform is composed beside a deployed application by docker-compose; it is not in the browser application and not in the downloadable zip."
+          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. The real platform runs beside a deployed application, under the orchestrator's docker-compose or as the report service of the deployable archive's own compose file, and the browser application previews the same pack; see generatorContract.reportingApplication."
         }
       }
     ],
@@ -7193,6 +7225,75 @@ var appwithai_language_default = {
   },
   generatorContract: {
     description: "How each section feeds the generator pipeline.",
+    reportingApplication: {
+      description: "One model generates two applications. The second is the Enterprise Reporting platform (businessappwithai/enterprise_reporting_tanstack): its own server, database, users and sign-in, loaded with a reporting pack derived from the model. Nothing in the pack is written by hand. packages/generator/src/reporting/pack.ts (buildReportingPack) in app-with-ai-tanstack is the single derivation, and every surface that serves reports reads its output, so the surfaces cannot disagree about what reports a model has.",
+      derivation: "packages/generator/src/reporting/pack.ts -> buildReportingPack(parsedModel, { projectName, databaseName, ... }). Pure: no filesystem, no clock, no database.",
+      pack: {
+        dataSource: "The generated application's database, registered as a PostgreSQL data source.",
+        queries: "Saved SQL over the application's bus_ tables, each carrying the tables it reads.",
+        reports: "Report definitions over those queries.",
+        charts: "Chart definitions (bar, line, pie, area) over those queries.",
+        dashboards: "One overview dashboard: up to four authored charts first, then one tile for each of the six most central entities.",
+        access: "One reporting role per declared %%rbac role, plus the administrator, each with the bus_ tables it may read."
+      },
+      derivedFrom: [
+        {
+          declares: "an entity",
+          yields: "a register: its display column, up to two enum columns and two numeric columns, newest first"
+        },
+        {
+          declares: "an %%enum-bound column",
+          yields: "a breakdown chart and report, pie at six values or fewer, bar above; at most two per entity, status/state first"
+        },
+        {
+          declares: "created_at",
+          yields: "volume per month over two years, as a line"
+        },
+        {
+          declares: "a kind: state workflow over a status or state column",
+          yields: "a lifecycle over the declared states, in the diagram's order, zeroes included"
+        },
+        {
+          declares: "integer and decimal columns",
+          yields: "measures: totals and averages, grouped by the entity's primary enum column"
+        },
+        {
+          declares: "a oneToMany relationship",
+          yields: "children per parent, ranked"
+        },
+        {
+          declares: "%%report",
+          yields: "the author's own query, report and (with chart:) chart, listed first and placed at the top of the dashboard; a derived item with the same name is dropped in its favour"
+        },
+        {
+          declares: "%%rbac ... .read",
+          yields: "the tables each reporting role may read"
+        },
+        {
+          declares: "%%entity help: / %%field help:",
+          yields: "the names and descriptions of every report, chart and query"
+        }
+      ],
+      surfaces: [
+        {
+          id: "orchestrator",
+          where: "businessappwithai/app-and-report-with-ai-tanstack: ./start.sh, common/build/reporting-pack.ts",
+          runs: "the real platform built from its own source, beside the deployed application, behind nginx at /report (the application at /app, both sets of accounts at /)"
+        },
+        {
+          id: "deployable-archive",
+          where: "the NestJS stack's reporting/ directory and the report and report-seeder services of its docker-compose.yml",
+          runs: "the real platform, cloned at REPORT_REF and seeded once from reporting/reporting-pack.json, on port 3100"
+        },
+        {
+          id: "browser-application",
+          where: "--standalone: model.json carries the pack; #/report in the running application",
+          runs: "a preview drawn in the platform's own layout and tokens, labelled as one on every screen; its Administration (users, roles, per-role table grants, data source, activity log) is real, and the screens that need the platform's servers say where the real ones are"
+        }
+      ],
+      signIn: "Two applications, two sign-ins, never merged. The application's account for a role is <role>@<app>.example.com and the reporting account is <role>@<app>.reports.example.com; the administrator is admin@admin.com on both sides, as two different accounts in two different user tables. Neither password works on the other side. A role in the application decides what a user may do to a record; a reporting role decides which tables their queries may read. Only read rules narrow a reporting role.",
+      verification: "The checker holds %%report to its shape (EML290-EML296) and cannot see whether a column exists. common/scripts/check-reporting-pack.ts in app-and-report-with-ai-tanstack runs every derived and authored query against a schema the generator actually emitted."
+    },
     pipeline: [
       "1. ERD section -> MermaidParser -> Entity[] + Relationship[] -> migrations, DTOs, services, controllers, forms, tables. The same pass reads %%index into entity.indexes and %%enum / %%field enum: into bound enums.",
       "2. %%category directives -> category.parser -> resolveCategories -> Application Dictionary groups on the generated dashboard. A model declaring none gets a single 'General' category holding every entity.",
@@ -7920,7 +8021,7 @@ function nodeify(_name, script) {
       break;
     }
   }
-  result = result.replace(/\bbunx --bun /g, "npx ").replace(/\bbunx /g, "npx ").replace(/\bbun x /g, "npx ").replace(/\bbun install\b/g, "npm install").replace(/\bbun run /g, "npm run ").replace(/\bbun --filter /g, "npm run --workspace ").replace(/\bbun test\b/g, "npm test").replace(/(^|[\s"'])bun(?=\s)/g, "$1node");
+  result = result.replace(/\bHOST=127\.0\.0\.1 bun --bun /g, "").replace(/\bbun --bun /g, "").replace(/\bbunx --bun /g, "npx ").replace(/\bbunx /g, "npx ").replace(/\bbun x /g, "npx ").replace(/\bbun install\b/g, "npm install").replace(/\bbun run /g, "npm run ").replace(/\bbun --filter /g, "npm run --workspace ").replace(/\bbun test\b/g, "npm test").replace(/(^|[\s"'])bun(?=\s)/g, "$1node");
   return result;
 }
 async function readJson(file) {
@@ -15212,6 +15313,31 @@ class BaseGenerator {
   }
 }
 
+// packages/generator/src/generators/tanstack-start-nestjs/fk-constraints.ts
+function buildFkConstraints(busEntities, relationships) {
+  const byName = new Map(busEntities.map((entity2) => [(entity2.originalName || entity2.name).toLowerCase(), entity2]));
+  const constraints = [];
+  const seen = new Set;
+  for (const relationship of relationships) {
+    if (relationship.cardinality !== "oneToMany")
+      continue;
+    const parent = byName.get(relationship.sourceEntity.toLowerCase());
+    const child = byName.get(relationship.targetEntity.toLowerCase());
+    if (!parent || !child)
+      continue;
+    const column = `${parent.tableName.replace(/^bus_/, "")}_id`;
+    const carriesColumn = (child.attributes ?? []).some((attribute) => (attribute.columnName || attribute.name) === column);
+    if (!carriesColumn)
+      continue;
+    const name = `fk_${child.tableName}_${column}`;
+    if (seen.has(name))
+      continue;
+    seen.add(name);
+    constraints.push({ childTable: child.tableName, parentTable: parent.tableName, column, name });
+  }
+  return constraints;
+}
+
 // packages/generator/src/generators/tanstack-start-nestjs/nestjs-backend.generator.ts
 function jsQuote(value) {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\r?\n/g, " ");
@@ -15408,6 +15534,7 @@ class NestJsBackendGenerator extends BaseGenerator {
     });
     const dbUser = this.options.databaseType === "postgresql" ? process.env.USER || process.env.USERNAME || "postgres" : "postgres";
     const fkOverrides = this.buildFkOverrides(busEntities, relationships);
+    const fkConstraints = buildFkConstraints(busEntities, relationships);
     return {
       project: {
         name: this.options.projectName,
@@ -15431,6 +15558,7 @@ class NestJsBackendGenerator extends BaseGenerator {
       projectKebab: this.options.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       entities: busEntities,
       relationships,
+      fkConstraints,
       fkOverrides,
       sysTables,
       sysColumns,
@@ -16229,6 +16357,10 @@ export async function executeCustomValidateHooks(
       {
         slug: "add_dictionary_icons",
         template: "src/migrations/019_add_dictionary_icons.ts.hbs"
+      },
+      {
+        slug: "add_rule_title",
+        template: "src/migrations/020_add_rule_title.ts.hbs"
       }
     ];
     const scaffoldSlugs = new Set(scaffold.map((m) => m.slug));
@@ -16595,6 +16727,8 @@ export async function seed(db: Kysely<any>): Promise<void> {
     for (const file of staticConfigFiles) {
       try {
         await copyFile(join(this.resolvedTemplateDir, file), join(outputDir, file));
+        if (file.endsWith(".sh"))
+          await chmod(join(outputDir, file), 493).catch(() => {});
       } catch (_e) {
         console.warn(`Static config file not found: ${file}`);
       }
@@ -16811,7 +16945,8 @@ export async function seed(db: Kysely<any>): Promise<void> {
     const wdFiles = [
       "workflow-definitions.controller.ts",
       "workflow-definitions.module.ts",
-      "workflow-definitions.service.ts"
+      "workflow-definitions.service.ts",
+      "automation-compiler.ts"
     ];
     for (const file of wdFiles) {
       try {
@@ -16826,6 +16961,53 @@ export async function seed(db: Kysely<any>): Promise<void> {
 // packages/generator/src/generators/tanstack-start-nestjs/tanstack-start-frontend.generator.ts
 init_memory_fs();
 init_node_path();
+
+// packages/generator/src/generators/tanstack-start-nestjs/vendor-editors.ts
+init_memory_fs();
+init_node_path();
+var MARKER = "lib/utils.ts";
+var SKIP = /(?:^|\/)__tests__(?:\/|$)|\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)vite-env\.d\.ts$/;
+async function exists(target) {
+  try {
+    await access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function copyTree(source, destination, relative2 = "") {
+  const entries = await readdir(source, { withFileTypes: true });
+  await mkdir(destination, { recursive: true });
+  let copied = 0;
+  for (const entry of entries) {
+    const inner = relative2 ? `${relative2}/${entry.name}` : entry.name;
+    if (SKIP.test(inner))
+      continue;
+    const from = join(source, entry.name);
+    const to = join(destination, entry.name);
+    if (entry.isDirectory())
+      copied += await copyTree(from, to, inner);
+    else {
+      await copyFile(from, to);
+      copied++;
+    }
+  }
+  return copied;
+}
+async function ensureEditorsVendored(frontendTemplateDir) {
+  const destination = join(frontendTemplateDir, "src/editors");
+  const source = resolve(frontendTemplateDir, "../../../../editors/src");
+  if (await exists(join(source, MARKER))) {
+    await rm(destination, { recursive: true, force: true });
+    await copyTree(source, destination);
+    return;
+  }
+  if (await exists(join(destination, MARKER)))
+    return;
+  throw new Error(`The rule and workflow editors are missing from ${destination}. In a checkout they are ` + "copied from packages/editors/src; in a published package they ship inside templates/. " + "Run `bun run vendor:editors`.");
+}
+
+// packages/generator/src/generators/tanstack-start-nestjs/tanstack-start-frontend.generator.ts
 function resolveTemplateDir2(subpath) {
   const cwd = process.cwd();
   const possiblePaths = [
@@ -16925,6 +17107,9 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       "src/lib/workflow",
       "src/lib/automation",
       "src/components/automation",
+      "src/components/eml",
+      "src/components/rules",
+      "src/lib/eml",
       "src/components/reports",
       "src/components/notifications",
       "src/components/help",
@@ -16973,6 +17158,8 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
   }
   async generateCoreFiles(outputDir, context) {
     const templateDir = this.resolvedTemplateDir;
+    await ensureEditorsVendored(templateDir);
+    await this.copyDirRecursive(join(templateDir, "src/editors"), join(outputDir, "src/editors"));
     const clientEntryContent = await this.renderTemplate("src/client.tsx.hbs", context);
     await writeFile(join(outputDir, "src/client.tsx"), clientEntryContent);
     const ssrEntryContent = await this.renderTemplate("src/ssr.tsx.hbs", context);
@@ -17079,6 +17266,8 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     await writeFile(join(outputDir, "src/lib/api-client.ts"), apiClientContent);
     const csvContent = await this.component("src/lib/csv.ts");
     await writeFile(join(outputDir, "src/lib/csv.ts"), csvContent);
+    const versionConflictContent = await this.component("src/lib/version-conflict.ts");
+    await writeFile(join(outputDir, "src/lib/version-conflict.ts"), versionConflictContent);
     try {
       const viteEnv = await this.renderTemplate("src/vite-env.d.ts.hbs", context);
       await writeFile(join(outputDir, "src/vite-env.d.ts"), viteEnv);
@@ -17247,6 +17436,14 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
         dest: "src/hooks/use-bus-entity-level.ts"
       },
       {
+        src: "src/hooks/use-rule-entities.ts",
+        dest: "src/hooks/use-rule-entities.ts"
+      },
+      {
+        src: "src/hooks/use-dictionary-windows.ts",
+        dest: "src/hooks/use-dictionary-windows.ts"
+      },
+      {
         src: "src/components/ui/breadcrumb.tsx",
         dest: "src/components/ui/breadcrumb.tsx"
       },
@@ -17315,6 +17512,10 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
         dest: "src/components/admin/entity-window-shell.tsx"
       },
       {
+        src: "src/components/admin/version-conflict-dialog.tsx",
+        dest: "src/components/admin/version-conflict-dialog.tsx"
+      },
+      {
         src: "src/components/admin/unified-field-layout.tsx",
         dest: "src/components/admin/unified-field-layout.tsx"
       },
@@ -17327,40 +17528,16 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
         dest: "src/components/admin/bus-entity-detail-page.tsx"
       },
       {
-        src: "src/lib/workflow/bpmn-model.ts",
-        dest: "src/lib/workflow/bpmn-model.ts"
+        src: "src/worker-modules.d.ts",
+        dest: "src/worker-modules.d.ts"
       },
       {
-        src: "src/lib/automation/model.ts",
-        dest: "src/lib/automation/model.ts"
+        src: "src/components/rules/RuleGraphEditor.tsx",
+        dest: "src/components/rules/RuleGraphEditor.tsx"
       },
       {
-        src: "src/lib/automation/rule-content.ts",
-        dest: "src/lib/automation/rule-content.ts"
-      },
-      {
-        src: "src/components/automation/LadderCard.tsx",
-        dest: "src/components/automation/LadderCard.tsx"
-      },
-      {
-        src: "src/components/automation/RailList.tsx",
-        dest: "src/components/automation/RailList.tsx"
-      },
-      {
-        src: "src/components/automation/StepInspector.tsx",
-        dest: "src/components/automation/StepInspector.tsx"
-      },
-      {
-        src: "src/components/automation/AutomationBuilder.tsx",
-        dest: "src/components/automation/AutomationBuilder.tsx"
-      },
-      {
-        src: "src/components/automation/RuleTableEditor.tsx",
-        dest: "src/components/automation/RuleTableEditor.tsx"
-      },
-      {
-        src: "src/components/automation/AutomationHelp.tsx",
-        dest: "src/components/automation/AutomationHelp.tsx"
+        src: "src/lib/logic-host.ts",
+        dest: "src/lib/logic-host.ts"
       },
       {
         src: "src/components/admin/doc-status-badge.tsx",
@@ -17696,6 +17873,8 @@ var SHARED_SUITES = [
   "19-window-list-defaults.test.ts",
   "20-transaction-notifications.test.ts",
   "21-reports.test.ts",
+  "22-optimistic-locking.test.ts",
+  "23-workflow-editors-api.test.ts",
   "10-benchmark.test.ts",
   "18-write-benchmark.test.ts",
   "11-performance-budget.test.ts"
@@ -17723,7 +17902,66 @@ class BunE2ETestGenerator extends BaseGenerator {
     const perEntity = busEntities.length * 2;
     console.log(`   ✓ tests/ — ${SHARED_SUITES.length + perEntity} suites, ` + `${HARNESS_FILES.length + 1} harness modules`);
   }
+  withValueCeilings(entities) {
+    const ceilings = new Map;
+    for (const rule2 of this.options.compiledRules ?? []) {
+      let graph;
+      try {
+        graph = JSON.parse(rule2.jdmContent);
+      } catch {
+        continue;
+      }
+      for (const node of graph.nodes ?? []) {
+        if (node.type !== "decisionTableNode")
+          continue;
+        for (const row of node.content?.rules ?? []) {
+          if (row.o1 !== "'prevent'")
+            continue;
+          const match = /^\s*([A-Za-z_]\w*)\s*(>=|>)\s*(-?\d+(?:\.\d+)?)\s*$/.exec(row.i1 ?? "");
+          if (!match)
+            continue;
+          const [, column, operator, bound] = match;
+          const ceiling = operator === ">=" ? Number(bound) - 0.01 : Number(bound);
+          const key = `${rule2.tableName}.${column}`;
+          ceilings.set(key, Math.min(ceilings.get(key) ?? ceiling, ceiling));
+        }
+      }
+    }
+    if (ceilings.size === 0)
+      return entities;
+    return entities.map((entity2) => ({
+      ...entity2,
+      attributes: (entity2.attributes ?? []).map((attribute) => {
+        const column = attribute.columnName ?? attribute.name;
+        const ceiling = ceilings.get(`${entity2.tableName}.${column}`);
+        return ceiling === undefined ? attribute : { ...attribute, maxValue: ceiling };
+      })
+    }));
+  }
+  refusals() {
+    const found = [];
+    for (const rule2 of this.options.compiledRules ?? []) {
+      let graph;
+      try {
+        graph = JSON.parse(rule2.jdmContent);
+      } catch {
+        continue;
+      }
+      for (const node of graph.nodes ?? []) {
+        if (node.type !== "decisionTableNode")
+          continue;
+        for (const row of node.content?.rules ?? []) {
+          const when = (row.i1 ?? "").trim();
+          if (row.o1 === "'prevent'" && when && when !== "true") {
+            found.push({ tableName: rule2.tableName, when });
+          }
+        }
+      }
+    }
+    return found;
+  }
   buildContext(entities, relationships) {
+    entities = this.withValueCeilings(entities);
     return {
       project: {
         name: this.options.projectName,
@@ -17734,7 +17972,8 @@ class BunE2ETestGenerator extends BaseGenerator {
       config: {
         port: this.options.port,
         frontendPort: this.options.frontendPort,
-        recordsPerEntity: this.options.recordsPerEntity ?? 1000
+        recordsPerEntity: this.options.recordsPerEntity ?? 1000,
+        suiteTimeoutMs: Math.max(180000, entities.length * 6000)
       },
       entities,
       relationships,
@@ -17748,6 +17987,7 @@ class BunE2ETestGenerator extends BaseGenerator {
         x: report.x ?? "",
         y: report.y ?? ""
       })),
+      refusals: this.refusals(),
       stateMachines: this.stateMachines(entities),
       ...this.accessContext(entities),
       now: new Date().toISOString()
@@ -17880,7 +18120,7 @@ class BunE2ETestGenerator extends BaseGenerator {
         tableName: entity2.tableName,
         statusField,
         initial: workflow.initial ?? "",
-        terminal: workflow.terminal ?? [],
+        terminal: (workflow.terminal ?? []).filter((state) => !edges.some((edge) => edge.from === state)),
         edges
       });
     }
@@ -18005,7 +18245,8 @@ class FullStackGenerator {
         modelEnums: this.options.modelEnums,
         compiledWorkflows: this.options.compiledWorkflows,
         compiledRbac: this.options.compiledRbac,
-        compiledReports: this.options.compiledReports
+        compiledReports: this.options.compiledReports,
+        compiledRules: this.options.compiledRules
       });
       await testGenerator.generate(entities, relationships, outputDir);
     }
@@ -18780,14 +19021,15 @@ ORDER BY 1`
   if (wf && statusCol) {
     const states = declaredStates(wf);
     if (states.length > 0) {
-      const valuesList = states.map((s, i) => `(${lit(s)}, ${i})`).join(", ");
+      const valuesList = states.map((s, i) => i === 0 ? `SELECT ${lit(s)} AS state, ${i} AS position` : `SELECT ${lit(s)}, ${i}`).join(`
+  UNION ALL `);
       const key = `${slug}__lifecycle`;
       const q = addQuery(ctx, {
         key,
         name: `${titleOf(e)} lifecycle — ${wf.name}`,
         description: `Where ${pluralTitle(e).toLowerCase()} sit in the ${wf.name} state machine. Every state the model declares appears, including the ones nothing has reached.`,
-        sql: `WITH declared(state, position) AS (
-  VALUES ${valuesList}
+        sql: `WITH declared AS (
+  ${valuesList}
 )
 SELECT d.state, COALESCE(c.records, 0) AS records
 FROM declared d
@@ -19425,6 +19667,7 @@ ${entities.map((entity2) => `              <li><a href="#entity-${slug(entity2.n
 `)}
             </ul>
           </li>
+          <li><a href="#concurrent-edits">When two people change the same record</a></li>
 ${model.rules.length ? `          <li><a href="#rules">The decisions it makes</a></li>
 ` : ""}${model.sagas.length ? `          <li><a href="#processes">The processes it runs</a></li>
 ` : ""}          <li><a href="#how-it-was-built">How this application was built</a></li>
@@ -19618,6 +19861,22 @@ ${options.adminPassword ? `    <p>Every seeded account uses the password <code>$
 ${entitySections}
   </section>
 
+  <section id="concurrent-edits">
+    <h2>When two people change the same record</h2>
+    <p>Every record carries a version number, and every save raises it by one. When you open a record to edit it, the form remembers the version you opened. Saving sends that version back, and the save goes through only if nobody has saved the record since.</p>
+    <p>If somebody has, your save is not applied &mdash; neither of you loses a change without seeing it. The ${options.stack === "browser" ? "form shows a panel" : "form opens a dialog"} listing the fields the other person changed, with their value and yours side by side, and marks the fields you both changed. It offers three choices:</p>
+    <table>
+      <thead><tr><th>Choice</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td>Reload their version</td><td>Your unsaved edits are discarded and the form shows the record as it now stands.</td></tr>
+        <tr><td>Overwrite with mine</td><td>Your values are saved over theirs. It is checked again against the version you have just been shown, so a third person saving in the meantime is caught the same way.</td></tr>
+        <tr><td>Keep editing</td><td>Nothing is saved yet; the form stays open with your edits so you can change them first.</td></tr>
+      </tbody>
+    </table>
+    <p>Two saves of the same version arriving at the same moment cannot both win: exactly one is applied and the other is offered the same three choices.</p>
+    <p class="back"><a href="#top">Back to contents</a></p>
+  </section>
+
 ${rulesSection}
 
 ${processSection}
@@ -19636,6 +19895,95 @@ ${processSection}
 </div>
 </body>
 </html>
+`;
+}
+
+// packages/generator/src/rules/model-logic.ts
+function buildModelLogic(sources) {
+  const document = (Array.isArray(sources) ? sources : [sources]).filter(Boolean).join(`
+
+`);
+  if (!document.trim())
+    return [];
+  return extractWorkflowSections(document).map((workflow) => ({
+    name: workflow.name,
+    entity: workflow.entity,
+    kind: workflow.kind,
+    ...workflow.trigger ? { trigger: workflow.trigger } : {},
+    ...workflow.operation ? { operation: workflow.operation } : {},
+    ...workflow.title ? { title: workflow.title } : {},
+    diagram: workflow.diagram
+  }));
+}
+function renderModelLogic(workflows) {
+  return `/**
+ * The workflows this application's model declares, as the author drew them — written when
+ * the application was generated. The Rules & workflows screen lists them read-only: the
+ * next generation rewrites them, so they are changed in the model, not here.
+ */
+
+export interface ModelWorkflow {
+  name: string;
+  entity: string;
+  kind: "hook" | "state" | "saga";
+  trigger?: "automatic" | "rule";
+  operation?: "CREATE" | "UPDATE" | "DELETE" | "ALL";
+  title?: string;
+  diagram: string;
+}
+
+export const MODEL_WORKFLOWS: ModelWorkflow[] = ${JSON.stringify(workflows, null, 2)};
+`;
+}
+
+// packages/generator/src/rules/rule-model.ts
+var jsonType = (type) => type === "integer" || type === "decimal" ? "number" : type === "boolean" ? "boolean" : "string";
+function buildRuleModel(model) {
+  const declared = declaredEntityNames(model.entities);
+  return model.entities.map((entity2) => {
+    const bus = entityToBusEntity(entity2, declared);
+    const values = {};
+    for (const attribute of entity2.attributes) {
+      if (attribute.enumValues?.length)
+        values[attribute.name] = [...attribute.enumValues];
+    }
+    for (const machine of model.workflows.filter((w) => w.entity === entity2.name)) {
+      const states = machine.states.map((state) => state.name);
+      const column = Object.entries(values).find(([, list]) => states.some((s) => list.includes(s)))?.[0] ?? (entity2.attributes.some((a) => a.name === "status") ? "status" : undefined);
+      if (column)
+        values[column] = states;
+    }
+    return {
+      name: entity2.name,
+      table: bus.tableName,
+      label: formatDisplayName(entity2.name),
+      fields: entity2.attributes.map((attribute) => ({
+        name: attribute.name,
+        type: jsonType(attribute.type)
+      })),
+      values,
+      processes: model.sagas.filter((saga) => saga.entity === entity2.name).map((saga) => saga.name)
+    };
+  });
+}
+function renderRuleModel(entities) {
+  return `/**
+ * What a rule in this application may name, written when it was generated from
+ * its model: each record type's fields and their types, the values a closed
+ * field may hold (its enum, or its state machine's states) and the processes
+ * defined for it. The rule editor offers these and nothing else.
+ */
+
+export interface RuleModelEntity {
+  name: string;
+  table: string;
+  label: string;
+  fields: Array<{ name: string; type: "string" | "number" | "boolean" }>;
+  values: Record<string, string[]>;
+  processes: string[];
+}
+
+export const RULE_MODEL: RuleModelEntity[] = ${JSON.stringify(entities, null, 2)};
 `;
 }
 
@@ -20357,6 +20705,132 @@ function parseDecisionTableDirective(flowchart) {
     return null;
   }
 }
+var JDM_GRAPH_DIRECTIVE = "%%jdm-graph ";
+var GRAPH_NODE_TYPES = new Set([
+  "inputNode",
+  "outputNode",
+  "decisionTableNode",
+  "expressionNode",
+  "functionNode",
+  "switchNode"
+]);
+var FORBIDDEN_FUNCTION_SOURCE = /\b(?:import|require|fetch|eval|process|globalThis)\b/;
+function parseJdmGraphDirective(flowchart) {
+  const line = (flowchart ?? "").split(`
+`).map((l) => l.trim()).find((l) => l.startsWith(JDM_GRAPH_DIRECTIVE));
+  if (!line)
+    return null;
+  try {
+    const parsed = JSON.parse(line.slice(JDM_GRAPH_DIRECTIVE.length));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function validateJdmGraph(graph) {
+  const problems = [];
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const edges = Array.isArray(graph.edges) ? graph.edges : [];
+  const ids = new Set;
+  if (!nodes.length)
+    return ["the graph has no nodes"];
+  for (const node of nodes) {
+    const label = String(node.name ?? node.id);
+    ids.add(String(node.id));
+    if (typeof node.type !== "string" || !GRAPH_NODE_TYPES.has(node.type)) {
+      problems.push(`node "${label}" has an unsupported type "${String(node.type)}"`);
+      continue;
+    }
+    if (node.type === "inputNode" || node.type === "outputNode")
+      continue;
+    if (node.content === undefined || node.content === null) {
+      problems.push(`${node.type} "${label}" has no content, so the engine would reject it`);
+    }
+    if (node.type === "functionNode") {
+      const content = node.content;
+      const source = typeof content === "string" ? content : typeof content?.source === "string" ? content.source : "";
+      if (!/\bhandler\b/.test(source)) {
+        problems.push(`functionNode "${label}" defines no handler; write export const handler = async (input) => ({ ... })`);
+      }
+      if (FORBIDDEN_FUNCTION_SOURCE.test(source)) {
+        problems.push(`functionNode "${label}" uses import, require, fetch, eval, process or globalThis, which the sandbox does not allow`);
+      }
+    }
+  }
+  if (!nodes.some((n) => n.type === "inputNode"))
+    problems.push("the graph has no input node");
+  if (!nodes.some((n) => n.type === "outputNode"))
+    problems.push("the graph has no output node");
+  for (const edge of edges) {
+    if (!ids.has(String(edge.sourceId)) || !ids.has(String(edge.targetId))) {
+      problems.push(`edge "${String(edge.id)}" joins a node that is not in the graph`);
+    }
+  }
+  return problems;
+}
+function normalizeGraphActions(graph) {
+  const rewrite = (cell) => typeof cell === "string" ? cell.replace(/(["'])validation-error\1/g, "$1prevent$1") : cell;
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      const content = node.content;
+      if (node.type === "functionNode" && typeof content === "string") {
+        return { ...node, content: { source: content } };
+      }
+      const table = content;
+      if (node.type !== "decisionTableNode" || !Array.isArray(table?.rules)) {
+        return node;
+      }
+      const inputIds = new Set((table.inputs ?? []).map((column) => column.id));
+      return {
+        ...node,
+        content: withTransformData({
+          ...table,
+          rules: table.rules.map((row) => Object.fromEntries(Object.entries(row).map(([key, cell]) => [
+            key,
+            inputIds.has(key) ? emptyMeansBlank(rewrite(cell)) : rewrite(cell)
+          ])))
+        })
+      };
+    })
+  };
+}
+function emptyMeansBlank(cell) {
+  if (typeof cell !== "string")
+    return cell;
+  const text = cell.trim();
+  if (text === "null")
+    return 'null, ""';
+  if (text === "!= null")
+    return '!= null and != ""';
+  return cell;
+}
+function literalText(cell) {
+  const match = String(cell ?? "").trim().match(/^(?:'(.*)'|"(.*)")$/s);
+  return match ? match[1] ?? match[2] ?? "" : null;
+}
+function withTransformData(content) {
+  const outputs = content.outputs ?? [];
+  const fieldColumn = outputs.find((column) => column.field === "field");
+  const valueColumn = outputs.find((column) => column.field === "value");
+  const actionColumn = outputs.find((column) => column.field === "action");
+  if (!fieldColumn || !valueColumn || !actionColumn || outputs.some((column) => column.field === "transformData")) {
+    return content;
+  }
+  const dataColumn = { id: "transformData-auto", name: "Transform Data", field: "transformData" };
+  return {
+    ...content,
+    outputs: [...outputs, dataColumn],
+    rules: (content.rules ?? []).map((row) => {
+      const target = literalText(row[fieldColumn.id])?.trim();
+      const isTransform = literalText(row[actionColumn.id])?.trim() === "transform";
+      if (!isTransform || !target)
+        return { ...row, [dataColumn.id]: row[dataColumn.id] ?? "" };
+      const value = literalText(row[valueColumn.id]) ?? String(row[valueColumn.id] ?? "");
+      return { ...row, [dataColumn.id]: zenLiteral(JSON.stringify({ [target]: value })) };
+    })
+  };
+}
 function isBareLiteral(value) {
   return value === "true" || value === "false" || value === "null" || value !== "" && !Number.isNaN(Number(value));
 }
@@ -20377,12 +20851,12 @@ function zenInputCell(raw) {
     return "";
   const match = value.match(/^(>=|<=|!=|=|>|<)\s*(.*)$/);
   if (!match)
-    return zenCell(value);
+    return emptyMeansBlank(zenCell(value));
   const [, operator, operand] = match;
   const cell = zenCell(operand);
   if (!cell)
     return "";
-  return operator === "=" ? cell : `${operator} ${cell}`;
+  return emptyMeansBlank(operator === "=" ? cell : `${operator} ${cell}`);
 }
 function buildEditorDecisionTable(ruleName, table) {
   const inputs = (table.inputs ?? []).filter((column) => (column.field ?? "").trim() !== "");
@@ -20403,7 +20877,7 @@ function buildEditorDecisionTable(ruleName, table) {
         id: tableId,
         name: ruleName,
         type: "decisionTableNode",
-        content: {
+        content: withTransformData({
           hitPolicy: table.hitPolicy === "collect" ? "collect" : "first",
           inputs: inputs.map((column) => ({
             id: column.id,
@@ -20416,7 +20890,7 @@ function buildEditorDecisionTable(ruleName, table) {
             field: column.field ?? ""
           })),
           rules: rows
-        }
+        })
       },
       { id: "output", name: "Output", type: "outputNode" }
     ],
@@ -20498,6 +20972,24 @@ function compileRules(sections, onWarn = () => {}) {
     }
     try {
       const editorTable = parseDecisionTableDirective(section.flowchart);
+      const editorGraph = parseJdmGraphDirective(section.flowchart);
+      if (editorGraph) {
+        const problems = validateJdmGraph(editorGraph);
+        if (problems.length) {
+          onWarn(`Rule "${section.name}" has a graph that cannot run: ${problems.join("; ")}.`);
+          continue;
+        }
+        compiled.push({
+          name: section.name,
+          entity: section.entity,
+          tableName: toTableName(section.entity),
+          event: section.event,
+          operation: eventToOperation(section.event),
+          priority: section.priority ?? 100,
+          jdmContent: JSON.stringify(normalizeGraphActions(editorGraph))
+        });
+        continue;
+      }
       const ast = parseMermaidFlowchart(section.flowchart);
       if (!editorTable && !ast.nodes.size) {
         onWarn(`Rule "${section.name}" has no nodes; skipping.`);
@@ -20702,6 +21194,8 @@ async function generateApplication(options) {
     stage = "artifacts";
     await writeModelSource(options.outputDir, options.sources, log);
     await writeManual(options.outputDir, model, options, log);
+    await writeRuleModel(options.outputDir, model, log);
+    await writeModelLogic(options.outputDir, options.sources, log);
     if (options.writeManifestFile !== false) {
       await writeManifest(options.outputDir, model, options, options.manifest ?? {}, log);
     }
@@ -20714,6 +21208,32 @@ async function generateApplication(options) {
   } catch (err) {
     log.event("pipeline.generation.failed", { project: options.projectName, stage, err });
     throw err;
+  }
+}
+async function writeRuleModel(outputDir, model, log = NO_LOG) {
+  const directory = join(outputDir, "frontend", "src", "lib");
+  try {
+    await access(directory);
+  } catch {
+    return;
+  }
+  try {
+    await writeFile(join(directory, "rule-model.ts"), renderRuleModel(buildRuleModel(model)), "utf-8");
+  } catch (err) {
+    log.event("pipeline.artifact.write_failed", { artifact: "rule-model.ts", err });
+  }
+}
+async function writeModelLogic(outputDir, sources, log = NO_LOG) {
+  const directory = join(outputDir, "frontend", "src", "lib");
+  try {
+    await access(directory);
+  } catch {
+    return;
+  }
+  try {
+    await writeFile(join(directory, "model-logic.ts"), renderModelLogic(buildModelLogic(sources)), "utf-8");
+  } catch (err) {
+    log.event("pipeline.artifact.write_failed", { artifact: "model-logic.ts", err });
   }
 }
 async function writeManual(outputDir, model, options, log = NO_LOG) {
@@ -22524,11 +23044,14 @@ class CheckEngine {
       }
     }
     const triggered = new Set(this.src.findAll(/^\s*%%action\b/).map(({ text }) => text.match(/\bworkflow:\s*(\S+)/)?.[1]).filter((name) => !!name));
+    const drawnRules = this.src.findAll(/^\s*%%(?:jdm-graph|decision-table)\s/).map(({ text }) => text);
     for (const { lineNo, text } of this.src.findAll(/^%%workflow\b/)) {
       const m = text.match(/^%%workflow\s+(\w+)[^\n]*kind:\s*saga/);
       if (!m || !/\btrigger:\s*rule\b/.test(text))
         continue;
       if (triggered.has(m[1]))
+        continue;
+      if (drawnRules.some((line) => new RegExp(`\\b${m[1]}\\b`).test(line)))
         continue;
       this.warn("EML286", `Saga "${m[1]}" is rule-triggered but no %%action names it.`, {
         line: lineNo,

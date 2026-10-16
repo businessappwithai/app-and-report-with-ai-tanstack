@@ -475,6 +475,24 @@ var appwithai_language_default = {
         EML103: "A column the generator manages, declared in the model - the declaration is ignored."
       }
     },
+    optimisticLocking: {
+      description: "Every generated stack refuses a save made against a record version someone else has already moved past, instead of letting the second save silently overwrite the first. It rides on the managed `version` column, so a model declares nothing to get it.",
+      contract: {
+        version: "Starts at 1 on insert and is raised by one on every update, by the application - a `version` supplied in a request body is ignored.",
+        read: 'GET of one record answers with `ETag: "<version>"`; the record body carries `version` too.',
+        write: 'PUT and PATCH take `If-Match: "<version>"` - the version the caller read. `"3"`, `3`, `W/"3"` and `v3` are accepted; a value naming no version is a 400. With no header, or `*`, the save is unconditional.',
+        conflict: 'A save whose If-Match is older than the stored version is refused with 409 and `details: { code: "VERSION_CONFLICT", entity, id, expectedVersion, currentVersion }`. The record itself is not in the body: the client re-reads it through GET, which applies field access.',
+        atomicity: "The comparison and the write are one step - the NestJS stack locks the row (SELECT ... FOR UPDATE) and updates WHERE version = the version it read, the browser stack updates WHERE version = ..., and the node-rest runtime checks and writes synchronously. Two saves of one version therefore produce exactly one 200 and one 409, never two 200s."
+      },
+      form: "The record form sends the version it opened. On VERSION_CONFLICT it lists the fields the other save changed - theirs beside yours, marking fields both changed - and offers Reload their version (discard my edits), Overwrite with mine (save again against the version just read, itself checked) or Keep editing. The NestJS front end draws it as a dialog; the browser build as an inline panel, because it runs inside an iframe where a modal is not guaranteed.",
+      stacks: {
+        "tanstack-nestjs": "bus.controller (If-Match, ETag) and bus.service (row lock + versioned UPDATE); frontend lib/version-conflict.ts and components/admin/version-conflict-dialog.tsx; generated test suite 22-optimistic-locking.",
+        browser: "server/modules/bus.routes.js and ui/views/entity-form.js in the standalone runtime; the same 409 body as the NestJS stack.",
+        "node-rest": "services.js and server.js in the zero-dependency runtime: version, ETag, If-Match and the same 409 body.",
+        "enterprise-reporting": "The generated update server function takes the version the form read and refuses a stale one with VERSION_CONFLICT."
+      },
+      manual: "The generated manual carries a section, When two people change the same record, naming the three choices."
+    },
     alsoDerived: [
       "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
       "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
@@ -501,6 +519,20 @@ var appwithai_language_default = {
         EML152: "warning — an entity with no `%%entity ... help:` at all.",
         EML153: "warning — the columns of one entity with no `%%field ... help:`, reported once per entity and naming them. One diagnostic per column would bury every other finding on a model that skipped help entirely, which is the common case."
       }
+    },
+    completeness: {
+      description: "Every Application Dictionary value is mandatory, in the model itself. The generated application has no screen, label, lookup, dropdown or explanation the model does not declare, and nothing after authoring adds one — so a value the model leaves out is a gap in every application generated from it.",
+      codes: {
+        EML119: "the FK modifier on a reference column — without it the lookup is lost",
+        EML146: "the %%field ... enum: binding on a status, state or stage column — without it the dropdown is lost",
+        EML151: "help that describes its subject rather than restating its name",
+        EML152: "%%entity <Name> help: on an entity",
+        EML153: "%%field <Entity>.<column> help: on every column but the primary key",
+        EML154: "name: on a %%category — without it the grouping is dropped"
+      },
+      required: "A delivered model carries none of these six. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
+      planFirst: "Decide every value before writing the document — per entity its help, category and parent; per column its type, modifiers, FK target, enum binding and help; per cross-entity step the row it aims at (targetSource or targetField, else EML265). A value improvised while typing the ERD is the one that comes out as a restatement.",
+      reviewUntilClean: "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the six codes and a 22/0 audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
     },
     masterDetail: {
       description: "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
@@ -1092,8 +1124,8 @@ var appwithai_language_default = {
         },
         {
           type: "UpdateEntity",
-          purpose: "Write a field, by default on the triggering record.",
-          properties: ["entity", "field", "value"],
+          purpose: "Write a field, by default on the triggering record. To write another entity, name it and say which row: `target: {{id}}` (a value an earlier step published) or `target: <fk_column>` (a column on that entity matched against the triggering record).",
+          properties: ["entity", "target", "field", "value"],
           example: `%%step s3 type: UpdateEntity
 %%step s3 field: status
 %%step s3 value: {{tier}}`
@@ -1385,7 +1417,7 @@ var appwithai_language_default = {
           chartNeedsAxes: "`chart:` without both `x:` and `y:` is an error (EML294) rather than a silent fall back to a table: a chart that cannot say what it plots renders empty, which reads as no data rather than as a missing declaration.",
           namesAreKeys: "The name is the pack key, so a duplicate silently replaces the earlier report. Declared twice is an error (EML292).",
           againstWhichSchema: "The query runs against the *generated application's* database, so it names `bus_` tables. It is not checked against a live schema at author time - the checker has no database - but `check-reporting-pack.ts in the orchestrator` executes every query in the pack against a real generated schema in CI.",
-          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. That platform is composed beside a deployed application by docker-compose; it is not in the browser application and not in the downloadable zip."
+          whereItIsCompiled: "Compiled twice, by two readers, and neither replaces the other. Here, packages/generator/src/reports/index.ts puts each report into the generated application itself: a sys_report row served at /sys/reports and shown under Admin > Analysis in the NestJS stack, and a model.json entry served at /api/reports and shown under Reports in the browser application. Separately, businessappwithai/app-and-report-with-ai-tanstack compiles the same directive with common/build/reporting-pack.ts into a saved query, a report definition and, where chart: is set, a chart, seeded into the Enterprise Reporting platform ahead of the derived baseline. The real platform runs beside a deployed application, under the orchestrator's docker-compose or as the report service of the deployable archive's own compose file, and the browser application previews the same pack; see generatorContract.reportingApplication."
         }
       }
     ],
@@ -1409,6 +1441,75 @@ var appwithai_language_default = {
   },
   generatorContract: {
     description: "How each section feeds the generator pipeline.",
+    reportingApplication: {
+      description: "One model generates two applications. The second is the Enterprise Reporting platform (businessappwithai/enterprise_reporting_tanstack): its own server, database, users and sign-in, loaded with a reporting pack derived from the model. Nothing in the pack is written by hand. packages/generator/src/reporting/pack.ts (buildReportingPack) in app-with-ai-tanstack is the single derivation, and every surface that serves reports reads its output, so the surfaces cannot disagree about what reports a model has.",
+      derivation: "packages/generator/src/reporting/pack.ts -> buildReportingPack(parsedModel, { projectName, databaseName, ... }). Pure: no filesystem, no clock, no database.",
+      pack: {
+        dataSource: "The generated application's database, registered as a PostgreSQL data source.",
+        queries: "Saved SQL over the application's bus_ tables, each carrying the tables it reads.",
+        reports: "Report definitions over those queries.",
+        charts: "Chart definitions (bar, line, pie, area) over those queries.",
+        dashboards: "One overview dashboard: up to four authored charts first, then one tile for each of the six most central entities.",
+        access: "One reporting role per declared %%rbac role, plus the administrator, each with the bus_ tables it may read."
+      },
+      derivedFrom: [
+        {
+          declares: "an entity",
+          yields: "a register: its display column, up to two enum columns and two numeric columns, newest first"
+        },
+        {
+          declares: "an %%enum-bound column",
+          yields: "a breakdown chart and report, pie at six values or fewer, bar above; at most two per entity, status/state first"
+        },
+        {
+          declares: "created_at",
+          yields: "volume per month over two years, as a line"
+        },
+        {
+          declares: "a kind: state workflow over a status or state column",
+          yields: "a lifecycle over the declared states, in the diagram's order, zeroes included"
+        },
+        {
+          declares: "integer and decimal columns",
+          yields: "measures: totals and averages, grouped by the entity's primary enum column"
+        },
+        {
+          declares: "a oneToMany relationship",
+          yields: "children per parent, ranked"
+        },
+        {
+          declares: "%%report",
+          yields: "the author's own query, report and (with chart:) chart, listed first and placed at the top of the dashboard; a derived item with the same name is dropped in its favour"
+        },
+        {
+          declares: "%%rbac ... .read",
+          yields: "the tables each reporting role may read"
+        },
+        {
+          declares: "%%entity help: / %%field help:",
+          yields: "the names and descriptions of every report, chart and query"
+        }
+      ],
+      surfaces: [
+        {
+          id: "orchestrator",
+          where: "businessappwithai/app-and-report-with-ai-tanstack: ./start.sh, common/build/reporting-pack.ts",
+          runs: "the real platform built from its own source, beside the deployed application, behind nginx at /report (the application at /app, both sets of accounts at /)"
+        },
+        {
+          id: "deployable-archive",
+          where: "the NestJS stack's reporting/ directory and the report and report-seeder services of its docker-compose.yml",
+          runs: "the real platform, cloned at REPORT_REF and seeded once from reporting/reporting-pack.json, on port 3100"
+        },
+        {
+          id: "browser-application",
+          where: "--standalone: model.json carries the pack; #/report in the running application",
+          runs: "a preview drawn in the platform's own layout and tokens, labelled as one on every screen; its Administration (users, roles, per-role table grants, data source, activity log) is real, and the screens that need the platform's servers say where the real ones are"
+        }
+      ],
+      signIn: "Two applications, two sign-ins, never merged. The application's account for a role is <role>@<app>.example.com and the reporting account is <role>@<app>.reports.example.com; the administrator is admin@admin.com on both sides, as two different accounts in two different user tables. Neither password works on the other side. A role in the application decides what a user may do to a record; a reporting role decides which tables their queries may read. Only read rules narrow a reporting role.",
+      verification: "The checker holds %%report to its shape (EML290-EML296) and cannot see whether a column exists. common/scripts/check-reporting-pack.ts in app-and-report-with-ai-tanstack runs every derived and authored query against a schema the generator actually emitted."
+    },
     pipeline: [
       "1. ERD section -> MermaidParser -> Entity[] + Relationship[] -> migrations, DTOs, services, controllers, forms, tables. The same pass reads %%index into entity.indexes and %%enum / %%field enum: into bound enums.",
       "2. %%category directives -> category.parser -> resolveCategories -> Application Dictionary groups on the generated dashboard. A model declaring none gets a single 'General' category holding every entity.",
@@ -6830,6 +6931,132 @@ function parseDecisionTableDirective(flowchart) {
     return null;
   }
 }
+var JDM_GRAPH_DIRECTIVE = "%%jdm-graph ";
+var GRAPH_NODE_TYPES = new Set([
+  "inputNode",
+  "outputNode",
+  "decisionTableNode",
+  "expressionNode",
+  "functionNode",
+  "switchNode"
+]);
+var FORBIDDEN_FUNCTION_SOURCE = /\b(?:import|require|fetch|eval|process|globalThis)\b/;
+function parseJdmGraphDirective(flowchart) {
+  const line = (flowchart ?? "").split(`
+`).map((l) => l.trim()).find((l) => l.startsWith(JDM_GRAPH_DIRECTIVE));
+  if (!line)
+    return null;
+  try {
+    const parsed = JSON.parse(line.slice(JDM_GRAPH_DIRECTIVE.length));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function validateJdmGraph(graph) {
+  const problems = [];
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const edges = Array.isArray(graph.edges) ? graph.edges : [];
+  const ids = new Set;
+  if (!nodes.length)
+    return ["the graph has no nodes"];
+  for (const node of nodes) {
+    const label = String(node.name ?? node.id);
+    ids.add(String(node.id));
+    if (typeof node.type !== "string" || !GRAPH_NODE_TYPES.has(node.type)) {
+      problems.push(`node "${label}" has an unsupported type "${String(node.type)}"`);
+      continue;
+    }
+    if (node.type === "inputNode" || node.type === "outputNode")
+      continue;
+    if (node.content === undefined || node.content === null) {
+      problems.push(`${node.type} "${label}" has no content, so the engine would reject it`);
+    }
+    if (node.type === "functionNode") {
+      const content = node.content;
+      const source = typeof content === "string" ? content : typeof content?.source === "string" ? content.source : "";
+      if (!/\bhandler\b/.test(source)) {
+        problems.push(`functionNode "${label}" defines no handler; write export const handler = async (input) => ({ ... })`);
+      }
+      if (FORBIDDEN_FUNCTION_SOURCE.test(source)) {
+        problems.push(`functionNode "${label}" uses import, require, fetch, eval, process or globalThis, which the sandbox does not allow`);
+      }
+    }
+  }
+  if (!nodes.some((n) => n.type === "inputNode"))
+    problems.push("the graph has no input node");
+  if (!nodes.some((n) => n.type === "outputNode"))
+    problems.push("the graph has no output node");
+  for (const edge of edges) {
+    if (!ids.has(String(edge.sourceId)) || !ids.has(String(edge.targetId))) {
+      problems.push(`edge "${String(edge.id)}" joins a node that is not in the graph`);
+    }
+  }
+  return problems;
+}
+function normalizeGraphActions(graph) {
+  const rewrite = (cell) => typeof cell === "string" ? cell.replace(/(["'])validation-error\1/g, "$1prevent$1") : cell;
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      const content = node.content;
+      if (node.type === "functionNode" && typeof content === "string") {
+        return { ...node, content: { source: content } };
+      }
+      const table = content;
+      if (node.type !== "decisionTableNode" || !Array.isArray(table?.rules)) {
+        return node;
+      }
+      const inputIds = new Set((table.inputs ?? []).map((column) => column.id));
+      return {
+        ...node,
+        content: withTransformData({
+          ...table,
+          rules: table.rules.map((row) => Object.fromEntries(Object.entries(row).map(([key, cell]) => [
+            key,
+            inputIds.has(key) ? emptyMeansBlank(rewrite(cell)) : rewrite(cell)
+          ])))
+        })
+      };
+    })
+  };
+}
+function emptyMeansBlank(cell) {
+  if (typeof cell !== "string")
+    return cell;
+  const text = cell.trim();
+  if (text === "null")
+    return 'null, ""';
+  if (text === "!= null")
+    return '!= null and != ""';
+  return cell;
+}
+function literalText(cell) {
+  const match = String(cell ?? "").trim().match(/^(?:'(.*)'|"(.*)")$/s);
+  return match ? match[1] ?? match[2] ?? "" : null;
+}
+function withTransformData(content) {
+  const outputs = content.outputs ?? [];
+  const fieldColumn = outputs.find((column) => column.field === "field");
+  const valueColumn = outputs.find((column) => column.field === "value");
+  const actionColumn = outputs.find((column) => column.field === "action");
+  if (!fieldColumn || !valueColumn || !actionColumn || outputs.some((column) => column.field === "transformData")) {
+    return content;
+  }
+  const dataColumn = { id: "transformData-auto", name: "Transform Data", field: "transformData" };
+  return {
+    ...content,
+    outputs: [...outputs, dataColumn],
+    rules: (content.rules ?? []).map((row) => {
+      const target = literalText(row[fieldColumn.id])?.trim();
+      const isTransform = literalText(row[actionColumn.id])?.trim() === "transform";
+      if (!isTransform || !target)
+        return { ...row, [dataColumn.id]: row[dataColumn.id] ?? "" };
+      const value = literalText(row[valueColumn.id]) ?? String(row[valueColumn.id] ?? "");
+      return { ...row, [dataColumn.id]: zenLiteral(JSON.stringify({ [target]: value })) };
+    })
+  };
+}
 function isBareLiteral(value) {
   return value === "true" || value === "false" || value === "null" || value !== "" && !Number.isNaN(Number(value));
 }
@@ -6850,12 +7077,12 @@ function zenInputCell(raw) {
     return "";
   const match = value.match(/^(>=|<=|!=|=|>|<)\s*(.*)$/);
   if (!match)
-    return zenCell(value);
+    return emptyMeansBlank(zenCell(value));
   const [, operator, operand] = match;
   const cell = zenCell(operand);
   if (!cell)
     return "";
-  return operator === "=" ? cell : `${operator} ${cell}`;
+  return emptyMeansBlank(operator === "=" ? cell : `${operator} ${cell}`);
 }
 function buildEditorDecisionTable(ruleName, table) {
   const inputs = (table.inputs ?? []).filter((column) => (column.field ?? "").trim() !== "");
@@ -6876,7 +7103,7 @@ function buildEditorDecisionTable(ruleName, table) {
         id: tableId,
         name: ruleName,
         type: "decisionTableNode",
-        content: {
+        content: withTransformData({
           hitPolicy: table.hitPolicy === "collect" ? "collect" : "first",
           inputs: inputs.map((column) => ({
             id: column.id,
@@ -6889,7 +7116,7 @@ function buildEditorDecisionTable(ruleName, table) {
             field: column.field ?? ""
           })),
           rules: rows
-        }
+        })
       },
       { id: "output", name: "Output", type: "outputNode" }
     ],
@@ -6971,6 +7198,24 @@ function compileRules(sections, onWarn = () => {}) {
     }
     try {
       const editorTable = parseDecisionTableDirective(section.flowchart);
+      const editorGraph = parseJdmGraphDirective(section.flowchart);
+      if (editorGraph) {
+        const problems = validateJdmGraph(editorGraph);
+        if (problems.length) {
+          onWarn(`Rule "${section.name}" has a graph that cannot run: ${problems.join("; ")}.`);
+          continue;
+        }
+        compiled.push({
+          name: section.name,
+          entity: section.entity,
+          tableName: toTableName(section.entity),
+          event: section.event,
+          operation: eventToOperation(section.event),
+          priority: section.priority ?? 100,
+          jdmContent: JSON.stringify(normalizeGraphActions(editorGraph))
+        });
+        continue;
+      }
       const ast = parseMermaidFlowchart(section.flowchart);
       if (!editorTable && !ast.nodes.size) {
         onWarn(`Rule "${section.name}" has no nodes; skipping.`);
@@ -9182,11 +9427,14 @@ class CheckEngine {
       }
     }
     const triggered = new Set(this.src.findAll(/^\s*%%action\b/).map(({ text }) => text.match(/\bworkflow:\s*(\S+)/)?.[1]).filter((name) => !!name));
+    const drawnRules = this.src.findAll(/^\s*%%(?:jdm-graph|decision-table)\s/).map(({ text }) => text);
     for (const { lineNo, text } of this.src.findAll(/^%%workflow\b/)) {
       const m = text.match(/^%%workflow\s+(\w+)[^\n]*kind:\s*saga/);
       if (!m || !/\btrigger:\s*rule\b/.test(text))
         continue;
       if (triggered.has(m[1]))
+        continue;
+      if (drawnRules.some((line) => new RegExp(`\\b${m[1]}\\b`).test(line)))
         continue;
       this.warn("EML286", `Saga "${m[1]}" is rule-triggered but no %%action names it.`, {
         line: lineNo,
@@ -10648,6 +10896,38 @@ CREATE TABLE IF NOT EXISTS sys_transition_access (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- The \`%%report\` questions this application answers about itself.
+--
+-- These were served from \`model.json\` in memory until now, which made them the
+-- one part of the application that could be read and never changed: no table,
+-- so no create, update or delete. The NestJS stack has had \`sys_report\` since
+-- migration 018 and this is the same shape deliberately, down to the column
+-- names, so one model produces two applications that agree about what a report
+-- is.
+--
+-- \`sql_text\` rather than \`sql\`: the column holds a statement and \`sql\` is a
+-- reserved word in enough dialects that naming it that invites a quoting bug.
+-- Every read of it still goes through \`assertReadOnly\` at run time — the table
+-- is ordinary and an administrator can now write to it, so the runtime trusts
+-- what it is handed exactly as much as it did before, which is not at all.
+CREATE TABLE IF NOT EXISTS sys_report (
+  sys_report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(120) NOT NULL UNIQUE,
+  title VARCHAR(255) NOT NULL,
+  entity_name VARCHAR(100),
+  table_name VARCHAR(100),
+  chart VARCHAR(20),
+  x_axis VARCHAR(100),
+  y_axis VARCHAR(100),
+  help TEXT,
+  sql_text TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sys_report_table ON sys_report(table_name, sort_order);
 CREATE INDEX IF NOT EXISTS idx_sys_column_table ON sys_column(sys_table_id);
 CREATE INDEX IF NOT EXISTS idx_sys_field_tab ON sys_field(sys_tab_id);
 CREATE INDEX IF NOT EXISTS idx_sys_session_token ON sys_session(token);
@@ -10718,6 +10998,25 @@ CREATE TABLE IF NOT EXISTS rpt_session (
 
 CREATE INDEX IF NOT EXISTS idx_rpt_session_token ON rpt_session(token);
 CREATE INDEX IF NOT EXISTS idx_rpt_user_email ON rpt_user(email);
+
+-- What happened in the reporting application: sign-ins, report and chart runs
+-- (allowed or refused), and every administrator change to its users, roles and
+-- table grants. It is what the reporting side's System Logs screen reads, and
+-- the only record of who ran what — a refusal is logged as well as a run,
+-- because a role's access is only visible in what it was denied.
+CREATE TABLE IF NOT EXISTS rpt_activity_log (
+  rpt_activity_log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  occurred_at TIMESTAMPTZ DEFAULT NOW(),
+  rpt_user_id UUID,
+  email VARCHAR(255),
+  action VARCHAR(50) NOT NULL,
+  target VARCHAR(255),
+  outcome VARCHAR(20) NOT NULL,
+  detail TEXT,
+  duration_ms INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_rpt_activity_log_at ON rpt_activity_log(occurred_at DESC);
 `,
   "boot.js": `/**
  * Starting the application.
@@ -11080,19 +11379,25 @@ async function boot(message) {
 }
 
 /**
- * Resolve PGlite: vendored copy, then the URL the page supplied, then the CDN.
+ * Where PGlite lives when it is not in \`vendor/pglite/\`: a URL the generator
+ * wrote in from \`--pglite-url\` (or the hosting page's own copy), or nothing.
+ */
+const PGLITE_URL = "";
+
+/**
+ * Resolve PGlite: the vendored copy, then the URL written in above, then the one
+ * the page supplied. Never a CDN.
  *
- * An application generated with \`--vendor-pglite\` carries its own copy and
- * never touches the network; one generated without it needs somewhere to get
- * ~10MB of WebAssembly, and saying so in the log beats failing silently on a
- * plane.
+ * \`appwithai-wasm generate\` vendors PGlite by default, and \`serve.mjs\` serves
+ * \`vendor/pglite/\` from the installed \`@electric-sql/pglite\` when it was not.
+ * Postgres is the application's database, so it is shipped with the
+ * application rather than fetched from a third party at the moment someone
+ * opens it — behind a firewall, offline, or on the day that host is down.
  */
 async function loadPGlite(base, supplied) {
-  const candidates = [
-    new URL("vendor/pglite/index.js", base).href,
-    supplied,
-    "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.5/dist/index.js",
-  ].filter(Boolean);
+  const candidates = [new URL("vendor/pglite/index.js", base).href, PGLITE_URL, supplied].filter(
+    Boolean
+  );
 
   const failures = [];
   for (const candidate of candidates) {
@@ -11117,7 +11422,12 @@ async function loadPGlite(base, supplied) {
       failures.push(\`\${candidate}: \${error.message}\`);
     }
   }
-  throw new Error(\`Could not load PGlite.\\n\${failures.join("\\n")}\`);
+  throw new Error(
+    "Could not load PostgreSQL (PGlite). This application does not carry its own copy.\\n" +
+      "Generate it with \`appwithai-wasm generate\` (which copies PGlite into vendor/pglite), " +
+      "or start it with \`npm install && npm start\`, which serves the installed package.\\n" +
+      failures.join("\\n")
+  );
 }
 
 async function respond(port, message) {
@@ -11446,17 +11756,34 @@ main().catch((error) => {
  *
  * This serves files. The application server is \`host/node-host.mjs\`, or the
  * browser itself.
+ *
+ * \`vendor/pglite/\` is served from the installed \`@electric-sql/pglite\` when the
+ * application was not generated with its own copy — an application downloaded
+ * from the in-browser generator, say, which cannot carry 17MB of WebAssembly in
+ * a shell script. \`npm install\` puts it there. Postgres is never fetched from a
+ * CDN.
  */
 
 import { createServer } from "node:http";
 import { existsSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
-import { dirname, extname, join, normalize, resolve } from "node:path";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 const portIndex = process.argv.indexOf("--port");
 const PORT = Number(portIndex >= 0 ? process.argv[portIndex + 1] : process.env.PORT || 4000);
+
+/** The installed PGlite's \`dist/\`, or null when it is not installed. */
+function installedPglite() {
+  try {
+    return dirname(createRequire(join(ROOT, "package.json")).resolve("@electric-sql/pglite"));
+  } catch {
+    return null;
+  }
+}
+const PGLITE_DIST = installedPglite();
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -11486,6 +11813,11 @@ createServer(async (request, response) => {
       return;
     }
     if (existsSync(target) && statSync(target).isDirectory()) target = join(target, "index.html");
+    if (!existsSync(target) && PGLITE_DIST && relative.startsWith("vendor/pglite/")) {
+      const installed = normalize(join(PGLITE_DIST, relative.slice("vendor/pglite/".length)));
+      // Inside the package's dist/, the same as the ROOT check above.
+      if (installed.startsWith(PGLITE_DIST + sep)) target = installed;
+    }
     if (!existsSync(target)) {
       response.writeHead(404).end("Not found");
       return;
@@ -11540,6 +11872,7 @@ import { modelRoutes } from "./modules/model.routes.js";
 import { reportsRoutes } from "./modules/reports.routes.js";
 import { reportAuthRoutes } from "./modules/report-auth.routes.js";
 import { reportingRoutes } from "./modules/reporting.routes.js";
+import { reportAdminRoutes } from "./modules/report-admin.routes.js";
 
 const MIME = {
   html: "text/html; charset=utf-8",
@@ -11610,6 +11943,8 @@ export async function createServer(options) {
    */
   api.mount("/report-auth", reportAuthRoutes(model));
   api.mount("/reporting", reportingRoutes(model));
+  // Its administration: users, roles, table grants, the data source, the log.
+  api.mount("/report-admin", reportAdminRoutes(model));
 
   // \`/workflow-definitions\` is what the dictionary screens ask for; keeping the
   // alias here rather than duplicating handlers means one implementation.
@@ -11705,7 +12040,7 @@ export async function createServer(options) {
       if (asset) return asset;
       return errorResponse(notFound(\`Nothing at \${pathname}\`));
     } catch (error) {
-      return errorResponse(error);
+      return errorResponse(error, request.method);
     }
   }
 
@@ -11890,7 +12225,7 @@ export async function destroySession(db, token) {
  * would be a different application from the one the model described.
  *
  * The PGlite class is injected rather than imported: the Node host resolves it
- * from node_modules and the browser host from a vendored (or CDN) ES module,
+ * from node_modules and the browser host from a vendored ES module (never a CDN),
  * and this file has to be the same file in both.
  */
 
@@ -11920,6 +12255,22 @@ export class Database {
     return result.rows || [];
   }
 
+  /**
+   * Run one statement and name its NUMERIC columns.
+   *
+   * Postgres returns NUMERIC (and DECIMAL, which money compiles to) as a string
+   * so no digit is lost, and a string is indistinguishable from a text column
+   * holding digits — so a screen that wants to format a number has to be told
+   * which columns are numbers. OID 1700 is NUMERIC.
+   */
+  async queryWithNumeric(sql, params = []) {
+    const result = await this.pg.query(sql, params);
+    const numeric = (result.fields || [])
+      .filter((field) => field.dataTypeID === 1700)
+      .map((field) => field.name);
+    return { rows: result.rows || [], numeric };
+  }
+
   async one(sql, params = []) {
     const rows = await this.query(sql, params);
     return rows[0] || null;
@@ -11936,6 +12287,45 @@ export class Database {
   async exec(sql) {
     if (!sql || !sql.trim()) return;
     await this.pg.exec(sql);
+  }
+
+  /**
+   * Run \`work\` in one transaction, handing it a Database bound to it.
+   *
+   * Not for atomicity alone. On the browser's \`idb://\` store PGlite writes its
+   * files back to IndexedDB after every statement made outside a transaction,
+   * so a seed of a thousand statements is a thousand flushes — measured at over
+   * three minutes against about two seconds in memory. Inside a transaction the
+   * flush happens once, at the end.
+   */
+  async transaction(work) {
+    if (this.inTransaction || typeof this.pg.transaction !== "function") return work(this);
+    return this.pg.transaction(async (tx) => {
+      const bound = new Database(tx);
+      bound.inTransaction = true;
+      return work(bound);
+    });
+  }
+
+  /**
+   * Run \`work\`, and if it throws undo only what it did.
+   *
+   * A statement that fails inside a transaction aborts the whole transaction, so
+   * a caller that tolerates a failure — a sample row that breaks a constraint —
+   * needs a savepoint around it. Outside a transaction there is nothing to
+   * abort and \`work\` runs as it is.
+   */
+  async attempt(work) {
+    if (!this.inTransaction) return work();
+    await this.pg.exec("SAVEPOINT attempt");
+    try {
+      const result = await work();
+      await this.pg.exec("RELEASE SAVEPOINT attempt");
+      return result;
+    } catch (error) {
+      await this.pg.exec("ROLLBACK TO SAVEPOINT attempt");
+      throw error;
+    }
   }
 
   async close() {
@@ -12782,7 +13172,60 @@ export function text(body, init = {}) {
  * in the user's own browser against the user's own data, so hiding the message
  * would only make the app harder to debug without protecting anyone.
  */
-export function errorResponse(error) {
+/** \`Key (account_number)=(ACC-1) already exists.\` → \`account number\` */
+function columnsFromDetail(detail) {
+  const named = /^Key \\(([^)]+)\\)=/.exec(detail ?? "");
+  return named ? named[1].split(/\\s*,\\s*/).map((column) => column.replace(/_/g, " ")).join(" and ") : null;
+}
+
+/**
+ * A database constraint violation, as the status it deserves.
+ *
+ * PGlite raises these as plain errors carrying Postgres's SQLSTATE, so without
+ * this every one was a 500 quoting the raw message: a duplicate account number
+ * told the caller the server had broken, and a malformed id leaked
+ * \`invalid input syntax for type uuid\`. The NestJS stack maps the same codes in
+ * its exception filter (http-exception.filter.ts.hbs), and this follows it so
+ * the two stacks answer a conflicting write the same way. Values are never
+ * echoed back — only column names — since the conflicting value can be someone
+ * else's data.
+ */
+function databaseError(error, method) {
+  const code = typeof error?.code === "string" ? error.code : "";
+  if (!/^(23|22)/.test(code)) return null;
+  const columns = columnsFromDetail(error.detail);
+  const where = columns ? \` (\${columns})\` : "";
+  switch (code) {
+    case "23505":
+      return new HttpError(409, \`A record with the same value\${where} already exists.\`);
+    case "23503":
+      return method === "DELETE"
+        ? new HttpError(409, "This record is still referenced by other records.")
+        : new HttpError(400, \`A referenced record\${where} does not exist.\`);
+    case "23502": {
+      const field = error.column ? \` (\${String(error.column).replace(/_/g, " ")})\` : where;
+      return new HttpError(400, \`A required field\${field} was missing.\`);
+    }
+    case "23514":
+      return new HttpError(400, \`A value\${where} failed a database constraint.\`);
+    case "23P01":
+      return new HttpError(409, \`A record with an overlapping value\${where} already exists.\`);
+    case "22001":
+      return new HttpError(400, "A value was too long for its column.");
+    case "22P02":
+    case "22007":
+    case "22008":
+      return new HttpError(400, "A value was not valid for its column type.");
+    default:
+      return null;
+  }
+}
+
+export function errorResponse(error, method) {
+  if (!(error instanceof HttpError)) {
+    const mapped = databaseError(error, method);
+    if (mapped) error = mapped;
+  }
   const status = error instanceof HttpError ? error.status : 500;
   const body = {
     statusCode: status,
@@ -13187,6 +13630,34 @@ export async function destroyReportSession(db, token) {
   if (token) await db.remove("rpt_session", { token });
 }
 `,
+  "server/lib/report-log.js": `/**
+ * The reporting application's activity log — \`rpt_activity_log\`.
+ *
+ * Written by the sign-in, by every report and chart run, and by every
+ * administrator change; read by the System Logs screen. A failure to write it
+ * is swallowed: the log records what happened, and losing a line of it must
+ * never be the reason a report did not run or a sign-in was refused.
+ *
+ * Nothing that could carry business data goes in \`detail\` — no row values, no
+ * passwords, and never a query's result. A refusal names the tables it refused,
+ * which is the one thing the reader needs to see.
+ */
+export async function logReportActivity(db, entry) {
+  try {
+    await db.insert("rpt_activity_log", {
+      rpt_user_id: entry.user?.id ?? null,
+      email: entry.user?.email ?? entry.email ?? null,
+      action: entry.action,
+      target: entry.target ?? null,
+      outcome: entry.outcome,
+      detail: entry.detail ?? null,
+      duration_ms: entry.durationMs ?? null,
+    });
+  } catch {
+    // Deliberately ignored — see above.
+  }
+}
+`,
   "server/lib/router.js": `/**
  * A pattern router over Web \`Request\`.
  *
@@ -13335,7 +13806,7 @@ export class Router {
       const result = await matched.route.handler(request, ctx);
       return result instanceof Response ? result : errorResponse(new Error("Handler returned no Response"));
     } catch (error) {
-      return errorResponse(error);
+      return errorResponse(error, request.method);
     }
   }
 }
@@ -13590,6 +14061,196 @@ function evaluateGraph(graph, record, columns) {
   return { results, trace };
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Graphs authored in the graph editor: nodes that carry \`content\`              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * True for a graph whose nodes *compute* — an expression, function or switch
+ * with real content, or a chain of more than one decision table.
+ *
+ * Everything else is a compiled \`%%action\` table or a drawn flowchart and keeps
+ * its existing path. Without this split the editor's graphs were read as prose:
+ * a function node was handed to \`interpretAction\` by its *name*, and decided
+ * whatever its label sounded like.
+ */
+function isComputedGraph(graph) {
+  const nodes = graph.nodes || [];
+  const computes = nodes.some(
+    (node) =>
+      (node.type === "expressionNode" ||
+        node.type === "functionNode" ||
+        node.type === "switchNode") &&
+      node.content !== undefined
+  );
+  const tables = nodes.filter((node) => node.type === "decisionTableNode");
+  // A column with a \`field\` is read against that field ("> 40" under \`discount\`);
+  // the older table path evaluates every cell as a whole-record expression, which
+  // is the convention only \`%%action\` tables use.
+  const fieldBased = tables.some((node) =>
+    (node.content?.inputs || []).some((input) => String(input.field || "").trim() !== "")
+  );
+  return computes || tables.length > 1 || fieldBased;
+}
+
+/**
+ * One decision-table cell as an expression over the record.
+ *
+ * zen reads a cell against its column's field ("> 40" under \`discount\`), and a
+ * column with no field holds a whole-record check — the convention the table
+ * editor already uses. \`null\` means the cell is blank and matches anything.
+ */
+function cellExpression(field, cell) {
+  const text = String(cell ?? "").trim();
+  if (!text) return null;
+  if (!field) return text;
+  // "Is empty" and "is not empty" mean null, absent or blank — a cleared text field is "".
+  if (text === "null") return \`\${field} == null or \${field} == ""\`;
+  // The compiler writes the widened forms (\`null, ""\`, \`!= null and != ""\`); a hand-written
+  // table may still say the bare words. All of them mean the same thing here.
+  if (text === "!= null" || text === '!= null and != ""') {
+    return \`\${field} != null and \${field} != ""\`;
+  }
+  if (/^(==|!=|<=|>=|<|>)/.test(text)) return \`\${field} \${text}\`;
+  const LITERAL = \`(?:"[^"]*"|'[^']*'|-?\\\\d+(?:\\\\.\\\\d+)?|true|false|null)\`;
+  if (new RegExp(\`^\${LITERAL}(?:\\\\s*,\\\\s*\${LITERAL})+$\`).test(text)) {
+    return text
+      .match(new RegExp(LITERAL, "g"))
+      .map((part) => \`\${field} == \${part}\`)
+      .join(" or ");
+  }
+  if (new RegExp(\`^\${LITERAL}$\`).test(text)) return \`\${field} == \${text}\`;
+  return text;
+}
+
+function evaluateContentTable(node, context, trace) {
+  const content = node.content || {};
+  const matches = [];
+  for (const row of content.rules || []) {
+    let matched = true;
+    for (const input of content.inputs || []) {
+      const expression = cellExpression(input.field, row[input.id]);
+      if (expression === null) continue;
+      try {
+        if (!test(expression, context)) matched = false;
+      } catch (error) {
+        trace.push({ node: node.name, assumed: true, reason: error.message });
+        matched = false;
+      }
+      if (!matched) break;
+    }
+    if (!matched) continue;
+    const value = {};
+    for (const output of content.outputs || []) {
+      const cell = row[output.id];
+      if (cell === undefined || String(cell).trim() === "") continue;
+      try {
+        value[output.field] = evaluate(String(cell), context);
+      } catch {
+        value[output.field] = unquote(cell);
+      }
+    }
+    matches.push(value);
+    if (content.hitPolicy !== "collect") break;
+  }
+  return matches;
+}
+
+/**
+ * Run a function node's \`export const handler = async (input) => ({ ... })\`.
+ *
+ * zen runs this in a sandbox without imports, network or process access; the
+ * compiler refuses source that names any of them, and the handler here is given
+ * only a copy of the record. It is the administrator's own code in the
+ * administrator's own tab — not a boundary, which is why the compiler's check is
+ * the one that matters.
+ */
+async function runFunctionNode(node, context) {
+  const raw = typeof node.content === "string" ? node.content : node.content?.source || "";
+  const source = raw.replace(/\\bexport\\s+(?=const|function|async)/g, "");
+  // biome-ignore lint/security/noGlobalEval: sandboxed handler, see above.
+  const factory = new Function("input", \`\${source}\\n;return handler(input);\`);
+  const out = await factory(JSON.parse(JSON.stringify(context)));
+  return out && typeof out === "object" ? out : {};
+}
+
+/**
+ * Walk a graph whose nodes compute, carrying one growing context.
+ *
+ * Mirrors zen: every node reads the context and adds to it; a switch sends the
+ * context down the edges whose \`sourceHandle\` is the statement that fit. The
+ * rule's answer is what the nodes *added* — the action row the application
+ * acts on — so \`trace\` records each node's contribution for the dry run.
+ */
+async function evaluateComputedGraph(graph, record) {
+  const nodes = new Map((graph.nodes || []).map((node) => [node.id, node]));
+  const outgoing = new Map();
+  for (const edge of graph.edges || []) {
+    if (!outgoing.has(edge.sourceId)) outgoing.set(edge.sourceId, []);
+    outgoing.get(edge.sourceId).push(edge);
+  }
+  const start = (graph.nodes || []).find((node) => node.type === "inputNode");
+  if (!start) return { results: [], trace: [] };
+
+  const context = { ...record };
+  const produced = {};
+  const trace = [];
+  const add = (values) => {
+    Object.assign(context, values);
+    Object.assign(produced, values);
+  };
+
+  const queue = [start.id];
+  const seen = new Set();
+  while (queue.length && seen.size < 200) {
+    const id = queue.shift();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const node = nodes.get(id);
+    if (!node) continue;
+    let followed = outgoing.get(id) || [];
+
+    try {
+      if (node.type === "expressionNode") {
+        const values = {};
+        for (const row of node.content?.expressions || []) {
+          if (!row.key) continue;
+          values[row.key] = evaluate(row.value, { ...context, ...values });
+        }
+        add(values);
+        trace.push({ node: node.name, added: values });
+      } else if (node.type === "functionNode") {
+        const values = await runFunctionNode(node, context);
+        add(values);
+        trace.push({ node: node.name, added: values });
+      } else if (node.type === "decisionTableNode") {
+        const matches = evaluateContentTable(node, context, trace);
+        for (const match of matches) add(match);
+        trace.push({ node: node.name, matched: matches.length });
+      } else if (node.type === "switchNode") {
+        const fits = [];
+        for (const statement of node.content?.statements || []) {
+          const condition = String(statement.condition ?? "").trim();
+          if (statement.isDefault || !condition || test(condition, context)) fits.push(statement.id);
+          if (fits.length && node.content?.hitPolicy !== "collect") break;
+        }
+        followed = followed.filter((edge) => fits.includes(edge.sourceHandle));
+        trace.push({ node: node.name, branches: fits });
+      }
+    } catch (error) {
+      trace.push({ node: node.name, assumed: true, reason: error.message });
+      return {
+        results: [{ action: "error", message: \`Rule node "\${node.name}": \${error.message}\` }],
+        trace,
+      };
+    }
+
+    for (const edge of followed) queue.push(edge.targetId);
+  }
+
+  return { results: Object.keys(produced).length ? [produced] : [], trace };
+}
+
 /**
  * Evaluate every rule bound to an entity operation.
  *
@@ -13615,9 +14276,10 @@ export async function evaluateRules(rules, record, options = {}) {
     }
 
     const table = (graph.nodes || []).find((node) => node.type === "decisionTableNode");
-    const outcome = table
-      ? { results: evaluateDecisionTable(table, record), trace: [] }
-      : evaluateGraph(graph, record, columns);
+    let outcome;
+    if (isComputedGraph(graph)) outcome = await evaluateComputedGraph(graph, record);
+    else if (table) outcome = { results: evaluateDecisionTable(table, record), trace: [] };
+    else outcome = evaluateGraph(graph, record, columns);
 
     traces.push({ rule: rule.name, trace: outcome.trace });
 
@@ -13634,7 +14296,12 @@ export async function evaluateRules(rules, record, options = {}) {
        * so the write was stored and the caller was told nothing. \`reject\` stays
        * because the node-graph path and the JDM parse failure above emit it.
        */
-      if (action === "reject" || action === "error" || action === "prevent") {
+      if (
+        action === "reject" ||
+        action === "error" ||
+        action === "prevent" ||
+        action === "validation-error"
+      ) {
         violations.push({ ruleId: result.ruleId || rule.name, ...result });
       } else if (action === "set" && result.field) {
         mutations[result.field] = result.value;
@@ -13649,6 +14316,109 @@ export async function evaluateRules(rules, record, options = {}) {
   }
 
   return { violations, mutations, notifications, traces };
+}
+`,
+  "server/lib/workflows.js": `/**
+ * Where a workflow is read from — the table, not the model.
+ *
+ * \`sys_workflow_definitions\` is seeded at first boot from \`model.workflows\`,
+ * storing each workflow object whole in the \`definition\` column. Until now it
+ * was written there and read by three listing endpoints and nothing else: every
+ * *behavioural* use of a workflow — which transitions a record is offered, and
+ * whether a status change is recorded as modelled — read \`model.workflows\`
+ * instead, the copy compiled into the bundle.
+ *
+ * That split is fine while nothing can change either. It stops being fine the
+ * moment the admin screen can edit a workflow, because the edit lands in the
+ * table and the application keeps behaving from the model: a definition that is
+ * "seeded, visible in the admin screen, drawn by the viewer, and inert" — the
+ * failure this codebase has already documented once, in the dance-studio
+ * model's sixteen \`%%action\` lines.
+ *
+ * So the table is the source of truth, the way \`sys_rule_definitions\` already
+ * is for rules (\`bus.routes.js\` enforces from that table, not from
+ * \`model.rules\`) and the way the Application Dictionary is for screens. The
+ * model seeds it; after that, what the database says is what the application
+ * does.
+ *
+ * **The fallback to the model is deliberate and narrow.** An application
+ * generated before this table was seeded, or one whose seed was interrupted,
+ * would otherwise lose its state machines entirely rather than degrade — and
+ * losing them silently disables the transition UI on every record. Falling back
+ * keeps such an application behaving exactly as it did before.
+ */
+
+/**
+ * Every workflow for one entity, newest definition wins on a name collision.
+ *
+ * Parsed defensively: \`definition\` is JSONB the administrator can now write, and
+ * a row that will not parse should cost that one workflow rather than every
+ * screen that asks for one.
+ */
+export async function workflowsForEntity(db, model, entityName) {
+  let rows = [];
+  try {
+    rows = await db.select("sys_workflow_definitions", {
+      where: { entity_name: entityName, is_active: true },
+      orderBy: "name",
+    });
+  } catch {
+    rows = [];
+  }
+
+  if (rows.length === 0) {
+    return (model.workflows || []).filter((item) => item.entity === entityName);
+  }
+
+  const parsed = [];
+  for (const row of rows) {
+    const definition = parseDefinition(row);
+    if (definition) parsed.push(definition);
+  }
+  /* Every row failing to parse is not the same as no rows: the model is still
+     the better answer than nothing. */
+  if (parsed.length === 0) {
+    return (model.workflows || []).filter((item) => item.entity === entityName);
+  }
+  return parsed;
+}
+
+/**
+ * The one state machine an entity moves on, or null.
+ *
+ * A \`kind: saga\` definition is a multi-step process, not a lifecycle, and asking
+ * it for \`transitions\` gets an empty list — so the state machine is picked by
+ * kind rather than by being first.
+ */
+export async function stateMachineFor(db, model, entityName) {
+  const workflows = await workflowsForEntity(db, model, entityName);
+  return (
+    workflows.find((item) => (item.kind ?? "state") === "state" && Array.isArray(item.transitions)) ??
+    null
+  );
+}
+
+function parseDefinition(row) {
+  const raw = row.definition;
+  if (!raw) return null;
+  let value = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== "object") return null;
+  /* The row's own columns win over the stored blob for the three things the
+     row also carries: an administrator who renames a workflow edits the column,
+     and the blob it was seeded from would otherwise keep the old name. */
+  return {
+    ...value,
+    name: row.name ?? value.name,
+    entity: row.entity_name ?? value.entity,
+    kind: row.kind ?? value.kind ?? "state",
+  };
 }
 `,
   "server/migrate.js": `/**
@@ -13736,6 +14506,7 @@ function seedCounter(model, log) {
     count(model.users) +
     count(model.rules) +
     count(model.workflows) +
+    count(model.reports) +
     accessRuleCount(model) +
     /* The reporting application's own roles and accounts — one of each per
        \`%%rbac\` role. Counted because the stage ticks, and a progress bar that
@@ -13779,23 +14550,30 @@ export async function migrate(db, model, readAsset, log = () => {}) {
 
   log("Seeding the dictionary");
   const tick = seedCounter(model, log);
-  await seedReferences(db, model, tick);
-  await seedCategories(db, model, tick);
-  await seedDictionary(db, model, tick);
-  await seedRoles(db, model, tick);
-  await seedAdmin(db, model, log);
-  await seedRoleUsers(db, model, log, tick);
-  await seedRules(db, model, tick);
-  await seedWorkflows(db, model, tick);
-  await seedAccess(db, model, tick);
-  await seedReporting(db, model, log, tick);
-  await seedSampleData(db, model, log, tick);
+  /* One transaction for the whole seed — see Database.transaction. Without it the
+     browser flushes IndexedDB after every one of thousands of statements. The
+     \`seeded\` marker is inside it too, so a seed that fails part-way leaves no
+     marker and no half of a dictionary. */
+  await db.transaction(async (tx) => {
+    await seedReferences(tx, model, tick);
+    await seedCategories(tx, model, tick);
+    await seedDictionary(tx, model, tick);
+    await seedRoles(tx, model, tick);
+    await seedAdmin(tx, model, log);
+    await seedRoleUsers(tx, model, log, tick);
+    await seedRules(tx, model, tick);
+    await seedWorkflows(tx, model, tick);
+    await seedReports(tx, model, tick);
+    await seedAccess(tx, model, tick);
+    await seedReporting(tx, model, log, tick);
+    await seedSampleData(tx, model, log, tick);
 
-  await db.query(
-    \`INSERT INTO sys_schema_state (key, value) VALUES ('seeded', $1)
-       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()\`,
-    [String(SCHEMA_VERSION)]
-  );
+    await tx.query(
+      \`INSERT INTO sys_schema_state (key, value) VALUES ('seeded', $1)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()\`,
+      [String(SCHEMA_VERSION)]
+    );
+  });
 
   return { seeded: true };
 }
@@ -14151,10 +14929,13 @@ async function seedSampleData(db, model, log, tick = () => {}) {
       if (columns.length === 0) continue;
       const placeholders = columns.map((_, index) => \`$\${index + 1}\`).join(", ");
       try {
-        await db.query(
-          \`INSERT INTO \${table} (\${columns.join(", ")}) VALUES (\${placeholders})
-             ON CONFLICT DO NOTHING\`,
-          columns.map((column) => row[column])
+        // A savepoint, so one rejected row costs that row and not the seed.
+        await db.attempt(() =>
+          db.query(
+            \`INSERT INTO \${table} (\${columns.join(", ")}) VALUES (\${placeholders})
+               ON CONFLICT DO NOTHING\`,
+            columns.map((column) => row[column])
+          )
         );
         inserted++;
       } catch (error) {
@@ -14212,6 +14993,42 @@ async function seedWorkflows(db, model, tick = () => {}) {
       entity_name: saga.entity,
       kind: "saga",
       definition: JSON.stringify(saga),
+    });
+  }
+}
+
+/**
+ * The \`%%report\` questions, into a table the administrator can edit.
+ *
+ * They used to be read straight out of \`model.json\` on every request, which is
+ * why they were the one part of this application that could be read and never
+ * changed. Seeded by name, skipped when present — the same shape every other
+ * seed here uses, so a second boot does not overwrite an edited report with the
+ * model's original.
+ *
+ * \`sort_order\` preserves the model's own order. The reports screen lists them
+ * as the model wrote them, and a model puts the question its users ask most
+ * first.
+ */
+async function seedReports(db, model, tick = () => {}) {
+  const reports = Array.isArray(model.reports) ? model.reports : [];
+  for (const [index, report] of reports.entries()) {
+    const exists = await db.one("SELECT sys_report_id FROM sys_report WHERE name = $1", [
+      report.name,
+    ]);
+    tick();
+    if (exists) continue;
+    await db.insert("sys_report", {
+      name: report.name,
+      title: report.title ?? report.name,
+      entity_name: report.entity ?? null,
+      table_name: report.tableName ?? null,
+      chart: report.chart ?? null,
+      x_axis: report.x ?? null,
+      y_axis: report.y ?? null,
+      help: report.help ?? null,
+      sql_text: report.sql,
+      sort_order: index * 10,
     });
   }
 }
@@ -14713,6 +15530,7 @@ import { Router } from "../lib/router.js";
 import { badRequest, json, notFound, readJson } from "../lib/http.js";
 import { ident } from "../lib/db.js";
 import { checkOperationAccess, checkTransitionAccess, requireUser } from "../lib/guards.js";
+import { stateMachineFor } from "../lib/workflows.js";
 import { runHooks } from "../lib/hooks.js";
 import { evaluateRules } from "../lib/rules.js";
 import { recordAudit } from "./audit.routes.js";
@@ -14938,9 +15756,17 @@ function validate(entity, values, mode) {
 
 const isBlank = (value) => value == null || String(value).trim() === "";
 
-/** The column a state machine moves, when the entity has one. */
-function statusColumn(entity, model) {
-  const workflow = (model.workflows || []).find((item) => item.entity === entity.name);
+/**
+ * The column a state machine moves, when the entity has one.
+ *
+ * Takes the workflow rather than the model: the definitions live in
+ * \`sys_workflow_definitions\` and an administrator can now edit them, so an
+ * entity's machine is whatever the table currently says it is. Reading
+ * \`model.workflows\` here would mean an entity given a machine after generation
+ * never had its status changes recorded, and one whose machine was deleted went
+ * on being treated as having one.
+ */
+function statusColumn(entity, workflow) {
   if (!workflow) return null;
   const candidates = ["status", "state", "workflow_state"];
   return entity.attributes.find((attribute) => candidates.includes(attribute.columnName))?.columnName ?? null;
@@ -14952,6 +15778,43 @@ async function rulesFor(db, entity, operation) {
       WHERE entity_name = $1 AND operation IN ($2, 'ALL') AND is_active = true
       ORDER BY priority ASC\`,
     [entity.name, operation]
+  );
+}
+
+/**
+ * The record version an \`If-Match\` header names: \`"3"\`, \`"v3"\`, \`3\` or a weak
+ * \`W/"3"\`. Anything else is refused with 400 rather than read as \`NaN\`, which
+ * would never equal a version and turn every save into a false conflict.
+ */
+function parseIfMatch(header) {
+  if (header == null || header.trim() === "" || header.trim() === "*") return undefined;
+  const match = /^(?:W\\/)?"?v?(\\d+)"?$/i.exec(header.trim());
+  if (!match) throw badRequest(\`If-Match must name a record version, such as "3"; got \${header}\`);
+  return Number(match[1]);
+}
+
+/**
+ * A record's version as an ETag — what a client sends back as \`If-Match\` to
+ * save against the version it read.
+ */
+function etagHeader(row) {
+  return row?.version != null ? { ETag: \`"\${row.version}"\` } : {};
+}
+
+/**
+ * The 409 a stale save gets — the same body the NestJS stack sends, so one
+ * form can key its reload-or-overwrite dialog on \`details.code\`. The record is
+ * not included: the form re-reads it through GET, which applies field access.
+ */
+function versionConflict(entity, id, expectedVersion, currentVersion) {
+  return json(
+    {
+      statusCode: 409,
+      error: "Conflict",
+      message: "This record was changed by someone else after you opened it.",
+      details: { code: "VERSION_CONFLICT", entity: entity.name, id, expectedVersion, currentVersion },
+    },
+    { status: 409 }
   );
 }
 
@@ -15069,7 +15932,7 @@ export function busRoutes(model) {
       [params.id]
     );
     if (!row) throw notFound(\`No \${entity.name} with id \${params.id}\`);
-    return json(row);
+    return json(row, { headers: etagHeader(row) });
   });
 
   router.post("/:entity", async (request, { db, params, user }) => {
@@ -15128,6 +15991,14 @@ export function busRoutes(model) {
     );
     if (!current) throw notFound(\`No \${entity.name} with id \${params.id}\`);
 
+    // Optimistic locking, as the NestJS stack does it: the form sends the
+    // version it opened the record at, and a save against a version someone
+    // has since moved past is refused before anything else runs.
+    const expectedVersion = parseIfMatch(request.headers.get("if-match"));
+    if (expectedVersion !== undefined && Number(current.version ?? 0) !== expectedVersion) {
+      return versionConflict(entity, params.id, expectedVersion, Number(current.version ?? 0));
+    }
+
     const body = await readJson(request);
     let values = sanitize(entity, body);
 
@@ -15151,13 +16022,32 @@ export function busRoutes(model) {
     }
     Object.assign(values, applicableMutations(entity, outcome.mutations));
 
-    await checkTransitionAccess(db, user, entity.tableName, current, { ...current, ...values }, statusColumn(entity, model));
+    const machine = await stateMachineFor(db, model, entity.name);
+    await checkTransitionAccess(
+      db,
+      user,
+      entity.tableName,
+      current,
+      { ...current, ...values },
+      statusColumn(entity, machine)
+    );
 
     values.updated_by = user.id;
     values.updated_at = new Date().toISOString();
     values.version = (current.version ?? 1) + 1;
 
-    const updated = await db.update(entity.tableName, values, { id: params.id });
+    // Conditioned on the version read above. Requests share one PGlite and
+    // interleave at every await, so two saves can both pass the check before
+    // either writes; this makes the second one match no row instead of
+    // replacing the first.
+    const updated = await db.update(entity.tableName, values, {
+      id: params.id,
+      version: current.version ?? null,
+    });
+    if (!updated) {
+      const now = await db.one(\`SELECT version FROM \${ident(entity.tableName)} WHERE id = $1\`, [params.id]);
+      return versionConflict(entity, params.id, expectedVersion ?? Number(current.version ?? 0), Number(now?.version ?? 0));
+    }
     const after = await runHooks(model.hooks, "afterUpdate", entity.name, updated, { previous: current });
 
     await recordWorkflowRun(db, model, entity, current, updated, user);
@@ -15170,7 +16060,10 @@ export function busRoutes(model) {
       after: updated,
     });
 
-    return json({ ...updated, _hooks: [...before.log, ...after.log], _notifications: outcome.notifications });
+    return json(
+      { ...updated, _hooks: [...before.log, ...after.log], _notifications: outcome.notifications },
+      { headers: etagHeader(updated) }
+    );
   };
 
   router.put("/:entity/:id", write);
@@ -15234,13 +16127,13 @@ function applicableMutations(entity, mutations) {
 
 /** Record a state change against the entity's machine, when it crossed one. */
 async function recordWorkflowRun(db, model, entity, before, after, user) {
-  const column = statusColumn(entity, model);
+  const workflow = await stateMachineFor(db, model, entity.name);
+  const column = statusColumn(entity, workflow);
   if (!column) return;
   const from = before[column];
   const to = after[column];
   if (!to || from === to) return;
 
-  const workflow = (model.workflows || []).find((item) => item.entity === entity.name);
   const transition = (workflow?.transitions || []).find(
     (item) => item.from === String(from) && item.to === String(to)
   );
@@ -15360,6 +16253,340 @@ export function modelRoutes(model, readAsset) {
   return router;
 }
 `,
+  "server/modules/report-admin.routes.js": `/**
+ * The reporting application's administration — \`/report-admin\`.
+ *
+ * The Enterprise Reporting platform gives its administrators Users, Roles,
+ * Permissions, Data Sources and System Logs. In the browser build those are
+ * real here too, over the tables this tab already enforces from:
+ *
+ *   rpt_user, rpt_role     who may sign in, and as which reporting role
+ *   rpt_role_tables        which of the application's tables a role may read —
+ *                          read by \`resolveReportSession\` on every request, so
+ *                          a grant changed here applies to the next query
+ *   rpt_activity_log       sign-ins, runs, refusals and the changes made here
+ *
+ * The seed writes these once, from the model's \`%%rbac\`; after that they are
+ * the administrator's. A change here is not undone by a reload.
+ *
+ * Every route is administrator-only, decided on the server. The client hides
+ * the section from anyone else, and that is a courtesy rather than the control.
+ */
+
+import { Router } from "../lib/router.js";
+import { hashPassword } from "../lib/auth.js";
+import { badRequest, conflict, forbidden, json, notFound, readJson, unauthorized } from "../lib/http.js";
+import { ident } from "../lib/db.js";
+import { logReportActivity } from "../lib/report-log.js";
+
+const EMAIL = /^[^\\s@]+@[^\\s@]+$/;
+const MIN_PASSWORD = 5;
+
+export function reportAdminRoutes(model) {
+  const router = new Router();
+  const pack = model.reporting || {};
+
+  /** The application's tables — the only names a grant may carry. */
+  const entities = (model.entities || []).map((entity) => ({
+    table: entity.tableName,
+    entity: entity.name,
+    displayName: entity.displayName || entity.name,
+    description: entity.description || null,
+    category: entity.category || null,
+  }));
+  const knownTables = new Set(entities.map((entity) => entity.table));
+
+  router.use(async (_request, { reportUser }) => {
+    if (!reportUser) throw unauthorized("Sign in to the reporting application to continue");
+    if (!reportUser.isAdmin) throw forbidden("Only a reporting administrator may do this");
+  });
+
+  const audit = (db, reportUser, action, target, detail) =>
+    logReportActivity(db, { user: reportUser, action, target, outcome: "ok", detail });
+
+  async function roleOr404(db, id) {
+    const role = await db.one("SELECT * FROM rpt_role WHERE rpt_role_id = $1", [id]);
+    if (!role) throw notFound("No such reporting role");
+    return role;
+  }
+
+  async function userOr404(db, id) {
+    const user = await db.one("SELECT * FROM rpt_user WHERE rpt_user_id = $1", [id]);
+    if (!user) throw notFound("No such reporting user");
+    return user;
+  }
+
+  // ── Users ──────────────────────────────────────────────────────────────────
+
+  router.get("/users", async (_request, { db }) => {
+    const rows = await db.query(
+      \`SELECT u.rpt_user_id, u.name, u.email, u.description, u.is_active, u.created_at,
+              r.rpt_role_id, r.name AS role_name, r.is_admin,
+              (SELECT MAX(l.occurred_at) FROM rpt_activity_log l
+                WHERE l.rpt_user_id = u.rpt_user_id AND l.action = 'sign-in' AND l.outcome = 'ok') AS last_sign_in
+         FROM rpt_user u
+         LEFT JOIN rpt_role r ON r.rpt_role_id = u.rpt_role_id
+        ORDER BY r.is_admin DESC NULLS LAST, u.name\`
+    );
+    return json(
+      rows.map((row) => ({
+        id: row.rpt_user_id,
+        name: row.name,
+        email: row.email,
+        description: row.description,
+        isActive: row.is_active !== false,
+        createdAt: row.created_at,
+        lastSignIn: row.last_sign_in,
+        roleId: row.rpt_role_id,
+        role: row.role_name,
+        isAdmin: row.is_admin === true,
+      }))
+    );
+  });
+
+  router.post("/users", async (request, { db, reportUser }) => {
+    const body = await readJson(request);
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim().toLowerCase();
+    const password = String(body.password ?? "");
+    if (!name) throw badRequest("A user needs a name");
+    if (!EMAIL.test(email)) throw badRequest("That is not an email address");
+    if (password.length < MIN_PASSWORD) {
+      throw badRequest(\`A password needs at least \${MIN_PASSWORD} characters\`);
+    }
+    if (await db.one("SELECT 1 FROM rpt_user WHERE lower(email) = $1", [email])) {
+      throw conflict(\`\${email} already has a reporting account\`);
+    }
+    const roleId = body.roleId ? (await roleOr404(db, body.roleId)).rpt_role_id : null;
+
+    const row = await db.insert("rpt_user", {
+      name,
+      email,
+      password_hash: await hashPassword(password),
+      rpt_role_id: roleId,
+      is_active: true,
+    });
+    await audit(db, reportUser, "create user", email);
+    return json({ id: row.rpt_user_id }, { status: 201 });
+  });
+
+  router.patch("/users/:id", async (request, { db, params, reportUser }) => {
+    const user = await userOr404(db, params.id);
+    const body = await readJson(request);
+    const self = user.rpt_user_id === reportUser.id;
+    const changes = {};
+    const said = [];
+
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (!name) throw badRequest("A user needs a name");
+      changes.name = name;
+      said.push("name");
+    }
+    if (body.roleId !== undefined) {
+      const role = body.roleId ? await roleOr404(db, body.roleId) : null;
+      // Demoting yourself is how an installation ends up with nobody who can
+      // undo it — the platform refuses it for the same reason.
+      if (self && !role?.is_admin) throw badRequest("You cannot remove your own administrator role");
+      changes.rpt_role_id = role ? role.rpt_role_id : null;
+      said.push(\`role → \${role ? role.name : "none"}\`);
+    }
+    if (body.isActive !== undefined) {
+      if (self && !body.isActive) throw badRequest("You cannot deactivate your own account");
+      changes.is_active = !!body.isActive;
+      said.push(body.isActive ? "activated" : "deactivated");
+    }
+    if (body.password !== undefined) {
+      const password = String(body.password);
+      if (password.length < MIN_PASSWORD) {
+        throw badRequest(\`A password needs at least \${MIN_PASSWORD} characters\`);
+      }
+      changes.password_hash = await hashPassword(password);
+      said.push("password");
+    }
+    if (said.length === 0) throw badRequest("Nothing to change");
+
+    await db.update("rpt_user", changes, { rpt_user_id: user.rpt_user_id });
+
+    // A deactivated account, or one whose password changed, keeps no session
+    // it already had — other than the administrator's own current one.
+    if (changes.is_active === false || changes.password_hash) {
+      await db.query("DELETE FROM rpt_session WHERE rpt_user_id = $1 AND token <> $2", [
+        user.rpt_user_id,
+        reportUser.token,
+      ]);
+    }
+    await audit(db, reportUser, "update user", user.email, said.join(", "));
+    return json({ success: true });
+  });
+
+  router.delete("/users/:id", async (_request, { db, params, reportUser }) => {
+    const user = await userOr404(db, params.id);
+    if (user.rpt_user_id === reportUser.id) throw badRequest("You cannot delete your own account");
+    await db.remove("rpt_user", { rpt_user_id: user.rpt_user_id });
+    await audit(db, reportUser, "delete user", user.email);
+    return json({ success: true });
+  });
+
+  // ── Roles and their table grants ───────────────────────────────────────────
+
+  router.get("/roles", async (_request, { db }) => {
+    const roles = await db.query(
+      \`SELECT r.*, (SELECT COUNT(*) FROM rpt_user u WHERE u.rpt_role_id = r.rpt_role_id) AS users
+         FROM rpt_role r
+        ORDER BY r.is_admin DESC, r.name\`
+    );
+    const grants = await db.query("SELECT rpt_role_id, table_name FROM rpt_role_tables ORDER BY table_name");
+    const byRole = new Map();
+    for (const grant of grants) {
+      if (!byRole.has(grant.rpt_role_id)) byRole.set(grant.rpt_role_id, []);
+      byRole.get(grant.rpt_role_id).push(grant.table_name);
+    }
+    return json(
+      roles.map((role) => ({
+        id: role.rpt_role_id,
+        name: role.name,
+        declaredAs: role.declared_as,
+        description: role.description,
+        isAdmin: role.is_admin === true,
+        createdAt: role.created_at,
+        users: Number(role.users ?? 0),
+        tables: role.is_admin === true ? null : byRole.get(role.rpt_role_id) ?? [],
+      }))
+    );
+  });
+
+  router.post("/roles", async (request, { db, reportUser }) => {
+    const body = await readJson(request);
+    const name = String(body.name ?? "").trim();
+    if (!name) throw badRequest("A role needs a name");
+    if (await db.one("SELECT 1 FROM rpt_role WHERE lower(name) = lower($1)", [name])) {
+      throw conflict(\`A role named \${name} already exists\`);
+    }
+    const row = await db.insert("rpt_role", {
+      name,
+      description: String(body.description ?? "").trim() || null,
+      is_admin: false,
+    });
+    await audit(db, reportUser, "create role", name);
+    return json({ id: row.rpt_role_id }, { status: 201 });
+  });
+
+  router.patch("/roles/:id", async (request, { db, params, reportUser }) => {
+    const role = await roleOr404(db, params.id);
+    const body = await readJson(request);
+    const changes = {};
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (!name) throw badRequest("A role needs a name");
+      const clash = await db.one(
+        "SELECT 1 FROM rpt_role WHERE lower(name) = lower($1) AND rpt_role_id <> $2",
+        [name, role.rpt_role_id]
+      );
+      if (clash) throw conflict(\`A role named \${name} already exists\`);
+      changes.name = name;
+    }
+    if (body.description !== undefined) changes.description = String(body.description).trim() || null;
+    if (Object.keys(changes).length === 0) throw badRequest("Nothing to change");
+    await db.update("rpt_role", changes, { rpt_role_id: role.rpt_role_id });
+    await audit(db, reportUser, "update role", role.name, Object.keys(changes).join(", "));
+    return json({ success: true });
+  });
+
+  /**
+   * Replace the tables a role may read. The administrator role has no rows —
+   * an empty scope there means "every table" — so it cannot be narrowed here,
+   * and a name that is not one of the application's tables is refused rather
+   * than stored as a grant that could never match anything.
+   */
+  router.put("/roles/:id/tables", async (request, { db, params, reportUser }) => {
+    const role = await roleOr404(db, params.id);
+    if (role.is_admin) throw badRequest("The administrator role reads every table and is not scoped");
+    const body = await readJson(request);
+    const tables = [...new Set((Array.isArray(body.tables) ? body.tables : []).map(String))];
+    const unknown = tables.filter((table) => !knownTables.has(table));
+    if (unknown.length > 0) throw badRequest(\`Not tables of this application: \${unknown.join(", ")}\`);
+
+    await db.query("DELETE FROM rpt_role_tables WHERE rpt_role_id = $1", [role.rpt_role_id]);
+    for (const table of tables) {
+      await db.query("INSERT INTO rpt_role_tables (rpt_role_id, table_name) VALUES ($1, $2)", [
+        role.rpt_role_id,
+        table,
+      ]);
+    }
+    await audit(db, reportUser, "update permissions", role.name, \`\${tables.length} of \${knownTables.size} tables\`);
+    return json({ success: true, tables: tables.sort() });
+  });
+
+  router.delete("/roles/:id", async (_request, { db, params, reportUser }) => {
+    const role = await roleOr404(db, params.id);
+    if (role.is_admin) throw badRequest("The administrator role cannot be deleted");
+    // Its users are kept and left holding no role — \`ON DELETE SET NULL\` —
+    // which reads nothing, the safe direction for an access change to fail in.
+    await db.remove("rpt_role", { rpt_role_id: role.rpt_role_id });
+    await audit(db, reportUser, "delete role", role.name);
+    return json({ success: true });
+  });
+
+  // ── Data sources ───────────────────────────────────────────────────────────
+
+  /**
+   * The one data source the pack registers: this application's own database.
+   * Row counts are read live, so the screen says what a query would find now.
+   */
+  router.get("/data-sources", async (_request, { db }) => {
+    const tables = [];
+    for (const entity of entities) {
+      let rows = null;
+      try {
+        rows = Number(await db.value(\`SELECT COUNT(*) FROM \${ident(entity.table)}\`));
+      } catch {
+        rows = null;
+      }
+      tables.push({ ...entity, rows });
+    }
+    return json([
+      {
+        name: pack.dataSource?.name ?? model.project?.name ?? "Application database",
+        description: pack.dataSource?.description ?? null,
+        clientType: pack.dataSource?.clientType ?? "pg",
+        database: pack.application?.databaseName ?? null,
+        engine: "PostgreSQL (WebAssembly, in this tab)",
+        status: "connected",
+        tables,
+      },
+    ]);
+  });
+
+  // ── System logs ────────────────────────────────────────────────────────────
+
+  router.get("/logs", async (request, { db }) => {
+    const url = new URL(request.url, "http://localhost");
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 200, 1), 1000);
+    const outcome = url.searchParams.get("outcome");
+    const rows = outcome
+      ? await db.query(
+          "SELECT * FROM rpt_activity_log WHERE outcome = $1 ORDER BY occurred_at DESC LIMIT $2",
+          [outcome, limit]
+        )
+      : await db.query("SELECT * FROM rpt_activity_log ORDER BY occurred_at DESC LIMIT $1", [limit]);
+    return json(
+      rows.map((row) => ({
+        id: row.rpt_activity_log_id,
+        at: row.occurred_at,
+        email: row.email,
+        action: row.action,
+        target: row.target,
+        outcome: row.outcome,
+        detail: row.detail,
+        durationMs: row.duration_ms,
+      }))
+    );
+  });
+
+  return router;
+}
+`,
   "server/modules/report-auth.routes.js": `/**
  * The reporting application's sign-in — the other login.
  *
@@ -15381,6 +16608,7 @@ import {
   destroyReportSession,
   reportSessionCookie,
 } from "../lib/report-auth.js";
+import { logReportActivity } from "../lib/report-log.js";
 
 /** What a caller may know about itself. Never the token or the hash. */
 function present(reportUser) {
@@ -15426,10 +16654,18 @@ export function reportAuthRoutes(model) {
        * Two messages would say which addresses exist — and on this side of the
        * pair that is a longer list than a reader might expect, because every
        * \`%%rbac\` role has an account. The application's own sign-in makes the
-       * same choice.
+       * same choice. The log records the address that was tried, which is
+       * only ever shown to a reporting administrator.
        */
+      await logReportActivity(db, { email: identifier, action: "sign-in", outcome: "refused" });
       throw unauthorized("Invalid email or password");
     }
+    await logReportActivity(db, {
+      user: { id: user.rpt_user_id, email: user.email },
+      action: "sign-in",
+      outcome: "ok",
+      detail: user.role_name ? \`as \${user.role_name}\` : "holding no reporting role",
+    });
 
     const token = await createReportSession(db, user.rpt_user_id, request.headers.get("user-agent"));
     return json(
@@ -15524,8 +16760,9 @@ export function reportAuthRoutes(model) {
  *
  * What is not: there is no SQL editor, nothing here writes a definition, and
  * the platform's NL→SQL pipeline, scheduled deliveries and knowledge graph need
- * servers this runtime does not have. A read-only mirror is worth more than a
- * set of buttons that answer "not in the browser build".
+ * servers this runtime does not have. The screens say so rather than offering
+ * buttons that fail. Who may read which table *is* editable, by a reporting
+ * administrator, through \`report-admin.routes.js\`.
  *
  * ## Access
  *
@@ -15541,6 +16778,7 @@ export function reportAuthRoutes(model) {
 
 import { Router } from "../lib/router.js";
 import { badRequest, forbidden, json, notFound, unauthorized } from "../lib/http.js";
+import { logReportActivity } from "../lib/report-log.js";
 
 /**
  * The most rows one report returns.
@@ -15640,6 +16878,7 @@ export function reportingRoutes(model) {
         charts: visibleCharts.length,
         chartsTotal: charts.length,
         dashboards: dashboards.length,
+        queries: queries.filter((query) => tablesRefused(reportUser, query).length === 0).length,
       },
     });
   });
@@ -15665,10 +16904,18 @@ export function reportingRoutes(model) {
     json(
       dashboards.map((dashboard) => {
         const chartOf = new Map(charts.map((chart) => [chart.key, chart]));
+        const reportOf = new Map(reports.map((report) => [report.key, report]));
         const widgets = (dashboard.widgets || []).filter((widget) => {
-          const chart = widget.chartKey ? chartOf.get(widget.chartKey) : null;
-          if (!chart) return !widget.chartKey;
-          return readable(reportUser)(chart);
+          // A tile is a chart or a report, and either one reads a query. Both
+          // are held to the role's tables — a report tile used to pass
+          // unchecked, and then refused itself on the dashboard with a 403.
+          const target = widget.chartKey
+            ? chartOf.get(widget.chartKey)
+            : widget.reportKey
+              ? reportOf.get(widget.reportKey)
+              : null;
+          if (!target) return !widget.chartKey && !widget.reportKey;
+          return readable(reportUser)(target);
         });
         return {
           ...dashboard,
@@ -15703,7 +16950,15 @@ export function reportingRoutes(model) {
     }
 
     const refused = tablesRefused(reportUser, query);
+    const action = \`run \${params.kind.replace(/s$/, "")}\`;
     if (refused.length > 0) {
+      await logReportActivity(db, {
+        user: reportUser,
+        action,
+        target: item.name,
+        outcome: "refused",
+        detail: \`may not read \${refused.join(", ")}\`,
+      });
       throw forbidden(
         \`\${reportUser.role ?? "This role"} may not read \${refused.join(", ")}, which "\${item.name}" queries.\`
       );
@@ -15717,16 +16972,34 @@ export function reportingRoutes(model) {
     // means. One row past the cap distinguishes a full page from a truncated
     // one without counting the whole thing twice.
     let rows;
+    let numeric;
     try {
-      rows = await db.query(\`SELECT * FROM (\${body}) AS report_body LIMIT \${MAX_ROWS + 1}\`);
+      ({ rows, numeric } = await db.queryWithNumeric(\`SELECT * FROM (\${body}) AS report_body LIMIT \${MAX_ROWS + 1}\`));
     } catch (error) {
       // The query came out of the model, so this is a defect in the document or
       // in the derivation rather than in the request. Name the report and quote
       // the database — nobody can act on "the report failed".
+      await logReportActivity(db, {
+        user: reportUser,
+        action,
+        target: item.name,
+        outcome: "failed",
+        detail: error?.message || String(error),
+        durationMs: Date.now() - started,
+      });
       throw badRequest(
         \`Report "\${item.name}" failed: \${error?.message || String(error)}\`
       );
     }
+
+    await logReportActivity(db, {
+      user: reportUser,
+      action,
+      target: item.name,
+      outcome: "ok",
+      detail: \`\${Math.min(rows.length, MAX_ROWS)} row\${rows.length === 1 ? "" : "s"}\`,
+      durationMs: Date.now() - started,
+    });
 
     const truncated = rows.length > MAX_ROWS;
     if (truncated) rows = rows.slice(0, MAX_ROWS);
@@ -15737,6 +17010,8 @@ export function reportingRoutes(model) {
       // Off the first row rather than a driver field list, so the column order
       // the query's own SELECT declares is the order it renders in.
       columns: rows.length > 0 ? Object.keys(rows[0]) : [],
+      // Which of those are NUMERIC, which arrives as a string — see queryWithNumeric.
+      numeric,
       rows,
       rowCount: rows.length,
       truncated,
@@ -15774,15 +17049,31 @@ export function reportingRoutes(model) {
  * server, a second database and a seeder, and a browser tab has none of those.
  * The same directive, read a second way.
  *
- * The reports are not a table. They come off \`model.json\` — the model *is* the
- * definition, and storing a copy in \`sys_\` would only create something that can
- * disagree with it. Nothing in this runtime edits a report, so nothing needs a
- * row to edit.
+ * **The reports are a table now, and that is a reversal.** This comment used to
+ * say they were not: that they came off \`model.json\`, that the model *was* the
+ * definition, and that "nothing in this runtime edits a report, so nothing needs
+ * a row to edit". The last clause was the load-bearing one and it stopped being
+ * true the moment the administrator section was asked to offer create, update
+ * and delete — at which point "no row to edit" is not a design, it is the reason
+ * the feature cannot exist.
+ *
+ * So \`sys_report\` is seeded from \`model.json\` at first boot and read from after
+ * that, which is what \`sys_rule_definitions\` already did for rules and what the
+ * Application Dictionary does for screens. The NestJS stack has had the same
+ * table since migration 018, so this also closes a gap between the two rather
+ * than inventing something for one of them.
+ *
+ * The concern the old comment had — a copy that can disagree with the model — is
+ * real and is the point rather than a cost: an administrator who edits a report
+ * *means* to disagree with the model, the same way one who hides a field does.
+ * Regenerating restores the model's version, because the seed skips a report
+ * whose name is already there and a regenerated application starts on an empty
+ * database.
  */
 
 import { Router } from "../lib/router.js";
-import { badRequest, json, notFound } from "../lib/http.js";
-import { requireUser } from "../lib/guards.js";
+import { badRequest, json, noContent, notFound, readJson } from "../lib/http.js";
+import { requireAdmin, requireUser } from "../lib/guards.js";
 
 /**
  * The most rows one report returns.
@@ -15824,6 +17115,31 @@ function assertReadOnly(sql) {
   return body;
 }
 
+/**
+ * A row as the rest of the application talks about a report.
+ *
+ * The table's column names are the NestJS stack's (\`sql_text\`, \`x_axis\`,
+ * \`entity_name\`); the shape every caller already reads is the model's (\`sql\`,
+ * \`x\`, \`entity\`). Translated in one place so neither side has to learn the
+ * other's spelling.
+ */
+function fromRow(row) {
+  return {
+    id: row.sys_report_id,
+    name: row.name,
+    title: row.title,
+    entity: row.entity_name ?? null,
+    tableName: row.table_name ?? null,
+    chart: row.chart ?? null,
+    x: row.x_axis ?? null,
+    y: row.y_axis ?? null,
+    help: row.help ?? null,
+    sql: row.sql_text,
+    sortOrder: row.sort_order,
+    isActive: row.is_active !== false,
+  };
+}
+
 /** What a caller may see: everything except the query itself. */
 function withoutSql(report) {
   const { sql: _sql, ...meta } = report;
@@ -15832,23 +17148,43 @@ function withoutSql(report) {
 
 export function reportsRoutes(model) {
   const router = new Router();
-  router.use(async (_request, { user }) => {
+  /* Reads open to any signed-in user, writes administrator-only — the same
+     arrangement \`/sys\`, \`/rules\` and \`/workflows\` use. A report's SQL runs
+     against this application's whole database, so who may write one is a
+     different question from who may read the answers. */
+  router.use(async (request, { user }) => {
     requireUser(user);
+    if (request.method !== "GET") requireAdmin(user);
   });
 
-  const reports = Array.isArray(model.reports) ? model.reports : [];
-  const byName = new Map(reports.map((report) => [report.name, report]));
+  async function reportByName(db, name) {
+    const row = await db.one("SELECT * FROM sys_report WHERE name = $1", [name]);
+    return row ? fromRow(row) : null;
+  }
 
-  router.get("/", async () => json(reports.map(withoutSql)));
+  router.get("/", async (_request, { db }) => {
+    const rows = await db.select("sys_report", { orderBy: "sort_order" });
+    return json(rows.map((row) => withoutSql(fromRow(row))));
+  });
 
-  router.get("/:name", async (_request, { params }) => {
-    const report = byName.get(params.name);
+  router.get("/:name", async (_request, { db, params, user }) => {
+    const report = await reportByName(db, params.name);
     if (!report) throw notFound(\`No report named "\${params.name}"\`);
-    return json(withoutSql(report));
+    /*
+     * The query itself goes only to an administrator, who is the only caller
+     * that can edit one — everyone else gets what they always got.
+     *
+     * \`withoutSql\` exists because a report's SQL names tables the reader may
+     * have no access to, and reading the statement is a way to learn the schema
+     * and the joins behind a screen that would otherwise only show its results.
+     * Editing needs the text, so this route hands it over; that is a reason to
+     * gate it, not a reason to widen it.
+     */
+    return json(user?.isAdmin ? report : withoutSql(report));
   });
 
   router.get("/:name/run", async (_request, { db, params }) => {
-    const report = byName.get(params.name);
+    const report = await reportByName(db, params.name);
     if (!report) throw notFound(\`No report named "\${params.name}"\`);
 
     const body = assertReadOnly(report.sql);
@@ -15859,10 +17195,11 @@ export function reportsRoutes(model) {
     // means. One row past the cap distinguishes a full page from a truncated
     // one without counting the whole thing twice.
     let rows;
+    let numeric;
     try {
-      rows = await db.query(
+      ({ rows, numeric } = await db.queryWithNumeric(
         \`SELECT * FROM (\${body}) AS report_body LIMIT \${MAX_ROWS + 1}\`
-      );
+      ));
     } catch (error) {
       // The query came out of the model, so this is a defect in the document
       // rather than in the request. Name the report and quote the database —
@@ -15878,6 +17215,8 @@ export function reportsRoutes(model) {
       // Off the first row rather than a driver field list, so the column order
       // the report's own SELECT declares is the order it renders in.
       columns: rows.length > 0 ? Object.keys(rows[0]) : [],
+      // Which of those are NUMERIC, which arrives as a string — see queryWithNumeric.
+      numeric,
       rows,
       rowCount: rows.length,
       truncated,
@@ -15885,7 +17224,142 @@ export function reportsRoutes(model) {
     });
   });
 
+  /*
+   * Create, update and delete.
+   *
+   * **The SQL is checked here as well as on every run**, and both matter. The
+   * run-time check is the one that cannot be skipped, because \`sys_report\` is
+   * an ordinary table whose rows predate this route and could be written by
+   * anything that reaches the database. The save-time check is the one that
+   * tells an administrator *now* that what they typed is not a query this
+   * application will execute, rather than storing it and failing whenever
+   * somebody next opens the report.
+   *
+   * It is the same \`assertReadOnly\` both times, deliberately: two spellings of
+   * "read-only" is how one of them comes to permit something the other refuses.
+   */
+  function reportFields(body, existing = {}) {
+    const values = {};
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (!name) throw badRequest("A report needs a \`name\`");
+      if (!/^[a-z0-9][a-z0-9-]*$/i.test(name)) {
+        throw badRequest("\`name\` is the report's handle in a URL — letters, digits and hyphens");
+      }
+      values.name = name;
+    }
+    if (body.title !== undefined) {
+      const title = String(body.title).trim();
+      if (!title) throw badRequest("A report needs a \`title\` — the question it answers");
+      values.title = title;
+    }
+    if (body.entity !== undefined) {
+      values.entity_name = body.entity || null;
+      /* \`tableName\` follows the entity rather than being accepted beside it:
+         two fields naming the same thing is two chances to disagree. */
+      const entity = body.entity ? resolveReportEntity(model, body.entity) : null;
+      values.table_name = entity ? entity.tableName : null;
+    }
+    if (body.help !== undefined) values.help = body.help || null;
+    if (body.sortOrder !== undefined) {
+      const order = Number(body.sortOrder);
+      if (!Number.isInteger(order)) throw badRequest("\`sortOrder\` must be a whole number");
+      values.sort_order = order;
+    }
+    if (body.isActive !== undefined) values.is_active = !!body.isActive;
+
+    /*
+     * A chart needs both axes or neither. The dashboard draws \`chart\` with \`x\`
+     * and \`y\`; one without the other renders an empty frame, which reads as a
+     * broken report rather than as a report nobody finished configuring.
+     */
+    if (body.chart !== undefined || body.x !== undefined || body.y !== undefined) {
+      const chart = body.chart ? String(body.chart).trim() : null;
+      if (chart && !CHART_TYPES.has(chart)) {
+        throw badRequest(\`\\\`chart\\\` must be one of \${[...CHART_TYPES].join(", ")}\`);
+      }
+      const x = body.x !== undefined ? body.x || null : (existing.x_axis ?? null);
+      const y = body.y !== undefined ? body.y || null : (existing.y_axis ?? null);
+      if (chart && (!x || !y)) {
+        throw badRequest("A chart needs both \`x\` and \`y\` — an axis on its own draws nothing");
+      }
+      values.chart = chart;
+      values.x_axis = chart ? x : null;
+      values.y_axis = chart ? y : null;
+    }
+
+    if (body.sql !== undefined) {
+      values.sql_text = assertReadOnly(body.sql);
+    }
+    if (!values.sql_text && !existing.sql_text) {
+      throw badRequest("A report needs \`sql\` — the query that answers the question");
+    }
+    return values;
+  }
+
+  router.post("/", async (request, { db }) => {
+    const body = await readJson(request);
+    const values = { sort_order: 0, is_active: true, ...reportFields(body) };
+    if (!values.name) throw badRequest("A report needs a \`name\`");
+    if (!values.title) throw badRequest("A report needs a \`title\`");
+
+    const clash = await db.one("SELECT sys_report_id FROM sys_report WHERE name = $1", [
+      values.name,
+    ]);
+    /* Answered as a conflict rather than left to the unique index, so the
+       message names the report instead of quoting a constraint. */
+    if (clash) throw badRequest(\`A report named "\${values.name}" already exists\`);
+
+    const row = await db.insert("sys_report", values);
+    return json(fromRow(row), { status: 201 });
+  });
+
+  router.patch("/:name", async (request, { db, params }) => {
+    const existing = await db.one("SELECT * FROM sys_report WHERE name = $1", [params.name]);
+    if (!existing) throw notFound(\`No report named "\${params.name}"\`);
+
+    const body = await readJson(request);
+    const values = reportFields(body, existing);
+    if (Object.keys(values).length === 0) throw badRequest("Nothing to change");
+
+    if (values.name && values.name !== existing.name) {
+      const clash = await db.one("SELECT sys_report_id FROM sys_report WHERE name = $1", [
+        values.name,
+      ]);
+      if (clash) throw badRequest(\`A report named "\${values.name}" already exists\`);
+    }
+    values.updated_at = new Date().toISOString();
+
+    const row = await db.update("sys_report", values, { sys_report_id: existing.sys_report_id });
+    return json(fromRow(row));
+  });
+
+  router.delete("/:name", async (_request, { db, params }) => {
+    const existing = await db.one("SELECT sys_report_id FROM sys_report WHERE name = $1", [
+      params.name,
+    ]);
+    if (!existing) throw notFound(\`No report named "\${params.name}"\`);
+    await db.remove("sys_report", { sys_report_id: existing.sys_report_id });
+    return noContent();
+  });
+
   return router;
+}
+
+/** The chart types the dashboard knows how to draw. */
+const CHART_TYPES = new Set(["bar", "line", "pie", "area"]);
+
+/** The entity a report names, by any of the spellings a model might use. */
+function resolveReportEntity(model, name) {
+  const wanted = String(name ?? "").toLowerCase();
+  return (
+    (model.entities || []).find(
+      (entity) =>
+        entity.name.toLowerCase() === wanted ||
+        entity.tableName === wanted ||
+        entity.route === wanted
+    ) || null
+  );
 }
 `,
   "server/modules/rules.routes.js": `/**
@@ -15900,15 +17374,31 @@ export function reportsRoutes(model) {
  */
 
 import { Router } from "../lib/router.js";
-import { badRequest, json, notFound, readJson } from "../lib/http.js";
-import { requireUser } from "../lib/guards.js";
+import { badRequest, json, noContent, notFound, readJson } from "../lib/http.js";
+import { requireAdmin, requireUser } from "../lib/guards.js";
 import { evaluateRules, interpretCondition } from "../lib/rules.js";
 import { resolveEntity } from "./bus.routes.js";
 
 export function rulesRoutes(model) {
   const router = new Router();
-  router.use(async (_request, { user }) => {
+  /*
+   * Reads open to any signed-in user, writes administrator-only — the same
+   * arrangement \`/sys\` uses, and for the same reason. Every write in this
+   * application is filtered through these rules, so a rule is a statement about
+   * what the business permits; someone who can edit one can decide what the
+   * application accepts from everybody else.
+   *
+   * Keyed on the HTTP method rather than per-route, deliberately: there are more
+   * write routes than anyone remembers, and one added later would otherwise
+   * default to open. \`POST /evaluate\` is the single exception and is carved out
+   * explicitly below — it writes nothing, it is the dry run.
+   */
+  router.use(async (request, { user }) => {
     requireUser(user);
+    if (request.method === "GET") return;
+    const path = new URL(request.url).pathname;
+    if (request.method === "POST" && path.endsWith("/evaluate")) return;
+    requireAdmin(user);
   });
 
   router.get("/", async (_request, { db, query }) => {
@@ -15925,6 +17415,121 @@ export function rulesRoutes(model) {
     ]);
     if (!row) throw notFound("No such rule");
     return json(withReading(model)(row));
+  });
+
+  /*
+   * Create, update and delete.
+   *
+   * A rule is four things the engine needs — the entity it binds to, when it
+   * fires, in what order, and the JDM graph that decides — so those are what is
+   * validated. \`jdm_content\` is stored as text and parsed on evaluation, which
+   * means a syntactically broken graph would be accepted here and fail on the
+   * next write to the entity, a long way from the screen that caused it. It is
+   * parsed on the way in instead.
+   *
+   * \`table_name\` is derived rather than accepted: it is the entity's, and a
+   * caller who could set it independently could bind a rule to one entity and
+   * have it evaluated against another's columns.
+   */
+  function ruleFields(body, entity, existing = {}) {
+    const values = {};
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (!name) throw badRequest("A rule needs a \`name\`");
+      values.name = name;
+    }
+    if (body.description !== undefined) values.description = body.description || null;
+    if (entity) {
+      values.entity_name = entity.name;
+      values.table_name = entity.tableName;
+    }
+    if (body.event !== undefined) {
+      const event = String(body.event).trim();
+      if (!EVENTS.has(event)) throw badRequest(\`\\\`event\\\` must be one of \${[...EVENTS].join(", ")}\`);
+      values.event = event;
+    }
+    if (body.operation !== undefined) {
+      const operation = String(body.operation).trim().toUpperCase();
+      if (!OPERATIONS.has(operation))
+        throw badRequest(\`\\\`operation\\\` must be one of \${[...OPERATIONS].join(", ")}\`);
+      values.operation = operation;
+    }
+    if (body.priority !== undefined) {
+      const priority = Number(body.priority);
+      if (!Number.isInteger(priority)) throw badRequest("\`priority\` must be a whole number");
+      values.priority = priority;
+    }
+    if (body.is_active !== undefined) values.is_active = !!body.is_active;
+    if (body.jdm_content !== undefined) {
+      const content =
+        typeof body.jdm_content === "string" ? body.jdm_content : JSON.stringify(body.jdm_content);
+      try {
+        const graph = JSON.parse(content);
+        if (!graph || typeof graph !== "object" || !Array.isArray(graph.nodes)) {
+          throw new Error("a JDM graph needs a \`nodes\` array");
+        }
+      } catch (error) {
+        throw badRequest(\`\\\`jdm_content\\\` is not a usable JDM graph: \${error.message}\`);
+      }
+      values.jdm_content = content;
+    }
+    if (!values.jdm_content && !existing.jdm_content) {
+      throw badRequest("A rule needs \`jdm_content\` — the JDM graph that decides");
+    }
+    return values;
+  }
+
+  router.post("/", async (request, { db }) => {
+    const body = await readJson(request);
+    const entityName = body.entity_name || body.entity;
+    if (!entityName) throw badRequest("A rule needs an \`entity_name\`");
+    const entity = resolveEntity(model, entityName);
+    if (!entity) throw notFound(\`No entity "\${entityName}" in this model\`);
+
+    const values = {
+      event: "beforeCreate",
+      operation: "ALL",
+      priority: 100,
+      is_active: true,
+      ...ruleFields(body, entity),
+    };
+    const row = await db.insert("sys_rule_definitions", values);
+    return json(withReading(model)(row), { status: 201 });
+  });
+
+  router.patch("/:id", async (request, { db, params }) => {
+    const existing = await db.one(
+      "SELECT * FROM sys_rule_definitions WHERE sys_rule_definition_id = $1",
+      [params.id]
+    );
+    if (!existing) throw notFound("No such rule");
+
+    const body = await readJson(request);
+    const entityName = body.entity_name || body.entity;
+    let entity = null;
+    if (entityName) {
+      entity = resolveEntity(model, entityName);
+      if (!entity) throw notFound(\`No entity "\${entityName}" in this model\`);
+    }
+
+    const values = ruleFields(body, entity, existing);
+    if (Object.keys(values).length === 0) throw badRequest("Nothing to change");
+    values.updated_at = new Date().toISOString();
+
+    const row = await db.update("sys_rule_definitions", values, {
+      sys_rule_definition_id: params.id,
+    });
+    return json(withReading(model)(row));
+  });
+
+  router.delete("/:id", async (_request, { db, params }) => {
+    const existing = await db.one(
+      "SELECT sys_rule_definition_id FROM sys_rule_definitions WHERE sys_rule_definition_id = $1",
+      [params.id]
+    );
+    if (!existing) throw notFound("No such rule");
+    await db.remove("sys_rule_definitions", { sys_rule_definition_id: params.id });
+    return noContent();
   });
 
   router.post("/evaluate", async (request, { db }) => {
@@ -15950,6 +17555,27 @@ export function rulesRoutes(model) {
 
   return router;
 }
+
+/**
+ * What the rules engine actually dispatches on.
+ *
+ * \`bus.service\` runs \`beforeCreate\`/\`beforeUpdate\` hooks and then
+ * \`enforceBusinessRules(table, data, action)\`, so a rule whose event is not one
+ * of these is seeded, listed, and never evaluated — the silent-inert failure the
+ * dance-studio model's sixteen actions already demonstrated once. Rejected at
+ * the door rather than stored.
+ */
+const EVENTS = new Set([
+  "beforeCreate",
+  "afterCreate",
+  "beforeUpdate",
+  "afterUpdate",
+  "beforeDelete",
+  "afterDelete",
+]);
+
+/** \`ALL\` is the wildcard the evaluate query already matches on. */
+const OPERATIONS = new Set(["ALL", "CREATE", "UPDATE", "DELETE"]);
 
 /**
  * Annotate a rule with how its decisions were read.
@@ -16220,11 +17846,27 @@ export function sysRoutes(model) {
   });
 
   router.get("/model-summary", async (_request, { db }) => {
+    /*
+     * Counted from the tables, not from the model, for the three an
+     * administrator can now edit.
+     *
+     * These read \`model.rules\` and \`model.workflows\` until the admin screens
+     * grew create and delete — at which point a screen reporting "18 Rules"
+     * over a list showing seventeen is not a stale number, it is the dictionary
+     * describing a different application from the one running. \`entities\`,
+     * \`hooks\` and \`categories\` stay on the model: nothing edits those, and the
+     * model is where they live.
+     */
     const counts = {
       entities: model.entities.length,
-      rules: (model.rules || []).length,
-      workflows: (model.workflows || []).length,
-      sagas: (model.sagas || []).length,
+      rules: await db.value("SELECT COUNT(*)::int FROM sys_rule_definitions"),
+      workflows: await db.value(
+        "SELECT COUNT(*)::int FROM sys_workflow_definitions WHERE kind = 'state'"
+      ),
+      sagas: await db.value(
+        "SELECT COUNT(*)::int FROM sys_workflow_definitions WHERE kind = 'saga'"
+      ),
+      reports: await db.value("SELECT COUNT(*)::int FROM sys_report"),
       hooks: (model.hooks || []).length,
       categories: (model.categories || []).length,
     };
@@ -16248,23 +17890,37 @@ export function sysRoutes(model) {
   "server/modules/workflow.routes.js": `/**
  * \`/workflows\` and \`/workflow-definitions\` — the processes the model declared.
  *
- * A state machine has no endpoint that "runs" it, and inventing one would be a
- * second way to change a record's status that the guards, hooks and rules on
- * the ordinary update path know nothing about. So this module reads: the
- * machines, the transitions available from where a record actually is, and the
- * runs that have already happened. Moving a record is a PUT to the record.
+ * A state machine still has no endpoint that "runs" it, and inventing one would
+ * be a second way to change a record's status that the guards, hooks and rules
+ * on the ordinary update path know nothing about. **Moving a record is a PUT to
+ * the record**, and that has not changed.
+ *
+ * What this module now also does is let an administrator edit the machine
+ * itself — create a definition, change its transitions, retire it. That is a
+ * different thing from running one: it changes which moves *exist*, not which
+ * one a particular record is making, and it goes through the same table the
+ * readers read (\`sys_workflow_definitions\`, via \`lib/workflows.js\`) so an edit
+ * takes effect on the next request rather than at the next generation.
+ *
+ * Reads are open to any signed-in user; every write is administrator-only.
  */
 
 import { Router } from "../lib/router.js";
-import { json, notFound } from "../lib/http.js";
-import { requireUser } from "../lib/guards.js";
+import { badRequest, json, noContent, notFound, readJson } from "../lib/http.js";
+import { requireAdmin, requireUser } from "../lib/guards.js";
 import { resolveEntity } from "./bus.routes.js";
 import { ident } from "../lib/db.js";
+import { stateMachineFor } from "../lib/workflows.js";
 
 export function workflowRoutes(model) {
   const router = new Router();
-  router.use(async (_request, { user }) => {
+  /* Reads open to any signed-in user, writes administrator-only — the same
+     arrangement \`/sys\` and \`/rules\` use. A state machine decides which moves a
+     record may make, so editing one changes what the application permits
+     everybody else to do. */
+  router.use(async (request, { user }) => {
     requireUser(user);
+    if (request.method !== "GET") requireAdmin(user);
   });
 
   router.get("/definitions", async (_request, { db }) =>
@@ -16278,6 +17934,116 @@ export function workflowRoutes(model) {
     );
     if (!row) throw notFound("No such workflow");
     return json(row);
+  });
+
+  /*
+   * Create, update and delete a definition.
+   *
+   * What is stored is the workflow object itself, in \`definition\`, exactly as
+   * the seed writes it — so a machine edited here is read back by
+   * \`stateMachineFor\` and drives the transition UI and the run log immediately.
+   * That is only true because the readers were moved onto this table; before
+   * that an edit here changed nothing, which is the whole reason this shape was
+   * worth building rather than a screen that looked like it worked.
+   *
+   * \`transitions\` is validated rather than trusted. A transition with no \`from\`
+   * or no \`to\` is not a move, and the two readers would silently skip it — so it
+   * is refused at the door rather than stored and ignored.
+   */
+  function workflowFields(body, entity, existing = {}) {
+    const values = {};
+    if (body.name !== undefined) {
+      const name = String(body.name).trim();
+      if (!name) throw badRequest("A workflow needs a \`name\`");
+      values.name = name;
+    }
+    if (entity) values.entity_name = entity.name;
+    if (body.kind !== undefined) {
+      const kind = String(body.kind).trim();
+      if (!KINDS.has(kind)) throw badRequest(\`\\\`kind\\\` must be one of \${[...KINDS].join(", ")}\`);
+      values.kind = kind;
+    }
+    if (body.is_active !== undefined) values.is_active = !!body.is_active;
+
+    if (body.definition !== undefined) {
+      const definition =
+        typeof body.definition === "string" ? safeParse(body.definition) : body.definition;
+      if (!definition || typeof definition !== "object") {
+        throw badRequest("\`definition\` must be an object describing the workflow");
+      }
+      const kind = values.kind ?? existing.kind ?? "state";
+      if (kind === "state") {
+        const transitions = definition.transitions;
+        if (!Array.isArray(transitions) || transitions.length === 0) {
+          throw badRequest("A \`state\` workflow needs at least one transition");
+        }
+        for (const [index, transition] of transitions.entries()) {
+          if (!transition || !String(transition.from ?? "").trim() || !String(transition.to ?? "").trim()) {
+            throw badRequest(
+              \`transitions[\${index}] needs both a \\\`from\\\` and a \\\`to\\\` — a half-drawn edge is not a move\`
+            );
+          }
+        }
+      }
+      values.definition = JSON.stringify(definition);
+    }
+
+    if (!values.definition && !existing.definition) {
+      throw badRequest("A workflow needs a \`definition\`");
+    }
+    return values;
+  }
+
+  router.post("/definitions", async (request, { db }) => {
+    const body = await readJson(request);
+    const entityName = body.entity_name || body.entity;
+    if (!entityName) throw badRequest("A workflow needs an \`entity_name\`");
+    const entity = resolveEntity(model, entityName);
+    if (!entity) throw notFound(\`No entity "\${entityName}" in this model\`);
+
+    const values = { kind: "state", is_active: true, ...workflowFields(body, entity) };
+    const row = await db.insert("sys_workflow_definitions", values);
+    return json(row, { status: 201 });
+  });
+
+  router.patch("/definitions/:id", async (request, { db, params }) => {
+    const existing = await db.one(
+      "SELECT * FROM sys_workflow_definitions WHERE sys_workflow_definition_id = $1",
+      [params.id]
+    );
+    if (!existing) throw notFound("No such workflow");
+
+    const body = await readJson(request);
+    const entityName = body.entity_name || body.entity;
+    let entity = null;
+    if (entityName) {
+      entity = resolveEntity(model, entityName);
+      if (!entity) throw notFound(\`No entity "\${entityName}" in this model\`);
+    }
+
+    const values = workflowFields(body, entity, existing);
+    if (Object.keys(values).length === 0) throw badRequest("Nothing to change");
+    values.updated_at = new Date().toISOString();
+
+    const row = await db.update("sys_workflow_definitions", values, {
+      sys_workflow_definition_id: params.id,
+    });
+    return json(row);
+  });
+
+  /*
+   * Deleting a definition leaves its runs alone. \`sys_workflow_runs\` is the
+   * record of what the application actually did, and a history that disappears
+   * when somebody tidies up a definition is not a history.
+   */
+  router.delete("/definitions/:id", async (_request, { db, params }) => {
+    const existing = await db.one(
+      "SELECT sys_workflow_definition_id FROM sys_workflow_definitions WHERE sys_workflow_definition_id = $1",
+      [params.id]
+    );
+    if (!existing) throw notFound("No such workflow");
+    await db.remove("sys_workflow_definitions", { sys_workflow_definition_id: params.id });
+    return noContent();
   });
 
   router.get("/runs", async (_request, { db, query }) => {
@@ -16315,7 +18081,7 @@ export function workflowRoutes(model) {
     const entity = resolveEntity(model, params.entityName);
     if (!entity) throw notFound(\`No entity "\${params.entityName}"\`);
 
-    const workflow = (model.workflows || []).find((item) => item.entity === entity.name);
+    const workflow = await stateMachineFor(db, model, entity.name);
     if (!workflow) return json({ workflow: null, current: null, transitions: [] });
 
     const column = ["status", "state", "workflow_state"].find((candidate) =>
@@ -16353,6 +18119,25 @@ export function workflowRoutes(model) {
   });
 
   return router;
+}
+
+/**
+ * The two kinds the model compiles, and the two the readers understand.
+ *
+ * \`state\` is a lifecycle — \`stateMachineFor\` picks it and the transition UI
+ * draws it. \`saga\` is a multi-step process with no \`transitions\` of its own, so
+ * it is listed and never offered as a move. A third spelling would be stored,
+ * shown, and understood by neither.
+ */
+const KINDS = new Set(["state", "saga"]);
+
+/** JSON that may not be JSON — the caller supplies this one. */
+function safeParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 `,
   "styles.css": `/*
@@ -16850,6 +18635,49 @@ a { color: var(--primary); }
 .dict__row:hover { background: var(--surface-2, rgba(127, 127, 127, 0.08)); }
 .dict__detail { margin-bottom: var(--gap, 16px); }
 .dict__help { max-width: 34ch; color: var(--text-faint); font-size: 12px; }
+
+/* A value in a table that is also the control that changes it — the field
+   visibility toggles. A <button> so it is reachable by keyboard and announced
+   as one; styled as text because a row of twelve buttons reads as a toolbar
+   rather than as data. */
+.linklike {
+  font: inherit; color: var(--primary); background: none; border: 0; padding: 0;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.linklike:hover:not(:disabled) { color: var(--text); }
+.linklike:disabled { opacity: 0.5; cursor: progress; text-decoration: none; }
+
+/* ---------------------------------------------------------------------------
+   The admin editors — one form shape for rules, processes and reports.
+
+   Deliberately not a modal. This application runs inside an iframe on the page
+   that generated it, where a dialog is not guaranteed to appear; the same
+   reason the dashboard's purge control is two-step. The form takes the place of
+   what the reader was looking at instead.
+   --------------------------------------------------------------------------- */
+.editor-host:empty { display: none; }
+.editor {
+  display: grid; gap: 12px; margin: 14px 0 18px; padding: 16px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+}
+.editor .field__input--code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.5; resize: vertical;
+}
+.editor__actions { display: flex; gap: 8px; margin-top: 4px; }
+.editor__error {
+  margin: 0; padding: 9px 11px; border-radius: var(--radius-sm);
+  background: var(--destructive-soft, rgba(220, 38, 38, 0.1));
+  border-left: 3px solid var(--destructive);
+  font-size: 13px; white-space: pre-wrap;
+}
+.field__hint { margin: 0; font-size: 12px; color: var(--text-faint); }
+
+/* A delete that arms on the first click. \`is-armed\` is what says so — the label
+   changes too, but colour alone would not reach somebody who cannot see it. */
+.btn.is-armed { background: var(--destructive); border-color: var(--destructive); color: #fff; }
+
+.rule__actions, .report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .muted { color: var(--text-faint); }
 
 .record__actions { display: flex; gap: 8px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
@@ -16861,6 +18689,12 @@ a { color: var(--primary); }
 }
 .violations__title { margin: 0 0 5px; font-size: 13.5px; color: var(--destructive); font-family: var(--sans); font-weight: 650; }
 .violations__list { margin: 0; padding-left: 18px; font-size: 13px; }
+.conflict { width: 100%; margin: 8px 0; border-collapse: collapse; font-size: 13px; }
+.conflict th, .conflict td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.conflict th { font-weight: 600; }
+.conflict__clash td { background: color-mix(in srgb, var(--destructive) 8%, transparent); }
+.conflict small { color: var(--destructive); }
+.conflict__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 
 /* ------------------------------------------------------------- buttons --- */
 
@@ -17093,24 +18927,18 @@ a { color: var(--primary); }
 /* --------------------------------------------------- reporting ---------- */
 
 /*
- * The reporting application, told apart from the one it reports on.
+ * The way into the reporting application, on the application's own screens.
  *
- * The same design system — two applications generated from one model should not
- * look like two products — with one deliberate difference: a slate accent
- * instead of the teal. A reader who is signed into both at once in one tab has
- * to be able to tell, at a glance, which one they are looking at, and the
- * masthead is the only thing always on screen.
+ * The reporting application itself is drawn in the Enterprise Reporting
+ * platform's own design — see the \`.er\` block at the end of this file. What is
+ * here is the slate accent the application uses for the door to it: the sign-in
+ * screen's link and the dashboard's card.
  */
 :root {
   --reporting: #3f4a5a;
   --reporting-soft: #eef1f5;
 }
 
-.login--report .login__aside { background: var(--reporting-soft); }
-.login__mark--report { background: var(--reporting); }
-.login--report .btn--primary { background: var(--reporting); border-color: var(--reporting); }
-.login--report .btn--primary:hover { background: #313a47; border-color: #313a47; }
-.login--report .login__hint { background: var(--reporting-soft); }
 .login__aside-note {
   margin: 18px 0 20px; font-size: 12.5px; line-height: 1.55; color: var(--text-soft);
 }
@@ -17128,48 +18956,449 @@ a { color: var(--primary); }
 }
 .btn--report:hover:not(:disabled) { background: #313a47; border-color: #313a47; }
 
-.masthead--report { border-bottom: 2px solid var(--reporting); }
-.masthead__badge {
-  padding: 4px 9px; border-radius: 999px; background: var(--reporting); color: #fff;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-}
-.avatar--report { background: var(--reporting); }
-.shell--report .actionbar .btn.is-active {
-  background: var(--reporting); border-color: var(--reporting); color: #fff;
-}
-.crumbs__note { color: var(--text-faint); font-size: 12px; }
-
-/* The dashboard's tiles: one chart each, in a grid that collapses on a phone. */
-.report-grid {
-  display: grid; gap: 14px; margin: 14px 0 26px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-}
-.report-tile {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 14px 16px; min-width: 0;
-}
-.report-tile h3 { margin: 0 0 8px; font-size: 14px; }
-.report-tile .report-chart { color: var(--reporting); width: 100%; height: auto; }
-
-.report-tables {
-  display: grid; gap: 4px; margin: 10px 0 24px; padding: 0; list-style: none;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-}
-.report-tables li { font-size: 12.5px; }
-
-/* A saved query, shown where a reader asks where a number came from. */
-.report-sql { margin: 14px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 13px; background: var(--surface); }
-.report-sql > summary { cursor: pointer; font-size: 13px; font-weight: 500; }
-.report-sql pre {
-  margin: 10px 0 0; padding: 11px 12px; overflow-x: auto;
-  background: var(--surface-2); border-radius: var(--radius-sm);
-  font-family: var(--mono); font-size: 12px; line-height: 1.5;
-}
-.shell--report .report-chart { color: var(--reporting); }
-
 /* The entry point on the application's own dashboard. */
 .category--reporting .category__count { color: var(--reporting); font-weight: 600; text-transform: none; }
 .card--reporting { border-left: 3px solid var(--reporting); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Enterprise Reporting — the browser preview, in the platform's own design.
+ *
+ * Everything below is scoped to \`.er\` and prefixed \`er-\`, so none of it reaches
+ * the application above. The tokens are the Enterprise Reporting platform's —
+ * \`src/styles/globals.css\` in businessappwithai/enterprise_reporting_tanstack,
+ * the Tremor palette on Tailwind's blue and gray scales — value for value, light
+ * and dark. The sizes are its Tailwind classes turned into pixels: the 256px
+ * sidebar (\`w-64\`, \`w-16\` collapsed), the 56px header (\`h-14\`), 24px page
+ * padding (\`p-6\`), \`rounded-tremor-default\` 8px cards with the \`tremor-card\`
+ * shadow, \`text-tremor-default\` 14px body text.
+ *
+ * When the platform changes a token, change it here. The palette is the part a
+ * reader notices first, and a preview whose blue is not the platform's blue is
+ * one that looks like a different product.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+.er {
+  --t-brand-faint: #eff6ff;
+  --t-brand-muted: #bfdbfe;
+  --t-brand-subtle: #60a5fa;
+  --t-brand: #3b82f6;
+  --t-brand-emphasis: #1d4ed8;
+  --t-brand-inverted: #ffffff;
+  --t-bg-muted: #f9fafb;
+  --t-bg-subtle: #f3f4f6;
+  --t-bg: #ffffff;
+  --t-bg-emphasis: #374151;
+  --t-border: #e5e7eb;
+  --t-ring: #e5e7eb;
+  --t-content-subtle: #9ca3af;
+  --t-content: #6b7280;
+  --t-content-emphasis: #374151;
+  --t-content-strong: #111827;
+  --t-shadow-input: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --t-shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --t-shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --t-radius-small: 6px;
+  --t-radius: 8px;
+
+  min-height: 100vh;
+  background: var(--t-bg-muted);
+  color: var(--t-content-strong);
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+[data-theme="dark"] .er {
+  --t-brand-faint: #0b1229;
+  --t-brand-muted: #172554;
+  --t-brand-subtle: #1e40af;
+  --t-brand: #3b82f6;
+  --t-brand-emphasis: #60a5fa;
+  --t-brand-inverted: #172554;
+  --t-bg-muted: #131a2b;
+  --t-bg-subtle: #1f2937;
+  --t-bg: #111827;
+  --t-bg-emphasis: #d1d5db;
+  --t-border: #1f2937;
+  --t-ring: #1f2937;
+  --t-content-subtle: #4b5563;
+  --t-content: #6b7280;
+  --t-content-emphasis: #e5e7eb;
+  --t-content-strong: #f9fafb;
+}
+.er *, .er *::before, .er *::after { box-sizing: border-box; }
+/* The application styles its headings in a display face; the platform's are
+   the body sans at a heavier weight, so they are reset here rather than
+   inherited from the page around them. */
+.er :is(h1, h2, h3, h4, p) { font-family: inherit; letter-spacing: normal; }
+.er a { color: inherit; text-decoration: none; }
+.er code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px; padding: 1px 6px; border-radius: 4px; background: var(--t-bg-subtle);
+}
+
+/* Icons — lucide at h-4 w-4 unless sized. */
+.er-iconwrap { display: inline-flex; flex-shrink: 0; width: 16px; height: 16px; }
+.er-iconwrap svg { width: 100%; height: 100%; }
+.er-icon--xs { width: 12px; height: 12px; }
+.er-icon--sm { width: 14px; height: 14px; }
+.er-icon--md, .er-icon--lg { width: 20px; height: 20px; }
+.er-icon--xl { width: 40px; height: 40px; }
+.er-brand { color: var(--t-brand); }
+.er-subtle { color: var(--t-content-subtle); }
+
+/* ── Layout: app-shell.tsx ─────────────────────────────────────────────────── */
+.er-sidebar-desktop { display: none; }
+.er-content { display: flex; flex-direction: column; min-height: 100vh; min-width: 0; transition: margin-left 300ms; }
+@media (min-width: 1024px) {
+  .er-sidebar-desktop { display: block; }
+  .er-content { margin-left: 256px; }
+  .er-content.is-collapsed { margin-left: 64px; }
+  .er-mobile-only { display: none !important; }
+}
+.er-mobile-overlay {
+  position: fixed; inset: 0; z-index: 40; background: rgb(17 24 39 / 0.5);
+  opacity: 0; pointer-events: none; transition: opacity 300ms;
+}
+.er-mobile-overlay.is-open { opacity: 1; pointer-events: auto; }
+.er-sidebar-mobile {
+  position: fixed; left: 0; top: 0; z-index: 50; height: 100vh; width: 256px;
+  transform: translateX(-100%); transition: transform 300ms;
+}
+.er-sidebar-mobile.is-open { transform: translateX(0); }
+.er-sidebar-mobile .er-sidebar { position: relative; }
+@media (min-width: 1024px) { .er-mobile-overlay, .er-sidebar-mobile { display: none; } }
+.er-main { flex: 1; overflow: auto; padding: 16px; }
+@media (min-width: 768px) { .er-main { padding: 24px; } }
+
+/* ── sidebar.tsx ───────────────────────────────────────────────────────────── */
+.er-sidebar {
+  position: fixed; left: 0; top: 0; z-index: 40; height: 100vh; width: 256px;
+  border-right: 1px solid var(--t-border); background: var(--t-bg);
+  transition: width 300ms;
+}
+.er-sidebar.is-collapsed { width: 64px; }
+.er-sidebar__brand {
+  display: flex; align-items: center; height: 56px; padding: 0 16px;
+  border-bottom: 1px solid var(--t-border);
+}
+.er-sidebar.is-collapsed .er-sidebar__brand { justify-content: center; }
+.er-sidebar__logo { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--t-content-strong); }
+.er-sidebar__scroll { height: calc(100vh - 56px); overflow-y: auto; padding: 16px 0; }
+.er-nav__group { padding: 4px 12px; }
+.er-nav__heading {
+  margin: 0 0 8px; padding: 0 8px; font-size: 12px; line-height: 16px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.025em; color: var(--t-content-subtle);
+}
+.er-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+.er-nav__item {
+  display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px;
+  border-radius: var(--t-radius-small); font-weight: 500; color: var(--t-content);
+  white-space: nowrap; overflow: hidden;
+}
+.er-nav__item:hover { background: var(--t-bg-subtle); color: var(--t-content-emphasis); }
+.er-nav__item.is-active, .er-nav__item.is-active:hover { background: var(--t-brand-faint); color: var(--t-brand); }
+.er-sidebar.is-collapsed .er-nav__item { justify-content: center; padding: 0 8px; }
+.er-nav__label { overflow: hidden; text-overflow: ellipsis; }
+.er-separator { height: 1px; margin: 8px 0; background: var(--t-border); }
+.er-sidebar__collapse {
+  position: absolute; right: -12px; top: 64px; display: inline-flex; align-items: center;
+  justify-content: center; width: 24px; height: 24px; padding: 0; cursor: pointer;
+  border: 1px solid var(--t-border); border-radius: 9999px; background: var(--t-bg);
+  color: var(--t-content); box-shadow: var(--t-shadow-input);
+}
+.er-sidebar__collapse:hover { background: var(--t-bg-muted); }
+
+/* ── header.tsx ────────────────────────────────────────────────────────────── */
+.er-header {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center;
+  justify-content: space-between; height: 56px; padding: 0 24px;
+  border-bottom: 1px solid var(--t-border); background: var(--t-bg);
+}
+.er-header__left, .er-header__right { display: flex; align-items: center; gap: 8px; }
+.er-themeselect { width: 192px; }
+@media (max-width: 639px) { .er-themeselect { width: 132px; } }
+.er-menuwrap { position: relative; }
+.er-avatar {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  margin: 2px; padding: 0; border: 0; cursor: pointer; border-radius: var(--t-radius-small);
+  background: var(--t-bg-subtle); color: var(--t-content-emphasis); font-size: 12px; font-weight: 500;
+}
+.er-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 60; width: 224px; padding: 4px;
+  border: 1px solid var(--t-border); border-radius: var(--t-radius); background: var(--t-bg);
+  box-shadow: var(--t-shadow-dropdown);
+}
+.er-menu--wide { width: 320px; padding: 0; }
+.er-menu__label { padding: 6px 8px; }
+.er-menu__label--split { padding: 16px; border-bottom: 1px solid var(--t-border); font-weight: 600; }
+.er-menu__name { margin: 0 0 4px; font-weight: 500; color: var(--t-content-strong); }
+.er-menu__email { margin: 0; font-size: 12px; line-height: 16px; color: var(--t-content); }
+.er-menu__note { padding: 4px 8px; font-size: 12px; line-height: 16px; color: var(--t-content); }
+.er-menu__note:empty { display: none; }
+.er-menu__separator { height: 1px; margin: 4px -4px; background: var(--t-border); }
+.er-menu__empty { padding: 32px 0; text-align: center; color: var(--t-content); }
+.er-menu__item {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0;
+  border-radius: var(--t-radius-small); background: transparent; color: var(--t-content-emphasis);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.er-menu__item:hover { background: var(--t-bg-subtle); }
+.er-menu__item--danger { color: #ef4444; }
+
+/* The one strip the platform does not have: what this is. */
+.er-previewstrip {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px 24px;
+  border-bottom: 1px solid var(--t-border); background: var(--t-brand-faint);
+  color: var(--t-content-emphasis); font-size: 12px; line-height: 18px;
+}
+.er-previewstrip .er-iconwrap { margin-top: 2px; color: var(--t-brand); }
+.er-previewstrip a { color: var(--t-brand); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── page-header.tsx, breadcrumb.tsx ───────────────────────────────────────── */
+.er-stack { display: flex; flex-direction: column; gap: 24px; }
+.er-pageheader { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.er-pageheader__lead { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.er-pageheader__text { min-width: 0; }
+.er-pageheader__titlerow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.er-pageheader__title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; color: var(--t-content-strong); }
+.er-pageheader__description { margin: 4px 0 0; color: var(--t-content); }
+.er-pageheader__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.er-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: var(--t-content); margin-bottom: -12px; }
+.er-breadcrumb a:hover { color: var(--t-content-strong); }
+.er-breadcrumb .is-current { color: var(--t-content-strong); font-weight: 500; }
+.er-sectionhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.er-sectiontitle { margin: 0; font-size: 18px; line-height: 28px; font-weight: 500; color: var(--t-content-strong); }
+.er-label { font-size: 12px; line-height: 16px; color: var(--t-content); }
+.er-text { margin: 0; color: var(--t-content); }
+.er-strong { font-weight: 500; color: var(--t-content-strong); }
+.er-mt { margin-top: 12px; }
+.er-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 42ch; }
+.er-selfstart { align-self: flex-start; }
+
+/* ── Grids ─────────────────────────────────────────────────────────────────── */
+.er-grid { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+.er-grid--3 { gap: 16px; }
+@media (min-width: 640px) { .er-grid--4, .er-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) {
+  .er-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .er-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .er-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+/* ── card.tsx, kpi-card.tsx ────────────────────────────────────────────────── */
+.er-card {
+  position: relative; display: block; width: 100%; min-width: 0; border-radius: var(--t-radius);
+  background: var(--t-bg); box-shadow: 0 0 0 1px var(--t-ring), var(--t-shadow-card);
+  color: var(--t-content-strong);
+}
+a.er-card { transition: box-shadow 150ms; }
+a.er-card:hover { box-shadow: 0 0 0 1px var(--t-ring), var(--t-shadow-dropdown); }
+.er-card__header { display: flex; flex-direction: column; gap: 4px; padding: 24px; }
+.er-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.er-card__title { margin: 0; font-size: 18px; line-height: 28px; font-weight: 500; color: var(--t-content-strong); }
+.er-card__title--sm { font-size: 14px; line-height: 20px; }
+.er-card__description { margin: 4px 0 0; color: var(--t-content); }
+.er-card__content { padding: 0 24px 24px; }
+.er-card__footer { display: flex; align-items: center; padding: 0 24px 24px; }
+.er-card__flush { overflow: hidden; border-radius: var(--t-radius); }
+.er-kpi { padding: 24px; }
+.er-kpi__label { display: flex; align-items: center; gap: 8px; color: var(--t-content); }
+.er-kpi__metric { margin: 8px 0 0; font-size: 30px; line-height: 36px; font-weight: 600; color: var(--t-content-strong); }
+.er-module { padding: 24px; }
+.er-module__head { display: flex; align-items: center; gap: 8px; }
+
+/* The "Content by type" bar list. */
+.er-barlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.er-barlist li { position: relative; display: flex; justify-content: space-between; align-items: center; height: 32px; padding: 0 8px; }
+.er-barlist__bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--t-brand-faint); }
+[data-theme="dark"] .er-barlist__bar { background: var(--t-brand-muted); }
+.er-barlist__name, .er-barlist__value { position: relative; display: flex; align-items: center; gap: 8px; }
+.er-barlist__name { color: var(--t-content-strong); }
+.er-barlist__value { font-weight: 500; color: var(--t-content-strong); }
+.er-taglist { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── table.tsx ─────────────────────────────────────────────────────────────── */
+.er-table-wrap { width: 100%; overflow: auto; }
+.er-table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--t-content); }
+.er-table th {
+  padding: 14px 16px; text-align: left; white-space: nowrap; font-weight: 600;
+  color: var(--t-content-strong); border-bottom: 1px solid var(--t-border);
+}
+.er-table td { padding: 16px; text-align: left; vertical-align: middle; border-top: 1px solid var(--t-border); }
+.er-table tbody tr:first-child td { border-top: 0; }
+.er-table tbody tr { transition: background-color 100ms; }
+.er-table tbody tr:hover { background: var(--t-bg-muted); }
+.er-table tr.is-link { cursor: pointer; }
+
+/* ── button.tsx ────────────────────────────────────────────────────────────── */
+.er-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;
+  border: 1px solid transparent; font: inherit; font-weight: 500; white-space: nowrap;
+  cursor: pointer; transition: background-color 100ms, border-color 100ms, color 100ms;
+}
+.er-btn:disabled { opacity: 0.5; pointer-events: none; }
+.er-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--t-brand-muted); }
+.er-btn--default {
+  border-radius: var(--t-radius); box-shadow: var(--t-shadow-input); background: var(--t-brand);
+  border-color: var(--t-brand); color: var(--t-brand-inverted);
+}
+.er-btn--default:hover { background: var(--t-brand-emphasis); border-color: var(--t-brand-emphasis); }
+.er-btn--outline {
+  border-radius: var(--t-radius); box-shadow: var(--t-shadow-input); background: var(--t-bg);
+  border-color: var(--t-border); color: var(--t-content-emphasis);
+}
+.er-btn--outline:hover { background: var(--t-bg-muted); }
+.er-btn--secondary {
+  border-radius: var(--t-radius); box-shadow: var(--t-shadow-input); background: var(--t-bg-subtle);
+  border-color: var(--t-border); color: var(--t-content-emphasis);
+}
+.er-btn--ghost { border-radius: var(--t-radius); background: transparent; color: var(--t-content-emphasis); }
+.er-btn--ghost:hover { background: var(--t-bg-subtle); }
+.er-btn--link { background: transparent; color: var(--t-brand); }
+.er-btn--size-default { padding: 8px 16px; font-size: 14px; line-height: 20px; }
+.er-btn--size-sm { padding: 6px 12px; font-size: 12px; line-height: 16px; }
+.er-btn--size-icon { width: 36px; height: 36px; padding: 0; border-radius: var(--t-radius-small); }
+.er-btn--block { width: 100%; }
+
+/* ── badge.tsx ─────────────────────────────────────────────────────────────── */
+.er-badge {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: max-content;
+  flex-shrink: 0; padding: 2px 8px; border-radius: var(--t-radius-small); white-space: nowrap;
+  font-size: 12px; line-height: 16px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--t-border);
+}
+.er-badge--default { background: var(--t-brand-faint); color: var(--t-brand-emphasis); box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.2); }
+.er-badge--secondary { background: var(--t-bg-subtle); color: var(--t-content-emphasis); }
+.er-badge--outline { background: transparent; color: var(--t-content-emphasis); }
+.er-badge--neutral { background: rgb(107 114 128 / 0.1); color: var(--t-content-emphasis); box-shadow: inset 0 0 0 1px rgb(107 114 128 / 0.2); }
+.er-badge--warning { background: rgb(245 158 11 / 0.1); color: #b45309; box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.2); }
+.er-badge--destructive { background: rgb(239 68 68 / 0.1); color: #b91c1c; box-shadow: inset 0 0 0 1px rgb(239 68 68 / 0.2); }
+.er-badge--icon { text-transform: capitalize; }
+
+/* ── input.tsx, label.tsx, select.tsx ──────────────────────────────────────── */
+.er-input, .er-select {
+  display: flex; width: 100%; padding: 8px 12px; border: 1px solid var(--t-border);
+  border-radius: var(--t-radius); background: var(--t-bg); color: var(--t-content-emphasis);
+  box-shadow: var(--t-shadow-input); font: inherit; font-size: 14px; line-height: 20px; outline: none;
+  transition: border-color 100ms, box-shadow 100ms;
+}
+.er-select { height: 38px; padding: 0 12px; cursor: pointer; }
+.er-input::placeholder { color: var(--t-content); }
+.er-input:focus, .er-select:focus { border-color: var(--t-brand-subtle); box-shadow: 0 0 0 2px var(--t-brand-muted); }
+.er-label-strong { font-weight: 500; line-height: 1; color: var(--t-content-strong); }
+.er-field { display: flex; flex-direction: column; gap: 8px; }
+.er-toolbar { display: flex; align-items: center; gap: 16px; }
+.er-searchwrap { position: relative; flex: 1; max-width: 448px; }
+.er-searchicon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--t-content); }
+.er-input--search { padding-left: 40px; }
+
+/* ── alert.tsx ─────────────────────────────────────────────────────────────── */
+.er-alert {
+  display: flex; gap: 12px; padding: 12px 16px; border: 1px solid var(--t-border);
+  border-radius: var(--t-radius); background: var(--t-bg); color: var(--t-content-emphasis);
+}
+.er-alert > .er-iconwrap { margin-top: 2px; color: var(--t-brand); }
+.er-alert--destructive { border-color: rgb(239 68 68 / 0.5); color: #b91c1c; }
+[data-theme="dark"] .er-alert--destructive { color: #f87171; }
+.er-alert--destructive > .er-iconwrap { color: currentColor; }
+.er-alert__title { margin: 0; font-weight: 500; }
+.er-alert__body { margin-top: 2px; font-size: 14px; }
+
+/* Loading and empty states. */
+.er-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 32px; color: var(--t-content); }
+.er-spinner {
+  width: 20px; height: 20px; border-radius: 9999px; border: 2px solid var(--t-border);
+  border-top-color: var(--t-brand); animation: er-spin 800ms linear infinite;
+}
+.er-spinner--inline { width: 14px; height: 14px; border-color: rgb(255 255 255 / 0.4); border-top-color: #fff; }
+@keyframes er-spin { to { transform: rotate(360deg); } }
+.er-empty { padding: 48px 24px; text-align: center; }
+.er-empty__title { margin: 0; font-weight: 500; color: var(--t-content-strong); }
+.er-empty__detail { margin: 4px 0 0; color: var(--t-content); }
+.er-unavailable { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding-top: 24px; max-width: 68ch; }
+.er-code {
+  margin: 0; padding: 16px; overflow-x: auto; border-radius: var(--t-radius); background: var(--t-bg-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 18px;
+  color: var(--t-content-strong); white-space: pre;
+}
+.er-code code { padding: 0; background: none; }
+
+/* ── Charts (Recharts, as SVG) and the dashboard grid ──────────────────────── */
+.er-chart { display: block; width: 100%; height: auto; }
+.er-chart__grid { stroke: var(--t-border); stroke-dasharray: 3 3; }
+.er-chart__tick, .er-chart__legend { fill: var(--t-content); font-size: 12px; font-family: inherit; }
+.er-chart__legend { fill: var(--t-content-emphasis); }
+.er-chart__bar { fill: var(--t-brand); }
+.er-chart__line { fill: none; stroke: var(--t-brand); stroke-width: 2; }
+.er-chart__area { fill: var(--t-brand); fill-opacity: 0.15; }
+
+/* react-grid-layout: twelve columns, 100px rows, 16px gutters. */
+.er-dashgrid { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 100px; }
+.er-tile { display: flex; flex-direction: column; overflow: hidden; }
+.er-tile__head { padding: 16px 16px 8px; }
+.er-tile__body { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 16px; }
+.er-tile__body:has(> .er-chart) { display: flex; align-items: center; }
+.er-tile__body > .er-chart { height: 100%; max-height: 100%; }
+.er-tile__body .er-table td, .er-tile__body .er-table th { padding: 8px 10px; }
+@media (max-width: 1023px) {
+  .er-dashgrid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+  .er-tile { grid-column: auto !important; grid-row: auto !important; min-height: 280px; }
+}
+
+/* ── login.tsx ─────────────────────────────────────────────────────────────── */
+.er-login {
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: linear-gradient(to bottom right, var(--t-bg-muted), var(--t-bg-subtle));
+}
+.er-login__column { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; max-width: 448px; padding: 32px 0; }
+.er-login__header { align-items: center; text-align: center; }
+.er-login__mark {
+  display: inline-flex; margin-bottom: 16px; padding: 12px; border-radius: 9999px;
+  background: var(--t-brand); color: var(--t-brand-inverted);
+}
+.er-login__title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; color: var(--t-content-strong); }
+.er-login__fields { display: flex; flex-direction: column; gap: 16px; }
+.er-login__accounts { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.er-login__note { display: flex; gap: 8px; margin: 0; font-size: 12px; line-height: 18px; color: var(--t-content); text-align: left; }
+.er-login__note .er-iconwrap { margin-top: 2px; }
+.er-accounts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.er-accounts__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; width: 100%;
+  padding: 8px 10px; border: 1px solid var(--t-border); border-radius: var(--t-radius-small);
+  background: var(--t-bg); color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.er-accounts__row:hover { background: var(--t-bg-muted); border-color: var(--t-brand-muted); }
+.er-accounts__row .er-label { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.er-accounts__email { font-size: 12px; line-height: 16px; color: var(--t-content); overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Administration: dialog.tsx, row actions, the table-grant grid ─────────── */
+.er-dialog-overlay {
+  position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgb(0 0 0 / 0.5);
+}
+.er-dialog { width: 100%; max-width: 512px; max-height: calc(100vh - 32px); overflow: auto; box-shadow: var(--t-shadow-dropdown); }
+.er-dialog__body { display: flex; flex-direction: column; gap: 16px; }
+.er-dialog__footer { justify-content: flex-end; gap: 8px; }
+.er-rowactions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.er-btn--danger { color: #ef4444; }
+.er-btn--danger.is-armed { background: #ef4444; color: #fff; }
+.er-titled { display: inline-flex; align-items: center; gap: 8px; }
+.er-inline { display: flex; align-items: center; gap: 8px; }
+.er-select--inline { width: auto; min-width: 180px; }
+.er-block { display: block; }
+.er-grantgroup { margin: 0 0 16px; padding: 0; border: 0; }
+.er-grantgroup legend { padding: 0; margin-bottom: 8px; }
+.er-grantgrid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.er-grant {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--t-border); border-radius: var(--t-radius-small); background: var(--t-bg);
+}
+.er-grant:hover { background: var(--t-bg-muted); }
+.er-grant:has(input:checked) { border-color: var(--t-brand-subtle); background: var(--t-brand-faint); }
+.er-grant input { margin-top: 3px; accent-color: var(--t-brand); }
+/* In the slide-over the collapse button is the close button, and it sits inside
+   the panel: hung off the edge as on the desktop, it peeked into the page
+   while the panel was closed. */
+.er-sidebar-mobile .er-sidebar__collapse { right: 12px; top: 16px; }
 `,
   "sw.js": `/**
  * The Service Worker — this application's HTTP layer.
@@ -17438,8 +19667,22 @@ async function forward(base, request) {
   );
 
   const result = await answer;
-  return new Response(result.body, { status: result.status, headers: result.headers });
+  /* A 204, 205 or 304 may not carry a body, and the constructor throws rather
+     than ignoring one. The host answers every request with an ArrayBuffer — a
+     zero-byte one for a 204 — which is still a body as far as \`new Response\`
+     is concerned, so passing it through rejected the fetch handler and the
+     browser reported \`net::ERR_FAILED\`: a request that never reached the
+     application, on a route that was answering correctly. Every DELETE in the
+     administrator section failed this way, and the same routes returned 204
+     without complaint over the Node host, which has no such boundary. */
+  return new Response(NULL_BODY_STATUS.has(result.status) ? null : result.body, {
+    status: result.status,
+    headers: result.headers,
+  });
 }
+
+/** Statuses the Response constructor refuses to pair with a body. */
+const NULL_BODY_STATUS = new Set([204, 205, 304]);
 
 /**
  * Ask every page under this scope to hand over a fresh port.
@@ -17580,6 +19823,7 @@ export class ApiError extends Error {
     this.body = body;
     this.detail = body?.detail;
     this.violations = body?.violations;
+    this.details = body?.details;
   }
 }
 
@@ -17592,8 +19836,8 @@ export class ApiError extends Error {
  * application because a reporting call expired, which is the confusion the two
  * sessions exist to prevent.
  */
-async function request(method, path, body, audience = "app") {
-  const headers = {};
+async function request(method, path, body, audience = "app", extraHeaders = {}) {
+  const headers = { ...extraHeaders };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (audience === "report") {
     if (reportToken) headers[REPORT_HEADER] = \`Bearer \${reportToken}\`;
@@ -17636,8 +19880,10 @@ async function request(method, path, body, audience = "app") {
 export const api = {
   get: (path) => request("GET", path),
   post: (path, body) => request("POST", path, body ?? {}),
-  put: (path, body) => request("PUT", path, body ?? {}),
-  patch: (path, body) => request("PATCH", path, body ?? {}),
+  // \`headers\` is how a save sends If-Match — the version the form opened the
+  // record at — so the server can refuse it if someone saved in between.
+  put: (path, body, headers) => request("PUT", path, body ?? {}, "app", headers),
+  patch: (path, body, headers) => request("PATCH", path, body ?? {}, "app", headers),
   delete: (path) => request("DELETE", path),
 };
 
@@ -17645,6 +19891,9 @@ export const api = {
 export const reportApi = {
   get: (path) => request("GET", path, undefined, "report"),
   post: (path, body) => request("POST", path, body ?? {}, "report"),
+  put: (path, body) => request("PUT", path, body ?? {}, "report"),
+  patch: (path, body) => request("PATCH", path, body ?? {}, "report"),
+  delete: (path) => request("DELETE", path, undefined, "report"),
 };
 
 /** \`{ a: 1, b: null }\` -> \`?a=1\`, skipping what is not set. */
@@ -17895,6 +20144,236 @@ export const escapeHtml = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (character) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]
   );
+
+/**
+ * A NUMERIC as text: grouped, with two decimals when it has a fraction.
+ *
+ * Postgres hands NUMERIC over as a string so no digit is lost, and money is
+ * DECIMAL(18,4) — printed as it arrived, an amount read \`25955.7000\`. Formatted
+ * from the string rather than a parsed Number, which \`Intl\` treats as an exact
+ * decimal, so a value past 2^53 keeps its digits. Up to four decimals survive,
+ * which is the scale money is stored at; trailing zeros past the second do not.
+ */
+export function formatNumeric(value) {
+  const text = String(value);
+  if (!/^-?\\d+(\\.\\d+)?$/.test(text)) return text;
+  const fraction = /\\.\\d*[1-9]/.test(text);
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: fraction ? 2 : 0,
+    maximumFractionDigits: 4,
+  }).format(text);
+}
+`,
+  "ui/editor.js": `/**
+ * The admin screens' shared editor: one form builder and one two-step delete.
+ *
+ * The dictionary, the rules, the processes and the reports all now offer
+ * create, edit and delete, and all four want the same three things — a form
+ * whose fields come from a description rather than from markup, a save that
+ * reports the server's refusal rather than swallowing it, and a delete that
+ * cannot happen on one misplaced click. Written once here rather than four
+ * times, because four copies is how three of them come to disagree about what
+ * "cancel" does.
+ *
+ * ## No \`confirm()\` and no \`prompt()\`
+ *
+ * This application runs inside an iframe on the page that generated it, and a
+ * modal dialog is not guaranteed to appear there — the same reason the
+ * dashboard's purge control is two-step rather than a \`confirm()\`. So a delete
+ * arms itself on the first click and commits on the second, and anything that
+ * needs typing gets a real field in a real form.
+ *
+ * ## The server is the validator
+ *
+ * These forms check almost nothing. Every rule about what a rule, a workflow or
+ * a report may contain lives in the routes — the six events the engine
+ * dispatches on, the read-only SQL guard, a chart needing both axes — and a
+ * second copy here would be a second answer that drifts. What the form does is
+ * put the server's refusal where the reader can act on it: beside the field
+ * they are editing, not in a toast that vanishes.
+ */
+
+import { el, mount, toast } from "./dom.js";
+
+/**
+ * Build a form from a field description.
+ *
+ * \`fields\` is an array of \`{ name, label, type, options, hint, rows, required }\`.
+ * \`type\` is one of \`text\`, \`number\`, \`textarea\`, \`select\`, \`checkbox\`; anything
+ * else renders as \`text\`, because a typo in a field description should cost a
+ * plain input rather than a blank screen.
+ *
+ * \`onSave\` receives the collected values and may throw — the message is shown
+ * in the form and the form stays open with what the reader typed still in it.
+ * That is the whole reason this returns a node rather than a promise: a save
+ * that fails must not lose the work.
+ */
+export function editorForm({ title, lede, fields, values = {}, saveLabel = "Save", onSave, onCancel }) {
+  const inputs = new Map();
+  const error = el("p.editor__error", { hidden: true });
+
+  const controls = fields.map((field) => {
+    const id = \`editor-\${field.name}\`;
+    const current = values[field.name];
+    let input;
+
+    if (field.type === "textarea") {
+      input = el("textarea.field__input.field__input--code", {
+        id,
+        rows: field.rows ?? 8,
+        spellcheck: "false",
+      });
+      input.value = current == null ? "" : String(current);
+    } else if (field.type === "select") {
+      input = el(
+        "select.field__input",
+        { id },
+        ...(field.options || []).map((option) => {
+          const value = typeof option === "string" ? option : option.value;
+          const label = typeof option === "string" ? option : option.label;
+          const node = el("option", { value }, label);
+          if (String(current ?? "") === String(value)) node.selected = true;
+          return node;
+        })
+      );
+    } else if (field.type === "checkbox") {
+      input = el("input", { id, type: "checkbox" });
+      input.checked = current !== false;
+    } else {
+      input = el("input.field__input", {
+        id,
+        type: field.type === "number" ? "number" : "text",
+      });
+      input.value = current == null ? "" : String(current);
+    }
+
+    inputs.set(field.name, { input, field });
+
+    return el(
+      "div.field",
+      el(
+        "div.field__head",
+        el("label.field__label", { for: id }, field.label),
+        field.required ? el("span.chip.chip--text", "Required") : null
+      ),
+      input,
+      field.hint ? el("p.field__hint", field.hint) : null
+    );
+  });
+
+  function collect() {
+    const out = {};
+    for (const [name, { input, field }] of inputs) {
+      if (field.type === "checkbox") {
+        out[name] = input.checked;
+        continue;
+      }
+      const raw = input.value;
+      if (field.type === "number") {
+        out[name] = raw === "" ? undefined : Number(raw);
+        continue;
+      }
+      const text = typeof raw === "string" ? raw.trim() : raw;
+      /* An empty optional field is sent as "" rather than omitted, so clearing
+         one actually clears it — \`undefined\` would leave the old value in
+         place, which reads as the save having silently failed. */
+      out[name] = field.required && text === "" ? "" : text;
+    }
+    return out;
+  }
+
+  const save = el("button.btn.btn--primary", { type: "submit" }, saveLabel);
+  const form = el(
+    "form.editor",
+    {
+      onsubmit: async (event) => {
+        event.preventDefault();
+        error.hidden = true;
+        save.disabled = true;
+        save.textContent = "Saving…";
+        try {
+          await onSave(collect());
+        } catch (failure) {
+          /* The server's own words. It knows why it refused and this screen
+             does not, so paraphrasing here can only lose information. */
+          error.textContent = failure?.message || String(failure);
+          error.hidden = false;
+          save.disabled = false;
+          save.textContent = saveLabel;
+        }
+      },
+    },
+    el("h3.section-title", title),
+    lede ? el("p.lede", lede) : null,
+    ...controls,
+    error,
+    el(
+      "div.editor__actions",
+      save,
+      el("button.btn", { type: "button", onclick: () => onCancel?.() }, "Cancel")
+    )
+  );
+
+  /* Focus the first field so a keyboard reader can start typing, and so opening
+     the form is visibly *about* that form rather than a section that appeared
+     somewhere on the page. */
+  queueMicrotask(() => inputs.values().next().value?.input?.focus());
+  return form;
+}
+
+/**
+ * A delete that takes two clicks.
+ *
+ * The first arms it and says what will happen; the second does it. A third
+ * click anywhere else disarms it, because a control left armed across a scroll
+ * is a control waiting to be hit by accident.
+ */
+export function deleteButton(label, description, onDelete) {
+  const button = el("button.btn.btn--danger.btn--small", { type: "button" }, label);
+  let armed = false;
+
+  const disarm = () => {
+    armed = false;
+    button.textContent = label;
+    button.classList.remove("is-armed");
+    document.removeEventListener("click", away, true);
+  };
+  const away = (event) => {
+    if (event.target !== button) disarm();
+  };
+
+  button.addEventListener("click", async () => {
+    if (!armed) {
+      armed = true;
+      button.textContent = description || "Really delete?";
+      button.classList.add("is-armed");
+      document.addEventListener("click", away, true);
+      return;
+    }
+    disarm();
+    button.disabled = true;
+    try {
+      await onDelete();
+    } catch (error) {
+      toast(error.message, "error");
+      button.disabled = false;
+    }
+  });
+
+  return button;
+}
+
+/**
+ * Put an editor where the reader is looking.
+ *
+ * The form replaces the panel's contents rather than appearing above or below
+ * it: on a list of thirty reports, a form rendered at the top is a form the
+ * reader has to go and find.
+ */
+export function openEditor(host, form) {
+  mount(host, form);
+  host.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
 `,
   "ui/main.js": `/**
  * The shell: masthead, action bar, breadcrumb, and which screen is on show.
@@ -18133,7 +20612,12 @@ async function render() {
 
     if (admin) {
       setCrumbs([{ label: admin[0] }]);
-      return void (await admin[1](outlet));
+      /* The admin screens are read-only except one: the dictionary offers the
+         field-visibility toggle, which is administrator-only. The server
+         refuses a non-admin write regardless (\`sys.routes.js\` guards on the
+         method), so this decides whether the control is *offered*, not whether
+         it is allowed. */
+      return void (await admin[1](outlet, { user: state.user }));
     }
 
     setCrumbs([{ label: "Not found" }]);
@@ -18465,6 +20949,7 @@ if (typeof window.matchMedia === "function") {
 import { el, mount, spinner, empty, displayValue, toast } from "../dom.js";
 import { api } from "../api.js";
 import { setHelp } from "../main.js";
+import { deleteButton, editorForm, openEditor } from "../editor.js";
 
 /**
  * The Application Dictionary, as the application actually holds it.
@@ -18482,7 +20967,7 @@ import { setHelp } from "../main.js";
  * seventeen-entity model has several hundred columns and nobody reads them all at
  * once.
  */
-export async function dictionaryView(root) {
+export async function dictionaryView(root, { user } = {}) {
   mount(root, spinner("Reading the dictionary"));
   const [tables, summary, references, refLists, windows, tabs, fields] = await Promise.all([
     api.get("/sys/tables"),
@@ -18552,6 +21037,55 @@ export async function dictionaryView(root) {
 
   const yesNo = (value) => (value ? "Yes" : "No");
 
+  /**
+   * The one dictionary write this application offers, and it had no caller.
+   *
+   * \`PATCH /sys/fields/:id\` has been in \`sys.routes.js\` since the dictionary
+   * was, under a comment calling it "the one dictionary write the application
+   * itself offers, because it is the one that pays off immediately: a column
+   * hidden here disappears from every grid and form without regenerating". It
+   * paid off for nobody: no screen listed the fields, so nothing could reach it.
+   * The Fields panel is where it belongs.
+   *
+   * Administrator-only *as an offer*. \`sys.routes.js\` refuses any non-GET from a
+   * caller who is not one, so this decides what is drawn, never what is allowed
+   * — a reader who is not an administrator sees the value and no control rather
+   * than a control that answers 403.
+   *
+   * The row is updated from the server's response rather than from what was
+   * clicked: the endpoint returns the updated row, and trusting the optimistic
+   * value is how a screen comes to disagree with the database it is describing.
+   */
+  function visibilityCell(field, key, onChanged) {
+    if (!user?.isAdmin) return el("td", yesNo(field[key]));
+
+    const label = key === "is_displayed" ? "the form" : "the list";
+    const button = el(
+      "button.linklike",
+      { type: "button", title: \`\${field[key] ? "Remove from" : "Add to"} \${label}\` },
+      yesNo(field[key])
+    );
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      button.disabled = true;
+      try {
+        const updated = await api.patch(\`/sys/fields/\${field.sys_field_id}\`, {
+          [key]: !field[key],
+        });
+        Object.assign(field, updated);
+        toast(
+          \`\${field.name} is \${field[key] ? "on" : "off"} \${label}. The screen picks it up next time it loads.\`,
+          "success"
+        );
+        onChanged();
+      } catch (error) {
+        toast(error.message, "error");
+        button.disabled = false;
+      }
+    });
+    return el("td", button);
+  }
+
   async function showFields(tab) {
     const table = tables.find((row) => row.sys_table_id === tab.sys_table_id);
     /* \`/sys/tables\` is scoped to what this caller's roles may read; \`/sys/tabs\`
@@ -18582,7 +21116,11 @@ export async function dictionaryView(root) {
         el(
           "p.lede",
           "“On form” and “In grid” are what the application asks for when it draws this " +
-            "entity’s record screen and its list. Sequence is the order it draws them in."
+            "entity’s record screen and its list. Sequence is the order it draws them in." +
+            (user?.isAdmin
+              ? " Both are editable: click one to hide or show that field. The column stays in the" +
+                " database and the screen stops drawing it — no regeneration, no migration."
+              : "")
         ),
         rows.length === 0
           ? el("p.muted", "No fields are seeded against this tab.")
@@ -18606,8 +21144,8 @@ export async function dictionaryView(root) {
                       "tr",
                       el("td", field.name || "—"),
                       el("td", el("code", columnName.get(field.sys_column_id) || "—")),
-                      el("td", yesNo(field.is_displayed)),
-                      el("td", yesNo(field.is_displayed_grid)),
+                      visibilityCell(field, "is_displayed", () => showFields(tab)),
+                      visibilityCell(field, "is_displayed_grid", () => showFields(tab)),
                       el("td", displayValue(field.seq_no ?? "—")),
                       el("td", displayValue(field.seq_no_grid ?? "—")),
                       el("td", yesNo(field.is_mandatory)),
@@ -18799,12 +21337,62 @@ const entityFor = (name, summary) =>
   Object.keys(summary.records).find((key) => key.toLowerCase() === String(name).replace(/\\s+/g, "").toLowerCase()) ??
   name;
 
-export async function rulesView(root) {
+/**
+ * The rules screen, and the first of the three that can now be edited.
+ *
+ * \`bus.routes.js\` enforces from \`sys_rule_definitions\`, so a rule changed here
+ * governs the next write to its entity — no regeneration, the same bargain the
+ * dictionary's field toggles make. Administrator-only as an offer; the routes
+ * refuse a non-admin write regardless.
+ */
+export async function rulesView(root, { user } = {}) {
   mount(root, spinner("Loading rules"));
-  const rules = await api.get("/rules");
+  const [rules, model] = await Promise.all([api.get("/rules"), api.get("/model")]);
+  const entities = (model.entities || []).map((entity) => entity.name).sort();
+  const editor = el("div.editor-host");
+  const reload = () => rulesView(root, { user });
+
+  const newButton = user?.isAdmin
+    ? el(
+        "button.btn.btn--primary.btn--small",
+        {
+          onclick: () =>
+            openEditor(
+              editor,
+              editorForm({
+                title: "New rule",
+                lede:
+                  "A rule is evaluated against the record being written and nothing else — a condition naming a parent's column or a count of children is undefined at evaluation, and the rule silently never fires.",
+                fields: ruleFields(entities),
+                values: { event: "beforeCreate", operation: "ALL", priority: 100, jdm_content: EMPTY_JDM },
+                saveLabel: "Create rule",
+                onSave: async (values) => {
+                  await api.post("/rules", values);
+                  toast("Rule created", "success");
+                  await reload();
+                },
+                onCancel: () => mount(editor),
+              })
+            ),
+        },
+        "New rule"
+      )
+    : null;
 
   if (!rules.length) {
-    mount(root, panel("Business rules", "", empty("This model declares no rules", "Add a %%rule section to the EML and regenerate.")));
+    mount(
+      root,
+      panel(
+        "Business rules",
+        "",
+        el(
+          "div",
+          newButton,
+          editor,
+          empty("This model declares no rules", "Add a %%rule section to the EML and regenerate — or create one here.")
+        )
+      )
+    );
     return;
   }
 
@@ -18812,7 +21400,11 @@ export async function rulesView(root) {
     root,
     panel(
       "Business rules",
-      "Compiled from the model's %%rule sections into GoRules JDM, and evaluated here by the browser engine.",
+      "Compiled from the model's %%rule sections into GoRules JDM, and evaluated here by the browser engine. An administrator can change one without regenerating: the engine reads these rows on every write.",
+      el(
+        "div",
+        newButton,
+        editor,
       el(
         "div.cards",
         rules.map((rule) =>
@@ -18843,16 +21435,83 @@ export async function rulesView(root) {
                 )
               : el("p.rule__meta", "No branching decisions."),
             el(
-              "button.btn.btn--small",
-              { onclick: () => tryRule(rule) },
-              "Try this rule"
+              "div.rule__actions",
+              el("button.btn.btn--small", { onclick: () => tryRule(rule) }, "Try this rule"),
+              user?.isAdmin
+                ? el(
+                    "button.btn.btn--small",
+                    {
+                      onclick: () =>
+                        openEditor(
+                          editor,
+                          editorForm({
+                            title: \`Edit \${rule.name}\`,
+                            fields: ruleFields(entities),
+                            values: rule,
+                            onSave: async (values) => {
+                              await api.patch(\`/rules/\${rule.sys_rule_definition_id}\`, values);
+                              toast("Rule saved", "success");
+                              await reload();
+                            },
+                            onCancel: () => mount(editor),
+                          })
+                        ),
+                    },
+                    "Edit"
+                  )
+                : null,
+              user?.isAdmin
+                ? deleteButton("Delete", \`Delete \${rule.name}?\`, async () => {
+                    await api.delete(\`/rules/\${rule.sys_rule_definition_id}\`);
+                    toast(\`\${rule.name} deleted\`, "success");
+                    await reload();
+                  })
+                : null
             )
           )
         )
       )
+      )
     )
   );
 }
+
+/**
+ * The fields a rule has, as the routes define them.
+ *
+ * \`event\` and \`operation\` are \`select\`s rather than text because the server
+ * accepts exactly these values — offering a free-text box invites a rule that
+ * is stored, listed, and never evaluated, which is the failure the route's own
+ * validation exists to refuse.
+ */
+function ruleFields(entities) {
+  return [
+    { name: "name", label: "Name", required: true },
+    { name: "entity_name", label: "Entity", type: "select", options: entities, required: true },
+    {
+      name: "event",
+      label: "Runs on",
+      type: "select",
+      options: ["beforeCreate", "afterCreate", "beforeUpdate", "afterUpdate", "beforeDelete", "afterDelete"],
+      hint: "When the engine evaluates it, relative to the write.",
+    },
+    { name: "operation", label: "Operation", type: "select", options: ["ALL", "CREATE", "UPDATE", "DELETE"] },
+    { name: "priority", label: "Priority", type: "number", hint: "Lower runs first." },
+    { name: "description", label: "Description" },
+    { name: "is_active", label: "Active", type: "checkbox" },
+    {
+      name: "jdm_content",
+      label: "Decision graph (JDM)",
+      type: "textarea",
+      rows: 12,
+      required: true,
+      hint: "GoRules JDM: an object with a \`nodes\` array. Refused at save time if it will not parse.",
+    },
+  ];
+}
+
+/** A graph the engine accepts and that decides nothing — a starting point. */
+const EMPTY_JDM = JSON.stringify({ nodes: [], edges: [] }, null, 2);
 
 /** Evaluate a rule against a record the reader types, and show the trace. */
 async function tryRule(rule) {
@@ -18887,12 +21546,53 @@ async function tryRule(rule) {
   }
 }
 
-export async function processesView(root) {
+/**
+ * The processes screen, editable for the same reason the rules screen is.
+ *
+ * Worth knowing what an edit here does and does not do. \`lib/workflows.js\`
+ * reads these rows, so changing a machine's transitions changes which moves the
+ * transition UI offers and which status changes the run log records as
+ * modelled — on the next request, without regenerating. What it does not do is
+ * *move* a record: that is still a PUT to the record, through the guards, hooks
+ * and rules, and there is deliberately no side door.
+ */
+export async function processesView(root, { user } = {}) {
   mount(root, spinner("Loading processes"));
-  const [definitions, runs] = await Promise.all([
+  const [definitions, runs, model] = await Promise.all([
     api.get("/workflows/definitions"),
     api.get("/workflows/runs?limit=25"),
+    api.get("/model"),
   ]);
+  const entities = (model.entities || []).map((entity) => entity.name).sort();
+  const editor = el("div.editor-host");
+  const reload = () => processesView(root, { user });
+
+  const newButton = user?.isAdmin
+    ? el(
+        "button.btn.btn--primary.btn--small",
+        {
+          onclick: () =>
+            openEditor(
+              editor,
+              editorForm({
+                title: "New process",
+                lede:
+                  "A state machine's transitions are the only moves its records may make. A \`saga\` has steps rather than transitions and is never offered as a move.",
+                fields: workflowFields(entities),
+                values: { kind: "state", definition: EMPTY_WORKFLOW },
+                saveLabel: "Create process",
+                onSave: async (values) => {
+                  await api.post("/workflows/definitions", toWorkflowBody(values));
+                  toast("Process created", "success");
+                  await reload();
+                },
+                onCancel: () => mount(editor),
+              })
+            ),
+        },
+        "New process"
+      )
+    : null;
 
   mount(
     root,
@@ -18901,11 +21601,25 @@ export async function processesView(root) {
       "State machines and sagas the model declared. A record moves through one by being updated — there is no side door.",
       el(
         "div",
+        newButton,
+        editor,
         definitions.length
           ? el(
               "div.cards",
               definitions.map((definition) => {
-                const parsed = typeof definition.definition === "string" ? JSON.parse(definition.definition) : definition.definition;
+                /* A definition an administrator has edited may not parse — the
+                   route validates the shape it understands, not every key a
+                   reader might add. One unreadable definition should cost its
+                   own card rather than the whole screen. */
+                let parsed;
+                try {
+                  parsed =
+                    typeof definition.definition === "string"
+                      ? JSON.parse(definition.definition)
+                      : definition.definition;
+                } catch {
+                  parsed = null;
+                }
                 return el(
                   "article.rule",
                   el(
@@ -18913,27 +21627,72 @@ export async function processesView(root) {
                     el("h3.rule__name", definition.name),
                     el("span.badge", \`\${definition.entity_name} · \${definition.kind}\`)
                   ),
-                  parsed.states
+                  parsed === null
+                    ? el("p.rule__meta", "This definition is not readable JSON — edit it to repair it.")
+                    : null,
+                  parsed?.states
                     ? el(
                         "div.states",
-                        parsed.states.map((state) =>
+                        parsed?.states.map((state) =>
                           el(
-                            \`span.state\${state === parsed.initial ? ".state--initial" : ""}\`,
+                            \`span.state\${state === parsed?.initial ? ".state--initial" : ""}\`,
                             typeof state === "string" ? state : state.name
                           )
                         )
                       )
                     : null,
-                  parsed.transitions
+                  parsed?.transitions
                     ? el(
                         "ul.transitions",
-                        parsed.transitions.map((transition) =>
+                        parsed?.transitions.map((transition) =>
                           el("li", \`\${transition.from} → \${transition.to}\`, transition.trigger ? el("span.badge.badge--soft", transition.trigger) : null)
                         )
                       )
                     : null,
-                  parsed.steps
-                    ? el("ol.transitions", parsed.steps.map((step) => el("li", \`\${step.name} (\${step.type})\`)))
+                  parsed?.steps
+                    ? el("ol.transitions", parsed?.steps.map((step) => el("li", \`\${step.name} (\${step.type})\`)))
+                    : null,
+                  user?.isAdmin
+                    ? el(
+                        "div.rule__actions",
+                        el(
+                          "button.btn.btn--small",
+                          {
+                            onclick: () =>
+                              openEditor(
+                                editor,
+                                editorForm({
+                                  title: \`Edit \${definition.name}\`,
+                                  fields: workflowFields(entities),
+                                  values: {
+                                    ...definition,
+                                    definition:
+                                      typeof definition.definition === "string"
+                                        ? prettyJson(definition.definition)
+                                        : JSON.stringify(definition.definition, null, 2),
+                                  },
+                                  onSave: async (values) => {
+                                    await api.patch(
+                                      \`/workflows/definitions/\${definition.sys_workflow_definition_id}\`,
+                                      toWorkflowBody(values)
+                                    );
+                                    toast("Process saved", "success");
+                                    await reload();
+                                  },
+                                  onCancel: () => mount(editor),
+                                })
+                              ),
+                          },
+                          "Edit"
+                        ),
+                        deleteButton("Delete", \`Delete \${definition.name}?\`, async () => {
+                          await api.delete(
+                            \`/workflows/definitions/\${definition.sys_workflow_definition_id}\`
+                          );
+                          toast(\`\${definition.name} deleted — its runs are kept\`, "success");
+                          await reload();
+                        })
+                      )
                     : null
                 );
               })
@@ -19074,6 +21833,74 @@ function statRow(entries) {
     entries.map(([label, value]) => el("div.stat", el("span.stat__value", String(value)), el("span.stat__label", label)))
   );
 }
+
+/**
+ * The fields a workflow definition has.
+ *
+ * \`definition\` is raw JSON on purpose. A form with a row-per-transition would
+ * be friendlier and would also be a second, partial model of what a workflow
+ * is — one that quietly drops the keys it has no widget for. The route
+ * validates the shape it understands (\`state\` needs transitions, each with a
+ * \`from\` and a \`to\`) and preserves everything else, so the textarea is the
+ * honest control: it can express whatever the model could.
+ */
+function workflowFields(entities) {
+  return [
+    { name: "name", label: "Name", required: true },
+    { name: "entity_name", label: "Entity", type: "select", options: entities, required: true },
+    {
+      name: "kind",
+      label: "Kind",
+      type: "select",
+      options: [
+        { value: "state", label: "state — a record's lifecycle" },
+        { value: "saga", label: "saga — a multi-step process" },
+      ],
+    },
+    { name: "is_active", label: "Active", type: "checkbox" },
+    {
+      name: "definition",
+      label: "Definition (JSON)",
+      type: "textarea",
+      rows: 14,
+      required: true,
+      hint: "A \`state\` workflow needs a \`transitions\` array, each entry with a \`from\` and a \`to\`. A \`saga\` has \`steps\`.",
+    },
+  ];
+}
+
+/**
+ * Send \`definition\` as an object, not as a string.
+ *
+ * The route accepts either, but parsing here means a typo is reported as "not
+ * readable JSON" against the field the reader is looking at rather than as a
+ * shape complaint about a string the server could not read either.
+ */
+function toWorkflowBody(values) {
+  let definition;
+  try {
+    definition = JSON.parse(values.definition);
+  } catch (error) {
+    throw new Error(\`Definition is not readable JSON: \${error.message}\`);
+  }
+  return { ...values, definition };
+}
+
+/** Re-indent stored JSON so a textarea shows it readably. */
+function prettyJson(text) {
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2);
+  } catch {
+    return text;
+  }
+}
+
+/** A state machine with one drawn edge — the smallest thing the route accepts. */
+const EMPTY_WORKFLOW = JSON.stringify(
+  { initial: "draft", states: ["draft", "active"], transitions: [{ from: "draft", to: "active" }] },
+  null,
+  2
+);
 `,
   "ui/views/dashboard.js": `/**
  * The dashboard — entities grouped by the categories the model declared.
@@ -19501,6 +22328,10 @@ export async function recordPanel(root, { entity, id, onClose, onSaved, navigate
   }
 
   const editable = fields.filter((field) => !["id", "version"].includes(field.column_name));
+  // Optimistic locking: the version this form opened the record at. A save
+  // sends it as If-Match and the server refuses it with 409 if someone has
+  // saved since; "Overwrite" moves it to the version that conflict reported.
+  let openedVersion = record.version;
   const requiredCount = editable.filter((field) => field.is_mandatory).length;
 
   const inputs = new Map();
@@ -19529,7 +22360,11 @@ export async function recordPanel(root, { entity, id, onClose, onSaved, navigate
     try {
       const saved = isNew
         ? await api.post(\`/bus/\${entity.routeName}\`, payload)
-        : await api.put(\`/bus/\${entity.routeName}/\${id}\`, payload);
+        : await api.put(
+            \`/bus/\${entity.routeName}/\${id}\`,
+            payload,
+            openedVersion == null ? {} : { "If-Match": \`"\${openedVersion}"\` }
+          );
       toast(isNew ? \`\${entity.singularName} created\` : "Saved", "success");
       /* This row may be what some other entity's lookup is missing, and its
          label may be what an existing option now reads as. Neither is worth a
@@ -19538,7 +22373,22 @@ export async function recordPanel(root, { entity, id, onClose, onSaved, navigate
       await onSaved(saved);
       if (isNew) navigate(\`/entity/\${entity.routeName}/\${saved.id}\`, { replace: true });
     } catch (error) {
-      showProblem(violationBox, error);
+      if (error.status === 409 && error.details?.code === "VERSION_CONFLICT") {
+        await showConflict(violationBox, {
+          entity,
+          id,
+          fields: editable,
+          base: record,
+          mine: payload,
+          onReload: () => recordPanel(root, { entity, id, onClose, onSaved, navigate }),
+          onOverwrite: (theirs) => {
+            openedVersion = theirs.version;
+            submit();
+          },
+        });
+      } else {
+        showProblem(violationBox, error);
+      }
     } finally {
       setActions({ ...currentActions, busy: false });
     }
@@ -20115,6 +22965,88 @@ function normalizeForInput(value, type) {
   return String(value);
 }
 
+/** Same value across the shapes a field takes: a NUMERIC string and a number. */
+function sameValue(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null || a === "" || b === "") return (a ?? "") === (b ?? "");
+  if (Number.isFinite(Number(a)) && Number.isFinite(Number(b)) && Number(a) === Number(b)) return true;
+  return String(a) === String(b);
+}
+
+/**
+ * Someone else saved this record after the form opened it.
+ *
+ * Inline, not a modal: this application runs in an iframe on the page that
+ * generated it, where \`confirm()\` is not guaranteed to appear — the same reason
+ * the delete and purge controls are two-step. Lists the fields the other save
+ * changed (marking the ones this user changed too), then offers the two ways
+ * out: reload their version, or overwrite it with this one. Overwrite is still
+ * checked, against the version just read, so a third save is caught again.
+ */
+async function showConflict(box, { entity, id, fields, base, mine, onReload, onOverwrite }) {
+  let theirs;
+  try {
+    theirs = await api.get(\`/bus/\${entity.routeName}/\${id}\`);
+  } catch (error) {
+    showProblem(box, error);
+    return;
+  }
+  const rows = fields
+    .map((field) => {
+      const column = field.column_name;
+      if (sameValue(base[column], theirs[column])) return null;
+      const mineValue = column in mine ? mine[column] : base[column];
+      const clash = !sameValue(base[column], mineValue) && !sameValue(mineValue, theirs[column]);
+      return { field, theirs: theirs[column], mine: mineValue, clash };
+    })
+    .filter(Boolean)
+    .sort((a, b) => Number(b.clash) - Number(a.clash));
+  const shown = (value) => (value == null || value === "" ? "—" : displayValue(value));
+  const clashes = rows.filter((row) => row.clash).length;
+
+  mount(
+    box,
+    el("h4.violations__title", \`This \${entity.singularName.toLowerCase()} was changed while you were editing\`),
+    el(
+      "p",
+      \`Someone else saved it first (it is now at version \${theirs.version ?? "?"}). \` +
+        (rows.length === 0
+          ? "None of the fields on this form differ."
+          : clashes
+            ? \`\${clashes} of the fields below were changed by both of you.\`
+            : "They changed the fields below; you did not.")
+    ),
+    rows.length
+      ? el(
+          "table.conflict",
+          el("thead", el("tr", el("th", "Field"), el("th", "Their saved value"), el("th", "Your value"))),
+          el(
+            "tbody",
+            rows.map((row) =>
+              el(
+                row.clash ? "tr.conflict__clash" : "tr",
+                el("td", row.field.name || row.field.column_name, row.clash ? el("small", " · both changed") : null),
+                el("td", shown(row.theirs)),
+                el("td", shown(row.mine))
+              )
+            )
+          )
+        )
+      : null,
+    el(
+      "div.conflict__actions",
+      el("button.btn", { type: "button", "data-action": "conflict-reload", onclick: () => onReload() }, "Reload their version"),
+      el(
+        "button.btn.btn--primary",
+        { type: "button", "data-action": "conflict-overwrite", onclick: () => onOverwrite(theirs) },
+        "Overwrite with mine"
+      )
+    )
+  );
+  box.hidden = false;
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 function showProblem(box, error) {
   const items = error.violations?.length
     ? error.violations.map((violation) =>
@@ -20678,6 +23610,327 @@ function debounce(fn, delay) {
   };
 }
 `,
+  "ui/views/er-kit.js": `/**
+ * The Enterprise Reporting platform's components, as plain DOM.
+ *
+ * The deployed platform (\`businessappwithai/enterprise_reporting_tanstack\`) is
+ * React, shadcn/ui and the Tremor design tokens. This runtime has no build step
+ * and no dependencies, so it cannot run those components — but it can draw the
+ * same ones: the same card, table, button, badge and input, in the same sizes,
+ * on the same tokens (\`.er\` in styles.css carries them, value for value from
+ * the platform's \`src/styles/globals.css\`).
+ *
+ * Each helper names the platform component it stands for. Keep it that way:
+ * when the platform changes a component, this file is where the preview
+ * follows it, and a helper nobody can map back to a component is one that
+ * drifts without anyone noticing.
+ */
+
+import { el, formatNumeric } from "../dom.js";
+
+/*
+ * Lucide icons — the set the platform imports from \`lucide-react\` — as their
+ * published path data, drawn at the same 24-unit box and 2px stroke.
+ */
+const ICONS = {
+  barChart3: '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  terminal: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>',
+  database:
+    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',
+  fileText:
+    '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  layoutDashboard:
+    '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  messageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  layers:
+    '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  squareTerminal:
+    '<path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>',
+  users:
+    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  shield:
+    '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  settings:
+    '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  helpCircle:
+    '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  chevronLeft: '<path d="m15 18-6-6 6-6"/>',
+  chevronRight: '<path d="m9 18 6-6-6-6"/>',
+  logOut:
+    '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+  arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  refresh:
+    '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  download:
+    '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  lineChart: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+  pieChart: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+  areaChart: '<path d="M3 3v18h18"/><path d="M7 12v5h12V8l-5 5-4-4Z"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+};
+
+/** One Lucide icon, \`h-4 w-4\` unless told otherwise. */
+export function icon(name, className = "er-icon") {
+  const span = document.createElement("span");
+  span.className = \`er-iconwrap \${className}\`;
+  span.setAttribute("aria-hidden", "true");
+  span.innerHTML = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\${ICONS[name] ?? ""}</svg>\`;
+  return span;
+}
+
+/** \`components/ui/button.tsx\` — variant: default | outline | secondary | ghost | link. */
+export function button(label, { variant = "default", size = "default", iconName, ...props } = {}) {
+  return el(
+    \`button.er-btn.er-btn--\${variant}.er-btn--size-\${size}\`,
+    { type: "button", ...props },
+    iconName ? icon(iconName) : null,
+    label
+  );
+}
+
+/** \`components/ui/badge.tsx\` — variant: default | secondary | outline | neutral | warning | destructive. */
+export function badge(label, variant = "default") {
+  return el(\`span.er-badge.er-badge--\${variant}\`, label);
+}
+
+/** \`components/ui/card.tsx\`: Card, CardHeader, CardTitle, CardDescription, CardContent. */
+export function card(...children) {
+  return el("div.er-card", ...children);
+}
+export function cardHeader(title, description, extra) {
+  return el(
+    "div.er-card__header",
+    el(
+      "div.er-card__heading",
+      el("div", el("h3.er-card__title", title), description ? el("p.er-card__description", description) : null),
+      extra ?? null
+    )
+  );
+}
+export function cardContent(...children) {
+  return el("div.er-card__content", ...children);
+}
+
+/** \`components/layout/page-header.tsx\`. */
+export function pageHeader(title, description, { actions, badge: badgeNode, back } = {}) {
+  return el(
+    "div.er-pageheader",
+    el(
+      "div.er-pageheader__lead",
+      back ? el("a.er-btn.er-btn--ghost.er-btn--size-icon", { href: back, "aria-label": "Back" }, icon("arrowLeft", "er-icon--lg")) : null,
+      el(
+        "div.er-pageheader__text",
+        el("div.er-pageheader__titlerow", el("h1.er-pageheader__title", title), badgeNode ?? null),
+        description ? el("p.er-pageheader__description", description) : null
+      )
+    ),
+    actions ? el("div.er-pageheader__actions", ...[actions].flat()) : null
+  );
+}
+
+/** \`components/layout/breadcrumb.tsx\`. */
+export function breadcrumb(items) {
+  return el(
+    "nav.er-breadcrumb",
+    { "aria-label": "Breadcrumb" },
+    ...items.flatMap((item, index) => [
+      index > 0 ? icon("chevronRight", "er-icon--sm") : null,
+      item.href ? el("a", { href: item.href }, item.label) : el("span.is-current", item.label),
+    ])
+  );
+}
+
+/**
+ * \`components/ui/table.tsx\`. \`rows\` are arrays of cells; a cell may be a node.
+ * \`onRow\` makes the whole row a link, the way the platform's list screens open
+ * a definition.
+ */
+export function table(headers, rows, { onRow } = {}) {
+  return el(
+    "div.er-table-wrap",
+    el(
+      "table.er-table",
+      el("thead", el("tr", ...headers.map((header) => el("th", header)))),
+      el(
+        "tbody",
+        ...rows.map((cells, index) =>
+          el(
+            "tr",
+            onRow ? { class: "is-link", onclick: (event) => onRow(index, event) } : null,
+            ...cells.map((cellValue) => el("td", cellValue ?? "—"))
+          )
+        )
+      )
+    )
+  );
+}
+
+/** \`components/ui/kpi-card.tsx\`. */
+export function kpiCard(label, value, iconName, href) {
+  return el(
+    "a.er-card.er-kpi",
+    { href },
+    el("div.er-kpi__label", icon(iconName, "er-icon--md er-subtle"), el("span", label)),
+    el("p.er-kpi__metric", Number(value).toLocaleString())
+  );
+}
+
+/** \`components/ui/alert.tsx\`. */
+export function alert(title, body, variant = "default") {
+  return el(
+    \`div.er-alert.er-alert--\${variant}\`,
+    { role: variant === "destructive" ? "alert" : "note" },
+    icon(variant === "destructive" ? "lock" : "info"),
+    el("div", el("p.er-alert__title", title), body ? el("div.er-alert__body", body) : null)
+  );
+}
+
+/** The platform's loading state: a spinner in the middle of the card. */
+export function loading(label = "Loading") {
+  return el("div.er-loading", el("span.er-spinner", { "aria-hidden": "true" }), el("span", label));
+}
+
+/** An empty table body, the way the platform's list screens say it. */
+export function emptyState(title, detail) {
+  return el("div.er-empty", el("p.er-empty__title", title), detail ? el("p.er-empty__detail", detail) : null);
+}
+
+/**
+ * One SQL scalar as text. \`numeric\` says the column is a Postgres NUMERIC —
+ * the run endpoints name those columns, because a string of digits in a text
+ * column (a code, a phone number) must not be regrouped.
+ */
+export function cellText(value, numeric = false) {
+  if (value === null || value === undefined) return "—";
+  if (value instanceof Date) return value.toLocaleDateString();
+  if (numeric) return formatNumeric(value);
+  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+/**
+ * A chart from the rows its query returned, in the platform's brand blue.
+ *
+ * The platform draws with Recharts; this draws the same four shapes the pack
+ * asks for — bar, line, area and pie — as SVG, with the axis labels and the
+ * gridlines Recharts puts there, so a tile reads the same at a glance.
+ */
+export function chart(kind, xField, yField, rows) {
+  const points = rows
+    .map((row) => ({ label: cellText(row[xField]), value: Number(row[yField]) }))
+    .filter((point) => Number.isFinite(point.value))
+    .slice(0, 30);
+  if (points.length === 0) return null;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const make = (tag, attrs, text) => {
+    const node = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const short = (text) => (text.length > 12 ? \`\${text.slice(0, 11)}…\` : text);
+
+  const svg = make("svg", {
+    class: "er-chart",
+    role: "img",
+    "aria-label": \`\${yField} by \${xField}\`,
+    viewBox: "0 0 720 260",
+    preserveAspectRatio: "xMidYMid meet",
+  });
+
+  if (kind === "pie") {
+    const total = points.reduce((sum, point) => sum + Math.max(point.value, 0), 0) || 1;
+    let angle = -Math.PI / 2;
+    const palette = ["#3b82f6", "#06b6d4", "#6366f1", "#8b5cf6", "#d946ef", "#f59e0b", "#10b981", "#f43f5e"];
+    points.slice(0, 8).forEach((point, index) => {
+      const share = Math.max(point.value, 0) / total;
+      const next = angle + share * Math.PI * 2;
+      const large = share > 0.5 ? 1 : 0;
+      const [cx, cy, r] = [180, 130, 110];
+      const path =
+        share >= 0.999
+          ? \`M \${cx} \${cy - r} A \${r} \${r} 0 1 1 \${cx - 0.01} \${cy - r} Z\`
+          : \`M \${cx} \${cy} L \${cx + r * Math.cos(angle)} \${cy + r * Math.sin(angle)} A \${r} \${r} 0 \${large} 1 \${cx + r * Math.cos(next)} \${cy + r * Math.sin(next)} Z\`;
+      svg.appendChild(make("path", { d: path, fill: palette[index % palette.length] }));
+      svg.appendChild(make("rect", { x: 340, y: 40 + index * 24, width: 10, height: 10, rx: 2, fill: palette[index % palette.length] }));
+      svg.appendChild(
+        make("text", { x: 358, y: 49 + index * 24, class: "er-chart__legend" }, \`\${short(point.label)} · \${point.value.toLocaleString()}\`)
+      );
+      angle = next;
+    });
+    return svg;
+  }
+
+  const [left, top, width, height] = [48, 12, 660, 200];
+  // A round axis maximum, as Recharts picks: 1, 2, 2.5 or 5 times a power of
+  // ten, so four ticks land on numbers a reader would write down. An unrounded
+  // maximum of 3 gave ticks of 0.75, 1.5, 2.25 — shown rounded, as 1, 2, 2.
+  const raw = Math.max(...points.map((point) => point.value), 0) || 1;
+  const magnitude = 10 ** Math.floor(Math.log10(raw / 4));
+  const tickStep =
+    [1, 2, 2.5, 5, 10].map((factor) => factor * magnitude).find((candidate) => candidate * 4 >= raw) ??
+    10 * magnitude;
+  const max = tickStep * 4;
+  const step = width / points.length;
+  const y = (value) => top + height - (value / max) * height;
+
+  for (let tick = 0; tick <= 4; tick++) {
+    const value = tickStep * tick;
+    svg.appendChild(make("line", { x1: left, x2: left + width, y1: y(value), y2: y(value), class: "er-chart__grid" }));
+    svg.appendChild(
+      make("text", { x: left - 8, y: y(value) + 4, "text-anchor": "end", class: "er-chart__tick" }, value.toLocaleString(undefined, { maximumFractionDigits: 2 }))
+    );
+  }
+
+  if (kind === "line" || kind === "area") {
+    const coords = points.map((point, index) => [left + index * step + step / 2, y(point.value)]);
+    if (kind === "area") {
+      const first = coords[0];
+      const last = coords[coords.length - 1];
+      svg.appendChild(
+        make("path", {
+          d: \`M \${first[0]} \${top + height} \${coords.map(([cx, cy]) => \`L \${cx} \${cy}\`).join(" ")} L \${last[0]} \${top + height} Z\`,
+          class: "er-chart__area",
+        })
+      );
+    }
+    svg.appendChild(make("polyline", { points: coords.map((pair) => pair.join(",")).join(" "), class: "er-chart__line" }));
+  } else {
+    points.forEach((point, index) => {
+      const barTop = y(Math.max(point.value, 0));
+      svg.appendChild(
+        make("rect", {
+          x: left + index * step + step * 0.15,
+          y: barTop,
+          width: step * 0.7,
+          height: top + height - barTop,
+          rx: 3,
+          class: "er-chart__bar",
+        })
+      );
+    });
+  }
+
+  points.forEach((point, index) => {
+    svg.appendChild(
+      make("text", { x: left + index * step + step / 2, y: top + height + 20, "text-anchor": "middle", class: "er-chart__tick" }, short(point.label))
+    );
+  });
+
+  return svg;
+}
+`,
   "ui/views/login.js": `/**
  * The sign-in screen.
  *
@@ -20890,401 +24143,1517 @@ const initials = (name) =>
     .map((word) => word[0].toUpperCase())
     .join("") || "AP";
 `,
-  "ui/views/report-app.js": `/**
- * The reporting application — its own shell, inside the same tab.
+  "ui/views/report-admin.js": `/**
+ * Enterprise Reporting's Administration section, in the browser preview.
  *
- * Two applications are generated from one model and this is the second of
- * them. Deployed, it is the Enterprise Reporting platform: a separate service,
- * a separate database (\`enterprise_config\`), a separate user table, reached at
- * \`/report\` behind the same proxy. A browser tab cannot run a second server, so
- * here it is a second shell over the same runtime — and everything a reader
- * meets is still separate: its own sign-in, its own accounts, its own roles,
- * and reports scoped to what each role may read.
+ * Users, Roles, Permissions, Data Sources and System Logs — the five of the
+ * platform's seven administration screens that a browser tab can honestly
+ * offer, because the data behind them is here: \`rpt_user\`, \`rpt_role\`,
+ * \`rpt_role_tables\` (enforced on every reporting request) and
+ * \`rpt_activity_log\`. Each is drawn after the platform's own page — its title,
+ * its description, its columns — and each writes through \`/report-admin\`,
+ * which refuses anyone who is not a reporting administrator.
  *
- * What it deliberately does not pretend to be: there is no SQL editor, no
- * report designer, no natural-language query and no scheduled delivery. Those
- * need the platform's servers. A read-only mirror of what the platform would
- * hold is worth more than buttons that answer "not in the browser build".
+ * Trigger Board and Settings are the two that are not here. One is the
+ * platform's job queue and the other its server configuration, and neither
+ * exists in a tab; they open the page that says where the real ones are.
+ *
+ * No \`confirm()\` and no \`prompt()\`: this application runs in an iframe on the
+ * page that generated it, where a modal dialog is not guaranteed to appear. A
+ * delete is two clicks on the same button, and a form is a dialog drawn here.
  */
 
-import { el, empty, mount, spinner, toast } from "../dom.js";
-import { themeControl } from "../theme.js";
+import { el, mount, toast } from "../dom.js";
+import { reportApi } from "../api.js";
+import {
+  alert,
+  badge,
+  button,
+  card,
+  cardContent,
+  cardHeader,
+  emptyState,
+  icon,
+  loading,
+  pageHeader,
+  table,
+} from "./er-kit.js";
+
+const when = (value) => (value ? new Date(value).toLocaleString() : "—");
+const day = (value) => (value ? new Date(value).toLocaleDateString() : "—");
+
+/** A delete that asks twice by changing its own label, then reverts. */
+function deleteButton(onConfirm) {
+  let armed = false;
+  let timer = null;
+  const node = button("Delete", { variant: "ghost", size: "sm" });
+  node.classList.add("er-btn--danger");
+  node.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    if (!armed) {
+      armed = true;
+      node.textContent = "Confirm delete";
+      node.classList.add("is-armed");
+      timer = setTimeout(() => {
+        armed = false;
+        node.textContent = "Delete";
+        node.classList.remove("is-armed");
+      }, 4000);
+      return;
+    }
+    clearTimeout(timer);
+    node.disabled = true;
+    await onConfirm();
+  });
+  return node;
+}
+
+/**
+ * \`components/ui/dialog.tsx\`, as a panel over the page. Returns a closer.
+ * \`fields\` is [{ name, label, type, value, options }]; \`onSubmit\` gets the
+ * values and throws to keep the dialog open with the server's refusal in it.
+ */
+function dialog({ title, description, fields, submitLabel, onSubmit }) {
+  const inputs = new Map();
+  const errorSlot = el("div");
+  const submit = el("button.er-btn.er-btn--default.er-btn--size-default", { type: "submit" }, submitLabel);
+
+  const body = fields.map((field) => {
+    let input;
+    if (field.type === "select") {
+      input = el(
+        "select.er-select",
+        { id: \`erf-\${field.name}\` },
+        ...field.options.map((option) => el("option", { value: option.value }, option.label))
+      );
+      input.value = field.value ?? "";
+    } else {
+      input = el("input.er-input", {
+        id: \`erf-\${field.name}\`,
+        type: field.type || "text",
+        value: field.value ?? "",
+        placeholder: field.placeholder ?? null,
+        autocomplete: field.type === "password" ? "new-password" : "off",
+      });
+    }
+    inputs.set(field.name, input);
+    return el(
+      "div.er-field",
+      el("label.er-label-strong", { for: \`erf-\${field.name}\` }, field.label),
+      input,
+      field.hint ? el("p.er-label", field.hint) : null
+    );
+  });
+
+  const overlay = el("div.er-dialog-overlay");
+  const close = () => overlay.remove();
+  const form = el(
+    "form.er-card.er-dialog",
+    {
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": title,
+      onsubmit: async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        mount(errorSlot);
+        const values = Object.fromEntries([...inputs].map(([name, input]) => [name, input.value]));
+        try {
+          await onSubmit(values);
+          close();
+        } catch (error) {
+          mount(errorSlot, alert(error.message || String(error), null, "destructive"));
+          submit.disabled = false;
+        }
+      },
+    },
+    el(
+      "div.er-card__header",
+      el("h2.er-card__title", title),
+      description ? el("p.er-card__description", description) : null
+    ),
+    el("div.er-card__content.er-dialog__body", errorSlot, ...body),
+    el(
+      "div.er-card__footer.er-dialog__footer",
+      button("Cancel", { variant: "outline", onclick: close }),
+      submit
+    )
+  );
+  overlay.appendChild(form);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) close();
+  });
+  (document.querySelector(".er") ?? document.body).appendChild(overlay);
+  inputs.values().next().value?.focus();
+  return close;
+}
+
+function titled(iconName, text) {
+  return el("span.er-titled", icon(iconName, "er-icon--md"), text);
+}
+
+// ─── Users — admin/users/index.tsx ───────────────────────────────────────────
+
+export async function usersPage(main, { me, rerender }) {
+  mount(main, el("div.er-stack", pageHeader("User Management", "Manage user accounts and assign roles"), card(loading())));
+  const [users, roles] = await Promise.all([reportApi.get("/report-admin/users"), reportApi.get("/report-admin/roles")]);
+  const roleOptions = [{ value: "", label: "No role — reads nothing" }, ...roles.map((role) => ({ value: role.id, label: role.name }))];
+
+  const addUser = () =>
+    dialog({
+      title: "Add User",
+      description: "A reporting account. It signs into this reporting application only, never the application it reports on.",
+      submitLabel: "Create User",
+      fields: [
+        { name: "name", label: "Name", placeholder: "Jane Doe" },
+        { name: "email", label: "Email", type: "email", placeholder: "name@example.com" },
+        { name: "password", label: "Password", type: "password", hint: "At least five characters." },
+        { name: "roleId", label: "Role", type: "select", options: roleOptions, value: "" },
+      ],
+      onSubmit: async (values) => {
+        await reportApi.post("/report-admin/users", { ...values, roleId: values.roleId || null });
+        toast("User created", "success");
+        await rerender();
+      },
+    });
+
+  const editUser = (user) =>
+    dialog({
+      title: \`Edit \${user.name}\`,
+      description: user.email,
+      submitLabel: "Save Changes",
+      fields: [
+        { name: "name", label: "Name", value: user.name },
+        { name: "roleId", label: "Role", type: "select", options: roleOptions, value: user.roleId ?? "" },
+        { name: "password", label: "New password", type: "password", hint: "Leave empty to keep the current one." },
+      ],
+      onSubmit: async (values) => {
+        const changes = { name: values.name };
+        if ((values.roleId || null) !== (user.roleId ?? null)) changes.roleId = values.roleId || null;
+        if (values.password) changes.password = values.password;
+        await reportApi.patch(\`/report-admin/users/\${user.id}\`, changes);
+        toast("User updated", "success");
+        await rerender();
+      },
+    });
+
+  const toggleActive = async (user) => {
+    try {
+      await reportApi.patch(\`/report-admin/users/\${user.id}\`, { isActive: !user.isActive });
+      toast(user.isActive ? "User deactivated" : "User activated", "success");
+      await rerender();
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  };
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("User Management", "Manage user accounts and assign roles", {
+        actions: button("Add User", { iconName: "users", onclick: addUser }),
+      }),
+      card(
+        cardHeader(titled("users", \`Users (\${users.length})\`)),
+        el(
+          "div.er-card__flush",
+          table(
+            ["Name", "Email", "Status", "Roles", "Last sign-in", "Created", "Actions"],
+            users.map((user) => [
+              el("span.er-strong", user.name, user.id === me.id ? el("span.er-label", " (you)") : null),
+              user.email,
+              user.isActive ? badge("Active", "default") : badge("Inactive", "neutral"),
+              user.role ? badge(user.role, user.isAdmin ? "default" : "secondary") : badge("No role", "outline"),
+              when(user.lastSignIn),
+              day(user.createdAt),
+              el(
+                "div.er-rowactions",
+                button("Edit", { variant: "ghost", size: "sm", onclick: () => editUser(user) }),
+                user.id === me.id
+                  ? null
+                  : button(user.isActive ? "Deactivate" : "Activate", {
+                      variant: "ghost",
+                      size: "sm",
+                      onclick: () => toggleActive(user),
+                    }),
+                user.id === me.id
+                  ? null
+                  : deleteButton(async () => {
+                      try {
+                        await reportApi.delete(\`/report-admin/users/\${user.id}\`);
+                        toast("User deleted", "success");
+                      } catch (error) {
+                        toast(error.message, "error");
+                      }
+                      await rerender();
+                    })
+              ),
+            ])
+          )
+        )
+      )
+    )
+  );
+}
+
+// ─── Roles — admin/roles/index.tsx ───────────────────────────────────────────
+
+export async function rolesPage(main, { rerender, href, tableTotal }) {
+  mount(main, el("div.er-stack", pageHeader("Role Management", "Manage roles and their granular permissions"), card(loading())));
+  const roles = await reportApi.get("/report-admin/roles");
+
+  const roleForm = (role) =>
+    dialog({
+      title: role ? \`Edit \${role.name}\` : "Create Role",
+      description: role
+        ? null
+        : "A new reporting role reads nothing until it is granted tables under Permissions.",
+      submitLabel: role ? "Save Changes" : "Create Role",
+      fields: [
+        { name: "name", label: "Role Name", value: role?.name ?? "" },
+        { name: "description", label: "Description", value: role?.description ?? "" },
+      ],
+      onSubmit: async (values) => {
+        if (role) await reportApi.patch(\`/report-admin/roles/\${role.id}\`, values);
+        else await reportApi.post("/report-admin/roles", values);
+        toast(role ? "Role updated" : "Role created", "success");
+        await rerender();
+      },
+    });
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Role Management", "Manage roles and their granular permissions", {
+        actions: button("Create Role", { iconName: "shield", onclick: () => roleForm(null) }),
+      }),
+      alert(
+        "Roles mirror the model",
+        "Each seeded role is one %%rbac role of the application, with the same name. A reporting role decides " +
+          "which of the application's tables its queries may read — change that under Permissions, and it " +
+          "applies to the next query."
+      ),
+      card(
+        cardHeader(titled("shield", \`Roles (\${roles.length})\`)),
+        el(
+          "div.er-card__flush",
+          table(
+            ["Role Name", "Description", "Permissions", "Users", "Actions"],
+            roles.map((role) => [
+              el(
+                "div",
+                el("span.er-strong", role.name),
+                role.declaredAs ? el("div.er-label", \`%%rbac \${role.declaredAs}\`) : null
+              ),
+              el("span.er-clamp", role.description || "-"),
+              role.isAdmin
+                ? badge("All tables · admin:*", "default")
+                : el(
+                    "a.er-badge.er-badge--secondary",
+                    { href: href("permissions", role.id) },
+                    \`\${role.tables.length} of \${tableTotal} tables\`
+                  ),
+              String(role.users),
+              el(
+                "div.er-rowactions",
+                button("Edit", { variant: "ghost", size: "sm", onclick: () => roleForm(role) }),
+                role.isAdmin
+                  ? null
+                  : el("a.er-btn.er-btn--ghost.er-btn--size-sm", { href: href("permissions", role.id) }, "Permissions"),
+                role.isAdmin
+                  ? null
+                  : deleteButton(async () => {
+                      try {
+                        await reportApi.delete(\`/report-admin/roles/\${role.id}\`);
+                        toast("Role deleted — its users now hold no role", "success");
+                      } catch (error) {
+                        toast(error.message, "error");
+                      }
+                      await rerender();
+                    })
+              ),
+            ])
+          )
+        )
+      )
+    )
+  );
+}
+
+// ─── Permissions — admin/permissions/index.tsx ───────────────────────────────
+
+export async function permissionsPage(main, { rerender, href, selectedRoleId }) {
+  mount(main, el("div.er-stack", pageHeader("Permission Management", "Manage resource-level permissions for roles"), card(loading())));
+  const [roles, sources] = await Promise.all([
+    reportApi.get("/report-admin/roles"),
+    reportApi.get("/report-admin/data-sources"),
+  ]);
+  const tables = sources[0]?.tables ?? [];
+  const scoped = roles.filter((role) => !role.isAdmin);
+  const role = scoped.find((candidate) => candidate.id === selectedRoleId) ?? scoped[0] ?? null;
+
+  const header = pageHeader("Permission Management", "Manage resource-level permissions for roles");
+  if (!role) {
+    return void mount(main, el("div.er-stack", header, card(cardContent(emptyState("No scoped roles", "Create a role first.")))));
+  }
+
+  const picker = el(
+    "select.er-select.er-select--inline",
+    {
+      "aria-label": "Role",
+      onchange: (event) => {
+        window.location.hash = href("permissions", event.currentTarget.value);
+      },
+    },
+    ...scoped.map((candidate) => el("option", { value: candidate.id }, candidate.name))
+  );
+  picker.value = role.id;
+
+  const granted = new Set(role.tables);
+  const boxes = new Map();
+  const counter = el("span.er-label");
+  const recount = () => {
+    const count = [...boxes.values()].filter((box) => box.checked).length;
+    counter.textContent = \`\${count} of \${tables.length} tables selected\`;
+  };
+
+  // Grouped by the model's categories, which is how the application's own
+  // dashboard groups the same entities.
+  const groups = new Map();
+  for (const tableInfo of tables) {
+    const key = tableInfo.category || "Other";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(tableInfo);
+  }
+
+  const save = button("Save Permissions", {
+    onclick: async () => {
+      save.disabled = true;
+      try {
+        const chosen = [...boxes].filter(([, box]) => box.checked).map(([name]) => name);
+        await reportApi.put(\`/report-admin/roles/\${role.id}/tables\`, { tables: chosen });
+        toast(\`\${role.name} may now read \${chosen.length} table\${chosen.length === 1 ? "" : "s"}\`, "success");
+        await rerender();
+      } catch (error) {
+        toast(error.message, "error");
+        save.disabled = false;
+      }
+    },
+  });
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      header,
+      card(
+        cardHeader(
+          titled("shield", "Table access"),
+          "Which of the application's tables this role's queries may read — permission level select. " +
+            "A report, chart or dashboard tile whose query names any other table is not offered to the role, " +
+            "and is refused if asked for.",
+          el("div.er-inline", el("span.er-label", "Role"), picker)
+        ),
+        cardContent(
+          ...[...groups].map(([group, members]) =>
+            el(
+              "fieldset.er-grantgroup",
+              el("legend.er-nav__heading", group),
+              el(
+                "div.er-grantgrid",
+                ...members.map((tableInfo) => {
+                  const box = el("input", { type: "checkbox", checked: granted.has(tableInfo.table), onchange: recount });
+                  boxes.set(tableInfo.table, box);
+                  return el(
+                    "label.er-grant",
+                    box,
+                    el(
+                      "span",
+                      el("span.er-strong", tableInfo.displayName),
+                      el("span.er-label.er-block", \`\${tableInfo.table} · \${tableInfo.rows ?? "?"} rows\`)
+                    )
+                  );
+                })
+              )
+            )
+          ),
+          el("div.er-toolbar.er-mt", save, counter)
+        )
+      )
+    )
+  );
+  recount();
+}
+
+// ─── Data Sources — data-sources/index.tsx ───────────────────────────────────
+
+export async function dataSourcesPage(main) {
+  const title = "Data Sources";
+  const description = "Manage database connections for reports and queries";
+  mount(main, el("div.er-stack", pageHeader(title, description), card(loading())));
+  const sources = await reportApi.get("/report-admin/data-sources");
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader(title, description),
+      card(
+        el(
+          "div.er-card__flush",
+          table(
+            ["Name", "Type", "Description", "Status", "Tables"],
+            sources.map((source) => [
+              el("span.er-strong", source.name),
+              badge("PostgreSQL", "outline"),
+              el("span.er-clamp", source.description || "-"),
+              badge("Connected", "default"),
+              String(source.tables.length),
+            ])
+          )
+        )
+      ),
+      ...sources.map((source) =>
+        card(
+          cardHeader(
+            titled("database", \`\${source.name} — entities\`),
+            \`\${source.engine}. The platform registers this same database as its data source, with its \` +
+              "connection details encrypted; here it is the database in this tab."
+          ),
+          el(
+            "div.er-card__flush",
+            table(
+              ["Entity", "Table", "Category", "Rows", "Description"],
+              source.tables.map((tableInfo) => [
+                el("span.er-strong", tableInfo.displayName),
+                el("code", tableInfo.table),
+                tableInfo.category || "-",
+                tableInfo.rows === null ? "—" : tableInfo.rows.toLocaleString(),
+                el("span.er-clamp", tableInfo.description || "-"),
+              ])
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ─── System Logs — logs.tsx ──────────────────────────────────────────────────
+
+const OUTCOME_BADGE = { ok: ["OK", "default"], refused: ["Refused", "warning"], failed: ["Failed", "destructive"] };
+
+export async function logsPage(main, { rerender }) {
+  const title = "System Logs";
+  const description = "View system logs and debugging information";
+  mount(main, el("div.er-stack", pageHeader(title, description), card(loading())));
+  const filter = new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("outcome") ?? "";
+  const logs = await reportApi.get(\`/report-admin/logs\${filter ? \`?outcome=\${encodeURIComponent(filter)}\` : ""}\`);
+
+  const picker = el(
+    "select.er-select.er-select--inline",
+    {
+      "aria-label": "Outcome",
+      onchange: (event) => {
+        const value = event.currentTarget.value;
+        window.location.hash = \`#/report/logs\${value ? \`?outcome=\${value}\` : ""}\`;
+      },
+    },
+    el("option", { value: "" }, "All outcomes"),
+    el("option", { value: "ok" }, "OK"),
+    el("option", { value: "refused" }, "Refused"),
+    el("option", { value: "failed" }, "Failed")
+  );
+  picker.value = filter;
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader(title, description, {
+        actions: [picker, button("Refresh", { variant: "outline", size: "sm", iconName: "refresh", onclick: () => rerender() })],
+      }),
+      card(
+        cardHeader(
+          titled("squareTerminal", \`Reporting activity (\${logs.length})\`),
+          "Sign-ins, report and chart runs — refusals included — and every change made under Administration. " +
+            "The deployed platform's log also carries its server's own messages; this one records what this tab did."
+        ),
+        el(
+          "div.er-card__flush",
+          logs.length === 0
+            ? emptyState("No activity yet")
+            : table(
+                ["Level", "Timestamp", "User", "Action", "Message"],
+                logs.map((entry) => {
+                  const [label, variant] = OUTCOME_BADGE[entry.outcome] ?? [entry.outcome, "secondary"];
+                  return [
+                    badge(label, variant),
+                    when(entry.at),
+                    entry.email || "—",
+                    el("span.er-strong", entry.action),
+                    [entry.target, entry.detail, entry.durationMs != null ? \`\${entry.durationMs}ms\` : null]
+                      .filter(Boolean)
+                      .join(" · ") || "—",
+                  ];
+                })
+              )
+        )
+      )
+    )
+  );
+}
+`,
+  "ui/views/report-app.js": `/**
+ * Enterprise Reporting — the browser preview.
+ *
+ * Two applications are generated from one model and this is the second. Deployed
+ * — from the downloadable archive, or by the orchestrator — it is the real
+ * Enterprise Reporting platform (\`businessappwithai/enterprise_reporting_tanstack\`),
+ * built from its own source and not modified: a separate service, a separate
+ * database, a separate user table.
+ *
+ * A browser tab cannot run that platform. It is a TanStack Start server over
+ * PostgreSQL, and every screen it has calls that server. So this is a preview of
+ * it, and it is built to look like it: the platform's sidebar, header, page
+ * headers, cards, tables and badges, on the platform's own Tremor tokens (see
+ * \`er-kit.js\` and the \`.er\` block in styles.css), over the same reporting pack
+ * the platform is seeded with — the same saved queries, reports, charts,
+ * dashboard and one reporting role per \`%%rbac\` role.
+ *
+ * Its administration is real: an administrator manages reporting users, roles,
+ * each role's table permissions, and reads the data source and the activity
+ * log (\`report-admin.js\`), and a permission changed there applies to the next
+ * query. What it is not, and says so: the SQL editor, NL query, jobs,
+ * monitoring, filters, the report generator, the trigger board and settings
+ * need the platform's servers. They are in the sidebar where the platform puts
+ * them, and each opens a page naming where the real one is, rather than a
+ * button that fails.
+ */
+
+import { el, mount } from "../dom.js";
+import { applyTheme, storedTheme } from "../theme.js";
+import { downloadCsv, toCsv } from "../csv.js";
 import { reportApi, setReportToken } from "../api.js";
 import { reportLoginView } from "./report-login.js";
+import { dataSourcesPage, logsPage, permissionsPage, rolesPage, usersPage } from "./report-admin.js";
+import {
+  alert,
+  badge,
+  breadcrumb,
+  button,
+  card,
+  cardContent,
+  cardHeader,
+  cellText,
+  chart,
+  emptyState,
+  icon,
+  kpiCard,
+  loading,
+  pageHeader,
+  table,
+} from "./er-kit.js";
 
 const state = {
   user: null,
   overview: null,
-  /** Which section is showing: dashboard | reports | charts | queries | access. */
-  section: "dashboard",
+  sidebarCollapsed: false,
+  mobileMenuOpen: false,
+  /** Which header menu is open: null | "user" | "notifications". */
+  menu: null,
 };
 
-/**
- * Repaint the shell.
+/*
+ * The platform's sidebar, item for item (\`src/components/layout/sidebar.tsx\`),
+ * with the permission each one needs. A reporting role seeded from the model
+ * holds \`report:view\`, \`chart:view\`, \`dashboard:view\` and \`nl_query:*\` — that is
+ * what \`scripts/seed-reporting-pack.ts\` grants — so it sees the same six items
+ * here that it sees there, and the administrator sees all of them.
  *
- * Held here rather than threaded through every screen: the shell is a single
- * function and the screens below it only ever want "show the section I just
- * set". Assigned by \`reportAppView\`, which is the only thing that can build it.
+ * \`route\` is the screen the preview has. An item without one is a screen that
+ * needs the platform's servers; it still appears, and opens a page saying so.
  */
-let rerender = async () => {};
+const MAIN_NAV = [
+  { slug: "dashboard", label: "Dashboard", icon: "home", permission: null, route: "dashboard" },
+  { slug: "sql-editor", label: "SQL Editor", icon: "terminal", permission: "query", description: "Write and execute SQL queries" },
+  { slug: "queries", label: "Saved Queries", icon: "database", permission: "query", route: "queries" },
+  { slug: "reports", label: "Reports", icon: "fileText", permission: "report", route: "reports" },
+  { slug: "charts", label: "Charts", icon: "barChart3", permission: "chart", route: "charts" },
+  { slug: "dashboards", label: "Dashboards", icon: "layoutDashboard", permission: "dashboard", route: "dashboards" },
+  { slug: "filters", label: "Filters", icon: "filter", permission: "filter", description: "Define reusable report filters" },
+  { slug: "jobs", label: "Jobs", icon: "play", permission: "job", description: "Schedule and run background jobs" },
+  { slug: "monitoring", label: "Monitoring", icon: "activity", permission: "monitoring_rule", description: "Track thresholds and breaches" },
+  { slug: "nl-query", label: "NL Query", icon: "messageSquare", permission: "nl_query", description: "Ask questions in plain language" },
+  { slug: "report-generator", label: "Report Generator", icon: "fileText", permission: "report", description: "Generate a report from a description" },
+];
 
-/** Render one SQL scalar as a cell. */
-function cell(value) {
-  if (value === null || value === undefined) return "—";
-  if (value instanceof Date) return value.toLocaleDateString();
-  if (typeof value === "number") return value.toLocaleString();
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+const ADMIN_NAV = [
+  { slug: "data-sources", label: "Data Sources", icon: "database", permission: "data_source", route: "data-sources", description: "Manage database connections" },
+  { slug: "trigger-board", label: "Trigger Board", icon: "layers", permission: "queue", description: "Inspect the job queue" },
+  { slug: "logs", label: "System Logs", icon: "squareTerminal", permission: "log", route: "logs", description: "Review application logs" },
+  { slug: "users", label: "Users", icon: "users", permission: "user", route: "users", description: "Manage user accounts" },
+  { slug: "roles", label: "Roles", icon: "shield", permission: "role", route: "roles", description: "Manage roles and grants" },
+  { slug: "permissions", label: "Permissions", icon: "shield", permission: "user", route: "permissions", description: "Review resource-level grants" },
+  { slug: "settings", label: "Settings", icon: "settings", permission: "setting", description: "Configure the application" },
+];
+
+/**
+ * The administration screens the preview has, by route. Server-checked too:
+ * \`/report-admin\` refuses anyone who is not a reporting administrator.
+ */
+const ADMIN_ROUTES = new Map([
+  ["users", usersPage],
+  ["roles", rolesPage],
+  ["permissions", permissionsPage],
+  ["data-sources", dataSourcesPage],
+  ["logs", logsPage],
+]);
+
+/** What a seeded reporting role may view — the grant the platform's seeder writes. */
+const REPORTING_ROLE_GRANTS = new Set(["report", "chart", "dashboard", "nl_query"]);
+
+function canView(permission) {
+  if (permission === null) return true;
+  if (state.user?.isAdmin) return true;
+  return REPORTING_ROLE_GRANTS.has(permission);
 }
 
-/**
- * A chart, as SVG, from the rows the query already returned.
- *
- * No charting library, for the same reason the application's own reports screen
- * has none: this runtime has no build step and no dependencies, and the drawing
- * is two column names the pack chose plotted against each other. \`pie\` and
- * \`area\` render as bars rather than as nothing — the shape is a presentation
- * preference and refusing to draw would lose the answer.
- */
-function chartSvg(kind, xField, yField, rows) {
-  const points = rows
-    .map((row) => ({ label: cell(row[xField]), value: Number(row[yField]) }))
-    .filter((point) => Number.isFinite(point.value))
-    .slice(0, 30);
-  if (points.length === 0) return null;
-
-  const max = Math.max(...points.map((point) => point.value), 0) || 1;
-  const width = 700;
-  const height = 200;
-  const step = width / points.length;
-  const svgns = "http://www.w3.org/2000/svg";
-
-  const svg = document.createElementNS(svgns, "svg");
-  svg.setAttribute("viewBox", \`0 0 \${width} \${height + 34}\`);
-  svg.setAttribute("class", "report-chart");
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", \`\${yField} by \${xField}\`);
-
-  if (kind === "line") {
-    const line = document.createElementNS(svgns, "polyline");
-    line.setAttribute("fill", "none");
-    line.setAttribute("stroke", "currentColor");
-    line.setAttribute("stroke-width", "2");
-    line.setAttribute(
-      "points",
-      points
-        .map((p, i) => \`\${i * step + step / 2},\${height - (p.value / max) * (height - 16)}\`)
-        .join(" ")
-    );
-    svg.appendChild(line);
-  } else {
-    points.forEach((point, index) => {
-      const barHeight = (point.value / max) * (height - 16);
-      const rect = document.createElementNS(svgns, "rect");
-      rect.setAttribute("x", String(index * step + step * 0.15));
-      rect.setAttribute("y", String(height - barHeight));
-      rect.setAttribute("width", String(step * 0.7));
-      rect.setAttribute("height", String(barHeight));
-      rect.setAttribute("fill", "currentColor");
-      svg.appendChild(rect);
-    });
-  }
-
-  points.forEach((point, index) => {
-    const text = document.createElementNS(svgns, "text");
-    text.setAttribute("x", String(index * step + step / 2));
-    text.setAttribute("y", String(height + 14));
-    text.setAttribute("text-anchor", "middle");
-    text.setAttribute("font-size", "10");
-    text.setAttribute("opacity", "0.7");
-    text.textContent = point.label.length > 12 ? \`\${point.label.slice(0, 11)}…\` : point.label;
-    svg.appendChild(text);
-  });
-
-  return svg;
+/** \`#/report/<a>/<b>\` → ["<a>", "<b>"], decoded. */
+function currentPath() {
+  const route = (window.location.hash || "").replace(/^#\\/report\\/?/, "").split("?")[0];
+  return route.split("/").filter(Boolean).map(decodeURIComponent);
 }
 
-/** Run one definition and render the answer into \`panel\`. */
-async function run(panel, kind, item) {
-  mount(panel, spinner("Running"));
+const href = (...parts) => \`#/report/\${parts.map(encodeURIComponent).join("/")}\`;
 
-  let result;
-  try {
-    result = await reportApi.get(
-      \`/reporting/\${kind}/\${encodeURIComponent(item.key)}/run\`
-    );
-  } catch (error) {
-    /* A 403 here is the reporting role working, not a failure, and it names the
-       table it refused — so it is shown as the answer rather than as an error
-       the reader is meant to do something about. */
-    return void mount(
-      panel,
-      empty(
-        error.status === 403 ? "This role may not read that" : "This report did not run",
-        error.message || String(error)
-      )
-    );
-  }
+const repaint = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
 
-  const parts = [el("h2", item.name)];
-  if (item.description) parts.push(el("p.muted", item.description));
+// ─── The shell: sidebar, header, main ────────────────────────────────────────
 
-  if (kind === "charts") {
-    const svg = chartSvg(item.chartType, item.xField, item.yField, result.rows);
-    if (svg) parts.push(el("div.report-chart-wrap", svg, el("p.muted", \`\${item.yField} by \${item.xField}\`)));
-  }
-
-  parts.push(
-    el(
-      "p.muted",
-      \`\${result.rowCount} row\${result.rowCount === 1 ? "" : "s"} in \${result.durationMs}ms\` +
-        (result.truncated ? " — capped; the query returns more" : "")
-    )
+function navItem(item, activeSlug) {
+  const active = item.slug === activeSlug;
+  return el(
+    "a.er-nav__item",
+    {
+      href: href(item.route ?? \`unavailable\`, ...(item.route ? [] : [item.slug])),
+      class: active ? "is-active" : null,
+      title: state.sidebarCollapsed ? item.label : null,
+      "aria-current": active ? "page" : null,
+      onclick: () => {
+        state.mobileMenuOpen = false;
+      },
+    },
+    icon(item.icon),
+    state.sidebarCollapsed ? null : el("span.er-nav__label", item.label)
   );
+}
 
-  if (result.rowCount === 0) {
-    parts.push(
-      el("p.muted", "No rows. The query is valid; nothing in the application's data answers it yet.")
-    );
-  } else {
-    parts.push(
+function sidebar(activeSlug, { mobile = false } = {}) {
+  const main = MAIN_NAV.filter((item) => canView(item.permission));
+  const admin = ADMIN_NAV.filter((item) => canView(item.permission));
+  const collapsed = state.sidebarCollapsed && !mobile;
+
+  return el(
+    "aside.er-sidebar",
+    { class: collapsed ? "is-collapsed" : null },
+    el(
+      "div.er-sidebar__brand",
       el(
-        "div.table-wrap",
-        el(
-          "table",
-          el("thead", el("tr", ...result.columns.map((column) => el("th", column)))),
-          el(
-            "tbody",
-            ...result.rows.map((row) =>
-              el("tr", ...result.columns.map((column) => el("td", cell(row[column]))))
-            )
+        "a.er-sidebar__logo",
+        { href: href("dashboard") },
+        icon("barChart3", "er-icon--md er-brand"),
+        collapsed ? null : el("span", "Enterprise Reports")
+      )
+    ),
+    el(
+      "div.er-sidebar__scroll",
+      el(
+        "div.er-nav__group",
+        collapsed ? null : el("h2.er-nav__heading", "Main"),
+        el("nav.er-nav", ...main.map((item) => navItem(item, activeSlug)))
+      ),
+      admin.length > 0 ? el("div.er-separator") : null,
+      admin.length > 0
+        ? el(
+            "div.er-nav__group",
+            collapsed ? null : el("h2.er-nav__heading", "Administration"),
+            el("nav.er-nav", ...admin.map((item) => navItem(item, activeSlug)))
           )
-        )
-      )
-    );
-  }
-
-  /* Where the number came from. A reporting user's next question about any
-     figure is always this one, and the platform answers it with the saved query
-     the report is built on. The SQL itself is not in this response — \`/run\`
-     returns the definition without it, so that a client cannot become the place
-     a query is read from — and **Saved queries** is the screen that has it. */
-  parts.push(
+        : null
+    ),
     el(
-      "details.report-sql",
-      el("summary", \`Saved query — \${result.query.name}\`),
-      el("p.muted", result.query.description),
-      el("p.muted", \`Reads \${result.query.tables.join(", ") || "no business table"}.\`),
-      el(
-        "button.link",
-        {
-          onclick: async () => {
-            state.section = "queries";
-            await rerender();
-          },
-        },
-        "See its SQL under Saved queries"
-      )
-    )
-  );
-
-  parts.push(
-    el(
-      "button.btn",
+      "button.er-sidebar__collapse",
       {
+        type: "button",
+        "aria-label": mobile ? "Close navigation menu" : collapsed ? "Expand sidebar" : "Collapse sidebar",
         onclick: () => {
-          run(panel, kind, item);
-          toast("Re-running", "info");
+          if (mobile) state.mobileMenuOpen = false;
+          else state.sidebarCollapsed = !state.sidebarCollapsed;
+          repaint();
         },
       },
-      "Run again"
+      icon(collapsed ? "chevronRight" : "chevronLeft", "er-icon--xs")
     )
   );
-
-  mount(panel, ...parts);
 }
 
-/** A list of definitions on the left, the answer on the right. */
-function browser(items, kind, emptyTitle, emptyDetail) {
-  if (items.length === 0) return empty(emptyTitle, emptyDetail);
+function initials(user) {
+  const source = user.name || user.email || "U";
+  const parts = source.split(/[\\s@.]+/).filter(Boolean);
+  return (parts.length > 1 ? parts[0][0] + parts[1][0] : source[0]).toUpperCase();
+}
 
-  // Grouped by the table the query reads, because that is what a reporting
-  // role is a statement about — and on a scoped role it is the grouping that
-  // shows which half of the application it has.
-  const groups = new Map();
-  for (const item of items) {
-    const key = (item.tables || [])[0] || "Across the application";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(item);
-  }
+function header({ project, onLeave, signOut }) {
+  const user = state.user;
+  const role = state.overview?.role;
 
-  const panel = el(
-    "div.report-panel",
-    empty("Choose one", "Pick a definition on the left to run it against the application's data.")
+  const themeSelect = el(
+    "select.er-select.er-themeselect",
+    {
+      "aria-label": "Theme",
+      onchange: (event) => applyTheme(event.currentTarget.value),
+    },
+    el("option", { value: "light" }, "☀  Light Theme"),
+    el("option", { value: "dark" }, "☾  Dark Theme"),
+    el("option", { value: "system" }, "◐  System")
   );
+  themeSelect.value = storedTheme();
 
-  const list = el(
-    "nav.report-list",
-    ...[...groups.entries()].map(([group, groupItems]) =>
+  const toggle = (name) => () => {
+    state.menu = state.menu === name ? null : name;
+    repaint();
+  };
+
+  const notifications =
+    state.menu === "notifications"
+      ? el(
+          "div.er-menu.er-menu--wide",
+          el("div.er-menu__label.er-menu__label--split", el("span", "Notifications")),
+          el("div.er-menu__empty", "No notifications")
+        )
+      : null;
+
+  const userMenu =
+    state.menu === "user"
+      ? el(
+          "div.er-menu",
+          el(
+            "div.er-menu__label",
+            el("p.er-menu__name", user.name || user.role || "Reporting user"),
+            el("p.er-menu__email", user.email)
+          ),
+          el("div.er-menu__separator"),
+          el(
+            "div.er-menu__note",
+            role
+              ? role.tables === null
+                ? \`\${role.name ?? "Administrator"} — reads every table (\${role.tableTotal})\`
+                : \`\${role.name ?? "No reporting role"} — reads \${role.tables.length} of \${role.tableTotal} tables\`
+              : null
+          ),
+          el("div.er-menu__separator"),
+          onLeave
+            ? el(
+                "button.er-menu__item",
+                { type: "button", onclick: () => onLeave() },
+                icon("arrowLeft"),
+                el("span", \`Back to \${project.name}\`)
+              )
+            : null,
+          el(
+            "button.er-menu__item.er-menu__item--danger",
+            { type: "button", onclick: signOut },
+            icon("logOut"),
+            el("span", "Log out")
+          )
+        )
+      : null;
+
+  return el(
+    "header.er-header",
+    el(
+      "div.er-header__left",
       el(
-        "section",
-        el("h3", group),
+        "button.er-btn.er-btn--ghost.er-btn--size-icon.er-mobile-only",
+        {
+          type: "button",
+          "aria-label": "Toggle menu",
+          onclick: () => {
+            state.mobileMenuOpen = !state.mobileMenuOpen;
+            repaint();
+          },
+        },
+        icon("menu", "er-icon--lg")
+      )
+    ),
+    el(
+      "div.er-header__right",
+      themeSelect,
+      el(
+        "button.er-btn.er-btn--ghost.er-btn--size-icon",
+        {
+          type: "button",
+          "aria-label": "Help",
+          title: "Help",
+          onclick: () => {
+            window.location.hash = href("about-preview");
+          },
+        },
+        icon("helpCircle", "er-icon--lg")
+      ),
+      el(
+        "div.er-menuwrap",
         el(
-          "ul",
-          ...groupItems.map((item) =>
+          "button.er-btn.er-btn--ghost.er-btn--size-icon",
+          { type: "button", "aria-label": "Notifications", onclick: toggle("notifications") },
+          icon("bell")
+        ),
+        notifications
+      ),
+      el(
+        "div.er-menuwrap",
+        el(
+          "button.er-avatar",
+          { type: "button", "aria-label": "Account", onclick: toggle("user") },
+          initials(user)
+        ),
+        userMenu
+      )
+    )
+  );
+}
+
+/**
+ * The one thing this screen has that the platform does not: a line saying what
+ * it is. Kept to a strip under the header, so the page below it is the
+ * platform's page.
+ */
+function previewStrip() {
+  return el(
+    "div.er-previewstrip",
+    icon("info", "er-icon--sm"),
+    el(
+      "span",
+      el("strong", "Browser preview of Enterprise Reporting."),
+      " The reports, charts, dashboard and roles are the ones the platform is seeded with. " +
+        "The real platform runs from the deployable archive or the orchestrator. ",
+      el("a", { href: href("about-preview") }, "What differs")
+    )
+  );
+}
+
+// ─── Pages ───────────────────────────────────────────────────────────────────
+
+/** Whether the run endpoint named \`column\` as a NUMERIC — see \`cellText\`. */
+const isNumeric = (result, column) => (result.numeric ?? []).includes(column);
+
+const plural = (count, one, many = \`\${one}s\`) => \`\${count.toLocaleString()} \${count === 1 ? one : many}\`;
+
+async function dashboardPage(main) {
+  const { counts, role } = state.overview;
+  const isAdmin = !!state.user.isAdmin;
+
+  const kpis = [
+    { label: "Reports", value: counts.reports, href: href("reports"), icon: "fileText", key: "report" },
+    { label: "Charts", value: counts.charts, href: href("charts"), icon: "barChart3", key: "chart" },
+    { label: "Dashboards", value: counts.dashboards, href: href("dashboards"), icon: "layoutDashboard", key: "dashboard" },
+    { label: "Scheduled jobs", value: 0, href: href("unavailable", "jobs"), icon: "play", key: "job" },
+  ].filter((kpi) => canView(kpi.key));
+
+  const workspace = MAIN_NAV.filter((item) => item.slug !== "dashboard");
+  const visible = workspace.filter((item) => canView(item.permission));
+  const moduleCard = (item, admin) =>
+    el(
+      "a.er-card.er-module",
+      { href: href(item.route ?? "unavailable", ...(item.route ? [] : [item.slug])) },
+      el(
+        "div.er-module__head",
+        icon(item.icon, admin ? "er-icon er-subtle" : "er-icon er-brand"),
+        el("h3.er-card__title.er-card__title--sm", item.label)
+      ),
+      el("p.er-card__description", item.description ?? moduleDescription(item.slug))
+    );
+
+  const breakdown = [
+    ["Reports", counts.reports, "fileText"],
+    ["Charts", counts.charts, "barChart3"],
+    ["Dashboards", counts.dashboards, "layoutDashboard"],
+    ...(isAdmin ? [["Saved queries", counts.queries ?? 0, "database"]] : []),
+  ];
+  const maxCount = Math.max(1, ...breakdown.map(([, value]) => value));
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader(
+        "Dashboard",
+        \`Welcome to the Enterprise Reporting System — \${state.user.email}\`,
+        { actions: badge(isAdmin ? "Administrator" : "Standard access", isAdmin ? "default" : "neutral") }
+      ),
+      kpis.length ? el("div.er-grid.er-grid--4", ...kpis.map((kpi) => kpiCard(kpi.label, kpi.value, kpi.icon, kpi.href))) : null,
+      el(
+        "div.er-grid.er-grid--2",
+        card(
+          cardHeader("Content by type", "What exists in your workspace today"),
+          cardContent(
             el(
-              "li",
-              el(
-                "button.link",
-                {
-                  onclick: (event) => {
-                    for (const active of list.querySelectorAll(".is-active")) {
-                      active.classList.remove("is-active");
-                    }
-                    event.currentTarget.classList.add("is-active");
-                    run(panel, kind, item);
-                  },
-                },
-                item.name
+              "ul.er-barlist",
+              ...breakdown.map(([name, value, iconName]) =>
+                el(
+                  "li",
+                  el("div.er-barlist__bar", { style: { width: \`\${Math.max(4, (value / maxCount) * 100)}%\` } }),
+                  el("span.er-barlist__name", icon(iconName, "er-icon--sm er-subtle"), name),
+                  el("span.er-barlist__value", value.toLocaleString())
+                )
               )
             )
           )
+        ),
+        card(
+          cardHeader(
+            "Data access",
+            role.tables === null
+              ? \`\${role.name ?? "This role"} reads every table of \${state.overview.dataSource?.name ?? "the data source"}\`
+              : \`\${role.name ?? "This role"} reads \${role.tables.length} of \${role.tableTotal} tables of \${state.overview.dataSource?.name ?? "the data source"}\`
+          ),
+          cardContent(
+            role.tables === null
+              ? el("p.er-text", "Every report, chart and dashboard tile is offered.")
+              : el(
+                  "div",
+                  el("div.er-taglist", ...role.tables.map((tableName) => badge(tableName, "secondary"))),
+                  counts.reports < counts.reportsTotal
+                    ? el(
+                        "p.er-text.er-mt",
+                        \`\${counts.reports} of \${counts.reportsTotal} reports are offered to this role — \` +
+                          "a report whose query names any other table is not."
+                      )
+                    : null
+                )
+          )
         )
+      ),
+      el(
+        "div",
+        el(
+          "div.er-sectionhead",
+          el("h2.er-sectiontitle", "Your workspace"),
+          el("span.er-label", \`\${visible.length} of \${workspace.length} modules available\`)
+        ),
+        el("div.er-grid.er-grid--3", ...visible.map((item) => moduleCard(item, false)))
+      ),
+      isAdmin
+        ? el(
+            "div",
+            el(
+              "div.er-sectionhead",
+              el("h2.er-sectiontitle", "Administration"),
+              el("span.er-label", \`\${ADMIN_NAV.length} modules\`)
+            ),
+            el("div.er-grid.er-grid--3", ...ADMIN_NAV.map((item) => moduleCard(item, true)))
+          )
+        : null
+    )
+  );
+}
+
+function moduleDescription(slug) {
+  return {
+    queries: "Reuse queries you have saved",
+    reports: "View and manage reports",
+    charts: "Create data visualisations",
+    dashboards: "Build interactive dashboards",
+  }[slug];
+}
+
+function listCard(content) {
+  return card(el("div.er-card__flush", content));
+}
+
+async function queriesPage(main) {
+  mount(main, el("div.er-stack", pageHeader("Saved Queries", "Manage your saved SQL queries"), card(loading())));
+  const queries = await reportApi.get("/reporting/queries");
+  const source = state.overview.dataSource?.name ?? "—";
+  let term = "";
+
+  const body = el("div");
+  const draw = () => {
+    const needle = term.toLowerCase();
+    const shown = queries.filter(
+      (query) => !needle || \`\${query.name} \${query.description} \${source}\`.toLowerCase().includes(needle)
+    );
+    mount(
+      body,
+      shown.length === 0
+        ? emptyState("No queries found", term ? "Nothing matches that search." : "No saved queries this role may run.")
+        : table(
+            ["Name", "Description", "Data Source", "Created", "Modified", "Actions"],
+            shown.map((query) => [
+              el("span.er-strong", query.name),
+              query.description || "-",
+              badge(source, "outline"),
+              generatedOn(),
+              generatedOn(),
+              button("View", { variant: "ghost", size: "sm", iconName: "eye" }),
+            ]),
+            { onRow: (index) => (window.location.hash = href("queries", shown[index].key)) }
+          )
+    );
+  };
+
+  const search = el("input.er-input.er-input--search", {
+    type: "search",
+    placeholder: "Search by name, description, or data source...",
+    oninput: (event) => {
+      term = event.currentTarget.value;
+      draw();
+    },
+  });
+
+  draw();
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Saved Queries", "Manage your saved SQL queries"),
+      el(
+        "div.er-toolbar",
+        el("div.er-searchwrap", icon("search", "er-icon er-searchicon"), search),
+        badge(plural(queries.length, "query", "queries"), "secondary")
+      ),
+      listCard(body)
+    )
+  );
+}
+
+async function queryDetailPage(main, key) {
+  const queries = await reportApi.get("/reporting/queries");
+  const query = queries.find((candidate) => candidate.key === key);
+  if (!query) return notFoundPage(main, "Saved Queries", href("queries"));
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      breadcrumb([{ label: "Saved Queries", href: href("queries") }, { label: query.name }]),
+      pageHeader(query.name, query.description, { back: href("queries") }),
+      card(
+        cardHeader("SQL", \`Reads \${query.tables.join(", ") || "no business table"}\`),
+        cardContent(el("pre.er-code", el("code", query.sql)))
       )
     )
   );
-
-  return el("div.report-layout", list, panel);
 }
 
-async function dashboardSection(outlet) {
-  mount(outlet, spinner("Loading the dashboard"));
-  const [dashboards, charts] = await Promise.all([
+function generatedOn() {
+  const at = state.overview.application?.generatedAt;
+  return at ? new Date(at).toLocaleDateString() : "—";
+}
+
+async function reportsPage(main) {
+  mount(main, el("div.er-stack", pageHeader("Reports", "Create and manage tabular reports"), card(loading())));
+  const [reports, queries] = await Promise.all([
+    reportApi.get("/reporting/reports"),
+    state.user.isAdmin ? reportApi.get("/reporting/queries") : Promise.resolve([]),
+  ]);
+  const queryName = new Map(queries.map((query) => [query.key, query.name]));
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Reports", "Create and manage tabular reports"),
+      hiddenNote(state.overview.counts.reports, state.overview.counts.reportsTotal, "reports"),
+      listCard(
+        reports.length === 0
+          ? emptyState("No reports yet", "Every report reads a table this reporting role may not.")
+          : table(
+              ["Name", "Description", "Query", "Created", "Modified", "Actions"],
+              reports.map((report) => [
+                el("span.er-strong", report.name),
+                el("span.er-clamp", report.description || "-"),
+                queryName.has(report.queryKey)
+                  ? badge(queryName.get(report.queryKey), "secondary")
+                  : badge("Linked", "secondary"),
+                generatedOn(),
+                generatedOn(),
+                button("View", { variant: "ghost", size: "sm", iconName: "eye" }),
+              ]),
+              { onRow: (index) => (window.location.hash = href("reports", reports[index].key)) }
+            )
+      )
+    )
+  );
+}
+
+function hiddenNote(shown, total, noun) {
+  if (shown >= total) return null;
+  return alert(
+    \`\${total - shown} \${noun} hidden\`,
+    \`\${state.user.role ?? "This role"} may not read the tables behind them. \${shown} of \${total} are offered.\`
+  );
+}
+
+async function run(kind, key) {
+  return reportApi.get(\`/reporting/\${kind}/\${encodeURIComponent(key)}/run\`);
+}
+
+function refusal(error) {
+  return alert(
+    error.status === 403 ? "Access denied" : "This query did not run",
+    error.message || String(error),
+    "destructive"
+  );
+}
+
+async function reportViewerPage(main, key) {
+  const reports = await reportApi.get("/reporting/reports");
+  const report = reports.find((candidate) => candidate.key === key);
+  if (!report) return notFoundPage(main, "Reports", href("reports"));
+
+  const data = card(cardHeader("Report Data"), cardContent(loading("Running the report")));
+  let result = null;
+
+  const exportCsv = () => {
+    if (!result) return;
+    downloadCsv(
+      report.key,
+      toCsv(result.columns, result.rows.map((row) => result.columns.map((column) => cellText(row[column]))))
+    );
+  };
+
+  const draw = async () => {
+    mount(data, cardHeader("Report Data"), cardContent(loading("Running the report")));
+    try {
+      result = await run("reports", report.key);
+    } catch (error) {
+      result = null;
+      return void mount(data, cardHeader("Report Data"), cardContent(refusal(error)));
+    }
+    const labels = new Map((report.columns ?? []).map((column) => [column.field, column.label]));
+    mount(
+      data,
+      cardHeader(
+        "Report Data",
+        \`\${plural(result.rowCount, "row")} in \${result.durationMs}ms\` +
+          (result.truncated ? " — capped; the query returns more" : ""),
+        badge(result.query.name, "outline")
+      ),
+      el(
+        "div.er-card__flush",
+        result.rowCount === 0
+          ? emptyState("No data", "The query is valid; nothing in the application's data answers it yet.")
+          : table(
+              result.columns.map((column) => labels.get(column) ?? column),
+              result.rows.map((row) => result.columns.map((column) => cellText(row[column], isNumeric(result, column))))
+            )
+      )
+    );
+  };
+
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      breadcrumb([{ label: "Reports", href: href("reports") }, { label: report.name }]),
+      pageHeader(report.name, report.description, {
+        back: href("reports"),
+        actions: [
+          button("Refresh", { variant: "outline", size: "sm", iconName: "refresh", onclick: () => draw() }),
+          button("CSV", { variant: "outline", size: "sm", iconName: "download", onclick: exportCsv }),
+        ],
+      }),
+      data
+    )
+  );
+  await draw();
+}
+
+const CHART_ICON = { bar: "barChart3", line: "lineChart", area: "areaChart", pie: "pieChart" };
+
+async function chartsPage(main) {
+  mount(main, el("div.er-stack", pageHeader("Charts", "Create and manage data visualizations"), card(loading())));
+  const charts = await reportApi.get("/reporting/charts");
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Charts", "Create and manage data visualizations"),
+      hiddenNote(state.overview.counts.charts, state.overview.counts.chartsTotal, "charts"),
+      listCard(
+        charts.length === 0
+          ? emptyState("No charts yet", "Every chart reads a table this reporting role may not.")
+          : table(
+              ["Name", "Type", "Query", "Created", "Actions"],
+              charts.map((item) => [
+                el("span.er-strong", item.name),
+                el("span.er-badge.er-badge--outline.er-badge--icon", icon(CHART_ICON[item.chartType] ?? "barChart3", "er-icon--xs"), item.chartType),
+                badge("Linked", "secondary"),
+                generatedOn(),
+                button("View", { variant: "ghost", size: "sm", iconName: "eye" }),
+              ]),
+              { onRow: (index) => (window.location.hash = href("charts", charts[index].key)) }
+            )
+      )
+    )
+  );
+}
+
+async function chartViewerPage(main, key) {
+  const charts = await reportApi.get("/reporting/charts");
+  const item = charts.find((candidate) => candidate.key === key);
+  if (!item) return notFoundPage(main, "Charts", href("charts"));
+
+  const body = card(cardContent(loading("Running the chart")));
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      breadcrumb([{ label: "Charts", href: href("charts") }, { label: item.name }]),
+      pageHeader(item.name, item.description, { back: href("charts"), badge: badge(item.chartType, "outline") }),
+      body
+    )
+  );
+
+  try {
+    const result = await run("charts", item.key);
+    const svg = chart(item.chartType, item.xField, item.yField, result.rows);
+    mount(
+      body,
+      cardHeader(\`\${item.yField} by \${item.xField}\`, \`\${plural(result.rowCount, "row")} in \${result.durationMs}ms\`),
+      cardContent(svg ?? emptyState("No data", "Nothing in the application's data answers this chart yet."))
+    );
+  } catch (error) {
+    mount(body, cardContent(refusal(error)));
+  }
+}
+
+async function dashboardsPage(main) {
+  mount(main, el("div.er-stack", pageHeader("Dashboards", "Create and manage interactive dashboards"), card(loading())));
+  const dashboards = await reportApi.get("/reporting/dashboards");
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Dashboards", "Create and manage interactive dashboards"),
+      listCard(
+        dashboards.length === 0
+          ? emptyState("No dashboards yet")
+          : table(
+              ["Name", "Description", "Visibility", "Created", "Modified", "Actions"],
+              dashboards.map((dashboard) => [
+                el("span.er-strong", dashboard.name),
+                el("span.er-clamp", dashboard.description || "-"),
+                el("span.er-badge.er-badge--outline.er-badge--icon", icon("lock", "er-icon--xs"), "Private"),
+                generatedOn(),
+                generatedOn(),
+                button("View", { variant: "ghost", size: "sm", iconName: "eye" }),
+              ]),
+              { onRow: (index) => (window.location.hash = href("dashboards", dashboards[index].key)) }
+            )
+      )
+    )
+  );
+}
+
+async function dashboardViewerPage(main, key) {
+  const [dashboards, charts, reports] = await Promise.all([
     reportApi.get("/reporting/dashboards"),
     reportApi.get("/reporting/charts"),
+    reportApi.get("/reporting/reports"),
   ]);
+  const dashboard = dashboards.find((candidate) => candidate.key === key);
+  if (!dashboard) return notFoundPage(main, "Dashboards", href("dashboards"));
 
-  const byKey = new Map(charts.map((chart) => [chart.key, chart]));
-  const parts = [];
+  const chartOf = new Map(charts.map((item) => [item.key, item]));
+  const reportOf = new Map(reports.map((item) => [item.key, item]));
 
-  for (const dashboard of dashboards) {
-    parts.push(el("h2", dashboard.name));
-    if (dashboard.description) parts.push(el("p.muted", dashboard.description));
-    if (dashboard.hiddenWidgets > 0) {
-      /* Said rather than left as a gap: a role that may not read a table gets a
-         shorter dashboard, and a shorter dashboard with no explanation looks
-         like a build that half-worked. */
-      parts.push(
-        el(
-          "p.muted",
-          \`\${dashboard.hiddenWidgets} tile\${dashboard.hiddenWidgets === 1 ? "" : "s"} hidden — \` +
-            \`\${state.user.role ?? "this role"} may not read the tables behind them.\`
-        )
-      );
-    }
+  /* The platform lays a dashboard out on react-grid-layout's twelve columns
+     with 100px rows; the pack writes each widget's x, y, w and h in those
+     units, so the same numbers place it here. */
+  const tiles = compact(dashboard.widgets).map((widget) => {
+    const body = el("div.er-tile__body", loading());
+    const tile = el(
+      "div.er-card.er-tile",
+      {
+        style: {
+          gridColumn: \`\${(widget.x ?? 0) + 1} / span \${widget.w ?? 6}\`,
+          gridRow: \`\${(widget.y ?? 0) + 1} / span \${widget.h ?? 3}\`,
+        },
+      },
+      el("div.er-tile__head", el("h3.er-card__title.er-card__title--sm", widget.title)),
+      body
+    );
 
-    if (dashboard.widgets.length === 0) {
-      parts.push(empty("Nothing on this dashboard", "Every tile reads a table this role may not."));
-      continue;
-    }
-
-    const tiles = [];
-    for (const widget of dashboard.widgets) {
-      const chart = widget.chartKey ? byKey.get(widget.chartKey) : null;
-      const tile = el("div.report-tile", el("h3", widget.title), spinner("Loading"));
-      tiles.push(tile);
-      if (!chart) continue;
-
-      /* Each tile runs its own query. Sequential rather than parallel would be
-         tidier to read and slower to watch: six queries against a database in
-         this tab finish in well under a second each, and the reader sees the
-         grid fill in. */
-      reportApi
-        .get(\`/reporting/charts/\${encodeURIComponent(chart.key)}/run\`)
+    const chartSpec = widget.chartKey ? chartOf.get(widget.chartKey) : null;
+    const reportSpec = widget.reportKey ? reportOf.get(widget.reportKey) : null;
+    if (chartSpec) {
+      run("charts", chartSpec.key)
         .then((result) => {
-          const svg = chartSvg(chart.chartType, chart.xField, chart.yField, result.rows);
-          mount(
-            tile,
-            el("h3", widget.title),
-            svg ?? el("p.muted", "No rows yet."),
-            el("p.muted", \`\${result.rowCount} row\${result.rowCount === 1 ? "" : "s"}\`)
-          );
+          const svg = chart(chartSpec.chartType, chartSpec.xField, chartSpec.yField, result.rows);
+          mount(body, svg ?? emptyState("No data"));
         })
-        .catch((error) => {
-          mount(tile, el("h3", widget.title), el("p.muted", error.message || String(error)));
-        });
+        .catch((error) => mount(body, refusal(error)));
+    } else if (reportSpec) {
+      run("reports", reportSpec.key)
+        .then((result) =>
+          mount(
+            body,
+            result.rowCount === 0
+              ? emptyState("No data")
+              : table(result.columns, result.rows.slice(0, 20).map((row) => result.columns.map((column) => cellText(row[column], isNumeric(result, column)))))
+          )
+        )
+        .catch((error) => mount(body, refusal(error)));
+    } else {
+      mount(body, emptyState("Nothing to show"));
     }
-    parts.push(el("div.report-grid", ...tiles));
-  }
-
-  mount(outlet, ...parts);
-}
-
-async function accessSection(outlet) {
-  const role = state.overview.role;
-  const tables = role.tables;
+    return tile;
+  });
 
   mount(
-    outlet,
-    el("h2", "What this reporting role may read"),
+    main,
     el(
-      "p.muted",
-      tables === null
-        ? \`\${role.name ?? "This role"} reads every table of the attached application — all \${role.tableTotal}.\`
-        : \`\${role.name ?? "This role"} reads \${tables.length} of the application's \${role.tableTotal} tables. \` +
-            "A report whose query names any other table is not offered, and is refused if asked for."
-    ),
-    el(
-      "p.muted",
-      "This role mirrors a %%rbac role in the model, and only its read rules: the directive also " +
-        "restricts create, update and delete, and none of that means anything to somebody who " +
-        "cannot write through the reporting application at all."
-    ),
-    tables === null
-      ? null
-      : el("ul.report-tables", ...tables.map((table) => el("li", el("code", table)))),
-    el("h3", "This is a mirror, not a shared system"),
-    el(
-      "p.muted",
-      "The application and the reporting application keep their own accounts, and neither " +
-        "password works on the other side. Deployed, they are two services with two databases; " +
-        "the role names line up so an administrator can see which is which, and nothing else is shared."
-    )
-  );
-}
-
-async function queriesSection(outlet) {
-  mount(outlet, spinner("Loading the saved queries"));
-  const queries = await reportApi.get("/reporting/queries");
-  mount(
-    outlet,
-    el("h2", \`\${queries.length} saved quer\${queries.length === 1 ? "y" : "ies"}\`),
-    el(
-      "p.muted",
-      "Every report and chart is a definition over one of these. Only the queries this role may " +
-        "run are listed."
-    ),
-    ...queries.map((query) =>
-      el(
-        "details.report-sql",
-        el("summary", query.name),
-        el("p.muted", query.description),
-        el("p.muted", \`Reads \${query.tables.join(", ") || "no business table"}.\`),
-        el("pre", el("code", query.sql))
-      )
+      "div.er-stack",
+      breadcrumb([{ label: "Dashboards", href: href("dashboards") }, { label: dashboard.name }]),
+      pageHeader(dashboard.name, dashboard.description, { back: href("dashboards") }),
+      dashboard.hiddenWidgets > 0
+        ? alert(
+            \`\${dashboard.hiddenWidgets} tile\${dashboard.hiddenWidgets === 1 ? "" : "s"} hidden — \` +
+              \`\${state.user.role ?? "this role"} may not read the tables behind them.\`,
+            null
+          )
+        : null,
+      tiles.length === 0
+        ? card(cardContent(emptyState("Nothing on this dashboard", "Every tile reads a table this role may not.")))
+        : el("div.er-dashgrid", ...tiles)
     )
   );
 }
 
 /**
- * The reporting application's shell.
- *
- * \`onLeave\` goes back to the application it reports on. It is a link rather
- * than a shared header because the two are not one product with two tabs: a
- * reader leaving here keeps their reporting session, and arriving at the
- * application still has to be signed into *that*.
+ * react-grid-layout's vertical compaction: each tile, in reading order, moves
+ * up until it would overlap one already placed. The platform's grid does this
+ * on every render, which is why a role that may not read some tiles gets a
+ * shorter dashboard rather than one with holes where they were.
+ */
+function compact(widgets) {
+  const placed = [];
+  const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const ordered = [...widgets]
+    .map((widget) => ({ ...widget, x: widget.x ?? 0, y: widget.y ?? 0, w: widget.w ?? 6, h: widget.h ?? 3 }))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const widget of ordered) {
+    let y = widget.y;
+    while (y > 0 && !placed.some((other) => overlaps({ ...widget, y: y - 1 }, other))) y -= 1;
+    placed.push({ ...widget, y });
+  }
+  return placed;
+}
+
+function unavailablePage(main, slug) {
+  const item = [...MAIN_NAV, ...ADMIN_NAV].find((candidate) => candidate.slug === slug);
+  if (!item) return notFoundPage(main, "Dashboard", href("dashboard"));
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader(item.label, item.description),
+      card(
+        cardContent(
+          el(
+            "div.er-unavailable",
+            icon(item.icon, "er-icon--xl er-subtle"),
+            el("h2.er-sectiontitle", \`\${item.label} runs on the platform's server\`),
+            el(
+              "p.er-text",
+              \`This is a browser preview, and \${item.label} needs the Enterprise Reporting platform's own \` +
+                "server — its database, its job runner and its AI services — which a browser tab cannot run."
+            ),
+            el(
+              "p.er-text",
+              "The real platform comes up beside this application from the deployable archive " +
+                "(docker compose up --build, then port 3100), or under /report when the orchestrator runs it. " +
+                "It is built from the platform's own source, unmodified, and seeded with this same pack."
+            ),
+            el("a.er-btn.er-btn--outline.er-btn--size-sm", { href: href("dashboard") }, icon("arrowLeft"), "Back to Dashboard")
+          )
+        )
+      )
+    )
+  );
+}
+
+function aboutPreviewPage(main) {
+  const row = (label, here, deployed) => [el("span.er-strong", label), here, deployed];
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("About this preview", "What the browser build of Enterprise Reporting is, and what it is not"),
+      card(
+        cardContent(
+          el(
+            "p.er-text",
+            "One model generates two applications. The second is the Enterprise Reporting platform — ",
+            el("code", "businessappwithai/enterprise_reporting_tanstack"),
+            " — and it is a server application over PostgreSQL. Deployed, it runs unmodified beside the " +
+              "application: the downloadable archive builds it from its own source, and the orchestrator " +
+              "does the same under /report. A browser tab cannot run it, so this is a preview drawn in its " +
+              "layout, over the same reporting pack it is seeded with."
+          )
+        )
+      ),
+      listCard(
+        table(
+          ["", "This preview", "The platform, deployed"],
+          [
+            row("Saved queries, reports, charts, dashboard", "The same pack, run against this tab's database", "The same pack, seeded into its own database"),
+            row("Reporting roles and sign-in", "One account per %%rbac role, separate from the application's", "The same accounts, in its own users table"),
+            row("Table-level access", "Enforced on every run", "Enforced on every run"),
+            row("SQL editor, NL query, report generator", "Not available", "Available"),
+            row("Jobs, monitoring, filters, delivery", "Not available", "Available"),
+            row("Users, roles, table permissions", "Available to the administrator — enforced on the next query", "Available to administrators"),
+            row("Data sources, system logs", "The application's database, and this tab's reporting activity", "Every registered source, and the server's logs"),
+            row("Trigger board, settings", "Not available", "Available to administrators"),
+            row("Creating or editing definitions", "Read-only", "Available"),
+          ]
+        )
+      )
+    )
+  );
+}
+
+function notFoundPage(main, label, back) {
+  mount(
+    main,
+    el(
+      "div.er-stack",
+      pageHeader("Not found", "This definition is not in the reporting pack, or this role may not read it."),
+      el("a.er-btn.er-btn--default.er-btn--size-default.er-selfstart", { href: back }, \`Back to \${label}\`)
+    )
+  );
+}
+
+// ─── Entry ───────────────────────────────────────────────────────────────────
+
+/**
+ * The reporting application's shell. \`onLeave\` goes back to the application it
+ * reports on; nothing is signed out, because the two keep separate sessions.
  */
 export async function reportAppView(root, { project, onLeave }) {
+  const signOut = async () => {
+    await reportApi.post("/report-auth/logout").catch(() => {});
+    setReportToken(null);
+    state.user = null;
+    state.overview = null;
+    state.menu = null;
+    await render();
+  };
+
   const render = async () => {
     if (!state.user) {
       await reportLoginView(root, {
@@ -21293,133 +25662,77 @@ export async function reportAppView(root, { project, onLeave }) {
         onSignedIn: async (user) => {
           state.user = user;
           state.overview = null;
-          await render();
+          // The platform lands every sign-in on its dashboard. Staying on the
+          // screen the previous account had open would put a non-administrator
+          // on an administration page it cannot see.
+          if (window.location.hash !== href("dashboard")) window.location.hash = href("dashboard");
+          else await render();
         },
       });
       return;
     }
 
     if (!state.overview) {
-      mount(root, spinner("Loading the reporting layer"));
+      mount(root, el("div.er", loading("Loading Enterprise Reporting")));
       state.overview = await reportApi.get("/reporting");
     }
 
-    const outlet = el("main.outlet");
-    const sections = [
-      ["dashboard", "Dashboard"],
-      ["reports", \`Reports (\${state.overview.counts.reports})\`],
-      ["charts", \`Charts (\${state.overview.counts.charts})\`],
-      ["queries", "Saved queries"],
-      ["access", "Access"],
-    ];
+    const path = currentPath();
+    const [section = "dashboard", key] = path;
+    const activeSlug = section === "unavailable" ? key : section;
 
+    const main = el("main.er-main");
     mount(
       root,
       el(
-        "div.shell.shell--report",
+        "div.er",
+        { onclick: (event) => closeMenus(event) },
+        el("div.er-sidebar-desktop", sidebar(activeSlug)),
         el(
-          "header.masthead.masthead--report",
-          el("span.masthead__badge", "Enterprise Reporting"),
-          el("span.masthead__name", state.overview.application?.name ?? project.name),
-          el("div.masthead__spacer"),
-          // The reporting application is a second sign-in over the same data,
-          // and the theme is one attribute on the shared document — so the
-          // control belongs in both mastheads rather than only the one.
-          themeControl(),
-          el(
-            "div.masthead__user",
-            el("span.avatar.avatar--report", "ER"),
-            el(
-              "div",
-              el("div.masthead__who", state.user.email),
-              el(
-                "div.masthead__roles",
-                state.user.role
-                  ? state.overview.role.tables === null
-                    ? \`\${state.user.role} — every table\`
-                    : \`\${state.user.role} — \${state.overview.role.tables.length} of \${state.overview.role.tableTotal} tables\`
-                  : "no reporting role"
-              )
-            ),
-            el(
-              "button.btn.btn--ghost.btn--icon",
-              {
-                title: "Sign out of reporting",
-                "aria-label": "Sign out of reporting",
-                onclick: async () => {
-                  await reportApi.post("/report-auth/logout").catch(() => {});
-                  setReportToken(null);
-                  state.user = null;
-                  state.overview = null;
-                  await render();
-                },
-              },
-              "⇥"
-            )
-          )
+          "div.er-mobile-overlay",
+          { class: state.mobileMenuOpen ? "is-open" : null, onclick: () => ((state.mobileMenuOpen = false), repaint()) }
         ),
+        el("div.er-sidebar-mobile", { class: state.mobileMenuOpen ? "is-open" : null }, sidebar(activeSlug, { mobile: true })),
         el(
-          "div.actionbar",
-          ...sections.map(([key, label]) =>
-            el(
-              "button.btn",
-              {
-                class: state.section === key ? "is-active" : "",
-                onclick: async () => {
-                  state.section = key;
-                  await render();
-                },
-              },
-              label
-            )
-          ),
-          el("div.actionbar__spacer"),
-          el(
-            "button.btn.btn--ghost",
-            { onclick: () => onLeave() },
-            \`← \${project.name}\`
-          )
-        ),
-        el(
-          "nav.crumbs",
-          el(
-            "span.crumbs__current",
-            \`Reporting on \${state.overview.dataSource?.name ?? project.name}\`
-          ),
-          state.overview.counts.reports < state.overview.counts.reportsTotal
-            ? el(
-                "span.crumbs__note",
-                \` · \${state.overview.counts.reports} of \${state.overview.counts.reportsTotal} reports visible to this role\`
-              )
-            : null
-        ),
-        outlet
+          "div.er-content",
+          { class: state.sidebarCollapsed ? "is-collapsed" : null },
+          header({ project, onLeave, signOut }),
+          previewStrip(),
+          main
+        )
       )
     );
 
     try {
-      if (state.section === "dashboard") await dashboardSection(outlet);
-      else if (state.section === "access") await accessSection(outlet);
-      else if (state.section === "queries") await queriesSection(outlet);
-      else {
-        mount(outlet, spinner("Loading"));
-        const items = await reportApi.get(\`/reporting/\${state.section}\`);
-        mount(
-          outlet,
-          browser(
-            items,
-            state.section,
-            \`No \${state.section} for this role\`,
-            "Every definition reads a table this reporting role may not."
-          )
-        );
-      }
+      if (section === "dashboard") await dashboardPage(main);
+      else if (section === "queries" && canView("query")) {
+        if (key) await queryDetailPage(main, key);
+        else await queriesPage(main);
+      } else if (section === "reports") {
+        if (key) await reportViewerPage(main, key);
+        else await reportsPage(main);
+      } else if (section === "charts") {
+        if (key) await chartViewerPage(main, key);
+        else await chartsPage(main);
+      } else if (section === "dashboards") {
+        if (key) await dashboardViewerPage(main, key);
+        else await dashboardsPage(main);
+      } else if (ADMIN_ROUTES.has(section) && state.user.isAdmin) {
+        const context = {
+          me: state.user,
+          rerender: render,
+          href,
+          tableTotal: state.overview.role.tableTotal,
+          selectedRoleId: key,
+        };
+        await ADMIN_ROUTES.get(section)(main, context);
+      } else if (section === "unavailable") unavailablePage(main, key);
+      else if (section === "about-preview") aboutPreviewPage(main);
+      else notFoundPage(main, "Dashboard", href("dashboard"));
     } catch (error) {
-      mount(outlet, empty("Something went wrong", error.message || String(error)));
+      mount(main, el("div.er-stack", refusal(error)));
     }
   };
-
-  rerender = render;
 
   /* Reattach to a session the reader already has: they may have signed in,
      gone back to the application and returned, and being asked for a password
@@ -21436,9 +25749,19 @@ export async function reportAppView(root, { project, onLeave }) {
   await render();
 }
 
+/** A click anywhere outside an open header menu closes it, as the platform's dropdowns do. */
+function closeMenus(event) {
+  if (!state.menu) return;
+  if (event.target.closest?.(".er-menuwrap")) return;
+  state.menu = null;
+  repaint();
+}
+
 /** Forget the reporting session in memory, without ending it on the server. */
 export function resetReportView() {
   state.overview = null;
+  state.menu = null;
+  state.mobileMenuOpen = false;
 }
 
 /**
@@ -21448,8 +25771,7 @@ export function resetReportView() {
  * \`/report-auth/me\` on every entry to find out whether the reader is already
  * signed in, and a "no" to that probe is an ordinary 401 — not an expired
  * session. Treating the two alike produced a toast per probe *and* a repaint
- * per toast, and the repaint probed again: a reporting sign-in screen buried
- * under an endless column of "your reporting session ended".
+ * per toast, and the repaint probed again.
  *
  * Returns true only when a session really ended, which is the only case worth
  * telling the reader about.
@@ -21464,22 +25786,23 @@ export function reportSessionEnded() {
   "ui/views/report-login.js": `/**
  * The reporting application's sign-in — the second login.
  *
- * It looks like the application's on purpose and is not the same screen: the
- * accounts are different accounts, in different tables, with a different
- * password, and what the numbers beside them count is different too. The
- * application's screen says how many *entities* a role can open; this one says
- * how many *tables* a role's queries may read. That is the whole difference
- * between the two products' idea of a role, stated in the one place a reader
- * meets both.
+ * Drawn as the Enterprise Reporting platform draws its own (\`src/routes/login.tsx\`):
+ * a centred card, the chart mark in a brand circle, "Welcome back", email and
+ * password, one full-width button. The accounts are different accounts from
+ * the application's, in different tables, with a different password.
  *
- * Every seeded account is listed for the same reason the application lists
- * every one of its own: the administrator reads every table, so a reporting
- * platform you can only sign into as the administrator is one whose access
- * control you cannot see. \`support.agent@… — 5 of 17 tables\` is the invitation.
+ * Two things sit below the card that the platform's screen does not have, and
+ * both are there because this is a preview. Every seeded account is listed —
+ * the administrator reads every table, so a reporting platform you can only
+ * sign into as the administrator is one whose access control you cannot see;
+ * \`support.agent@… — 5 of 17 tables\` is the invitation. And a line says what
+ * this is: the platform's reports and roles in the platform's layout, served
+ * from this tab, with the real platform one download away.
  */
 
 import { el, mount, toast } from "../dom.js";
 import { reportApi, setReportToken } from "../api.js";
+import { alert, icon } from "./er-kit.js";
 
 export async function reportLoginView(root, { project, onSignedIn, onLeave }) {
   let config = null;
@@ -21493,15 +25816,16 @@ export async function reportLoginView(root, { project, onSignedIn, onLeave }) {
   const password = config?.password ?? "admin";
   const administrator = accounts.find((account) => account.isAdmin) ?? accounts[0] ?? null;
 
-  const emailInput = el("input.field__input", {
-    type: "text",
+  const emailInput = el("input.er-input", {
+    type: "email",
     id: "report-email",
     name: "email",
-    autocomplete: "username",
+    placeholder: "name@example.com",
+    autocomplete: "email",
     value: administrator?.email ?? "",
     required: true,
   });
-  const passwordInput = el("input.field__input", {
+  const passwordInput = el("input.er-input", {
     type: "password",
     id: "report-password",
     name: "password",
@@ -21509,15 +25833,17 @@ export async function reportLoginView(root, { project, onSignedIn, onLeave }) {
     value: password,
     required: true,
   });
-  const submit = el("button.btn.btn--primary", { type: "submit" }, "Sign in to reporting");
+  const errorSlot = el("div");
+  const submit = el("button.er-btn.er-btn--default.er-btn--size-default.er-btn--block", { type: "submit" }, "Sign In");
 
   const form = el(
-    "form.login__form",
+    "form.er-card.er-login__card",
     {
       onsubmit: async (event) => {
         event.preventDefault();
         submit.disabled = true;
-        submit.textContent = "Signing in…";
+        mount(submit, el("span.er-spinner.er-spinner--inline", { "aria-hidden": "true" }), "Sign In");
+        mount(errorSlot);
         try {
           const result = await reportApi.post("/report-auth/login", {
             email: emailInput.value.trim(),
@@ -21529,137 +25855,107 @@ export async function reportLoginView(root, { project, onSignedIn, onLeave }) {
           setReportToken(result.token);
           onSignedIn(result.user);
         } catch (error) {
+          mount(errorSlot, alert(error.message || "Invalid credentials", null, "destructive"));
           toast(error.message, "error");
           submit.disabled = false;
-          submit.textContent = "Sign in to reporting";
+          mount(submit, "Sign In");
           passwordInput.focus();
         }
       },
     },
     el(
-      "div.field",
-      el(
-        "div.field__head",
-        el("label.field__label", { for: "report-email" }, "Reporting account"),
-        el("span.chip.chip--text", "Text")
-      ),
-      emailInput
+      "div.er-card__header.er-login__header",
+      el("div.er-login__mark", icon("barChart3", "er-icon--lg")),
+      el("h1.er-login__title", "Welcome back"),
+      el("p.er-card__description", "Sign in to your Enterprise Reporting account")
     ),
     el(
-      "div.field",
-      el(
-        "div.field__head",
-        el("label.field__label", { for: "report-password" }, "Password"),
-        el("span.chip.chip--text", "Password")
-      ),
-      passwordInput
+      "div.er-card__content.er-login__fields",
+      errorSlot,
+      el("div.er-field", el("label.er-label-strong", { for: "report-email" }, "Email"), emailInput),
+      el("div.er-field", el("label.er-label-strong", { for: "report-password" }, "Password"), passwordInput)
     ),
-    submit
+    el("div.er-card__footer", submit)
   );
 
-  const counts = config?.counts ?? {};
-
-  mount(
-    root,
-    el(
-      "div.login.login--report",
-      el(
-        "div.login__panel",
-        el("div.login__mark.login__mark--report", "ER"),
-        el("h1.login__title", "Enterprise Reporting"),
-        el(
-          "p.login__subtitle",
-          \`Reporting on \${config?.application?.name ?? project.name}. A separate application, with its own accounts.\`
-        ),
-        form,
-        accounts.length > 0
-          ? el(
-              "div.accounts",
+  const accountList =
+    accounts.length > 0
+      ? el(
+          "div.er-card.er-login__accounts",
+          el(
+            "p.er-text",
+            \`\${accounts.length} reporting account\${accounts.length === 1 ? "" : "s"}, password \`,
+            el("code", password),
+            config?.scoped
+              ? ". A reporting role decides which of the application's tables its queries may read — pick one to try it."
+              : ". Pick one to fill the form."
+          ),
+          el(
+            "ul.er-accounts",
+            ...accounts.map((account) =>
               el(
-                "p.accounts__head",
-                \`\${accounts.length} reporting account\${accounts.length === 1 ? "" : "s"}, password \`,
-                el("code", password),
-                config?.scoped
-                  ? ". A reporting role decides which of the application's tables its queries may read — pick one to try it."
-                  : ". Pick one to fill the form."
-              ),
-              el(
-                "ul.accounts__list",
-                ...accounts.map((account) =>
+                "li",
+                el(
+                  "button.er-accounts__row",
+                  {
+                    type: "button",
+                    onclick: () => {
+                      emailInput.value = account.email;
+                      passwordInput.value = password;
+                      passwordInput.focus();
+                    },
+                  },
+                  el("span.er-strong", account.role ?? account.name),
+                  el("span.er-accounts__email", account.email),
                   el(
-                    "li",
-                    el(
-                      "button.accounts__row",
-                      {
-                        type: "button",
-                        onclick: () => {
-                          emailInput.value = account.email;
-                          passwordInput.value = password;
-                          passwordInput.focus();
-                        },
-                      },
-                      el("span.accounts__role", account.role ?? account.name),
-                      el("span.accounts__email", account.email),
-                      el(
-                        "span.accounts__scope",
-                        account.isAdmin
-                          ? \`all \${account.total} tables\`
-                          : /* Zero is a real answer, not a missing seed: this is
-                               the account holding no functional role, so no
-                               \`read\` rule admits it and its queries may read
-                               nothing. Said plainly, because a row reading
-                               "0 of 17 tables" and nothing else looks like the
-                               generator failed. */
-                            account.tables === 0
-                            ? "no tables — signed in, holding no reporting role"
-                            : \`\${account.tables} of \${account.total} tables\`
-                      )
-                    )
+                    "span.er-label",
+                    account.isAdmin
+                      ? \`all \${account.total} tables\`
+                      : /* Zero is a real answer, not a missing seed: this is
+                           the account holding no functional role, so no
+                           \`read\` rule admits it and its queries may read
+                           nothing. Said plainly, because a row reading
+                           "0 of 17 tables" and nothing else looks like the
+                           generator failed. */
+                        account.tables === 0
+                        ? "no tables — signed in, holding no reporting role"
+                        : \`\${account.tables} of \${account.total} tables\`
                   )
                 )
               )
             )
-          : el(
-              "p.login__hint",
-              "No reporting accounts were seeded, which means this model declares no %%rbac roles. ",
-              el("span.login__hint-note", "Sign in as the administrator to read every table.")
-            )
-      ),
-      el(
-        "div.login__aside",
-        el("h2", "The other half of the model"),
-        el(
-          "ul.login__facts",
-          el(
-            "li",
-            el("strong", \`\${counts.reports ?? 0} reports and \${counts.charts ?? 0} charts\`),
-            " derived from this model — its entities, its enums, its state machines and its own %%report queries"
-          ),
-          el(
-            "li",
-            el("strong", "One reporting role per %%rbac role"),
-            " — the same names, permitted to read exactly the tables that role may see"
-          ),
-          el(
-            "li",
-            el("strong", "A separate sign-in"),
-            " — two applications, two user tables, two sessions. Neither password works on the other side"
-          ),
-          el(
-            "li",
-            el("strong", "Read-only"),
-            " — a reporting role narrows what a query may read; nothing here writes to the application"
           )
-        ),
+        )
+      : el(
+          "p.er-text.er-login__note",
+          "No reporting accounts were seeded, which means this model declares no %%rbac roles. " +
+            "Sign in as the administrator to read every table."
+        );
+
+  mount(
+    root,
+    el(
+      "div.er.er-login",
+      el(
+        "div.er-login__column",
+        form,
+        accountList,
         el(
-          "p.login__aside-note",
-          "Deployed, this is the Enterprise Reporting platform running beside the application as its own service, with its own database. Here it is the same reports and the same roles, served from this tab."
+          "p.er-login__note",
+          icon("info", "er-icon--sm"),
+          el(
+            "span",
+            \`Browser preview of Enterprise Reporting, over \${config?.application?.name ?? project.name}. \` +
+              "Deployed, this is the platform itself — built unmodified from its own source beside the " +
+              "application, from the deployable archive or the orchestrator."
+          )
         ),
         onLeave
           ? el(
-              "button.btn.btn--ghost",
+              "button.er-btn.er-btn--ghost.er-btn--size-sm",
               { type: "button", onclick: () => onLeave() },
-              \`← Back to \${project.name}\`
+              icon("arrowLeft"),
+              \`Back to \${project.name}\`
             )
           : null
       )
@@ -21681,14 +25977,19 @@ export async function reportLoginView(root, { project, onSignedIn, onLeave }) {
  * help text and chart axes; \`/reports/:name/run\` is what holds the SQL.
  */
 
-import { el, mount, spinner, empty, toast } from "../dom.js";
+import { el, mount, spinner, empty, toast, formatNumeric } from "../dom.js";
 import { api } from "../api.js";
 import { setHelp } from "../main.js";
+import { deleteButton, editorForm, openEditor } from "../editor.js";
 
-/** Render one SQL scalar as a cell. */
-function cell(value) {
+/**
+ * Render one SQL scalar as a cell. \`numeric\` says the column is a Postgres
+ * NUMERIC, which arrives as a string — money read \`25955.7000\` until this.
+ */
+function cell(value, numeric = false) {
   if (value === null || value === undefined) return "—";
   if (value instanceof Date) return value.toLocaleDateString();
+  if (numeric) return formatNumeric(value);
   if (typeof value === "number") return value.toLocaleString();
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
@@ -21768,7 +26069,7 @@ function chart(result) {
 }
 
 /** The answer to one question, rendered into \`panel\`. */
-async function runReport(panel, name) {
+async function runReport(panel, name, options = {}) {
   mount(panel, spinner("Running"));
 
   let result;
@@ -21784,6 +26085,7 @@ async function runReport(panel, name) {
   }
 
   const parts = [el("h2", result.report.title)];
+  if (options.user?.isAdmin && options.entities) parts.push(reportActions(panel, result.report, options));
   if (result.report.help) parts.push(el("p.muted", result.report.help));
 
   const drawn = chart(result);
@@ -21811,7 +26113,7 @@ async function runReport(panel, name) {
           el(
             "tbody",
             ...result.rows.map((row) =>
-              el("tr", ...result.columns.map((column) => el("td", cell(row[column]))))
+              el("tr", ...result.columns.map((column) => el("td", cell(row[column], (result.numeric ?? []).includes(column)))))
             )
           )
         )
@@ -21824,7 +26126,7 @@ async function runReport(panel, name) {
       "button.btn",
       {
         onclick: () => {
-          runReport(panel, name);
+          runReport(panel, name, options);
           toast("Re-running", "info");
         },
       },
@@ -21835,22 +26137,34 @@ async function runReport(panel, name) {
   mount(panel, ...parts);
 }
 
-export async function reportsView(root) {
+export async function reportsView(root, { user } = {}) {
   mount(root, spinner("Loading reports"));
   setHelp(
     "Each of these is a question the model's author wrote into the document with %%report, " +
       "together with the query that answers it. They run against this application's own " +
-      "database, so the answers change as you use it."
+      "database, so the answers change as you use it." +
+      (user?.isAdmin
+        ? " They are rows in sys_report, so you can add a question of your own, change one, or " +
+          "retire it — a report may only ever read, and the query is refused if it does anything else."
+        : "")
   );
 
-  const reports = await api.get("/reports");
+  const [reports, model] = await Promise.all([api.get("/reports"), api.get("/model")]);
+  const entities = (model.entities || []).map((entity) => entity.name).sort();
+  const reload = () => reportsView(root, { user });
 
   if (reports.length === 0) {
     return void mount(
       root,
-      empty(
-        "This model declares no reports",
-        "Add a %%report directive to the model — a title, the entity it is about, and the SQL that answers it — and regenerate."
+      el(
+        "div",
+        user?.isAdmin ? newReportButton(root, entities, reload) : null,
+        empty(
+          "This model declares no reports",
+          user?.isAdmin
+            ? "Add a %%report directive to the model and regenerate — or write one here."
+            : "Add a %%report directive to the model — a title, the entity it is about, and the SQL that answers it — and regenerate."
+        )
       )
     );
   }
@@ -21886,7 +26200,7 @@ export async function reportsView(root) {
                       active.classList.remove("is-active");
                     }
                     event.currentTarget.classList.add("is-active");
-                    runReport(panel, report.name);
+                    runReport(panel, report.name, { user, entities, reload });
                   },
                 },
                 report.title
@@ -21898,11 +26212,149 @@ export async function reportsView(root) {
     )
   );
 
-  mount(root, el("div.report-layout", list, panel));
+  mount(
+    root,
+    el(
+      "div",
+      user?.isAdmin ? newReportButton(root, entities, reload) : null,
+      el("div.report-layout", list, panel)
+    )
+  );
+}
+
+/**
+ * Write a question the model's author did not.
+ *
+ * The form opens in the results panel rather than above the list, because on a
+ * model with a hundred and eighty reports a form at the top is a form the
+ * reader scrolls away from.
+ */
+function newReportButton(root, entities, reload) {
+  return el(
+    "button.btn.btn--primary.btn--small",
+    {
+      onclick: () => {
+        const host = root.querySelector(".report-panel") ?? root;
+        openEditor(
+          host,
+          editorForm({
+            title: "New report",
+            lede:
+              "A report may only read. A statement that writes, or a second statement behind a semicolon, is refused here and again every time the report runs.",
+            fields: reportFields(entities),
+            values: { sql: "SELECT 1 AS example" },
+            saveLabel: "Create report",
+            onSave: async (values) => {
+              await api.post("/reports", values);
+              toast("Report created", "success");
+              await reload();
+            },
+            onCancel: () => reload(),
+          })
+        );
+      },
+    },
+    "New report"
+  );
+}
+
+/**
+ * The fields a report has.
+ *
+ * \`chart\` offers an empty option because most reports are tables — and because
+ * the route refuses a chart without both axes, so "bar" with nothing else
+ * filled in is a refusal rather than a default.
+ */
+function reportFields(entities) {
+  return [
+    {
+      name: "name",
+      label: "Name",
+      required: true,
+      hint: "The report's handle in a URL — letters, digits and hyphens.",
+    },
+    { name: "title", label: "Title", required: true, hint: "The question, as somebody would ask it." },
+    { name: "entity", label: "About", type: "select", options: ["", ...entities], hint: "Which entity this is a question about. Leave empty for a cross-cutting one." },
+    { name: "help", label: "Why it is asked", hint: "Who asks this and what they do with the answer." },
+    {
+      name: "chart",
+      label: "Chart",
+      type: "select",
+      options: [
+        { value: "", label: "None — show a table" },
+        "bar",
+        "line",
+        "pie",
+        "area",
+      ],
+    },
+    { name: "x", label: "Chart: x axis", hint: "A column the query returns." },
+    { name: "y", label: "Chart: y axis", hint: "A column the query returns." },
+    { name: "sortOrder", label: "Sort order", type: "number" },
+    { name: "isActive", label: "Active", type: "checkbox" },
+    {
+      name: "sql",
+      label: "Query",
+      type: "textarea",
+      rows: 12,
+      required: true,
+      hint: "A single SELECT or WITH statement.",
+    },
+  ];
+}
+
+/**
+ * Edit and delete, beside the answer rather than beside the title in the list.
+ *
+ * A reader decides a report is wrong by looking at what it returned, so the
+ * controls belong where they have just read it. Editing fetches the report
+ * again first: the list carries no \`sql\` — \`GET /reports/:name\` hands the
+ * statement to an administrator and the metadata to everyone else — so the form
+ * would otherwise open with an empty query and save it over a working one.
+ */
+function reportActions(panel, report, { user, entities, reload }) {
+  return el(
+    "div.report-actions",
+    el(
+      "button.btn.btn--small",
+      {
+        onclick: async () => {
+          let full;
+          try {
+            full = await api.get(\`/reports/\${encodeURIComponent(report.name)}\`);
+          } catch (error) {
+            return void toast(error.message, "error");
+          }
+          openEditor(
+            panel,
+            editorForm({
+              title: \`Edit \${report.name}\`,
+              fields: reportFields(entities),
+              values: full,
+              onSave: async (values) => {
+                await api.patch(\`/reports/\${encodeURIComponent(report.name)}\`, values);
+                toast("Report saved", "success");
+                await reload();
+              },
+              /* Cancel returns to the answer rather than to the list: the
+                 reader was reading it a moment ago. */
+              onCancel: () => runReport(panel, report.name, { user, entities, reload }),
+            })
+          );
+        },
+      },
+      "Edit"
+    ),
+    deleteButton("Delete", \`Delete \${report.name}?\`, async () => {
+      await api.delete(\`/reports/\${encodeURIComponent(report.name)}\`);
+      toast(\`\${report.name} deleted\`, "success");
+      await reload();
+    })
+  );
 }
 `
 });
-var RUNTIME_BYTES = 438458;
+var RUNTIME_BYTES = 620394;
 
 // packages/core/src/types/bus-entity.types.ts
 function attributeTypeToReferenceId(type) {
@@ -22819,14 +27271,15 @@ ORDER BY 1`
   if (wf && statusCol) {
     const states = declaredStates(wf);
     if (states.length > 0) {
-      const valuesList = states.map((s, i) => `(${lit(s)}, ${i})`).join(", ");
+      const valuesList = states.map((s, i) => i === 0 ? `SELECT ${lit(s)} AS state, ${i} AS position` : `SELECT ${lit(s)}, ${i}`).join(`
+  UNION ALL `);
       const key = `${slug}__lifecycle`;
       const q = addQuery(ctx, {
         key,
         name: `${titleOf(e)} lifecycle — ${wf.name}`,
         description: `Where ${pluralTitle(e).toLowerCase()} sit in the ${wf.name} state machine. Every state the model declares appears, including the ones nothing has reached.`,
-        sql: `WITH declared(state, position) AS (
-  VALUES ${valuesList}
+        sql: `WITH declared AS (
+  ${valuesList}
 )
 SELECT d.state, COALESCE(c.records, 0) AS records
 FROM declared d
@@ -23793,6 +28246,7 @@ ${entities.map((entity2) => `              <li><a href="#entity-${slug(entity2.n
 `)}
             </ul>
           </li>
+          <li><a href="#concurrent-edits">When two people change the same record</a></li>
 ${model.rules.length ? `          <li><a href="#rules">The decisions it makes</a></li>
 ` : ""}${model.sagas.length ? `          <li><a href="#processes">The processes it runs</a></li>
 ` : ""}          <li><a href="#how-it-was-built">How this application was built</a></li>
@@ -23984,6 +28438,22 @@ ${options.adminPassword ? `    <p>Every seeded account uses the password <code>$
     <p>One section per record type. For each: what it is, every field it has and what that field is for, the records it connects to, the states it moves through, and who may use it.</p>
 
 ${entitySections}
+  </section>
+
+  <section id="concurrent-edits">
+    <h2>When two people change the same record</h2>
+    <p>Every record carries a version number, and every save raises it by one. When you open a record to edit it, the form remembers the version you opened. Saving sends that version back, and the save goes through only if nobody has saved the record since.</p>
+    <p>If somebody has, your save is not applied &mdash; neither of you loses a change without seeing it. The ${options.stack === "browser" ? "form shows a panel" : "form opens a dialog"} listing the fields the other person changed, with their value and yours side by side, and marks the fields you both changed. It offers three choices:</p>
+    <table>
+      <thead><tr><th>Choice</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td>Reload their version</td><td>Your unsaved edits are discarded and the form shows the record as it now stands.</td></tr>
+        <tr><td>Overwrite with mine</td><td>Your values are saved over theirs. It is checked again against the version you have just been shown, so a third person saving in the meantime is caught the same way.</td></tr>
+        <tr><td>Keep editing</td><td>Nothing is saved yet; the form stays open with your edits so you can change them first.</td></tr>
+      </tbody>
+    </table>
+    <p>Two saves of the same version arriving at the same moment cannot both win: exactly one is applied and the other is offered the same three choices.</p>
+    <p class="back"><a href="#top">Back to contents</a></p>
   </section>
 
 ${rulesSection}
@@ -26327,6 +30797,7 @@ function buildSampleData(parsed, options) {
   }));
   const personEntity = entities.find((entity2) => entity2.name === "User")?.name ?? entities.find((entity2) => /^(user|staff|employee|person|account)s?$/i.test(entity2.name))?.name;
   const fkOverrides = buildFkOverrides(entities, parsed.relationships ?? [], personEntity);
+  const declared = new Set(entities.map((entity2) => entity2.name));
   const ids = new Map;
   const data = {};
   for (const entity2 of inDependencyOrder(entities, personEntity, fkOverrides)) {
@@ -26357,6 +30828,7 @@ function buildSampleData(parsed, options) {
           selfIds: generatedIds,
           entityName: full.name,
           fkOverrides,
+          declared,
           claimedFks
         });
       }
@@ -26371,8 +30843,12 @@ function valueFor(column, entity2, row, draw, context) {
   if (column.isForeignKey) {
     const target = resolveTarget(context.entityName, column, context.personEntity, context.fkOverrides);
     const pool = target === context.entityName ? context.selfIds.slice(0, row) : context.ids.get(target ?? "");
-    if (!pool || pool.length === 0)
+    if (!pool || pool.length === 0) {
+      if (column.required && !(target && context.declared.has(target))) {
+        return draw.faker.string.uuid();
+      }
       return null;
+    }
     if (column.unique) {
       const claimed = context.claimedFks.get(column.columnName) ?? new Set;
       context.claimedFks.set(column.columnName, claimed);
@@ -26444,7 +30920,7 @@ function emailFor(draw) {
 }
 
 // packages/generator/src/generators/wasm/wasm-app.generator.ts
-var DEFAULT_PGLITE_URL = "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.5/dist/index.js";
+var PGLITE_URL_SLOT = 'const PGLITE_URL = "";';
 function generateWasmApp(parsed, options) {
   const files = new Map;
   for (const [name, contents] of Object.entries(RUNTIME_ASSETS))
@@ -26464,8 +30940,12 @@ function generateWasmApp(parsed, options) {
   if (options.source?.trim())
     files.set("model/model.eml.mmd", options.source);
   files.set("index.html", (RUNTIME_ASSETS["index.html"] ?? "").replaceAll("__PROJECT_NAME__", escapeHtml2(options.name)).replaceAll("__PROJECT_DESCRIPTION__", escapeHtml2(options.description)).replaceAll("__PROJECT_INITIALS__", escapeHtml2(initials2(options.name))));
-  if (options.pgliteUrl && options.pgliteUrl !== DEFAULT_PGLITE_URL) {
-    files.set("host/browser-node-host.js", (RUNTIME_ASSETS["host/browser-node-host.js"] ?? "").replace(DEFAULT_PGLITE_URL, options.pgliteUrl));
+  if (options.pgliteUrl) {
+    const host = RUNTIME_ASSETS["host/browser-node-host.js"] ?? "";
+    if (!host.includes(PGLITE_URL_SLOT)) {
+      throw new Error("host/browser-node-host.js has no PGLITE_URL to set");
+    }
+    files.set("host/browser-node-host.js", host.replace(PGLITE_URL_SLOT, `const PGLITE_URL = ${JSON.stringify(options.pgliteUrl)};`));
   }
   files.set("manual.html", renderManual(parsed, {
     name: options.name,
@@ -26557,9 +31037,10 @@ is how the generator's own tests exercise it.
 
 This application has no Bun in it and no build step: Node runs the host, the
 browser runs the same code under its own Node-API runtime, and nothing is
-compiled on the way in either direction. \`npm install\` is needed only when the
-application was generated *without* \`--vendor-pglite\`, to fetch PGlite for the
-Node host; in the browser it is fetched and cached by the browser itself.
+compiled on the way in either direction. PostgreSQL ships with the application,
+in \`vendor/pglite/\`, and is never fetched from a CDN. An application without that
+folder — one downloaded from the in-browser generator — needs \`npm install\`
+once: \`serve.mjs\` and the Node host then use the installed package.
 
 ## What is in here
 
@@ -26653,7 +31134,6 @@ function generateFromSource(options) {
   };
 }
 export {
-  DEFAULT_PGLITE_URL,
   DEFAULT_SAMPLE_RECORDS,
   ModelCheckError,
   RUNTIME_BYTES,

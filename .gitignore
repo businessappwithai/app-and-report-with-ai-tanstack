@@ -17,6 +17,12 @@ node_modules/
 # least of all common/.runtime/.env.
 common/.runtime/
 
+# What the two run pages load and git does not carry: PGlite (17MB), the
+# WebContainer API and the stack templates. `bun run vendor:guide` places them
+# from the app-with-ai-tanstack checkout; the pages never fetch them from a CDN.
+common/html/assets/vendor/
+common/html/assets/stack-templates.json
+
 # The checker writes a `.error` file beside every model it reads — that is its
 # interface, not an accident. `examples/hospital-management-system.mmd.error` is
 # checked in on purpose and does not match: it is a `.mmd.error`, not an

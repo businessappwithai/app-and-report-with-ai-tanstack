@@ -78,7 +78,7 @@ rule flow compiles to:
 
 | Reaches for | From | Consequence when absent |
 |---|---|---|
-| `packages/web/src/lib/jdm-converter.ts`, `mermaid-flowchart-parser.ts` | `language/cli/src/generate/jdm.ts`, as a static import | **Every** `--stack` target fails at module resolution, and `tsc` reports TS2307. `jdm.ts` sits on every generation path — this is not just the heavy target |
+| `packages/web/src/lib/jdm-converter.ts`, `packages/editors/src/lib/mermaid-flowchart-parser.ts` | `language/cli/src/generate/jdm.ts`, as a static import | **Every** `--stack` target fails at module resolution, and `tsc` reports TS2307. `jdm.ts` sits on every generation path — this is not just the heavy target |
 | `packages/generator/src/pipeline/generate-application.ts` | `language/cli/src/generate/tanstack.ts`, resolved at runtime | `--stack tanstack-nestjs` cannot generate |
 
 Nothing type-checks either path — one imports across a repository boundary, the
@@ -202,6 +202,8 @@ bun run check:cli:wasm   # just `appwithai-wasm`
 bun run check:pack       # every derived query runs against a real generated schema
 bun run check:pack:ci    # same, but --require-server: a missing database fails
 bun run pack             # bun build/reporting-pack.ts
+bun run vendor:guide     # PGlite, the WebContainer API and the stack templates
+                         #   beside html/ — the run pages never fetch them from a CDN
 ```
 
 Individual pieces:

@@ -26,6 +26,7 @@
     "_comment:language-tools": "html/checker.js and html/fixer.js are bundled from language/browser/*.entry.ts, and each one inlines language/appwithai-language.json. Editing the definition or the checker stales them, and nothing else notices — so `--check` runs in `check` and fails rather than serving a validator that disagrees with this repository's own language. website/viewers/eml-model.js is NOT built here: its entry lives in the app-with-ai-tanstack checkout and imports that repository's language copy, so it is carried across from there.",
     "build:language-tools": "bun scripts/build-language-tools.ts",
     "check:language-tools": "bun scripts/build-language-tools.ts --check",
+    "vendor:guide": "bun scripts/vendor-guide.ts",
     "pack": "bun build/reporting-pack.ts",
     "check:pack:ci": "bun scripts/check-reporting-pack.ts --require-server"
   },

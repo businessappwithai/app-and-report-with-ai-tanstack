@@ -6,7 +6,7 @@ EML expresses workflows two ways:
 
 1. **Hook workflows** — a `flowchart` annotated with `%%hook` directives that
    bind named handlers to entity CRUD lifecycle events. Parsed by
-   `packages/web/src/lib/workflow/hook-parser.ts`.
+   `packages/editors/src/lib/workflow/hook-parser.ts`.
 2. **State workflows** — a `stateDiagram-v2` whose states map to a status enum
    and whose transitions define the allowed status changes for an entity.
 

@@ -189,7 +189,7 @@ var appwithai_language_default = {
     rules: {
       title: "Business Rules (Decision Flows)",
       opensWith: "flowchart TD  (with `%%meta kind: rules`)",
-      consumedBy: "packages/web/src/lib/mermaid-flowchart-parser.ts -> packages/web/src/lib/jdm-converter.ts (convertToJdm)",
+      consumedBy: "packages/editors/src/lib/mermaid-flowchart-parser.ts -> packages/web/src/lib/jdm-converter.ts (convertToJdm)",
       produces: "A GoRules JDM decision graph (nodes + edges) used to evaluate declarative business logic (pricing, discounts, eligibility, validation, routing).",
       modelingPrinciple: "A business rule is a directed decision flow. Node *shape* determines its JDM role; edge *labels* carry the branch condition or transition name.",
       constructs: {
@@ -223,7 +223,7 @@ var appwithai_language_default = {
     workflows: {
       title: "Business Workflows (Lifecycle Hooks & Process Orchestration)",
       opensWith: "flowchart TD  or  stateDiagram-v2",
-      consumedBy: "packages/web/src/lib/workflow/hook-parser.ts (parseHooksFromFlowchart) and packages/web/src/lib/mermaid-flowchart-parser.ts",
+      consumedBy: "packages/editors/src/lib/workflow/hook-parser.ts (parseHooksFromFlowchart) and packages/editors/src/lib/mermaid-flowchart-parser.ts",
       produces: "HookDefinition[] wired into the generated BaseService lifecycle, plus a visual process flow. Hooks map to entity CRUD lifecycle events at generation time.",
       modelingPrinciple: "A workflow is the visible process (a flow/state diagram) annotated with %%hook directives that bind named handlers to entity lifecycle events, and optional %%guard/%%trigger directives for authorization and event sources.",
       constructs: {
@@ -1581,9 +1581,9 @@ var appwithai_language_default = {
     },
     authoringSurface: {
       description: "The web app keeps its own parsers for the editors, which run in the browser and cannot import the generator. They read the same syntax, but they do not decide what is generated - when the two disagree, the generator's copy is the language and the web copy is the bug.",
-      flowchartParser: "packages/web/src/lib/mermaid-flowchart-parser.ts",
+      flowchartParser: "packages/editors/src/lib/mermaid-flowchart-parser.ts",
       jdmConverter: "packages/web/src/lib/jdm-converter.ts",
-      hookParser: "packages/web/src/lib/workflow/hook-parser.ts",
+      hookParser: "packages/editors/src/lib/workflow/hook-parser.ts",
       automationModel: "packages/web/src/lib/automation/model.ts",
       ruleFlow: "packages/web/src/lib/eml/rule-flow.ts",
       workflowFlow: "packages/web/src/lib/eml/workflow-flow.ts"
@@ -3425,11 +3425,14 @@ class CheckEngine {
       }
     }
     const triggered = new Set(this.src.findAll(/^\s*%%action\b/).map(({ text }) => text.match(/\bworkflow:\s*(\S+)/)?.[1]).filter((name) => !!name));
+    const drawnRules = this.src.findAll(/^\s*%%(?:jdm-graph|decision-table)\s/).map(({ text }) => text);
     for (const { lineNo, text } of this.src.findAll(/^%%workflow\b/)) {
       const m = text.match(/^%%workflow\s+(\w+)[^\n]*kind:\s*saga/);
       if (!m || !/\btrigger:\s*rule\b/.test(text))
         continue;
       if (triggered.has(m[1]))
+        continue;
+      if (drawnRules.some((line) => new RegExp(`\\b${m[1]}\\b`).test(line)))
         continue;
       this.warn("EML286", `Saga "${m[1]}" is rule-triggered but no %%action names it.`, {
         line: lineNo,

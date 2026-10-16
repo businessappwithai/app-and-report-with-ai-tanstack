@@ -112,7 +112,7 @@
     "rules": {
       "title": "Business Rules (Decision Flows)",
       "opensWith": "flowchart TD  (with `%%meta kind: rules`)",
-      "consumedBy": "packages/web/src/lib/mermaid-flowchart-parser.ts -> packages/web/src/lib/jdm-converter.ts (convertToJdm)",
+      "consumedBy": "packages/editors/src/lib/mermaid-flowchart-parser.ts -> packages/web/src/lib/jdm-converter.ts (convertToJdm)",
       "produces": "A GoRules JDM decision graph (nodes + edges) used to evaluate declarative business logic (pricing, discounts, eligibility, validation, routing).",
       "modelingPrinciple": "A business rule is a directed decision flow. Node *shape* determines its JDM role; edge *labels* carry the branch condition or transition name.",
       "constructs": {
@@ -137,7 +137,7 @@
     "workflows": {
       "title": "Business Workflows (Lifecycle Hooks & Process Orchestration)",
       "opensWith": "flowchart TD  or  stateDiagram-v2",
-      "consumedBy": "packages/web/src/lib/workflow/hook-parser.ts (parseHooksFromFlowchart) and packages/web/src/lib/mermaid-flowchart-parser.ts",
+      "consumedBy": "packages/editors/src/lib/workflow/hook-parser.ts (parseHooksFromFlowchart) and packages/editors/src/lib/mermaid-flowchart-parser.ts",
       "produces": "HookDefinition[] wired into the generated BaseService lifecycle, plus a visual process flow. Hooks map to entity CRUD lifecycle events at generation time.",
       "modelingPrinciple": "A workflow is the visible process (a flow/state diagram) annotated with %%hook directives that bind named handlers to entity lifecycle events, and optional %%guard/%%trigger directives for authorization and event sources.",
       "constructs": {
@@ -1475,9 +1475,9 @@
     },
     "authoringSurface": {
       "description": "The web app keeps its own parsers for the editors, which run in the browser and cannot import the generator. They read the same syntax, but they do not decide what is generated - when the two disagree, the generator's copy is the language and the web copy is the bug.",
-      "flowchartParser": "packages/web/src/lib/mermaid-flowchart-parser.ts",
+      "flowchartParser": "packages/editors/src/lib/mermaid-flowchart-parser.ts",
       "jdmConverter": "packages/web/src/lib/jdm-converter.ts",
-      "hookParser": "packages/web/src/lib/workflow/hook-parser.ts",
+      "hookParser": "packages/editors/src/lib/workflow/hook-parser.ts",
       "automationModel": "packages/web/src/lib/automation/model.ts",
       "ruleFlow": "packages/web/src/lib/eml/rule-flow.ts",
       "workflowFlow": "packages/web/src/lib/eml/workflow-flow.ts"
