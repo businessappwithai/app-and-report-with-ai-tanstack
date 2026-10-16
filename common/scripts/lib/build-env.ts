@@ -52,10 +52,9 @@ function runtimeLabel(): string {
  * Parsed rather than hardcoded: a message that confidently names the wrong
  * version is worse than one that admits it does not know.
  *
- * `root-ci.yml` pins two: `BUN_VERSION` (1.4) for every job, and
- * `BUN_VERSION_WASM` (1.3) for the one that runs the `appwithai-wasm` CLI. The
- * anchored `^\s*BUN_VERSION:` below matches the first and not the second,
- * which is right — the job that checks these bundles takes the default.
+ * `root-ci.yml` pins one, `BUN_VERSION`, for every job. The pattern below is
+ * anchored so that a second pin with that prefix (there used to be a
+ * `BUN_VERSION_WASM`) would not be read in its place.
  */
 function pinnedBunVersion(root: string): string | null {
   /* `root` is the manifest root, which in this repository is `common/` — the
