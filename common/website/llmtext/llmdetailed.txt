@@ -1637,9 +1637,8 @@ isHookType("beforeCreate");  // true
 | `bun run dev` | modelling tool, :3000 |
 | `bun run dev:mastra` | Mastra AI service, :4111 |
 | `./scripts/start-llm.sh` | local OpenAI-compatible model, :8000 |
-| `bun run type-check` | repo TypeScript |
+| `bun run type-check` | repo TypeScript, with `bun check` (there is no linter) |
 | `bun run type-check:language` | `language/` (own config: Bun-style `.ts` imports) |
-| `bun run lint:fix` | Biome check + autofix |
 | `bun run test` | Vitest — 540 passing, 6 skipped, across core/generator/ai/web |
 | `bun language/checker.ts <f.mmd>` | validate a model |
 | `bun language/fixer.ts <f.mmd.error>` | apply the eight auto-repairs |
@@ -1709,7 +1708,7 @@ optional for those settings. Bootstrap variables (`DATABASE_URL`,
 
 | Job | Does |
 |---|---|
-| **checks** | type-check, Biome (errors only), unit tests, then the five bundle-currency `--check` steps, `test:language-tools` and `test:llmtext` |
+| **checks** | type-check (`bun check`), unit tests, then the five bundle-currency `--check` steps, `test:language-tools` and `test:llmtext` |
 | **generated-app** | generate from `examples/drug-discovery.eml.mmd` → build backend/frontend → type-check `tests/` → migrate+seed a pgvector Postgres → start the backend → `node run.ts --no-server` |
 | **generated-wasm-app** | generate the stack twice, with and without the overlay, and assert the list of files the overlay changed; assert no Bun is left in the generated app; type-check the suite and load every harness module under Node; then migrate, seed and exercise it on WebAssembly Postgres — on a runner with no Postgres installed, which is the claim |
 | **wasm-e2e** | `test:wasm` — the browser stack in Chromium, plus the CLI specs that assert the overlay's whole footprint: 9 files changed, 6 added, none removed, and **exactly one** of the nine is application source (`immudb.service.ts`). That last number is the claim the approach rests on — the backend never knew what was behind its `Pool` |

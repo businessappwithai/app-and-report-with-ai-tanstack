@@ -8027,7 +8027,7 @@ function nodeify(_name, script) {
       break;
     }
   }
-  result = result.replace(/\bHOST=127\.0\.0\.1 bun --bun /g, "").replace(/\bbun --bun /g, "").replace(/\bbunx --bun /g, "npx ").replace(/\bbunx /g, "npx ").replace(/\bbun x /g, "npx ").replace(/\bbun install\b/g, "npm install").replace(/\bbun run /g, "npm run ").replace(/\bbun --filter /g, "npm run --workspace ").replace(/\bbun test\b/g, "npm test").replace(/(^|[\s"'])bun(?=\s)/g, "$1node");
+  result = result.replace(/\bbun check\b/g, "tsc --noEmit").replace(/\bHOST=127\.0\.0\.1 bun --bun /g, "").replace(/\bbun --bun /g, "").replace(/\bbunx --bun /g, "npx ").replace(/\bbunx /g, "npx ").replace(/\bbun x /g, "npx ").replace(/\bbun install\b/g, "npm install").replace(/\bbun run /g, "npm run ").replace(/\bbun --filter /g, "npm run --workspace ").replace(/\bbun test\b/g, "npm test").replace(/(^|[\s"'])bun(?=\s)/g, "$1node");
   return result;
 }
 async function readJson(file) {
@@ -16595,12 +16595,6 @@ export async function seed(db: Kysely<any>): Promise<void> {
     } catch {
       await writeFile(envPath, envContent);
     }
-    try {
-      const biomeContent = await this.renderTemplate("biome.json.hbs", context);
-      await writeFile(join(outputDir, "biome.json"), biomeContent);
-    } catch (_e) {
-      console.warn("Custom Biome config template not found, using defaults");
-    }
     const dbModuleContent = await this.renderTemplate("src/database/database.module.ts.hbs", context);
     await writeFile(join(outputDir, "src/database/database.module.ts"), dbModuleContent);
     const dbConstantsContent = await this.renderTemplate("src/database/database.constants.ts.hbs", context);
@@ -17536,6 +17530,12 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
     } catch (_e) {
       console.warn("Admin roles page template not found");
     }
+    try {
+      const systemConfigContent = await this.component("src/routes/admin/system-config.tsx");
+      await writeFile(join(adminDir, "system-config.tsx"), systemConfigContent);
+    } catch (_e) {
+      console.warn("Admin system configuration page template not found");
+    }
     const adminSubdirs = [
       { src: "src/routes/admin/table", dest: "src/routes/admin/table" },
       { src: "src/routes/admin/window", dest: "src/routes/admin/window" },
@@ -17613,12 +17613,6 @@ class TanStackStartFrontendGenerator extends BaseGenerator {
       await writeFile(join(outputDir, "tsconfig.json"), tsconfigContent);
     } catch (_e) {
       console.warn("Custom tsconfig template not found, keeping TanStack Start default");
-    }
-    try {
-      const biomeContent = await this.renderTemplate("biome.json.hbs", context);
-      await writeFile(join(outputDir, "biome.json"), biomeContent);
-    } catch (_e) {
-      console.warn("Custom Biome config template not found, using defaults");
     }
     const envLocalContent = `VITE_API_URL=
 VITE_BACKEND_URL=${context.config.baseUrl}
