@@ -136,15 +136,12 @@ enterprise_reporting_tanstack/
 # Development
 bun --bun vite dev            # dev server → http://localhost:4050
 bun --bun vite build          # production build
-bun .output/server/index.mjs  # serve the production build
+bun run start                 # serve the production build on :3000 (PORT overrides)
 
-# Quality gate — Biome, not ESLint/Prettier
-bun run lint                  # biome lint src
-bun run lint:fix              # biome lint src --write
-bun run format:check          # biome format src --check
-bun run typecheck             # tsc --noEmit
-bun run precommit             # lint + typecheck + format:check  ← the gate
-bun run build:check           # lint + typecheck + build
+# Quality gate — the type-checker; there is no linter or formatter
+bun run typecheck             # bun check — Bun's own type checker (1.4.3+)
+bun run precommit             # the same  ← the gate
+bun run build:check           # typecheck + build
 
 # Database
 bun scripts/rebuild-db.ts                  # full rebuild: drops and recreates
@@ -190,7 +187,7 @@ lets through.
 | Jobs | Trigger.dev, else a built-in Bun cron loop | |
 | Export | `exceljs`, `jspdf` + `jspdf-autotable` | |
 | Logging | Pino, mirrored into the `logs` table | |
-| Lint/format | **Biome** | Not ESLint, not Prettier |
+| Static check | `bun check` | No linter, no formatter — keep the style by hand |
 | E2E | Playwright | Serial, 1 worker |
 
 ---
@@ -819,10 +816,11 @@ resource is called) to the roles that should hold them, and call
 
 ## 16. Code conventions
 
-- **Biome**, not ESLint or Prettier. `bun run precommit` is the gate.
+- **No linter or formatter.** `bun run precommit` (`bun check`) is the gate; keep the
+  existing style by hand — 2 spaces, double quotes, semicolons, 100 columns.
 - Imports use the `@/` alias for `src/`. Server-only modules stay out of
   components.
-- `routeTree.gen.ts` is generated. Biome does not format it and neither do you.
+- `routeTree.gen.ts` is generated. Do not edit or reformat it by hand.
 - Route files are lower-case kebab; components are PascalCase.
 - Styling is Tailwind + shadcn/ui. Reach for an existing `components/ui/`
   primitive before writing a new one.
