@@ -311,6 +311,10 @@ one decision at a time, or just build it — and it requires a complete
 Application Dictionary: help on every entity and column, the `FK` modifier and an
 enum binding wherever they apply, and **every form laid out as `%%section` rows**.
 
+`llms.txt` beside it is the same file byte for byte, for readers that refuse the
+`text/markdown` GitHub Pages sends for `.md`; copy both from upstream, never edit
+either here. The stubs name it as their fallback.
+
 `llms-full.txt`, `llmdetailed.txt`, `llmtextenhancement.txt` and
 `llmdetailedenhancement.txt` are short stubs pointing at
 `https://www.appwithai.org/llms.md`. They keep their names because published

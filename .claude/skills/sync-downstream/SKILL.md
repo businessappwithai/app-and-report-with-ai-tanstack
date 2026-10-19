@@ -157,33 +157,30 @@ the website's CLAUDE.md tabulates; if it did not, leave them alone.
 
 ## 4. The protocol documents
 
-Four per repository, and **two of each four are build outputs**.
+One protocol document, published two ways, plus four stubs. All of it is
+upstream's `$A/website/llmtext/`, copied byte for byte — nothing is authored or
+derived downstream any more.
 
-- `$O/common/website/llmtext/` — its own bases; hand-carry upstream prose.
-- `$W/llmdetailed.txt` — vendored (§3). `$W/llms-full.txt` — **authored here**,
-  a language-only rewrite with its own section numbering. Never overwrite it;
-  carry the change by hand and expect the anchor text to differ.
+| To | From |
+|---|---|
+| `$O/common/website/llmtext/llms.md` | `$A/website/llmtext/llms.md` |
+| `$O/common/website/llmtext/llms.txt` | `$A/website/llmtext/llms.txt` |
+| `$W/llms.md` | `$A/website/llmtext/llms.md` |
+| `$W/llms.txt` | `$A/website/llmtext/llms.txt` |
+| the four retired stubs (`llms-full`, `llmdetailed`, `llmtextenhancement`, `llmdetailedenhancement`, each `.txt`) in `$O/common/website/llmtext/` and at `$W/` | the same names in `$A/website/llmtext/` |
 
-Then re-derive both enhancement editions in each repository:
+`llms.txt` is `llms.md` under a name GitHub Pages serves as `text/plain`;
+ChatGPT's reader refuses the `text/markdown` it sends for `.md`. Verify:
 
 ```bash
-cd $W
-node scripts/build-llmtext-enhancement.mjs          # the site's own pair
-O=$O/common/website/llmtext
-node scripts/build-llmtext-enhancement.mjs --base $O/llms-full.txt   --protocol batch       --out $O/llmtextenhancement.txt
-node scripts/build-llmtext-enhancement.mjs --base $O/llmdetailed.txt --protocol interactive --out $O/llmdetailedenhancement.txt
+for d in $A/website/llmtext $O/common/website/llmtext $W; do
+  cmp $d/llms.md $d/llms.txt && echo "ok $d"
+done
 ```
 
-A hand edit to an enhancement edition is lost the next time anyone runs the
-deriver, silently, because the output is checked in and reads like a document.
-
-**Re-vendoring `llmdetailed.txt` can break `check-spec.mjs` without either
-being wrong.** That check pins the *verbatim wording* of the host-spelling
-counter-examples so it can hold them out of its own scan; upstream rewords
-them. When it reports stray hosts on lines that are plainly teaching lines,
-widen `TEACHING` in `$W/scripts/check-spec.mjs` rather than editing the
-vendored document — then prove the check still bites by appending a real bare
-host to a document and watching it fail.
+Then run each repository's own check: `bun run test:llmtext` in `$A`,
+`node scripts/check-spec.mjs` in `$W`. `llms-reporting.txt` in the orchestrator
+is its own document and is not part of this.
 
 ---
 
@@ -234,7 +231,6 @@ Website — this is `tests.yml`, in order, Node only:
 ```bash
 cd $W
 node scripts/check-spec.mjs
-node scripts/build-llmtext-enhancement.mjs --check
 node scripts/build-validator-source-page.mjs --check
 node scripts/check-validator-source-pages.mjs
 node scripts/build-standalone-checker.mjs --check
