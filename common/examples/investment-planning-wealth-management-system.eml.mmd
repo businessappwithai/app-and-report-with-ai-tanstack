@@ -2041,6 +2041,125 @@ erDiagram
 %%field ExternalIntegration.status help: Allowed values are active, paused, failed, inactive. Record the evidenced business classification or outcome; changing this field does not itself complete the underlying work.
 %%field ExternalIntegration.last_sync_at help: When a completed exchange was last recorded, used when judging whether imported account information needs refresh.
 
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Party; name: Party; help: Anyone the firm deals with — a person or an organisation — under the name every screen shows.; rows: display_name, party_type | status
+    %%section entity: Person; name: Name; help: The person's legal name, as identity documents and KYC checks must match it.; rows: first_name, middle_name | last_name, party_id
+    %%section entity: Person; name: Profile; help: The personal facts suitability and tax residency are judged on.; rows: date_of_birth, gender | marital_status, nationality | occupation
+    %%section entity: Organization; name: Organisation; help: The legal entity as its registration documents name it, and the identifiers tax and KYC checks use.; rows: legal_name, organization_type | registration_number, tax_identifier | party_id
+    %%section entity: Household; name: Household; help: The family or group advised together, the advisor who leads it, and whether it is still a client.; rows: name, status | primary_advisor_id, relationship_manager_reference
+    %%section entity: Household; name: Wealth and risk; help: What the household earns, what it is worth, and the risk profile its plans must respect.; rows: annual_income, net_worth | risk_profile_id
+    %%section entity: HouseholdMember; name: Membership; help: Who belongs to the household, how they are related, and their share of what it owns.; rows: household_id, party_id | relationship_type, ownership_percentage | is_primary
+    %%section entity: HouseholdMember; name: Period; help: When the person joined the household and, if they have left it, when.; rows: start_date, end_date
+    %%section entity: Client; name: Client; help: The party as a client of the firm — the number they are known by, the household they sit in, and where the relationship stands.; rows: client_number, status | party_id, household_id | client_type, onboarding_date
+    %%section entity: Client; name: Service; help: Who advises the client, the service they receive, and how they are charged for it.; rows: advisor_id, service_model | fee_model
+    %%section entity: Address; name: Address; help: One address a party uses and what it is for — the primary one is where statements go.; rows: party_id, address_type | line1 | city, region | postal_code, country | is_primary
+    %%section entity: ContactPoint; name: Contact point; help: One way to reach a party, whether it is the default, and whether it has been proven to reach them.; rows: party_id, contact_type | value | is_primary, verified
+    %%section entity: Nominee; name: Nomination; help: Who receives a share of the client's holdings on death, and how large that share is.; rows: client_id, nominee_party_id | relationship_type, allocation_percentage
+    %%section entity: Nominee; name: Period; help: When the nomination took effect and when it was revoked, if it was.; rows: start_date, end_date
+    %%section entity: PowerOfAttorney; name: Authority; help: Who granted authority to act for them, to whom, and what it covers.; rows: grantor_party_id, attorney_party_reference | status | scope
+    %%section entity: PowerOfAttorney; name: Validity; help: When the power took effect and when it lapses — instructions outside these dates are refused.; rows: effective_date, expiry_date
+    %%section entity: OrganizationUnit; name: Unit; help: A branch, region or desk of the firm and the unit it reports into.; rows: name, unit_type | organization_unit_id, status
+    %%section entity: Advisor; name: Advisor; help: The person who advises clients, the unit they work in, and whether they can take new households.; rows: party_id, employee_number | organization_unit_id, advisor_type | status
+    %%section entity: Advisor; name: Licence; help: The regulatory licence that allows them to advise, and when it must be renewed.; rows: license_number, license_expiry
+    %%section entity: AdvisorAssignment; name: Assignment; help: Which advisor serves which household, in what capacity, and whether they lead it.; rows: advisor_id, household_id | assignment_type, is_primary | start_date, end_date
+    %%section entity: Team; name: Team; help: A group of advisors working together, the unit it belongs to, and what kind of work it does.; rows: name, team_type | organization_unit_id, status
+    %%section entity: TeamMember; name: Membership; help: Which advisor is on which team, in what role, and for how long.; rows: team_id, advisor_id | role | start_date, end_date
+    %%section entity: Prospect; name: Prospect; help: A party who may become a client, where they came from, and the advisor pursuing them.; rows: party_id, status | source, assigned_advisor_id
+    %%section entity: Prospect; name: Potential; help: How promising the prospect looks, what they might bring, and when the next step is due.; rows: lead_score, estimated_aum | next_action_date
+    %%section entity: Interaction; name: Interaction; help: One conversation or meeting with a party — who, when, how, and what was discussed.; rows: party_id, advisor_id | interaction_type, interaction_at | subject | notes
+    %%section entity: Activity; name: Activity; help: A task for a client's advisor, how urgent it is, and when it must be done.; rows: subject | client_id, advisor_id | activity_type, priority | due_date, status | completed_at
+    %%section entity: ServiceRequest; name: Request; help: Something the client asked the firm to do and where it stands.; rows: subject | client_id, request_type | status, priority | submitted_at, completed_at
+    %%section entity: OnboardingCase; name: Onboarding; help: The process of turning a prospect into a client — who runs it and how far it has got.; rows: client_id, prospect_id | status, assigned_advisor_id | started_date, completed_date
+    %%section entity: KYCRecord; name: KYC; help: The client's know-your-customer standing — no account may be opened or traded without a current one.; rows: client_id, kyc_status | kyc_type, kyc_identifier
+    %%section entity: KYCRecord; name: Verification; help: When identity was last verified, against what source, and when it must be done again.; rows: verification_date, verification_source | expiry_date
+    %%section entity: KYCVerification; name: Check; help: One identity check performed for the KYC record and its outcome.; rows: kyc_record_id, verification_type | status, verified_at | verification_source, reference_number
+    %%section entity: FATCADeclaration; name: Declaration; help: The client's US tax status, which decides whether their accounts are reported to the IRS.; rows: client_id, us_person | tax_residency, country | tin, declaration_date
+    %%section entity: CRSDeclaration; name: Declaration; help: Where the client is tax resident, which decides which countries their accounts are reported to.; rows: client_id, status | tax_residency, country | tin, declaration_date
+    %%section entity: SuitabilityAssessment; name: Assessment; help: The test of what investments suit the client, who ran it, and what it concluded.; rows: client_id, assessor_id | assessment_type, assessment_date | status, result
+    %%section entity: IdentityDocument; name: Document; help: A passport, ID card or similar the party has supplied, and whether it has been verified.; rows: party_id, document_type | document_number, verification_status | issue_date, expiry_date
+    %%section entity: ESignatureRequest; name: Signature request; help: A document sent to the client for electronic signature and where it stands with the provider.; rows: client_id, document_id | status, provider_reference | requested_at, signed_at
+    %%section entity: BankAccount; name: Bank account; help: An account the client pays from and is paid into, and whether it is the default.; rows: client_id, is_primary | bank_name, account_type | account_number, verification_status
+    %%section entity: BankAccount; name: Branch; help: The branch that holds the account and the code payments are routed by.; rows: branch, ifsc
+    %%section entity: Document; name: Document; help: A file held about a party, what kind it is, and when it was received.; rows: party_id, document_type | file_name, status | document_url | uploaded_at
+    %%section entity: AuditEvent; name: Event; help: What was done, by whom, when, and from where — the record a regulator asks for.; rows: timestamp, action | user_reference, source | ip_address, correlation_reference
+    %%section entity: AuditEvent; name: Change; help: The record that was changed and its value before and after.; rows: entity_type, entity_reference | before_value | after_value
+    %%section entity: FinancialPlan; name: Plan; help: The household's financial plan, which version is in force, and who prepared it.; rows: plan_number, plan_version | household_id, advisor_id | status, base_currency
+    %%section entity: FinancialPlan; name: Dates; help: When the plan took effect and when it is next reviewed.; rows: effective_date, review_date
+    %%section entity: FinancialPlanAssumption; name: Assumption; help: One figure the plan's projections rest on — inflation, a return, a retirement age — and where it came from.; rows: financial_plan_id, assumption_type | value, unit | source
+    %%section entity: IncomeSource; name: Income; help: Money coming into the household that the plan counts on — whose, what kind, and how much.; rows: financial_plan_id, party_id | income_type, amount | frequency, inflation_linked
+    %%section entity: IncomeSource; name: Period; help: When the income starts and stops; a pension starts on the day it is first paid.; rows: start_date, end_date
+    %%section entity: Expense; name: Expense; help: Money the household spends that the plan must fund, and whether it rises with inflation.; rows: financial_plan_id, expense_type | amount, frequency | inflation_linked
+    %%section entity: Expense; name: Period; help: When the expense begins and ends — school fees stop when the youngest leaves.; rows: start_date, end_date
+    %%section entity: Liability; name: Liability; help: A debt the household owes, how much is left, and what it costs.; rows: financial_plan_id, liability_type | outstanding_amount, interest_rate | monthly_payment, status | maturity_date
+    %%section entity: CashFlow; name: Cash flow; help: One projected flow of money in the plan, what it is for, and how often it recurs.; rows: financial_plan_id, cashflow_type | category, amount | frequency, inflation_linked
+    %%section entity: CashFlow; name: Period; help: The years the flow runs between.; rows: start_date, end_date
+    %%section entity: Goal; name: Goal; help: Something the household is saving towards, which plan funds it, and how important it is.; rows: name, goal_type | household_id, financial_plan_id | priority, status
+    %%section entity: Goal; name: Target; help: How much is needed, by when, and how much of it is already covered.; rows: target_amount, target_date | funded_percentage
+    %%section entity: GoalFunding; name: Funding; help: What is set aside for a goal — a holding, a portfolio or a cash flow — and how much of it.; rows: goal_id, allocated_amount | portfolio_id, security_id | cashflow_id
+    %%section entity: GoalProjection; name: Projection; help: What a scenario expects the goal to be worth on a date, and the shortfall if it falls short.; rows: goal_id, scenario_id | projection_date, result | projected_value, shortfall
+    %%section entity: Scenario; name: Scenario; help: A what-if the plan is tested against, and whether it is the one presented to the household.; rows: name, scenario_type | financial_plan_id, status | description
+    %%section entity: ScenarioAssumption; name: Assumption; help: One figure the scenario changes from the plan's base assumptions.; rows: scenario_id, assumption_type | value, unit
+    %%section entity: RiskAssessment; name: Assessment; help: The questionnaire that measures how much risk the client can bear, and what it found.; rows: client_id, household_id | assessment_type, assessment_date | status, result
+    %%section entity: RiskProfile; name: Profile; help: The risk category investments must stay within, and the assessment it was set from.; rows: client_id, household_id | risk_score, risk_category | assessment_id, status
+    %%section entity: RiskProfile; name: Validity; help: When the profile took effect and when it must be reassessed.; rows: effective_date, expiry_date
+    %%section entity: RiskProfileHistory; name: Change; help: An earlier risk profile and why it was replaced — what a suitability review looks back on.; rows: risk_profile_id | risk_score, risk_category | effective_date, expiry_date | reason
+    %%section entity: Security; name: Security; help: An instrument that can be held or traded, the ticker and ISIN it is identified by, and whether it can still be bought.; rows: name, symbol | isin, security_type_id | currency, status
+    %%section entity: SecurityType; name: Type; help: A kind of instrument and the category it reports under.; rows: name, category | status
+    %%section entity: MutualFundScheme; name: Scheme; help: The fund scheme, the house that runs it, and the codes it is ordered by.; rows: scheme_name, scheme_code | security_id, amc_id | isin
+    %%section entity: MutualFundScheme; name: Classification; help: What kind of fund it is, which plan and option, and the benchmark and risk it is measured against.; rows: category, risk_level | plan_type, option_type | benchmark
+    %%section entity: AMC; name: Asset manager; help: The fund house, its regulatory registration, and whether its schemes can be sold.; rows: name, registration_number | status
+    %%section entity: ProductPrice; name: Price; help: A security's price on a date, what kind of price it is, and where it was sourced.; rows: security_id, price_date | price, price_type | source
+    %%section entity: AssetClass; name: Asset class; help: A class of asset allocation targets are set against, and the broader class it falls under.; rows: name, asset_class_id | status
+    %%section entity: InvestmentAccount; name: Account; help: An account the client holds investments in, at which institution, and how it is owned.; rows: account_number, status | client_id, institution_id | account_type, ownership_type | opened_date
+    %%section entity: Folio; name: Folio; help: The folio number a fund house holds the client's units in for one scheme.; rows: folio_number, status | investment_account_id, mutual_fund_scheme_id
+    %%section entity: Portfolio; name: Portfolio; help: A managed set of holdings for the household, what it is for, and the risk profile it must respect.; rows: portfolio_name, status | household_id, portfolio_type | risk_profile_id, base_currency | investment_objective
+    %%section entity: PortfolioAccount; name: Account in portfolio; help: Which investment account is managed as part of the portfolio, and for how long.; rows: portfolio_id, investment_account_id | start_date, end_date
+    %%section entity: Holding; name: Holding; help: A position in one security within a portfolio and how much of it is held.; rows: portfolio_id, security_id | quantity, weight
+    %%section entity: Holding; name: Value; help: What the position cost, what it is worth now, and the gain not yet realised.; rows: average_cost, cost_value | market_value, unrealized_gain
+    %%section entity: HoldingLot; name: Lot; help: One purchase that makes up a holding — when, how much, at what cost, and how its gain is taxed.; rows: holding_id, acquisition_date | quantity, cost_basis | tax_status
+    %%section entity: PortfolioValuation; name: Valuation; help: What the portfolio was worth on a date, split between invested and cash.; rows: portfolio_id, valuation_date | market_value, cost_value | cash_value, net_value
+    %%section entity: AssetAllocationModel; name: Model; help: A target mix of asset classes for one risk category, which portfolios are rebalanced towards.; rows: name, risk_category | status | description
+    %%section entity: AllocationTarget; name: Target; help: The share of one asset class in the model and the band it may drift within before rebalancing.; rows: asset_allocation_model_id, asset_class_id | target_percentage | min_percentage, max_percentage
+    %%section entity: InvestmentTransaction; name: Transaction; help: A completed trade or corporate action against a holding, and the order it came from.; rows: transaction_type, status | portfolio_id, holding_id | order_id, transaction_date
+    %%section entity: InvestmentTransaction; name: Amount; help: How many units moved, at what price, and for what total.; rows: quantity, price | amount
+    %%section entity: Order; name: Order; help: An instruction to buy or sell, for which client and portfolio, and where it stands.; rows: order_type, status | client_id, portfolio_id | security_id
+    %%section entity: Order; name: Size and execution; help: How much was ordered and when it was placed and filled.; rows: quantity, amount | ordered_at, executed_at
+    %%section entity: SIPInstruction; name: Instruction; help: A standing instruction to invest a fixed amount regularly, and the bank mandate that pays for it.; rows: client_id, status | security_id, portfolio_id | amount, frequency | mandate_reference
+    %%section entity: SIPInstruction; name: Schedule; help: When the instalments start and stop, and the date of the next one.; rows: start_date, end_date | next_execution_date
+    %%section entity: InvestmentRecommendation; name: Recommendation; help: Advice given to a household, by whom, for which portfolio, and where it stands.; rows: household_id, advisor_id | portfolio_id, recommendation_type | recommendation_date, status | rationale
+    %%section entity: InvestmentRecommendation; name: Suitability; help: Whether the advice fits the household's risk profile — unsuitable advice cannot be executed.; rows: risk_profile_id, suitability_status
+    %%section entity: RecommendationItem; name: Item; help: One security or asset class the recommendation proposes, how much to put in it, and why.; rows: investment_recommendation_id | security_id, asset_class_id | recommended_amount, target_percentage | reason
+    %%section entity: SuitabilityResult; name: Result; help: The suitability check of a recommendation against the client's assessment, and its verdict on risk and eligibility.; rows: investment_recommendation_id, assessment_id | result, evaluated_at | risk_result, eligibility_result | reason
+    %%section entity: RecommendationApproval; name: Approval; help: The supervisor's sign-off on a recommendation before it reaches the client.; rows: investment_recommendation_id, approver_id | status, approved_at | comments
+    %%section entity: Proposal; name: Proposal; help: The document that puts a recommendation to the client, which version it is, and where it stands.; rows: proposal_number, proposal_version | investment_recommendation_id, client_id | status
+    %%section entity: Proposal; name: Validity; help: When the proposal was issued and the day it lapses if the client has not accepted it.; rows: proposal_date, expiry_date
+    %%section entity: ClientAcceptance; name: Decision; help: The client's answer to a proposal, when they gave it, and what they said.; rows: proposal_id, client_id | decision, decision_at | comments
+    %%section entity: RebalanceRecommendation; name: Rebalance; help: A portfolio that has drifted from its model, by how much, and what is proposed about it.; rows: portfolio_id, asset_allocation_model_id | status, detected_date | deviation_amount | reason
+    %%section entity: PerformanceSnapshot; name: Snapshot; help: The portfolio's value and returns on a date, against its benchmark.; rows: portfolio_id, snapshot_date | market_value, absolute_return | xirr, time_weighted_return | benchmark_return
+    %%section entity: ClientReview; name: Review; help: A periodic review of the client's affairs, who held it, and when the next one is due.; rows: client_id, advisor_id | review_date, next_review_date | status
+    %%section entity: ClientReview; name: Findings; help: Where the client's portfolio, goals and risk stood at the review, and what was recommended.; rows: portfolio_status, goal_status | risk_status | recommendations
+    %%section entity: FeeSchedule; name: Fee; help: A fee the firm charges, how it is calculated, and how often it is billed.; rows: name, fee_type | rate, frequency | status
+    %%section entity: Commission; name: Commission; help: Commission earned on a client's investment, from which security, and whether it has been received.; rows: client_id, security_id | commission_type, status | amount, earned_date
+    %%section entity: CommissionReconciliation; name: Reconciliation; help: What the product provider was expected to pay against what arrived, and when it was checked.; rows: commission_id, status | expected_amount, received_amount | reconciliation_date
+    %%section entity: Equity; name: Equity; help: The listing details of a share — where it trades, its ticker, and its sector.; rows: security_id, exchange | ticker, sector
+    %%section entity: Bond; name: Bond; help: Who issued the bond, what it pays, when it matures, and how its credit is rated.; rows: security_id, issuer | coupon_rate, maturity_date | credit_rating
+    %%section entity: AIF; name: Fund; help: The alternative investment fund, its category, and the least a client may invest in it.; rows: security_id, fund_name | category, minimum_investment
+    %%section entity: PMS; name: Mandate; help: The portfolio management service, its provider and strategy, and the minimum ticket.; rows: security_id, provider_name | strategy_name, minimum_investment
+    %%section entity: Insurance; name: Policy; help: The insurance product held, who underwrites it, what it pays out, and what it costs.; rows: security_id, insurer | policy_type, premium | sum_assured
+    %%section entity: RealEstate; name: Property; help: A property held as an investment, where it is, what it cost and what it is worth now.; rows: security_id, property_type | location | acquisition_value, current_value
+    %%section entity: STPInstruction; name: Instruction; help: A standing transfer from one fund to another, how much moves and how often.; rows: client_id, status | source_security_id, target_security_reference | amount, frequency
+    %%section entity: SWPInstruction; name: Instruction; help: A standing withdrawal paid out to the client from a fund, how much and how often.; rows: client_id, security_id | amount, frequency | start_date, status
+    %%section entity: CorporateAction; name: Action; help: An event at the issuer — a dividend, split or merger — that changes the holdings of everyone who owns the security.; rows: security_id, action_type | record_date, effective_date | status | details
+    %%section entity: TaxLot; name: Tax lot; help: The cost and date of a holding lot as the tax year sees it, which decides the gain on sale.; rows: holding_lot_id, tax_year | acquisition_date, quantity | cost_basis
+    %%section entity: CapitalGain; name: Gain; help: A gain or loss realised by selling a tax lot, and whether it is short- or long-term.; rows: tax_lot_id, tax_year | sale_date, gain_type | sale_proceeds, cost_basis | gain_amount
+    %%section entity: Benchmark; name: Benchmark; help: An index portfolios are compared against.; rows: name, symbol | benchmark_type, status
+    %%section entity: PerformanceAttribution; name: Attribution; help: How much one asset class contributed to the snapshot's return, split into allocation and selection.; rows: performance_snapshot_id, asset_class_id | contribution | allocation_effect, selection_effect
+    %%section entity: RevenueHierarchy; name: Level; help: A level of the structure revenue is rolled up through, and the level above it.; rows: name, level_type | revenue_hierarchy_id, status
+    %%section entity: SubBroker; name: Sub-broker; help: An intermediary who brings clients to the firm, the code their business is credited to, and whether they are active.; rows: name, code | party_id, status
+    %%section entity: AdvancedComplianceRecord; name: Compliance check; help: A compliance review of a client beyond KYC, when it was done, and what it found.; rows: client_id, compliance_type | review_date, status | result
+    %%section entity: ExternalIntegration; name: Integration; help: A connection to an outside system, where it points, and when it last exchanged data.; rows: provider_name, integration_type | endpoint_url | status, last_sync_at
+
 %%rbac role:advisor on Party.read
 %%rbac role:advisor on Client.read
 %%rbac role:advisor on FinancialPlan.update
@@ -2412,7 +2531,7 @@ flowchart TD
     N --> E
     %%action startClientOnboarding trigger-workflow when: status == "started" workflow: ClientOnboarding message: Start the recorded onboarding process
 
-%% ---- The reporting pass (llmdetailed §10.5.1) -----------------------------
+%% ---- The reporting pass (llms.md §1.1.7) ----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,

@@ -489,7 +489,7 @@ var appwithai_language_default = {
       manual: "The generated manual carries a section, When two people change the same record, naming the three choices."
     },
     alsoDerived: [
-      "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10).",
+      "Each entity becomes a sys_table with a window and a tab; attributes become fields in declared order (seqNo = (index + 1) * 10), unless the entity declares %%section - then the fields follow the sections and their rows. See formLayout.",
       "%%index becomes real indexes; a unique attribute or a `name` column is indexed automatically (mergeIndexes).",
       "%%category becomes the dashboard grouping; a model declaring none gets a single General category holding every entity.",
       "%%field <Entity>.<column> help: and %%entity <Name> help: become sys_column.description and sys_table.description - the help a reader sees under the field and beside the table. %%entity description: is the same key under its other name.",
@@ -523,11 +523,44 @@ var appwithai_language_default = {
         EML151: "help that describes its subject rather than restating its name",
         EML152: "%%entity <Name> help: on an entity",
         EML153: "%%field <Entity>.<column> help: on every column but the primary key",
-        EML154: "name: on a %%category — without it the grouping is dropped"
+        EML154: "name: on a %%category — without it the grouping is dropped",
+        EML170: "%%section on every entity — without it the form is one flat, unheaded column of fields",
+        EML172: "every column but the primary key placed in a %%section row — an unplaced column falls into a trailing Other section",
+        EML177: "help: on every %%section that says what the section is for — it is the sentence under the heading"
       },
-      required: "A delivered model carries none of these six. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
+      required: "A delivered model carries none of these nine. They are warnings by severity and gaps by consequence: audit-model.mjs fails a model carrying any of them, and formatReport's verdict names them apart from the advisory warnings (DICTIONARY_COMPLETENESS in language/browser/checker.entry.ts).",
       planFirst: "Decide every value before writing the document — per entity its help, category and parent; per column its type, modifiers, FK target, enum binding and help; per cross-entity step the row it aims at (targetSource or targetField, else EML265). A value improvised while typing the ERD is the one that comes out as a restatement.",
-      reviewUntilClean: "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the six codes and a 22/0 audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
+      reviewUntilClean: "A clean checker run starts the review rather than ending it: re-read the file against the plan, confirm none of the nine codes and a clean audit, read every help line as the person on the generated screen would, and after any fix re-run the checker and the audit from zero. The review ends when a full pass finds nothing to change, not when a cycle count runs out."
+    },
+    formLayout: {
+      description: "How a record's form is laid out: headed sections, each of rows of one or two fields. It is the third layer of the dictionary - a column says what is stored, a field says that it is on the screen, and a section says where and beside what. Declared by `%%section`, compiled to one sys_field_group per section (sys_field_group.columns = 2, description = the section's help) and to each field's sys_field_group_id, seq_no, is_same_line, x_position (1 or 2), y_position (the row) and column_span (2 for a row of one). Both stacks draw it: the NestJS form as a two-column grid per group, the browser form the same way.",
+      directive: "%%section entity: <Entity>; name: <Label>; help: <text>; rows: <column>, <column> | <column> | ...; collapsed: true",
+      mandatory: "Every entity declares its sections, and every column but the primary key sits in exactly one row of one of them. A form is the screen people use all day; the model is the only place its layout is decided, and an entity without sections is generated as one flat, unheaded list in declared order - correct, and nothing anyone designed.",
+      rows: [
+        "Two columns per row is the norm. Pair columns a person fills or reads together: first_name beside last_name, start_date beside end_date, quantity beside unit_price, a reference beside the status it moves through.",
+        "A row of one spans the full width. Use it for text and memo columns (reference 14), for an address, and for a reference whose label is long - never to avoid deciding what pairs with what.",
+        "More than two columns in a row is an error (EML174): the form is a two-column grid, and a third column has nowhere to go."
+      ],
+      sections: [
+        "Name a section for what the person is doing in it - Identity, Contact, Terms, Delivery, Clinical findings - not for the kind of column it holds. `References`, `Dates` and `Numbers` are a schema, not a form.",
+        "Open with the section that identifies the record: its name or number and the one or two values someone checks first. The display value's columns belong there.",
+        "Keep a section to the fields that are read together - roughly two to six rows. An entity with eight columns has two or three sections, not one; an entity with three columns may have one.",
+        "Put what is rarely touched last, and mark it `collapsed: true`: internal notes, integration references, figures only an administrator reads.",
+        "A line item (`%%entity <Child> parent:`) has sections too: they are what its own form shows when a row is opened from the parent's tab."
+      ],
+      help: "`help:` on a section is compiled to sys_field_group.description and printed under the heading. Say what the section is for and what has to be true before it is complete - `What was agreed with the supplier: the price, the terms and the date it stops applying.` - not `Terms fields.`. It is part of the help contract (helpText) and held to it the same way: EML177 reports a section with none, or one that restates its name.",
+      unplaced: "A column of a sectioned entity that no row names is not lost: it is generated into a trailing collapsed `Other` section, and EML172 reports it. The fixer places it for you by appending rows of two to the entity's last section, which is a repair and not a design - move it to where it belongs.",
+      entitiesWithoutSections: "An entity with no %%section is generated exactly as it was before the directive existed: one tab, every field in declared order, no headings. It is legal, it is what an older model produces, and it is EML170.",
+      checkerCodes: {
+        EML170: "warning — an entity declares no %%section. Dictionary completeness.",
+        EML171: "error — a %%section without one of its required keys: entity, name or rows.",
+        EML172: "warning — columns of a sectioned entity placed in no row. Dictionary completeness. Auto-fixable: appended to the entity's last section, two per row.",
+        EML173: "error — a %%section names an entity the model does not declare.",
+        EML174: "error — a row with more than two columns. Auto-fixable: split into rows of two.",
+        EML175: "warning — a column placed in two rows. Auto-fixable: the later placement is removed.",
+        EML176: "error — a row names a column the entity does not declare, or its primary key, which no form shows.",
+        EML177: "warning — a %%section with no help:, or help that restates the section's name. Dictionary completeness."
+      }
     },
     masterDetail: {
       description: "A line item is an entity with no life away from its owner - an invoice line, an order line, a prescription item. The ERD cannot tell one from an ordinary reference, because InvoiceLine.invoice_id and Invoice.patient_id are both a foreign key with a relationship behind it. The modeller says which it is.",
@@ -1302,6 +1335,22 @@ var appwithai_language_default = {
         ]
       },
       {
+        keyword: "%%section",
+        form: "%%section entity: <Entity>; name: <Label>; help: <text>; rows: <column>, <column> | <column> | ...; collapsed: true",
+        status: "compiled",
+        consumedBy: [
+          "packages/generator/src/parsers/section.parser.ts -> entity.formSections",
+          "packages/generator/src/generators/dictionary.generator.ts -> sys_field_group, sys_field.sys_field_group_id / is_same_line / x_position / column_span",
+          "templates/common/seeds/sys-dictionary.ts.hbs (NestJS) and generators/wasm/model-bundle.ts (browser)"
+        ],
+        purpose: "Lay an entity's form out as headed sections of two-column rows. Each directive is one section of one entity: `name` is its heading, `help` the sentence under the heading, and `rows` its fields, rows separated by `|` and the one or two columns of a row by `,`. A row of two puts the columns side by side; a row of one spans the full width, which is where a text or memo column, or a reference worth its whole line, belongs. Sections render in declaration order and fields in row order. Repeating a section's `entity` and `name` continues it, so a long section can be written over several lines; `help` is read from the first. `collapsed: true` closes the section until it is opened. Every column of the entity but its primary key is placed in exactly one section - see applicationDictionary.formLayout. `entity`, `name` and `rows` are required. `help` may contain semicolons; no other value may.",
+        examples: [
+          "%%section entity: Order; name: Order; help: Who placed the order, when, and where it stands.; rows: order_number, order_date | customer_id, status",
+          "%%section entity: Order; name: Delivery; help: Where the goods go and how they travel there.; rows: shipping_address | carrier, tracking_number",
+          "%%section entity: Order; name: Notes; help: Anything the next person handling this order should know.; rows: notes; collapsed: true"
+        ]
+      },
+      {
         keyword: "%%index",
         form: "%%index <Entity>(<attr>[, <attr>...]) [unique]",
         status: "compiled",
@@ -1581,7 +1630,7 @@ var appwithai_language_default = {
       "EML001-EML099": "Document level: metadata, emptiness, section structure.",
       "EML100-EML119": "Entities and attributes.",
       "EML120-EML129": "Relationships.",
-      "EML130-EML199": "Directives attached to the ERD: %%enum, %%field, %%entity, %%index, %%category — including the line-item pair EML149 and EML150.",
+      "EML130-EML199": "Directives attached to the ERD: %%enum, %%field, %%entity, %%index, %%category, %%section — including the line-item pair EML149 and EML150, and the form-layout codes EML170-EML177.",
       "EML200-EML299": "Hooks, guards, triggers, workflows and rules as declared by directives.",
       "EML300-EML399": "Business-rule flowcharts.",
       "EML400-EML449": "Workflow sections: hook, state and saga.",
@@ -1593,6 +1642,9 @@ var appwithai_language_default = {
       EML112: "Duplicate attribute - deletes the later line, keeping the stronger constraints.",
       EML114: "Foreign key not ending in _id - appends the suffix.",
       EML117: "Entity has no primary key - prepends `string id PK`.",
+      EML172: "Columns placed in no %%section row - appends them to the entity's last section, two per row.",
+      EML174: "A %%section row with more than two columns - splits it into rows of two.",
+      EML175: "A column placed in two %%section rows - removes the later placement.",
       EML287: "Rule condition names a camelCase identifier - rewrites it as the snake_case column.",
       EML421: "State workflow has no initial transition - inserts `[*] --> <firstState>`.",
       EML422: "State workflow has no terminal state - appends `<lastState> --> [*]`."
@@ -2344,6 +2396,81 @@ function applyFieldEnumRefs(model) {
 
 // language/checker.ts
 init_language();
+
+// language/sections.ts
+var KEYS = new Set(["entity", "name", "help", "rows", "collapsed"]);
+var REQUIRED = ["entity", "name", "rows"];
+var DIRECTIVE = /^\s*%%section\b\s*(.*)$/i;
+function parseKeys(body) {
+  const keys = new Map;
+  let last;
+  for (const segment of body.split(";")) {
+    const match = segment.match(/^\s*([A-Za-z]+)\s*:(.*)$/);
+    const key = match?.[1]?.toLowerCase();
+    if (match && key && KEYS.has(key)) {
+      keys.set(key, (match[2] ?? "").trim());
+      last = key;
+    } else if (last && segment.trim()) {
+      keys.set(last, `${keys.get(last) ?? ""}; ${segment.trim()}`.trim());
+    }
+  }
+  return keys;
+}
+function parseRows(text) {
+  return text.split("|").map((row) => row.split(",").map((column) => column.trim()).filter(Boolean)).filter((row) => row.length > 0);
+}
+function parseSectionDirectives(source) {
+  const found = [];
+  const lines = source.replace(/\r\n/g, `
+`).split(`
+`);
+  lines.forEach((text, index) => {
+    const match = text.match(DIRECTIVE);
+    if (!match)
+      return;
+    const keys = parseKeys(match[1] ?? "");
+    const rowsText = keys.get("rows");
+    found.push({
+      line: index + 1,
+      entity: keys.get("entity") || undefined,
+      name: keys.get("name") || undefined,
+      help: keys.get("help") || undefined,
+      collapsed: /^(true|yes)$/i.test(keys.get("collapsed") ?? ""),
+      rows: rowsText === undefined ? undefined : parseRows(rowsText),
+      missing: REQUIRED.filter((key) => !keys.get(key))
+    });
+  });
+  return found;
+}
+function sectionsByEntity(directives) {
+  const byEntity = new Map;
+  for (const directive of directives) {
+    if (directive.missing.length > 0 || !directive.entity || !directive.name)
+      continue;
+    const sections = byEntity.get(directive.entity) ?? [];
+    const existing = sections.find((section) => section.name.toLowerCase() === directive.name?.toLowerCase());
+    if (existing) {
+      existing.rows.push(...directive.rows ?? []);
+      existing.lines.push(directive.line);
+      if (!existing.help && directive.help)
+        existing.help = directive.help;
+      existing.collapsed = existing.collapsed || directive.collapsed;
+    } else {
+      sections.push({
+        name: directive.name,
+        help: directive.help,
+        collapsed: directive.collapsed,
+        rows: [...directive.rows ?? []],
+        lines: [directive.line]
+      });
+    }
+    byEntity.set(directive.entity, sections);
+  }
+  return byEntity;
+}
+var UNPLACED_SECTION = "Other";
+
+// language/checker.ts
 var useColor = typeof process !== "undefined" && !process.env?.NO_COLOR && Boolean(process.stdout?.isTTY) && !hasFlag("--no-color");
 function hasFlag(name) {
   return typeof process !== "undefined" && (process.argv?.includes(name) ?? false);
@@ -2353,6 +2480,10 @@ class SourceIndex {
   lines;
   constructor(source) {
     this.lines = source.split(`
+`);
+  }
+  text() {
+    return this.lines.join(`
 `);
   }
   findLine(pattern, startLine = 1) {
@@ -2515,6 +2646,7 @@ class CheckEngine {
     this.checkCategoryDirectives();
     this.checkLineItems();
     this.checkHelpText();
+    this.checkSectionDirectives();
     this.checkHooks();
     this.checkAutomationTriggers();
     this.checkGuards();
@@ -3140,6 +3272,106 @@ class CheckEngine {
             hint: `"${field.text.trim().slice(0, 60)}" repeats the column name. Say why the value matters, what is expected in it, and what happens downstream — a reference column should say what the reference is *for*, not that it is one.`
           });
         }
+      }
+    }
+  }
+  restatedSectionHelp(name, text) {
+    const own = this.nameAsWords(name);
+    const body = text.trim().replace(/\.+$/, "").trim().toLowerCase().replace(/^(the|all)\s+/, "").replace(/\s+(fields?|information|info|details|data|section|columns?)$/, "").trim();
+    return body === own || body === "";
+  }
+  checkSectionDirectives() {
+    const directives = parseSectionDirectives(this.src.text());
+    const declared = new Map(this.model.entities.map((entity) => [entity.name, entity]));
+    for (const directive of directives) {
+      if (directive.missing.length > 0) {
+        this.error("EML171", `%%section is missing ${directive.missing.map((key) => `\`${key}:\``).join(", ")}.`, {
+          line: directive.line,
+          hint: "Syntax: %%section entity: <Entity>; name: <Label>; help: <what this section is for>; rows: <column>, <column> | <column>. Rows are separated by `|`, the one or two columns of a row by `,`."
+        });
+        continue;
+      }
+      if (directive.entity && !declared.has(directive.entity)) {
+        this.error("EML173", `%%section names entity "${directive.entity}", which is not declared.`, {
+          line: directive.line,
+          hint: "Use the entity's name exactly as the erDiagram declares it — it is case-sensitive, like every other directive's."
+        });
+      }
+    }
+    const byEntity = sectionsByEntity(directives);
+    for (const entity of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
+      const sections = byEntity.get(entity.name);
+      const columns = entity.attributes.filter((attribute) => !attribute.isPrimaryKey);
+      if (!sections || sections.length === 0) {
+        if (columns.length === 0)
+          continue;
+        this.warn("EML170", `Entity "${entity.name}" declares no %%section, so its form is one flat list.`, {
+          line: entityLine,
+          hint: `Add \`%%section entity: ${entity.name}; name: <Label>; help: …; rows: <a>, <b> | <c>\` lines placing every column but the key — two per row, a row of one for text that needs the width. The sections are the form a person uses all day, and the model is the only place they are decided.`
+        });
+        continue;
+      }
+      const known = new Set(entity.attributes.map((attribute) => attribute.name));
+      const key = entity.attributes.find((attribute) => attribute.isPrimaryKey)?.name;
+      const placed = new Set;
+      for (const section of sections) {
+        if (!section.help) {
+          this.warn("EML177", `%%section "${entity.name}.${section.name}" has no help:.`, {
+            line: section.lines[0],
+            hint: "Add `help: …` — what this part of the form is for, and what has to be true before it is complete. It is printed under the section's heading."
+          });
+        } else if (this.restatedSectionHelp(section.name, section.help)) {
+          this.warn("EML177", `%%section "${entity.name}.${section.name}" help: restates its name.`, {
+            line: section.lines[0],
+            hint: `"${section.help.trim().slice(0, 60)}" repeats the heading. Say what the person filling it in is doing there.`
+          });
+        }
+      }
+      for (const directive of directives) {
+        if (directive.entity !== entity.name || !directive.rows)
+          continue;
+        for (const row of directive.rows) {
+          if (row.length > 2) {
+            this.error("EML174", `%%section row "${row.join(", ")}" of ${entity.name} has ${row.length} columns; a row holds one or two.`, {
+              line: directive.line,
+              hint: "The form is a two-column grid. Split the row with `|` — pair what is filled in together, and give a long column a row of its own."
+            });
+          }
+          for (const column of row) {
+            if (column === key) {
+              this.error("EML176", `%%section places "${entity.name}.${column}", the primary key.`, {
+                line: directive.line,
+                hint: "The key is a generated uuid that no form shows. Leave it out of every row."
+              });
+              continue;
+            }
+            if (!known.has(column)) {
+              const near = [...known].find((name) => name.toLowerCase() === column.toLowerCase().replace(/\s+/g, "_"));
+              this.error("EML176", `%%section places "${entity.name}.${column}", which ${entity.name} does not declare.`, {
+                line: directive.line,
+                hint: near ? `Did you mean \`${near}\`? Rows name columns exactly as the erDiagram declares them.` : `Rows name columns of ${entity.name} exactly as the erDiagram declares them: ${[...known].filter((name) => name !== key).join(", ")}.`
+              });
+              continue;
+            }
+            if (placed.has(column)) {
+              this.warn("EML175", `"${entity.name}.${column}" is placed in two %%section rows.`, {
+                line: directive.line,
+                hint: "A field appears once on a form. The first placement is used; remove this one."
+              });
+              continue;
+            }
+            placed.add(column);
+          }
+        }
+      }
+      const unplaced = columns.map((attribute) => attribute.name).filter((name) => !placed.has(name));
+      if (unplaced.length > 0) {
+        const last = sections[sections.length - 1];
+        this.warn("EML172", `${entity.name} leaves ${unplaced.length} column${unplaced.length === 1 ? "" : "s"} out of every %%section: ${unplaced.join(", ")}.`, {
+          line: last?.lines[last.lines.length - 1],
+          hint: `Place ${unplaced.join(", ")} in the row ${unplaced.length === 1 ? "it belongs" : "they belong"} to. Unplaced columns are generated into a collapsed "${UNPLACED_SECTION}" section at the end of the form, which nobody designed.`
+        });
       }
     }
   }
@@ -4194,7 +4426,10 @@ var AUTO_FIXABLE_CODES = new Set([
   "EML114",
   "EML112",
   "EML103",
-  "EML287"
+  "EML287",
+  "EML172",
+  "EML174",
+  "EML175"
 ]);
 if (false) {}
 
@@ -4268,7 +4503,7 @@ function formatNextSteps(report) {
   } else if (dictionary.length > 0) {
     const codes = [...new Set(dictionary.map((issue) => issue.code))].sort().join(", ");
     const other = warnings - dictionary.filter((issue) => issue.severity === "warning").length;
-    steps.push(`The generator accepts this model, and it is not finished. ${dictionary.length} of these ` + `(${codes}) are Application Dictionary gaps: the dictionary is what the application ` + `draws every screen from, and each one leaves it recording less than the model knows — ` + `a reference as text rather than a lookup, a closed vocabulary as a free text box, a ` + `field and its manual entry with nothing under it. Clear them. \`node audit-model.mjs ` + `<file>.mmd\` fails while any stand, and the authoring protocol requires it to exit 0.` + (other > 0 ? ` The remaining ${other} warning${other === 1 ? " is" : "s are"} advisory.` : ""));
+    steps.push(`The generator accepts this model, and it is not finished. ${dictionary.length} of these ` + `(${codes}) are Application Dictionary gaps: the dictionary is what the application ` + `draws every screen from, and each one leaves it recording less than the model knows — ` + `a reference as text rather than a lookup, a closed vocabulary as a free text box, a ` + `field and its manual entry with nothing under it, a form with no sections. Clear them. \`node audit-model.mjs ` + `<file>.mmd\` fails while any stand, and the authoring protocol requires it to exit 0.` + (other > 0 ? ` The remaining ${other} warning${other === 1 ? " is" : "s are"} advisory.` : ""));
   } else {
     steps.push(`The generator accepts this model now. Clearing the ${warnings} warning${warnings === 1 ? "" : "s"} is optional, but each one names something it accepts and quietly gets wrong.`);
   }
@@ -4281,7 +4516,10 @@ var DICTIONARY_COMPLETENESS = new Set([
   "EML151",
   "EML152",
   "EML153",
-  "EML154"
+  "EML154",
+  "EML170",
+  "EML172",
+  "EML177"
 ]);
 function wrap(text, width = 74) {
   const out = [];
@@ -4434,7 +4672,7 @@ var HOOK_TYPES = [
   "customValidate"
 ];
 var HOOK_TYPE_SET = new Set(HOOK_TYPES);
-var DIRECTIVE = /^%%+hook\s+(\w+)\s+([A-Za-z_]\w*)\s+on\s+([A-Za-z_]\w*)\s*(\[[^\]]*\])?/;
+var DIRECTIVE2 = /^%%+hook\s+(\w+)\s+([A-Za-z_]\w*)\s+on\s+([A-Za-z_]\w*)\s*(\[[^\]]*\])?/;
 var DIRECTIVE_LINE = /^%%+hook\b/;
 function parseFields(bracket) {
   if (!bracket)
@@ -4459,7 +4697,7 @@ function compileHooks(source, knownEntities = [], onWarn = () => {}) {
     const line = rawLine.trim();
     if (!DIRECTIVE_LINE.test(line))
       continue;
-    const match = line.match(DIRECTIVE);
+    const match = line.match(DIRECTIVE2);
     if (!match) {
       onWarn(`Skipping malformed hook directive: ${line}`);
       continue;
@@ -8972,6 +9210,22 @@ class MermaidParser {
   }
 }
 
+// packages/generator/src/parsers/section.parser.ts
+function attachFormSections(source, entities) {
+  const byEntity = sectionsByEntity(parseSectionDirectives(source));
+  for (const entity of entities) {
+    const sections = byEntity.get(entity.name);
+    if (!sections || sections.length === 0)
+      continue;
+    entity.formSections = sections.map((section) => ({
+      name: section.name,
+      help: section.help,
+      collapsed: section.collapsed,
+      rows: section.rows.map((row) => [...row])
+    }));
+  }
+}
+
 // packages/generator/src/rbac/index.ts
 var RBAC_OPERATIONS = ["create", "read", "update", "delete"];
 var OPERATION_ALIASES = {
@@ -8993,7 +9247,7 @@ var OPERATION_ALIASES = {
   remove: "delete",
   destroy: "delete"
 };
-var DIRECTIVE2 = /^%%rbac\s+(\S+)\s+on\s+([A-Za-z_]\w*)\.([A-Za-z_*]\w*)\s*$/;
+var DIRECTIVE3 = /^%%rbac\s+(\S+)\s+on\s+([A-Za-z_]\w*)\.([A-Za-z_*]\w*)\s*$/;
 function parseRoleExpression(expression) {
   const roles = [];
   for (const part of expression.split("|")) {
@@ -9031,7 +9285,7 @@ function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = ()
     const line = rawLine.trim();
     if (!line.startsWith("%%rbac"))
       continue;
-    const match = line.match(DIRECTIVE2);
+    const match = line.match(DIRECTIVE3);
     if (!match) {
       onWarn(`Skipping malformed %%rbac directive: ${line}`);
       continue;
@@ -9095,7 +9349,7 @@ function compileRbac(source, knownEntities = [], stateMachines = [], onWarn = ()
 // packages/generator/src/reports/index.ts
 var REPORT_CHART_TYPES = ["bar", "line", "pie", "area"];
 var CHART_TYPE_SET = new Set(REPORT_CHART_TYPES);
-var KEYS = ["title", "entity", "chart", "x", "y", "help"];
+var KEYS2 = ["title", "entity", "chart", "x", "y", "help"];
 var READ_ONLY = /^\s*(?:with|select)\b/i;
 function hasStatementBreak(sql) {
   const body = sql.replace(/;\s*$/, "");
@@ -9134,7 +9388,7 @@ function parseReportDirective(line) {
   const name = nameMatch[1];
   const keys = head.slice(nameMatch[0].length);
   const read = (key) => {
-    const stop = KEYS.join("|");
+    const stop = KEYS2.join("|");
     const found = keys.match(new RegExp(`\\b${key}:\\s*(.*?)(?=\\s+(?:${stop}):|$)`, "is"));
     return found?.[1]?.trim() || undefined;
   };
@@ -10097,6 +10351,7 @@ function parseModel(sources) {
   }
   const joined = list.join(`
 `);
+  attachFormSections(joined, entities);
   const categories = resolveCategories(joined, entities.map((entity) => entity.name));
   const warn = (message) => console.warn(`  ⚠️  ${message}`);
   const rules = compileRules(extractRuleSections(joined), warn);

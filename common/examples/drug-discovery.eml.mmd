@@ -684,6 +684,48 @@ erDiagram
     %%field Team.manager_id help: Who runs it.
     %%field Team.department help: The department the team belongs to.
 
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Program; name: Program; help: Which discovery program this is, the disease it aims at, and who is accountable for it.; rows: name, program_code | therapeutic_area, indication | owner_id, target_id
+    %%section entity: Program; name: Progress; help: How far the program has got and whether it is still funded to continue.; rows: stage, status | started_on, target_candidate_date
+    %%section entity: Program; name: Mandate; help: What the program was funded to achieve and what it may spend a year doing it.; rows: annual_budget | objective
+    %%section entity: Target; name: Target; help: The protein the program acts on, as the gene and UniProt entry identify it.; rows: name, gene_symbol | uniprot_accession, target_class
+    %%section entity: Target; name: Validation; help: How strongly the target is tied to the disease, and whether hitting it is something to avoid.; rows: validation_level, is_antitarget | biological_rationale
+    %%section entity: CompoundSeries; name: Series; help: The chemical series, the program it belongs to, and whether chemists are still making it.; rows: name, series_code | program_id, status
+    %%section entity: CompoundSeries; name: Chemistry; help: The core structure the series is built around and the idea the chemists are testing with it.; rows: scaffold_smiles, compound_count | design_hypothesis
+    %%section entity: Compound; name: Registration; help: The compound's registry number, the series it was made in, and whether registration is complete.; rows: compound_number, registration_status | compound_series_id, registered_by_id | common_name, compound_class
+    %%section entity: Compound; name: Structure; help: The identifiers chemistry systems match the molecule on — any two compounds sharing an InChIKey are the same compound.; rows: smiles | inchi_key, cas_number | formula
+    %%section entity: Compound; name: Properties; help: The calculated physicochemical profile that decides whether the molecule looks like a drug.; rows: molecular_weight, logp | tpsa, rotatable_bonds | hydrogen_bond_donors, hydrogen_bond_acceptors | lipinski_violations
+    %%section entity: Assay; name: Assay; help: The test, what it measures, against which target, and whether it is still run.; rows: name, assay_code | assay_type, target_id | is_active
+    %%section entity: Assay; name: Method; help: What the assay reads out, in which unit, the protocol it follows, and the Z-prime a run must reach to count.; rows: readout, unit | protocol_reference, acceptance_z_prime
+    %%section entity: AssayRun; name: Run; help: One execution of an assay — which plate, which experiment, on which instrument, by whom.; rows: run_reference, assay_id | experiment_id, instrument_id | operated_by_id, run_date | plate_barcode
+    %%section entity: AssayRun; name: Quality; help: Whether the run met its quality bar; results from a failed run are not used for decisions.; rows: z_prime, qc_status | status, retest_count | failure_reason
+    %%section entity: AssayResult; name: Result; help: One compound's measured value in the run, with how it was qualified and how reproducible it was.; rows: assay_run_id, compound_id | value, unit | qualifier, is_validated | replicate_count, standard_deviation
+    %%section entity: AdmetProfile; name: Assessment; help: Which compound was profiled, when, and by whom.; rows: compound_id | assessed_on, assessed_by_id
+    %%section entity: AdmetProfile; name: Absorption and metabolism; help: How well the compound dissolves, crosses membranes and survives the liver.; rows: kinetic_solubility_um, caco2_permeability | microsomal_half_life_min, plasma_protein_bound_percent | is_bbb_penetrant
+    %%section entity: AdmetProfile; name: Safety signals; help: The early toxicity flags that stop a compound — cardiac channel, drug-interaction and mutagenicity results.; rows: herg_ic50_um, cyp3a4_inhibition_percent | ames_result
+    %%section entity: Experiment; name: Experiment; help: What is being done, for which program, under which principal investigator, and where it stands.; rows: title | program_id, pi_id | status, project_code | objective
+    %%section entity: Experiment; name: Schedule and compliance; help: How long it should take, when it was submitted and finished, and whether GMP rules apply.; rows: estimated_duration_days, is_gmp_critical | submitted_at, completed_at
+    %%section entity: Sample; name: Sample; help: The physical tube, which compound is in it, and the experiment it was drawn for.; rows: sample_barcode, status | compound_id, experiment_id
+    %%section entity: Sample; name: Contents; help: How much material is in the tube and in what state — what the next request can draw on.; rows: volume_ul, mass_mg | concentration_mm, physical_state
+    %%section entity: Sample; name: Storage; help: Where the tube is kept, how cold, and the day it must no longer be used.; rows: storage_location, storage_temperature | expiration_date
+    %%section entity: InventoryTransaction; name: Movement; help: One change to a sample's stock — what moved, how much, from where to where, and who did it.; rows: sample_id, transaction_type | quantity_change, occurred_at | from_location, to_location | performed_by_id | reason
+    %%section entity: Instrument; name: Instrument; help: The piece of equipment, its asset tag, where it stands, and whether it can be booked.; rows: name, asset_tag | instrument_type, location | is_active
+    %%section entity: Instrument; name: Calibration; help: Whether the instrument is in calibration; results from an out-of-calibration run are not accepted.; rows: calibration_status | last_calibration_date, next_calibration_date
+    %%section entity: InstrumentBooking; name: Booking; help: Who reserved which instrument, for which experiment, and when.; rows: instrument_id, experiment_id | booked_by_id, status | start_time, end_time
+    %%section entity: InstrumentBooking; name: Cancellation; help: Why the booking was given up, so the slot's history explains the gap.; rows: cancellation_reason; collapsed: true
+    %%section entity: Vendor; name: Vendor; help: The outside lab or supplier, what it provides, and whether procurement has approved it.; rows: name, vendor_type | sla_tier, is_approved | country
+    %%section entity: Vendor; name: Contact; help: Who to reach at the vendor about a request.; rows: contact_email, contact_phone
+    %%section entity: VendorRequest; name: Request; help: The work asked of a vendor, for which experiment, by whom, and where it stands.; rows: request_number, status | vendor_id, experiment_id | raised_by_id | description
+    %%section entity: VendorRequest; name: Cost and date; help: What the vendor quoted and when the work is needed by.; rows: quoted_cost, required_date
+    %%section entity: DeviationReport; name: Deviation; help: Which experiment departed from its procedure, who reported it, how serious it is, and where it stands.; rows: experiment_id, reported_by_id | severity, status
+    %%section entity: DeviationReport; name: What happened; help: The departure itself, when it occurred, and whether equipment failure played a part.; rows: anomaly_timestamp, instrument_failure_involved | anomaly_description
+    %%section entity: CAPA; name: Corrective action; help: The action raised against a deviation, who owns it, and where it stands.; rows: title | deviation_report_id, remediation_owner_id | status, required_resolution_date
+    %%section entity: CAPA; name: Root cause and plan; help: Why the deviation happened, what will be done about it, and how success will be measured.; rows: root_cause_category, effectiveness_metric | remediation_plan
+    %%section entity: User; name: Person; help: Who the user is and how colleagues reach them.; rows: first_name, last_name | email, role
+    %%section entity: User; name: Organisation; help: The team and department the user works in, and whether they can still sign in.; rows: team_id, department | is_active, last_login
+    %%section entity: Team; name: Team; help: The research group, its lead, and the department it sits in.; rows: name, manager_id | department
+
 %% ---- Section 2: Business rule — experiment submission gate -----------------
 %% What an experiment has to have before anybody's time is booked against it.
 %% Every branch here is a refusal a reviewer would otherwise have to make by
@@ -823,7 +865,7 @@ stateDiagram-v2
     %%rbac role:quality_assurance on CAPA.verify_effective
     %%rbac role:quality_assurance|lab_manager on CAPA.cancel
 
-%% ---- The reporting pass (llmdetailed §10.5.1) -----------------------------
+%% ---- The reporting pass (llms.md §1.1.7) ----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,

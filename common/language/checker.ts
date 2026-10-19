@@ -28,6 +28,7 @@ import type { EmlAttribute, EmlEntity, EmlModel, EmlRule, EmlWorkflow } from "./
 import { parseEml } from "./cli/src/parser";
 import { caps } from "./cli/src/util";
 import { loadLanguageDefinition, stepNodeTypes } from "./index";
+import { parseSectionDirectives, sectionsByEntity, UNPLACED_SECTION } from "./sections";
 
 // ---------------------------------------------------------------------------
 // Diagnostic types
@@ -109,6 +110,11 @@ class SourceIndex {
 
   constructor(source: string) {
     this.lines = source.split("\n");
+  }
+
+  /** The whole document, as the lines were split. */
+  text(): string {
+    return this.lines.join("\n");
   }
 
   /** Find the 1-based line number of the first occurrence of a pattern. */
@@ -398,6 +404,7 @@ class CheckEngine {
     this.checkCategoryDirectives();
     this.checkLineItems();
     this.checkHelpText();
+    this.checkSectionDirectives();
     this.checkHooks();
     this.checkAutomationTriggers();
     this.checkGuards();
@@ -1454,6 +1461,154 @@ class CheckEngine {
             hint: `"${field.text.trim().slice(0, 60)}" repeats the column name. Say why the value matters, what is expected in it, and what happens downstream — a reference column should say what the reference is *for*, not that it is one.`,
           });
         }
+      }
+    }
+  }
+
+  /**
+   * Whether a section's help only restates its heading — `Contact`,
+   * `Contact details`, `The contact fields.` under a section called Contact.
+   */
+  private restatedSectionHelp(name: string, text: string): boolean {
+    const own = this.nameAsWords(name);
+    const body = text
+      .trim()
+      .replace(/\.+$/, "")
+      .trim()
+      .toLowerCase()
+      .replace(/^(the|all)\s+/, "")
+      .replace(/\s+(fields?|information|info|details|data|section|columns?)$/, "")
+      .trim();
+    return body === own || body === "";
+  }
+
+  /**
+   * EML170-EML177: `%%section`, the form's layout.
+   *
+   * Sections are part of the Application Dictionary — the third layer under a
+   * column and a field — so three of these codes are dictionary completeness:
+   * an entity with no sections (EML170), columns no row places (EML172), and a
+   * section with no help (EML177). The rest are errors in the directive itself.
+   * The reading of a line is `language/sections.ts`, shared with the generator.
+   */
+  private checkSectionDirectives(): void {
+    const directives = parseSectionDirectives(this.src.text());
+    const declared = new Map(this.model.entities.map((entity) => [entity.name, entity]));
+
+    for (const directive of directives) {
+      if (directive.missing.length > 0) {
+        this.error(
+          "EML171",
+          `%%section is missing ${directive.missing.map((key) => `\`${key}:\``).join(", ")}.`,
+          {
+            line: directive.line,
+            hint: "Syntax: %%section entity: <Entity>; name: <Label>; help: <what this section is for>; rows: <column>, <column> | <column>. Rows are separated by `|`, the one or two columns of a row by `,`.",
+          }
+        );
+        continue;
+      }
+      if (directive.entity && !declared.has(directive.entity)) {
+        this.error("EML173", `%%section names entity "${directive.entity}", which is not declared.`, {
+          line: directive.line,
+          hint: "Use the entity's name exactly as the erDiagram declares it — it is case-sensitive, like every other directive's.",
+        });
+      }
+    }
+
+    const byEntity = sectionsByEntity(directives);
+
+    for (const entity of this.model.entities) {
+      const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
+      const sections = byEntity.get(entity.name);
+      const columns = entity.attributes.filter((attribute) => !attribute.isPrimaryKey);
+
+      if (!sections || sections.length === 0) {
+        if (columns.length === 0) continue;
+        this.warn("EML170", `Entity "${entity.name}" declares no %%section, so its form is one flat list.`, {
+          line: entityLine,
+          hint: `Add \`%%section entity: ${entity.name}; name: <Label>; help: …; rows: <a>, <b> | <c>\` lines placing every column but the key — two per row, a row of one for text that needs the width. The sections are the form a person uses all day, and the model is the only place they are decided.`,
+        });
+        continue;
+      }
+
+      const known = new Set(entity.attributes.map((attribute) => attribute.name));
+      const key = entity.attributes.find((attribute) => attribute.isPrimaryKey)?.name;
+      const placed = new Set<string>();
+
+      for (const section of sections) {
+        if (!section.help) {
+          this.warn("EML177", `%%section "${entity.name}.${section.name}" has no help:.`, {
+            line: section.lines[0],
+            hint: "Add `help: …` — what this part of the form is for, and what has to be true before it is complete. It is printed under the section's heading.",
+          });
+        } else if (this.restatedSectionHelp(section.name, section.help)) {
+          this.warn("EML177", `%%section "${entity.name}.${section.name}" help: restates its name.`, {
+            line: section.lines[0],
+            hint: `"${section.help.trim().slice(0, 60)}" repeats the heading. Say what the person filling it in is doing there.`,
+          });
+        }
+      }
+
+      for (const directive of directives) {
+        if (directive.entity !== entity.name || !directive.rows) continue;
+        for (const row of directive.rows) {
+          if (row.length > 2) {
+            this.error(
+              "EML174",
+              `%%section row "${row.join(", ")}" of ${entity.name} has ${row.length} columns; a row holds one or two.`,
+              {
+                line: directive.line,
+                hint: "The form is a two-column grid. Split the row with `|` — pair what is filled in together, and give a long column a row of its own.",
+              }
+            );
+          }
+          for (const column of row) {
+            if (column === key) {
+              this.error("EML176", `%%section places "${entity.name}.${column}", the primary key.`, {
+                line: directive.line,
+                hint: "The key is a generated uuid that no form shows. Leave it out of every row.",
+              });
+              continue;
+            }
+            if (!known.has(column)) {
+              const near = [...known].find(
+                (name) => name.toLowerCase() === column.toLowerCase().replace(/\s+/g, "_")
+              );
+              this.error(
+                "EML176",
+                `%%section places "${entity.name}.${column}", which ${entity.name} does not declare.`,
+                {
+                  line: directive.line,
+                  hint: near
+                    ? `Did you mean \`${near}\`? Rows name columns exactly as the erDiagram declares them.`
+                    : `Rows name columns of ${entity.name} exactly as the erDiagram declares them: ${[...known].filter((name) => name !== key).join(", ")}.`,
+                }
+              );
+              continue;
+            }
+            if (placed.has(column)) {
+              this.warn("EML175", `"${entity.name}.${column}" is placed in two %%section rows.`, {
+                line: directive.line,
+                hint: "A field appears once on a form. The first placement is used; remove this one.",
+              });
+              continue;
+            }
+            placed.add(column);
+          }
+        }
+      }
+
+      const unplaced = columns.map((attribute) => attribute.name).filter((name) => !placed.has(name));
+      if (unplaced.length > 0) {
+        const last = sections[sections.length - 1];
+        this.warn(
+          "EML172",
+          `${entity.name} leaves ${unplaced.length} column${unplaced.length === 1 ? "" : "s"} out of every %%section: ${unplaced.join(", ")}.`,
+          {
+            line: last?.lines[last.lines.length - 1],
+            hint: `Place ${unplaced.join(", ")} in the row ${unplaced.length === 1 ? "it belongs" : "they belong"} to. Unplaced columns are generated into a collapsed "${UNPLACED_SECTION}" section at the end of the form, which nobody designed.`,
+          }
+        );
       }
     }
   }
@@ -3214,6 +3369,9 @@ export const AUTO_FIXABLE_CODES = new Set([
   "EML112", // duplicate attribute → delete the later line, keeping the stronger constraints
   "EML103", // a column the generator adds → delete the line
   "EML287", // camelCase identifier in a rule condition → rewrite it snake_case
+  "EML172", // columns no %%section row places → append them to the entity's last section
+  "EML174", // a %%section row of three or more → split it into rows of two
+  "EML175", // a column placed twice → remove the later placement
 ]);
 
 /** Structured output written to <file>.error for the fixer to consume. */

@@ -199,9 +199,8 @@ longer takes the `common` build context.
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
 │   │                     — the two validators are BUILT here, not vendored (below)
 │   ├── website/
-│   │   ├── llmtext/      llms-full.txt · llmdetailed.txt · llms-reporting.txt
-│   │   │                 · llmtextenhancement.txt · llmdetailedenhancement.txt
-│   │   │                 — the last two are DERIVED from the first two (below)
+│   │   ├── llmtext/      llms.md · llms-reporting.txt · and four stubs
+│   │   │                 (llms-full, llmdetailed, *enhancement) pointing at llms.md
 │   │   └── viewers/      the ERD, rules and workflow model viewers
 │   └── examples/         analytics-reporting · drug-discovery · investment-planning · ERD sketches
 │
@@ -301,58 +300,43 @@ dependency for editors; nothing in a script runs `tsc`.
 
 ---
 
-## The four protocol documents, and the two that are derived
+## One protocol document, and four stubs
 
-`common/website/llmtext/` carries the documents a language model is pointed at.
-Two of them describe how to **write** a model from a brief; two describe how to
-**change one that already exists**:
+`common/website/llmtext/llms.md` is the document a language model is pointed at,
+and it is a copy of `app-with-ai-tanstack`'s `website/llmtext/llms.md`. It is one
+office-hours protocol for both jobs: given a description of a business it builds
+a new model, given a `.mmd` it changes that file in place, hands back the whole of
+it and proves nothing was lost. It asks the user's pace first — walk through it
+one decision at a time, or just build it — and it requires a complete
+Application Dictionary: help on every entity and column, the `FK` modifier and an
+enum binding wherever they apply, and **every form laid out as `%%section` rows**.
 
-| | Start from a brief | Start from an existing `.mmd` |
-|---|---|---|
-| **One pass** | `llms-full.txt` | `llmtextenhancement.txt` |
-| **Phased, with approval gates** | `llmdetailed.txt` §10 | `llmdetailedenhancement.txt` §10 |
+`llms-full.txt`, `llmdetailed.txt`, `llmtextenhancement.txt` and
+`llmdetailedenhancement.txt` are short stubs pointing at
+`https://www.appwithai.org/llms.md`. They keep their names because published
+prompts and links name them. The enhancement editions used to be derived from
+their bases by a script on the site; that script and its sources are gone, so
+there is nothing to regenerate — **edit `llms.md` upstream and copy it**, never
+here. Nothing in this repository checks it; the assertions are upstream in
+`bun run test:llmtext` and on the site in `scripts/check-spec.mjs`.
 
-**The enhancement pair is derived from the pair above it** — each is its base
-with the protocol section swapped and the entire language reference copied
-across byte for byte, so the four cannot come to disagree about the language
-itself. The deriver and its sources live in `businessappwithai.github.io`
-(`scripts/build-llmtext-enhancement.mjs`, `scripts/llmtext/`), which is where the
-published copies are served from. Regenerate this repository's copies from its
-own bases:
+**Nine codes are dictionary-completeness gaps, not advice**: `EML119`, `EML146`,
+`EML151`–`EML154`, and the form-layout trio `EML170` (an entity with no
+`%%section`), `EML172` (a column no row places) and `EML177` (a section with no
+help). They are warnings because the generator does not refuse them, and
+`audit-model.mjs` fails a model carrying any. `language/sections.ts` is the one
+reading of `%%section`, shared by the checker and the fixer (which repairs
+`EML172`, `EML174` and `EML175`); the generator has its own parser upstream.
 
-```bash
-node <site>/scripts/build-llmtext-enhancement.mjs \
-  --base common/website/llmtext/llms-full.txt   --protocol batch \
-  --out  common/website/llmtext/llmtextenhancement.txt
-node <site>/scripts/build-llmtext-enhancement.mjs \
-  --base common/website/llmtext/llmdetailed.txt --protocol interactive \
-  --out  common/website/llmtext/llmdetailedenhancement.txt
-```
-
-**Edit a base here and regenerate its companion in the same commit.** Nothing in
-*this* repository checks it — the assertion lives upstream in
-`app-with-ai-tanstack`'s `bun run test:llmtext` and on the site in
-`scripts/check-spec.mjs`, both against their own copies. These three sets of
-bases have already drifted from each other (see the language section below), and
-the enhancement editions inherit whichever drift their base carries — which is
-correct, and is why each repository derives from its own base rather than copying
-the site's output.
-
-**All four protocol sections require a complete Application Dictionary**, as
-the copies in `app-with-ai-tanstack` and on the site do. Each carries three
-blocks: plan every dictionary value in writing before the first line of
-Mermaid (an enhancement also fills the gaps the original carries); the six
-dictionary-completeness codes (`EML119`, `EML146`, `EML151`–`EML154`) as gaps the
-delivered file carries none of; and a review that re-runs the checker and the
-audit from zero until a full pass finds nothing to change. A change to those
-blocks is a change in three repositories — here, `app-with-ai-tanstack`'s
-`website/llmtext/`, and the site's bases and `scripts/llmtext/` sources — and
-the site's sources must still derive each repository's enhancement editions
-from its own bases.
+**This repository's browser entries are older than the product's.**
+`language/browser/checker.entry.ts` here has no `lineText` and no
+`DICTIONARY_COMPLETENESS` set, so `html/checker.js` names the nine codes as
+ordinary warnings in its closing line. The checks themselves are the same
+(`checker.ts`); only the report wording lags. Porting the entry is separate work.
 
 ### The published host is written in full
 
-Every mention of the host in the five `llmtext/*.txt` documents is
+Every mention of the host in `llmtext/llms.md` and the stubs beside it is
 `https://www.appwithai.org` — scheme and `www.` included. **`www` is canonical
 and the apex serves the same files**; both carry a certificate. For part of this
 project's life `www` was a DNS record onto the apex, so GitHub Pages served it a
@@ -641,14 +625,13 @@ after tables.
 
 **The same table is in the language and in every protocol document now.**
 `generatorContract.reportingApplication` in `common/language/appwithai-language.json`
-and §5.8 of `llms-full.txt` / `llmdetailed.txt` (§7.1 of the site's language-only
-edition) describe the pack, the three surfaces that serve it and the two sign-ins, and
-both enhancement protocols follow an edit into it. Change `pack.ts` and those change
+and the reporting-application section of `llms.md` describe the pack, the three surfaces
+that serve it and the two sign-ins, and its enhancement path follows an edit into it. Change `pack.ts` and those change
 with it.
 
 A model can also carry `%%report` directives — a question its users actually
 ask, written as the SQL that answers it. Those are listed first and take the top
-of the dashboard. See `website/llmtext/llmdetailed.txt` §10.5.1.
+of the dashboard. See `website/llmtext/llms.md`.
 
 ---
 

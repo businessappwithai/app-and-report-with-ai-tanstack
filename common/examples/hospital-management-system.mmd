@@ -1007,6 +1007,71 @@ erDiagram
     %%field StockTransaction.expiry_date help: When this batch expires. Empty for stock that does not expire.
     %%field StockTransaction.reference help: The delivery note, requisition or stock-count reference this movement came from.
     %%field StockTransaction.notes help: Why, where the type alone does not say — a correction after a count, a disposal after a fridge failure.
+
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Department; name: Department; help: The clinical or support department, the code rotas and orders use for it, and who leads it.; rows: name, code | department_type, doctor_id | is_active
+    %%section entity: Department; name: Location; help: Where the department is and the extension the switchboard puts calls through to.; rows: floor, phone_extension
+    %%section entity: Ward; name: Ward; help: The ward, the department it belongs to, the kind of patient it takes, and how many beds it is staffed for.; rows: name, code | department_id, ward_type | bed_capacity, is_active
+    %%section entity: Ward; name: Location; help: Where the ward is and how to ring the nurses' station.; rows: floor, phone_extension
+    %%section entity: Bed; name: Bed; help: One bed on a ward, what kind it is, and whether it can take the next admission.; rows: bed_code, bed_number | ward_id, bed_type | status, is_active | last_cleaned_at
+    %%section entity: Staff; name: Person; help: Who the staff member is and how colleagues reach them at work.; rows: first_name, last_name | staff_number, work_email | phone
+    %%section entity: Staff; name: Employment; help: Where they work, what they do, and since when — what rotas and access are built from.; rows: department_id, staff_role | job_title, hired_on | is_active
+    %%section entity: Doctor; name: Doctor; help: The staff member's medical registration and the specialty they practise.; rows: staff_id, registration_number | specialty, qualification
+    %%section entity: Doctor; name: Practice; help: Whether the doctor leads a team and whether new patients can be booked with them.; rows: is_consultant, accepts_new_patients
+    %%section entity: Nurse; name: Nurse; help: The staff member's nursing registration, grade, home ward and the shifts they work.; rows: staff_id, registration_number | grade, home_ward_id | shift_pattern
+    %%section entity: Patient; name: Patient; help: Who the patient is, and the numbers every record about them is matched on.; rows: first_name, last_name | medical_record_number, national_health_number | date_of_birth, gender | registered_on, is_deceased
+    %%section entity: Patient; name: Contact; help: How to reach the patient and where they live — appointment letters go here.; rows: phone, email | address_line | city, postcode
+    %%section entity: Patient; name: Emergency contact; help: Who to call if the patient cannot speak for themselves.; rows: emergency_contact_name, emergency_contact_phone
+    %%section entity: Patient; name: Clinical alerts; help: What every clinician must see before treating — blood group and allergies.; rows: blood_group | known_allergies
+    %%section entity: InsurancePolicy; name: Policy; help: Whose policy this is, the insurer, and whether it is the one billed first.; rows: patient_id, status | insurer_name, policy_number | policy_type, is_primary
+    %%section entity: InsurancePolicy; name: Cover; help: When the policy is valid and how much of a bill it pays — what billing checks before charging the insurer.; rows: valid_from, valid_to | coverage_limit, copay_percentage
+    %%section entity: Appointment; name: Appointment; help: Who is seen, by whom, in which department, and where the appointment stands.; rows: appointment_number, status | patient_id, doctor_id | department_id, appointment_type
+    %%section entity: Appointment; name: Time; help: When the patient is expected, for how long, and when the booking was made.; rows: scheduled_at, duration_minutes | booked_at
+    %%section entity: Appointment; name: Reason; help: Why the patient is coming, and why the appointment was cancelled if it was.; rows: reason | cancellation_reason
+    %%section entity: Encounter; name: Encounter; help: One contact between the patient and the hospital — who, with whom, where, and from which appointment.; rows: encounter_number, status | patient_id, doctor_id | department_id, appointment_id | encounter_type, is_billable
+    %%section entity: Encounter; name: Clinical; help: When the encounter started and ended, and what the patient presented with.; rows: started_at, ended_at | chief_complaint
+    %%section entity: Admission; name: Admission; help: The patient's stay, the encounter that led to it, and the bed they occupy.; rows: admission_number, status | patient_id, encounter_id | ward_id, bed_id | admission_type
+    %%section entity: Admission; name: Stay; help: When the patient was admitted, when they are expected to leave, and when they did.; rows: admitted_at, expected_discharge_date | discharged_at
+    %%section entity: Admission; name: Discharge; help: The summary the patient and their GP receive when the stay ends.; rows: discharge_summary
+    %%section entity: ClinicalNote; name: Note; help: One entry in the encounter's record — who wrote it, when, what kind, and who may read it.; rows: encounter_id, staff_id | note_type, recorded_at | is_confidential | content
+    %%section entity: VitalSign; name: Observation; help: When the set of observations was taken and by whom.; rows: encounter_id, staff_id | recorded_at
+    %%section entity: VitalSign; name: Readings; help: The measured signs and the early warning score computed from them, which decides escalation.; rows: temperature_c, pulse_bpm | systolic_bp, diastolic_bp | respiratory_rate, oxygen_saturation | early_warning_score
+    %%section entity: Diagnosis; name: Diagnosis; help: The condition recorded for the encounter, its code, who made it, and whether it is long-term.; rows: encounter_id, staff_id | diagnosis_code, diagnosis_type | description | diagnosed_at, is_chronic
+    %%section entity: Procedure; name: Procedure; help: The intervention, who performs it, and where it stands.; rows: encounter_id, doctor_id | procedure_code, status | name
+    %%section entity: Procedure; name: Theatre; help: When it is booked for, when it happened, the anaesthetic used, and how it went.; rows: scheduled_for, performed_at | anaesthetic_type | outcome
+    %%section entity: Consent; name: Consent; help: Agreement to a procedure — who gave it, in what capacity, and who witnessed it.; rows: procedure_id, consent_type | giver_type, giver_name | witnessed_by_id, consented_at
+    %%section entity: Consent; name: Withdrawal; help: Whether consent was taken back; a withdrawn consent stops the procedure.; rows: is_withdrawn, withdrawn_at | notes
+    %%section entity: LabOrder; name: Order; help: The test requested, for which encounter, by whom, and where it stands.; rows: order_number, status | encounter_id, ordered_by_id | test_code, test_name
+    %%section entity: LabOrder; name: Specimen and urgency; help: What sample the lab needs, how urgently, and when it was ordered and collected.; rows: specimen_type, priority | ordered_at, collected_at | is_escalated
+    %%section entity: LabOrder; name: Clinical details; help: What the requesting clinician wants the lab to know when interpreting the result.; rows: clinical_details
+    %%section entity: LabResult; name: Result; help: One measured analyte and its value — a number or, for a qualitative test, text.; rows: lab_order_id, analyte | value_numeric, unit | value_text
+    %%section entity: LabResult; name: Interpretation; help: The normal range the value is judged against and the flag that marks it abnormal.; rows: reference_low, reference_high | abnormal_flag, resulted_at
+    %%section entity: LabResult; name: Verification; help: Who checked the result before it was released to the ward, and when.; rows: verified_by_id, verified_at
+    %%section entity: ImagingOrder; name: Order; help: The scan requested, for which encounter, by whom, and where it stands.; rows: order_number, status | encounter_id, ordered_by_id | modality, body_part
+    %%section entity: ImagingOrder; name: Scheduling; help: How urgent it is, whether contrast is needed, and when it was ordered, booked and done.; rows: priority, is_escalated | contrast_used, ordered_at | scheduled_for, performed_at
+    %%section entity: ImagingOrder; name: Clinical question; help: What the requesting clinician needs the scan to answer.; rows: clinical_question
+    %%section entity: ImagingReport; name: Report; help: The radiologist's report on a scan, when it was issued, and whether it needs urgent action.; rows: imaging_order_id, doctor_id | reported_at, is_critical | is_addendum
+    %%section entity: ImagingReport; name: Findings; help: What the radiologist saw and what they conclude from it.; rows: findings | impression
+    %%section entity: Medication; name: Medicine; help: The medicine as the formulary lists it — its names, form, strength and route.; rows: name, code | brand_name, therapeutic_class | form, strength | route, inventory_item_id
+    %%section entity: Medication; name: Safety; help: The controls on prescribing it and when it must not be given.; rows: is_controlled, is_high_alert | is_active | contraindication_notes
+    %%section entity: Prescription; name: Prescription; help: The prescription, the encounter it was written in, who wrote it, and where it stands.; rows: prescription_number, status | encounter_id, prescribed_by_id | prescribed_at, is_discharge_prescription | has_controlled_item
+    %%section entity: Prescription; name: Pharmacy; help: The pharmacist's check and the dispensing — both are required before the patient receives it.; rows: verified_by_id, verified_at | dispensed_by_id, dispensed_at | notes
+    %%section entity: PrescriptionItem; name: Medicine; help: Which medicine is prescribed on this line and whether it needs a second check.; rows: prescription_id, medication_id | is_high_alert, second_check_by_id
+    %%section entity: PrescriptionItem; name: Dosing; help: How much, by which route, how often, for how long — exactly what the nurse gives.; rows: dose, route | frequency, quantity | duration_days, is_prn | instructions
+    %%section entity: ChargeableItem; name: Item; help: Something the hospital charges for, the code it is billed under, and its price.; rows: name, code | category, unit_price | is_active | description
+    %%section entity: Invoice; name: Invoice; help: The bill, the patient it is for, the care it charges, and where it stands.; rows: invoice_number, status | patient_id, encounter_id | admission_id, insurance_policy_id | issued_on, due_on
+    %%section entity: Invoice; name: Amounts; help: How the gross amount splits between the insurer and the patient, and how much has been paid.; rows: gross_amount, insurer_amount | patient_amount, paid_amount | policy_verified
+    %%section entity: Invoice; name: Notes; help: Anything the billing office should know about this invoice.; rows: notes; collapsed: true
+    %%section entity: InvoiceLine; name: Charge; help: One charge on the invoice, what it is for, and what it adds to the total.; rows: invoice_id, chargeable_item_id | description | quantity, unit_price | line_amount, charged_on | source_reference
+    %%section entity: Payment; name: Payment; help: Money received against an invoice — from whom, how, and how much was owed before it.; rows: receipt_number, invoice_id | payer_type, method | amount, outstanding_before | received_on, received_by_id | bank_reference
+    %%section entity: Supplier; name: Supplier; help: Who the hospital buys stock from, how long they take to deliver, and whether they are still used.; rows: name, code | lead_time_days, is_active
+    %%section entity: Supplier; name: Contact; help: Whom to call about an order and where to send it.; rows: contact_name, phone | email | address_line | notes
+    %%section entity: InventoryItem; name: Item; help: The stock item, who supplies it, and how it is issued to wards.; rows: name, code | supplier_id, category | unit_of_issue, is_active
+    %%section entity: InventoryItem; name: Stock; help: How much is on hand, the level that triggers a reorder, and whether one is open.; rows: quantity_on_hand, reorder_level | reorder_quantity, is_on_reorder
+    %%section entity: InventoryItem; name: Storage; help: Where the item is kept and whether it must stay refrigerated end to end.; rows: storage_location, requires_cold_chain
+    %%section entity: StockTransaction; name: Movement; help: One change to an item's stock — what kind, how much, and what was left afterwards.; rows: inventory_item_id, transaction_type | quantity, quantity_on_hand_after | occurred_on, performed_by_id | triggers_reorder
+    %%section entity: StockTransaction; name: Source and destination; help: Where the stock came from or went to, and the batch it belonged to.; rows: supplier_id, ward_id | batch_number, expiry_date | reference | notes
     %%field StockTransaction.transaction_type enum: StockTransactionType
     %%index StockTransaction(inventory_item_id, occurred_on)
     %%index StockTransaction(transaction_type, occurred_on)
@@ -1464,7 +1529,7 @@ stateDiagram-v2
     %%rbac role:hospital_manager on Invoice.write_off
     %%rbac role:hospital_manager on Invoice.cancel
 
-%% ---- The reporting pass (llmdetailed §10.5.1) -----------------------------
+%% ---- The reporting pass (llms.md §1.1.7) ----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,
