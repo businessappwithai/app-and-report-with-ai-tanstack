@@ -199,8 +199,7 @@ longer takes the `common` build context.
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
 │   │                     — the two validators are BUILT here, not vendored (below)
 │   ├── website/
-│   │   ├── llmtext/      llms.md · llms-reporting.txt · and four stubs
-│   │   │                 (llms-full, llmdetailed, *enhancement) pointing at llms.md
+│   │   ├── llmtext/      llms.txt · llms-reporting.txt
 │   │   └── viewers/      the ERD, rules and workflow model viewers
 │   └── examples/         analytics-reporting · drug-discovery · investment-planning · ERD sketches
 │
@@ -300,10 +299,10 @@ dependency for editors; nothing in a script runs `tsc`.
 
 ---
 
-## One protocol document, and four stubs
+## One protocol document
 
-`common/website/llmtext/llms.md` is the document a language model is pointed at,
-and it is a copy of `app-with-ai-tanstack`'s `website/llmtext/llms.md`. It is one
+`common/website/llmtext/llms.txt` is the document a language model is pointed at,
+and it is a copy of `app-with-ai-tanstack`'s `website/llmtext/llms.txt`. It is one
 office-hours protocol for both jobs: given a description of a business it builds
 a new model, given a `.mmd` it changes that file in place, hands back the whole of
 it and proves nothing was lost. It asks the user's pace first — walk through it
@@ -311,18 +310,13 @@ one decision at a time, or just build it — and it requires a complete
 Application Dictionary: help on every entity and column, the `FK` modifier and an
 enum binding wherever they apply, and **every form laid out as `%%section` rows**.
 
-`llms.txt` beside it is the same file byte for byte, for readers that refuse the
-`text/markdown` GitHub Pages sends for `.md`; copy both from upstream, never edit
-either here. The stubs name it as their fallback.
+It is published as `llms.txt` and nothing else — GitHub Pages types `.md` as `text/markdown`,
+which ChatGPT's web reader refuses — so there is no `llms.md`. Copy it from upstream, never edit it here.
 
-`llms-full.txt`, `llmdetailed.txt`, `llmtextenhancement.txt` and
-`llmdetailedenhancement.txt` are short stubs pointing at
-`https://www.appwithai.org/llms.md`. They keep their names because published
-prompts and links name them. The enhancement editions used to be derived from
-their bases by a script on the site; that script and its sources are gone, so
-there is nothing to regenerate — **edit `llms.md` upstream and copy it**, never
-here. Nothing in this repository checks it; the assertions are upstream in
-`bun run test:llmtext` and on the site in `scripts/check-spec.mjs`.
+There is no other protocol file: the four older documents and `llms.md` are deleted, so a model is
+never pointed at a second account of the language. **Edit `llms.txt` upstream and copy it**, never
+here. Nothing in this repository checks it; the assertions are upstream in `bun run test:llmtext` and
+on the site in `scripts/check-spec.mjs`.
 
 **Nine codes are dictionary-completeness gaps, not advice**: `EML119`, `EML146`,
 `EML151`–`EML154`, and the form-layout trio `EML170` (an entity with no
@@ -342,7 +336,7 @@ an entry, copy it and run `bun run build:language-tools`.
 
 ### The published host is written in full
 
-Every mention of the host in `llmtext/llms.md` and the stubs beside it is
+Every mention of the host in `llmtext/llms.txt` is
 `https://www.appwithai.org` — scheme and `www.` included. **`www` is canonical
 and the apex serves the same files**; both carry a certificate. For part of this
 project's life `www` was a DNS record onto the apex, so GitHub Pages served it a
@@ -413,7 +407,7 @@ somebody else's change. `node-rest` speaks it over HTTP — `ETag` on a read,
 refuses a stale save, and a detail page offering Reload their version /
 Overwrite with mine / Keep editing; `tanstack-nestjs` gets it from the product.
 `applicationDictionary.optimisticLocking` in `appwithai-language.json` and §5.4.1
-of `llms-full.txt` / `llmdetailed.txt` describe it. The runtime under
+of `llms.txt` describe it. The runtime under
 `language/cli/runtime/` is byte-identical to the product's and to the reporting
 platform's — change all three or none.
 
@@ -631,13 +625,13 @@ after tables.
 
 **The same table is in the language and in every protocol document now.**
 `generatorContract.reportingApplication` in `common/language/appwithai-language.json`
-and the reporting-application section of `llms.md` describe the pack, the three surfaces
+and the reporting-application section of `llms.txt` describe the pack, the three surfaces
 that serve it and the two sign-ins, and its enhancement path follows an edit into it. Change `pack.ts` and those change
 with it.
 
 A model can also carry `%%report` directives — a question its users actually
 ask, written as the SQL that answers it. Those are listed first and take the top
-of the dashboard. See `website/llmtext/llms.md`.
+of the dashboard. See `website/llmtext/llms.txt`.
 
 ---
 

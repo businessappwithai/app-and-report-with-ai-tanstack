@@ -39,7 +39,7 @@ Both read the same language, and everything that is neither product lives in
     ├── scripts/        the checks behind `bun run check`
     ├── html/           the published guide, checker.js / fixer.js, run-in-a-browser
     ├── website/
-    │   ├── llmtext/    llms-full.txt · llmdetailed.txt · llms-reporting.txt
+    │   ├── llmtext/    llms.txt · llms-reporting.txt
     │   └── viewers/    the model viewers
     └── examples/       sample models
 ```
@@ -101,7 +101,7 @@ column, a lifecycle per state machine in the diagram's own order, children per
 business running on it — so a model can also carry `%%report` directives, each a
 question its users actually ask written as the SQL that answers it. Those are
 listed first and take the top of the dashboard. See
-`website/llmtext/llmdetailed.txt` §10.5.1.
+`website/llmtext/llms.txt` §10.5.1.
 
 ## One model, three targets
 
@@ -182,8 +182,7 @@ the reports have to survive that.
 | | |
 |---|---|
 | The language | [`language/README.md`](language/README.md), then `language/spec/` |
-| APPWITHAI, in full | [`website/llmtext/llms-full.txt`](website/llmtext/llms-full.txt) |
-| The interactive authoring walkthrough | [`website/llmtext/llmdetailed.txt`](website/llmtext/llmdetailed.txt) |
+| APPWITHAI, in full | [`website/llmtext/llms.txt`](website/llmtext/llms.txt) |
 | The reporting platform, in full | [`website/llmtext/llms-reporting.txt`](website/llmtext/llms-reporting.txt) |
 | The human guide | [`html/index.html`](html/index.html) — nine chapters building a CRM |
 
@@ -210,7 +209,7 @@ the model sets the default and Application Dictionary → Table and Column keeps
 the last word. When the two disagree about the language, **this copy is the
 language** — and that is the case it was written for.
 
-**A product change to `llmdetailed.txt` fails the site's own spec check.**
+**A product change to `llms.txt` fails the site's own spec check.**
 `7e6ced3` rewrote the bare-host counter-example as
 `[www.appwithai.org](https://www.appwithai.org)`. The site's `check-spec.mjs`
 held the apex spelling verbatim, because the bullet exists to *show* a link

@@ -8,7 +8,7 @@ reader most needs to check while the model is still being written.
 These modules draw all of it: the entities and their links, the state machines,
 the sagas, the decision flows and the decision tables, the lifecycle hooks and
 the roles. They are published at `/viewers/` on the site, and
-[`../llmtext/llms.md`](../llmtext/llms.md) §1 sends the reader
+[`../llmtext/llms.txt`](../llmtext/llms.txt) §1 sends the reader
 there at the gates of the walkthrough.
 
 ## The one rule
