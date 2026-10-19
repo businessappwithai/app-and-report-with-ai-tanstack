@@ -205,6 +205,30 @@ erDiagram
     %%field Analyst.is_active help: Whether the analyst may still sign in. Their queries, reports and dashboards keep running — a deactivated author does not stop a scheduled delivery, which is deliberate and worth knowing.
     %%field Analyst.last_seen_at help: When the analyst last used the platform. It is what an access review is conducted on: an account unused for months is the one to question.
 
+    %%section entity: Workspace; name: Identity; help: What the organisation is called and how its address reads.; rows: name, slug | description
+    %%section entity: Workspace; name: Access; help: Whether the workspace may still be used.; rows: is_active
+    %%section entity: Analyst; name: Identity; help: Who the analyst is and which workspace they work in.; rows: display_name, job_title | email, workspace_id
+    %%section entity: Analyst; name: Access; help: Whether the analyst can sign in, and when they last did.; rows: is_active, last_seen_at
+    %%section entity: DataSource; name: Identity; help: What the source is called and which workspace owns the connection.; rows: name, workspace_id | description
+    %%section entity: DataSource; name: Connection; help: Where the database lives and how the platform reaches it.; rows: client_type, database_name | host, port
+    %%section entity: DataSource; name: Health; help: Whether the source is safe to query and when it last answered.; rows: status, is_readonly | last_checked_at
+    %%section entity: SchemaEntity; name: Table; help: Which table of the source this describes and how it is shown to analysts.; rows: data_source_id, table_name | display_name, column_count
+    %%section entity: SchemaEntity; name: Guidance; help: What the table means, written for the natural-language query model.; rows: instructions | is_indexed
+    %%section entity: SavedQuery; name: Query; help: The statement itself, the source it runs against and who wrote it.; rows: name, status | data_source_id, author_id | sql_text | description
+    %%section entity: SavedQuery; name: Limits and use; help: How many rows come back and when anyone last ran it.; rows: row_limit, last_run_at
+    %%section entity: ReportDefinition; name: Report; help: Which saved query the report presents and who owns it.; rows: name, saved_query_id | owner_id, page_size | description
+    %%section entity: ReportDefinition; name: Publishing; help: How the exported file is named and whether the report is shared.; rows: filename_template, is_public
+    %%section entity: ChartDefinition; name: Chart; help: Which saved query the chart draws and who owns it.; rows: name, chart_type | saved_query_id, owner_id
+    %%section entity: ChartDefinition; name: Axes and refresh; help: What is plotted on each axis and how often the chart re-runs.; rows: x_field, y_field | refresh_interval_seconds, is_public
+    %%section entity: Dashboard; name: Dashboard; help: What the dashboard is called, who owns it and where it sits.; rows: name, workspace_id | owner_id, column_count | description
+    %%section entity: Dashboard; name: Sharing; help: Whether the dashboard is served on a public link.; rows: is_public
+    %%section entity: DashboardWidget; name: Content; help: Which dashboard the widget is on and the report or chart it shows.; rows: title, dashboard_id | report_definition_id, chart_definition_id
+    %%section entity: DashboardWidget; name: Position; help: Where on the dashboard grid the widget sits and how large it is.; rows: grid_x, grid_y | grid_width, grid_height
+    %%section entity: ScheduledJob; name: Delivery; help: Which report is delivered, by whom it was requested and in what format.; rows: name, report_id | requested_by_id, export_format | recipients
+    %%section entity: ScheduledJob; name: Schedule; help: When the delivery runs and whether it is switched on.; rows: schedule_cron, is_active
+    %%section entity: JobExecution; name: Run; help: Which delivery ran, how it ended and how many rows it produced.; rows: scheduled_job_id, status | row_count
+    %%section entity: JobExecution; name: Timing and outcome; help: When the run started and finished, and the error if it failed.; rows: started_at, finished_at | error_message
+
     %%field DataSource.workspace_id help: The workspace this connection belongs to. A data source is never shared between workspaces, which is the boundary the whole tenancy model rests on.
     %%field DataSource.name help: What this connection is called when an analyst picks it from a list. Name it for the business system it points at, not for the server it runs on.
     %%field DataSource.description help: What lives in this database and what it is good for answering. It is the note that stops an analyst querying the wrong system, and the only place that knowledge is written down.

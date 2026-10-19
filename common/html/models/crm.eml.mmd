@@ -86,7 +86,7 @@
 %%rbac role:sales_manager|sales_ops|support_manager on User.read
 %%rbac role:sales_manager|sales_ops on Team.read
 
-%% ---- The reporting pass (llmdetailed §10.5.1) -----------------------------
+%% ---- The reporting pass (llms.md §1.1.7) ----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,
@@ -767,6 +767,62 @@ erDiagram
     %%field Activity.support_case_id help: The case it was part of handling.
     %%field Activity.contract_id help: The agreement it concerned.
     %%field Activity.owner_id help: The user who did it, or has to.
+
+    %% ---------------------------------------------------------------
+    %% Form layout. Each record's form is headed sections of two-column
+    %% rows: `|` between rows, `,` between the two fields of a row, and a
+    %% row of one spans the full width.
+    %% ---------------------------------------------------------------
+    %%section entity: User; name: Person; help: Who this user is and how colleagues reach them — the name on every record they own.; rows: first_name, last_name | email, phone | job_title, role
+    %%section entity: User; name: Team and target; help: Where the user sits in the sales organisation and what they are measured against; rows: team_id, quota_annual | is_active, last_login
+    %%section entity: Team; name: Team; help: The selling group, who leads it, and the target its members' quotas roll up to.; rows: name, manager_id | region, quota_annual | is_active
+    %%section entity: Territory; name: Territory; help: The patch of the market this territory covers and the manager accounts in it report to.; rows: name, manager_id | region, country_code | is_active
+    %%section entity: Territory; name: Account size; help: The band of company sizes routed here — accounts outside it belong to another territory.; rows: employee_count_floor, employee_count_ceiling
+    %%section entity: Account; name: Account; help: The customer organisation, the number it is known by, where it stands, and who owns the relationship.; rows: name, account_number | account_type, status | owner_id, territory_id
+    %%section entity: Account; name: Company profile; help: What kind of business this is and how big — what segmentation, tiering and routing read.; rows: industry, tier | employee_count, annual_revenue | website, phone
+    %%section entity: Account; name: Billing address; help: Where invoices are sent; it must match what the customer's accounts payable expects.; rows: billing_street | billing_city, billing_postal_code | billing_country
+    %%section entity: Account; name: Service; help: The support terms the account is entitled to and how healthy the relationship currently looks.; rows: sla_policy_id, health_score
+    %%section entity: Contact; name: Person; help: Who the person is, which account they work for, and their role there.; rows: first_name, last_name | account_id, is_primary | job_title, department
+    %%section entity: Contact; name: Reaching them; help: The channels sales and support use — the email is where every notification goes.; rows: email, phone | mobile
+    %%section entity: Contact; name: Consent; help: What the person has said they do not want; campaigns and dialers must honour both before contacting them.; rows: email_opt_out, do_not_call
+    %%section entity: Contact; name: Ownership; help: Whether the contact is current, who looks after them, and where they first came from.; rows: status, owner_id | lead_source
+    %%section entity: Lead; name: Lead; help: The person who showed interest and how to get back to them.; rows: first_name, last_name | email, phone | job_title
+    %%section entity: Lead; name: Company; help: The business behind the lead — what decides whether it is worth a sales rep's time.; rows: company_name, industry | employee_count, annual_revenue
+    %%section entity: Lead; name: Qualification; help: Where the lead stands, who is working it, how warm it is, and which campaign produced it.; rows: status, owner_id | rating, score | lead_source, campaign_id
+    %%section entity: Lead; name: Outcome; help: How the lead ended — converted into an account and opportunity, or ruled out and why.; rows: converted_at | disqualification_reason
+    %%section entity: Campaign; name: Campaign; help: What the campaign is, who runs it, and whom it is aimed at.; rows: name, campaign_type | status, owner_id | target_audience
+    %%section entity: Campaign; name: Schedule; help: When the campaign runs; members can only respond inside these dates.; rows: start_date, end_date
+    %%section entity: Campaign; name: Budget and return; help: What the campaign was allowed to spend, what it did spend, and what it was expected to bring back.; rows: budgeted_cost, actual_cost | expected_revenue, expected_response_count
+    %%section entity: CampaignMember; name: Member; help: Who was targeted by the campaign — a lead or a contact, never both.; rows: campaign_id | lead_id, contact_id
+    %%section entity: CampaignMember; name: Response; help: Whether and when the member answered, which is what the campaign's results are counted from.; rows: member_status, has_responded | responded_at
+    %%section entity: Opportunity; name: Deal; help: What is being sold, to which account and buyer, and who is selling it.; rows: name, owner_id | account_id, contact_id | description
+    %%section entity: Opportunity; name: Value; help: What the deal is worth and in which currency — the figure the forecast adds up.; rows: amount, currency_code
+    %%section entity: Opportunity; name: Pipeline; help: How far the deal has got and when it is expected to close; probability and forecast follow from the stage.; rows: stage, probability | forecast_category, expected_close_date | next_step
+    %%section entity: Opportunity; name: Origin; help: Where the deal came from, so marketing is credited with what it produced.; rows: lead_source, campaign_id
+    %%section entity: Opportunity; name: Outcome; help: When the deal closed and, if it was lost, the reason — what the win-loss review is built on.; rows: actual_close_date | loss_reason
+    %%section entity: OpportunityLineItem; name: Line; help: Which product this line of the deal is for, in the words the buyer will read.; rows: opportunity_id, product_id | line_description
+    %%section entity: OpportunityLineItem; name: Pricing; help: How many, at what price and discount, and what the line adds to the deal's amount.; rows: quantity, unit_price | discount_percent, line_total
+    %%section entity: Product; name: Product; help: What is sold, the code it is ordered by, its product family, and whether it can still be quoted.; rows: name, product_code | family, is_active | description
+    %%section entity: Product; name: Price; help: What the product lists at, what it costs to deliver, and how often it is billed.; rows: list_price, unit_cost | billing_frequency
+    %%section entity: Quote; name: Quote; help: Which quote this is, the deal and account it prices, where it stands, and how long it is valid.; rows: quote_number, version_number | name | opportunity_id, account_id | status, owner_id | valid_until
+    %%section entity: Quote; name: Totals; help: What the customer is asked to pay — the lines' subtotal, the discount, tax, and the grand total.; rows: subtotal, discount_percent | discount_amount, tax_amount | grand_total
+    %%section entity: Quote; name: Approval; help: Who signed off a discount beyond a rep's authority, when, and on what grounds.; rows: approved_by_id, approved_at | approval_notes
+    %%section entity: QuoteLineItem; name: Line; help: Which product this line prices and where it sits on the printed quote.; rows: quote_id, sort_order | product_id
+    %%section entity: QuoteLineItem; name: Pricing; help: How many, at what price and discount, and what the line adds to the quote's subtotal.; rows: quantity, unit_price | discount_percent, line_total
+    %%section entity: Contract; name: Contract; help: The agreement, the account it binds, the quote it came from, and who manages it.; rows: contract_number, status | account_id, quote_id | owner_id
+    %%section entity: Contract; name: Term; help: When the contract runs and what it is worth a year — what revenue recognition reads.; rows: start_date, end_date | term_months, annual_value
+    %%section entity: Contract; name: Renewal; help: Whether the contract renews itself and how much notice either side must give to stop it.; rows: auto_renew, renewal_notice_days
+    %%section entity: Contract; name: Signature; help: Who signed for the customer and when; the contract is not in force until both are set.; rows: signed_by_id, signed_at
+    %%section entity: SupportCase; name: Case; help: The number the customer quotes, where the case stands, and what is wrong in their words.; rows: case_number, status | subject | description
+    %%section entity: SupportCase; name: Customer; help: Who raised the case and which account it is charged against.; rows: account_id, contact_id
+    %%section entity: SupportCase; name: Triage; help: What kind of problem it is, how urgent, how it arrived, and who is working it.; rows: case_type, priority | origin, owner_id | escalated_by_id
+    %%section entity: SupportCase; name: Service level; help: The response and resolution deadlines the account's SLA sets, and whether either was missed.; rows: sla_policy_id, is_sla_breached | first_response_due_at, first_response_at | resolution_due_at, resolved_at
+    %%section entity: SupportCase; name: Resolution; help: What fixed it and how the customer rated the outcome.; rows: resolution_notes | satisfaction_score
+    %%section entity: SlaPolicy; name: Policy; help: The support promise, the account tier it is sold to, and whether it is still offered.; rows: name, tier | is_active
+    %%section entity: SlaPolicy; name: Targets; help: How fast a case must be answered and resolved, and whether the clock stops outside office hours.; rows: first_response_minutes, resolution_hours | business_hours_only
+    %%section entity: Activity; name: Activity; help: What was done or has to be done, how urgent it is, and whose it is.; rows: activity_type, subject | status, priority | owner_id | description
+    %%section entity: Activity; name: Timing; help: When it is due, when it was done, and how long it took.; rows: due_at, completed_at | duration_minutes
+    %%section entity: Activity; name: Related to; help: The records this activity is about; it appears on the timeline of each one set here.; rows: account_id, contact_id | lead_id, opportunity_id | support_case_id, contract_id
 
     %%index User(email) unique
     %%index Account(account_number) unique

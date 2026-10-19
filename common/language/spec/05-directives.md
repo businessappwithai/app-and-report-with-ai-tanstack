@@ -385,6 +385,69 @@ directive the generator ignores too — which is why `EML154` reports it.
 %%category name: People and Teams; default: true; entities: User, Team
 ```
 
+## `%%section` — lay a form out in sections of two-column rows *(compiled)*
+
+```
+%%section entity: <Entity>; name: <Label>; help: <text>; rows: <column>, <column> | <column> | …; collapsed: true
+```
+
+A column says what is stored; a field says it is on the screen; a section says
+**where, and beside what**. Each `%%section` line is one headed section of one
+entity's form:
+
+| Key | Required | Compiled to |
+|---|---|---|
+| `entity` | yes | the entity's tab |
+| `name` | yes | `sys_field_group.name` — the section heading |
+| `help` | completeness (`EML177`) | `sys_field_group.description` — the sentence under the heading |
+| `rows` | yes | each field's `sys_field_group_id`, `seq_no`, `is_same_line`, `x_position`, `y_position`, `column_span` |
+| `collapsed` | no | `sys_field_group.is_collapsed_by_default` |
+
+`rows` separates rows with `|` and the columns of a row with `,`. **A row holds
+one or two columns.** Two sit side by side; one spans the full width — the place
+for a `text` column, an address, or a reference whose label is long. Sections
+render in the order they are declared and fields in row order; repeating a
+section's `entity` and `name` continues it on the next line. `help` may contain
+`;`; no other value may.
+
+**It is mandatory.** Every entity declares its sections, and every column but
+the primary key is placed in exactly one row. An entity without sections is
+generated as one flat, unheaded list in declared order (`EML170`); a column no
+row names is put in a collapsed `Other` section at the end (`EML172`, which the
+fixer repairs by appending it to the last section — a repair, not a design).
+
+How to lay a form out:
+
+- **Pair what is filled in together** — `first_name, last_name`; `start_date,
+  end_date`; `quantity, unit_price`; a reference beside the status it moves
+  through.
+- **Name a section for what the person is doing**, not the kind of column:
+  *Identity, Contact, Terms, Delivery* — never *References, Dates, Numbers*.
+- **Open with what identifies the record** — the columns its display value is
+  built from, and the one or two someone checks first.
+- **Two to six rows a section.** Eight columns is two or three sections.
+- **Last, and `collapsed: true`:** what is rarely touched — internal notes,
+  integration references, administrator-only figures.
+- **Line items too.** A `parent:` entity's sections are what its own form shows
+  when a row is opened from the parent's tab.
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `EML170` | warning · completeness | the entity declares no `%%section` |
+| `EML171` | error | a `%%section` without `entity:`, `name:` or `rows:` |
+| `EML172` | warning · completeness · auto-fix | columns placed in no row |
+| `EML173` | error | the entity is not declared |
+| `EML174` | error · auto-fix | a row with more than two columns |
+| `EML175` | warning · auto-fix | a column placed twice |
+| `EML176` | error | a row names a column the entity lacks, or its primary key |
+| `EML177` | warning · completeness | a section with no `help:`, or help that restates its name |
+
+```
+%%section entity: Order; name: Order; help: Who placed the order, when, and where it stands.; rows: order_number, order_date | customer_id, status
+%%section entity: Order; name: Delivery; help: Where the goods go and how they travel there.; rows: shipping_address | carrier, tracking_number
+%%section entity: Order; name: Notes; help: Anything the next person handling this order should know.; rows: notes; collapsed: true
+```
+
 ## `%%index` — database index *(compiled)*
 
 ```

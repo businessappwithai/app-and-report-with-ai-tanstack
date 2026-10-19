@@ -128,6 +128,18 @@ erDiagram
     %%field Payment.amount help: The sum this payment moves. It need not equal the order total: part payments, gift-card balances and partial refunds are all normal, which is why settlement is the sum of captured payments rather than a single figure.
     %%field Payment.captured_at help: When the money was actually taken, as opposed to reserved. Empty until capture, and it is the date that appears on the customer's statement and in the day's takings.
 
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Customer; name: Customer; help: Who is buying and how the shop reaches them about orders.; rows: first_name, last_name | email, phone
+    %%section entity: Customer; name: Account security; help: The sign-in secret and whether the email address has been proven to belong to the customer.; rows: password_hash, is_verified; collapsed: true
+    %%section entity: Product; name: Product; help: What is sold, the SKU it is picked by, and whether it is on sale.; rows: name, sku | is_active | description
+    %%section entity: Product; name: Price and stock; help: What one unit costs and how many can still be sold before the shelf is empty.; rows: unit_price, stock_qty
+    %%section entity: Category; name: Category; help: Where the category sits in the shop's navigation tree.; rows: name, parent_id
+    %%section entity: Order; name: Order; help: Which order this is, who placed it, when, and where it stands.; rows: order_number, status | customer_id, placed_at
+    %%section entity: Order; name: Totals; help: How the amount charged is made up — the lines, less discount, plus shipping.; rows: subtotal, discount_amount | shipping_amount, total_amount
+    %%section entity: OrderItem; name: Item; help: One product on the order, how many, and what the line adds to the subtotal.; rows: order_id, product_id | quantity, unit_price | line_total
+    %%section entity: Payment; name: Payment; help: The money taken for the order — how, how much, and whether it has been captured.; rows: order_id, status | method, amount | captured_at
+
 %% ---- Section 2: Business rule — pricing & discount -------------------------
 %%meta name: Order Pricing
 %%meta kind: rules

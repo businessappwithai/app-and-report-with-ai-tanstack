@@ -7,7 +7,7 @@
 %% the two sagas that turn an accepted application into an enrolled, invoiced
 %% student and a payment into a settled invoice.
 %%
-%% Built through the interactive authoring protocol in llmdetailed.txt §10, so
+%% Built through the interactive authoring protocol (now llms.md §1), so
 %% it holds that section's standard: help text on every entity and every column,
 %% one %%rbac read rule per entity, every state backed by a declared %%enum, and
 %% reports for every role on the matrix. Every diagram is valid, renderable
@@ -502,6 +502,45 @@ erDiagram
     %%field DisciplineIncident.sanction_notes help: The detail of the sanction — how long, when, who supervised. The field the appeal is answered from, and the reason a bare enum was not enough.
     %%field DisciplineIncident.closed_on help: When the matter was finished. The open-incidents report is everything with no date here, and the ageing on that list is the pastoral team's real workload.
 
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Department; name: Department; help: The teaching department, the code timetables use for it, its head, and whether it still runs courses.; rows: name, code | staff_id, is_active
+    %%section entity: Room; name: Room; help: The teaching room, where it is, and how many students it seats — the cap on any class booked into it.; rows: name, code | building, capacity | is_active
+    %%section entity: AcademicTerm; name: Term; help: The term, the year it belongs to, and whether enrolment and invoicing are open for it.; rows: name, code | academic_year, status
+    %%section entity: AcademicTerm; name: Dates; help: When teaching starts and ends, and the census day enrolment numbers are reported on.; rows: starts_on, ends_on | census_on
+    %%section entity: Staff; name: Person; help: Who the staff member is and how the school reaches them.; rows: first_name, last_name | staff_number, email | phone
+    %%section entity: Staff; name: Role; help: Where they work, what they do, and whether they can be timetabled.; rows: department_id, job_title | staff_type, status | started_on
+    %%section entity: Course; name: Course; help: What is taught, by which department, at what level, and how many credits it carries.; rows: name, code | department_id, level | credit_hours, is_active
+    %%section entity: Guardian; name: Guardian; help: Who the guardian is and the way they prefer the school to get in touch.; rows: first_name, last_name | email, phone | preferred_contact_method
+    %%section entity: Guardian; name: Address; help: Where letters about the student are posted.; rows: address_line | city, postcode
+    %%section entity: Student; name: Student; help: Who the student is, the number every record is matched on, and their year group.; rows: first_name, last_name | student_number, date_of_birth | year_group, school_email
+    %%section entity: Student; name: Enrolment; help: Whether the student is on roll, since when, and whether a support plan applies to their teaching.; rows: status, enrolled_on | has_support_plan
+    %%section entity: Student; name: Withdrawal; help: When and why the student left; set only once they are off roll.; rows: withdrawn_on | withdrawal_reason; collapsed: true
+    %%section entity: StudentGuardian; name: Relationship; help: How this guardian is related to the student, and what they may do on the student's behalf.; rows: student_id, guardian_id | relationship, contact_order | is_primary_contact, may_collect
+    %%section entity: AdmissionApplication; name: Application; help: The application, who made it, the term it is for, and where it stands.; rows: reference, status | guardian_id, academic_term_id | submitted_on
+    %%section entity: AdmissionApplication; name: Applicant; help: The child applying, before they become a student — the details the decision is taken on.; rows: applicant_first_name, applicant_last_name | applicant_date_of_birth, year_group_applied_for
+    %%section entity: AdmissionApplication; name: Assessment; help: What the admissions policy weighs — prior attainment, a sibling at the school, and the band that results.; rows: prior_attainment_score, has_sibling_enrolled | admission_band
+    %%section entity: AdmissionApplication; name: Decision; help: Who decided, when, why, and the student record created if the place was taken up.; rows: decided_by_id, decided_on | student_id | decision_notes
+    %%section entity: ClassSection; name: Class; help: One taught group of a course in a term — its code, teacher and room.; rows: code, status | course_id, academic_term_id | staff_id, room_id
+    %%section entity: ClassSection; name: Timetable and size; help: When the class meets and how many students it holds against how many are enrolled.; rows: day_of_week, period | capacity, enrolled_count
+    %%section entity: ClassSection; name: Cancellation; help: Why the class will not run; every enrolment on it is withdrawn when this is set.; rows: cancellation_reason; collapsed: true
+    %%section entity: ClassSession; name: Lesson; help: One meeting of a class — when, where, with whom, and what it covers.; rows: class_section_id, status | starts_at, ends_at | room_id, staff_id | topic
+    %%section entity: ClassSession; name: Register; help: Whether attendance has been taken, and why the lesson was cancelled if it was.; rows: register_taken | cancellation_reason
+    %%section entity: Enrollment; name: Enrolment; help: A student's place in a class, and where that place stands.; rows: student_id, class_section_id | status, enrolled_on
+    %%section entity: Enrollment; name: Outcome; help: The grade and attendance the place ended with, and why it was given up if it was.; rows: final_grade, attendance_rate | withdrawn_on | withdrawal_reason
+    %%section entity: AttendanceRecord; name: Mark; help: The register mark for one student in one lesson, and who took it.; rows: class_session_id, student_id | status, minutes_late | marked_by_id, marked_at
+    %%section entity: AttendanceRecord; name: Absence; help: Whether an absence is authorised and the reason given — what safeguarding and attendance reports read.; rows: is_authorised | absence_reason
+    %%section entity: Assessment; name: Assessment; help: The piece of assessed work, for which class, and when it is due.; rows: title, class_section_id | assessment_type, status | due_on
+    %%section entity: Assessment; name: Scoring; help: What it is marked out of, how much it counts towards the final grade, and what students are told to do.; rows: max_score, weight_percent | instructions
+    %%section entity: AssessmentResult; name: Result; help: One student's mark on the assessment, who marked it, and whether it is released.; rows: assessment_id, student_id | score, max_score | status, marked_by_id | marked_at | feedback
+    %%section entity: FeeInvoice; name: Invoice; help: The fee bill, the student and term it is for, and where it stands.; rows: invoice_number, status | student_id, academic_term_id | issued_on, due_on
+    %%section entity: FeeInvoice; name: Amounts; help: What was billed, what has been paid, and what is still owed.; rows: total_amount, amount_paid | balance_due
+    %%section entity: FeeInvoice; name: Cancellation; help: Why the invoice was voided, kept for the audit trail.; rows: cancellation_reason; collapsed: true
+    %%section entity: FeeInvoiceLine; name: Charge; help: One fee on the invoice, what it is for, and what it adds to the total.; rows: fee_invoice_id, charge_type | description | quantity, unit_amount | line_total
+    %%section entity: Payment; name: Payment; help: Money received against a fee invoice — how much, how, by whom, and what was owed before it.; rows: fee_invoice_id, received_by_id | amount, balance_before | method, received_at | reference
+    %%section entity: DisciplineIncident; name: Incident; help: What happened, to which student, when, who reported it, and how serious it is.; rows: reference, status | student_id, reported_by_id | occurred_at, closed_on | category, severity | summary
+    %%section entity: DisciplineIncident; name: Sanction; help: What the school decided to do about it and why.; rows: sanction | sanction_notes
+
     %%field AcademicTerm.status enum: TermStatus
     %%field Staff.staff_type enum: StaffType
     %%field Staff.status enum: EmploymentStatus
@@ -612,7 +651,7 @@ erDiagram
     %%rbac role:counsellor|principal on DisciplineIncident.apply_sanction
     %%rbac role:principal on DisciplineIncident.dismiss
 
-%% ---- The reporting pass (llmdetailed §10.5.1) ------------------------------
+%% ---- The reporting pass (llms.md §1.1.7) -----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,

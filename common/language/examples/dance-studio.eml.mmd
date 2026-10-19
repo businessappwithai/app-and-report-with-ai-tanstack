@@ -6,9 +6,9 @@
 %% a credit comes back, and the saga that promotes a waitlisted member when a
 %% place is released.
 %%
-%% Written as the worked example for the interactive authoring protocol in
-%% llmtext/llmdetailed.txt §10, so it holds that section's standard: help text
-%% on every entity and every column, one %%rbac read rule per entity, and every
+%% Written as the worked example for the office-hours protocol in
+%% llms.md §1, so it holds that section's standard: help text on every
+%% entity and every column, one %%rbac read rule per entity, and every
 %% state backed by a declared %%enum. 0 errors, 0 warnings, clean under
 %% --strict. Every diagram is valid, renderable Mermaid.
 %% ============================================================================
@@ -191,6 +191,23 @@ erDiagram
     %%field Payment.received_at help: When the money actually arrived, not when it was keyed in. Bank transfers are commonly recorded late and the reconciliation depends on this distinction.
     %%field Payment.reference help: The card authorisation code or bank reference used to match the payment against the statement. Optional for cash, where there is nothing to match.
 
+    %% Form layout: headed sections of two-column rows (`|` between rows,
+    %% `,` within one; a row of one spans the full width).
+    %%section entity: Member; name: Member; help: Who the member is and how the studio reaches them about bookings and waitlist offers.; rows: full_name, status | email, phone
+    %%section entity: Member; name: Membership; help: When they joined and whether they agreed to hear about new classes.; rows: joined_on, marketing_opt_in
+    %%section entity: Instructor; name: Instructor; help: Who teaches, how members reach them, and whether they can still be scheduled.; rows: full_name, is_active | email | bio
+    %%section entity: Room; name: Room; help: The studio room, the code on its door, and how many dancers it safely holds.; rows: name, code | capacity, is_active
+    %%section entity: ClassOffering; name: Class; help: What the class is, the level it is pitched at, and what one attendance costs in credits.; rows: name, code | level, is_active | duration_minutes, credit_cost
+    %%section entity: ClassSession; name: Session; help: Which class is taught, where, by whom, and whether it is going ahead.; rows: class_offering_id, status | room_id, instructor_id
+    %%section entity: ClassSession; name: Timing and size; help: When the session runs and how many can book it — never more than the room holds.; rows: starts_at, ends_at | capacity
+    %%section entity: ClassSession; name: Cancellation; help: Why the studio called the session off; every booking on it is refunded when this is set.; rows: cancellation_reason; collapsed: true
+    %%section entity: Booking; name: Booking; help: Who booked which session, the pack paying for it, and where the booking stands.; rows: member_id, class_session_id | class_pack_id, status | booked_at, cancelled_at
+    %%section entity: Booking; name: Fee waiver; help: Whether a late-cancellation fee was waived, and the reason the front desk gave.; rows: fee_waived | waiver_reason
+    %%section entity: WaitlistEntry; name: Waitlist place; help: Who is waiting for a full session, their place in the queue, and whether a seat has been offered.; rows: member_id, class_session_id | queue_position, status | joined_at
+    %%section entity: ClassPack; name: Pack; help: The bundle of credits a member bought and how many are left to spend.; rows: member_id, status | credits_purchased, credits_remaining
+    %%section entity: ClassPack; name: Validity; help: When the pack was bought and the day unused credits lapse.; rows: purchased_on, expires_on
+    %%section entity: Payment; name: Payment; help: The money received for a pack — how much, how it was paid, and the reference the bank shows.; rows: class_pack_id, amount | method, received_at | reference
+
     %%field Member.status enum: MemberStatus
     %%field ClassOffering.level enum: ClassLevel
     %%field ClassSession.status enum: SessionStatus
@@ -227,7 +244,7 @@ erDiagram
     %%rbac role:receptionist|manager on Payment.read
     %%rbac role:receptionist|manager on Payment.create
 
-%% ---- The reporting pass (llmdetailed §10.5.1) -----------------------------
+%% ---- The reporting pass (llms.md §1.1.7) ----------------------------------
 %%
 %% What the derived pack already gives this model without being asked: a
 %% register per entity, a breakdown per %%enum-bound column, created-per-month,
