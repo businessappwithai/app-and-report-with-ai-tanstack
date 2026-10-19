@@ -199,6 +199,9 @@ jobs:
       - name: Check every model
         run: bun run check:models
 
+      - name: The protocol document is upstream's, byte for byte
+        run: bun run check:protocol
+
       - name: Type-check
         run: bun run type-check
 

@@ -543,7 +543,7 @@ node check-model.mjs my-business.mmd
 
 It runs the three passes below against the published modules, prints the
 checker's own report, and exits `0` when the model is clean, `1` when the
-generator would refuse it. (`--write` saves the repairs it applied; §8.4 has the
+generator would refuse it, `2` when the runner could not run at all. (`--write` saves the repairs it applied; §8.4 has the
 rest, and the recipes for runtimes with no shell.) Written out:
 
 ```js

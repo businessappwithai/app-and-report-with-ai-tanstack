@@ -7,8 +7,9 @@
     "bun": ">=1.4.3"
   },
   "scripts": {
-    "check": "bun run check:models && bun run type-check && bun run check:language-tools && bun run check:stacks && bun run check:clis && bun run check:pack",
+    "check": "bun run check:models && bun run check:protocol && bun run type-check && bun run check:language-tools && bun run check:stacks && bun run check:clis && bun run check:pack",
     "check:models": "bun scripts/check-models.ts",
+    "check:protocol": "bun scripts/check-protocol.ts",
     "check:stacks": "bun scripts/check-stacks.ts",
     "_comment:clis": "Two CLIs, one runtime: `appwithai` and `appwithai-wasm` both run on bun 1.4.3, what app-with-ai-tanstack requires throughout. `check:clis` runs both under whichever bun is on PATH and prints which; CI runs each in a job of its own so they go side by side \u2014 see .github/workflows/root-ci.yml.",
     "check:clis": "bun scripts/check-clis.ts",
