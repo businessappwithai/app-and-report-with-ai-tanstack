@@ -4870,8 +4870,17 @@ setLanguageDefinition(appwithai_language_default);
 var LANGUAGE_VERSION = appwithai_language_default.language.version;
 var AUTO_FIXABLE = [...AUTO_FIXABLE_CODES].sort();
 var SEVERITY_ORDER = { error: 0, warning: 1, info: 2 };
-function mark(result) {
-  return [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || (a.line ?? 0) - (b.line ?? 0)).map((issue) => ({ ...issue, autoFixable: AUTO_FIXABLE_CODES.has(issue.code) }));
+function mark(result, source) {
+  const lines = source.split(`
+`);
+  return [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || (a.line ?? 0) - (b.line ?? 0)).map((issue) => {
+    const text = issue.line && issue.line >= 1 ? lines[issue.line - 1] : undefined;
+    return {
+      ...issue,
+      autoFixable: AUTO_FIXABLE_CODES.has(issue.code),
+      ...text === undefined ? {} : { lineText: text.replace(/\s+$/, "") }
+    };
+  });
 }
 function fix(source, issues) {
   const fixable = issues.filter((issue) => AUTO_FIXABLE_CODES.has(issue.code)).map((issue) => ({ ...issue, autoFixable: true }));
@@ -4892,7 +4901,7 @@ function checkAndFix(source) {
     ok: final.errors === 0,
     counts: { errors: final.errors, warnings: final.warnings, infos: final.infos },
     fixes,
-    remaining: mark(final),
+    remaining: mark(final, finalSource),
     languageVersion: LANGUAGE_VERSION
   };
 }

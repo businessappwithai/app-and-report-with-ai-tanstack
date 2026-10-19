@@ -328,11 +328,13 @@ help). They are warnings because the generator does not refuse them, and
 reading of `%%section`, shared by the checker and the fixer (which repairs
 `EML172`, `EML174` and `EML175`); the generator has its own parser upstream.
 
-**This repository's browser entries are older than the product's.**
-`language/browser/checker.entry.ts` here has no `lineText` and no
-`DICTIONARY_COMPLETENESS` set, so `html/checker.js` names the nine codes as
-ordinary warnings in its closing line. The checks themselves are the same
-(`checker.ts`); only the report wording lags. Porting the entry is separate work.
+**The browser entries are the product's, copied.** `language/browser/checker.entry.ts`
+and `fixer.entry.ts` are byte-for-byte upstream's, so `html/checker.js` carries
+`lineText` on every placeable diagnostic and names the nine dictionary-completeness
+codes apart from the advisory warnings in its closing line — the verdict a language
+model reads last. The two bundles differ from the site's only in the language
+definition each inlines (this repository's canonical copy). When upstream changes
+an entry, copy it and run `bun run build:language-tools`.
 
 ### The published host is written in full
 
