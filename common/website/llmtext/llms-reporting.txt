@@ -12,7 +12,7 @@
   what every path below is relative to
 - **Runtime**: Bun ≥ 1.4.3. `node` is not supported for development
 - **Dev server**: `bun --bun vite dev` → http://localhost:4050
-- **Sibling spec**: `llms-full.txt` describes APPWITHAI, the *other* consumer of
+- **Sibling spec**: `llms.txt` describes APPWITHAI, the *other* consumer of
   the same EML models. Read that one for the language itself; read this one for
   the reporting platform. Neither is a substitute for the other.
 
@@ -679,7 +679,7 @@ this platform as its compose file's `report` service (port 3100), cloned at
 `scripts/seed-reporting-pack.ts` — the same script `start.sh`'s seeder runs. The
 browser application carries the pack in `model.json` and draws a labelled
 preview of this platform's screens over it. All three read one derivation,
-`buildReportingPack` in the generator; `llms-full.txt` §5.8 tabulates what each
+`buildReportingPack` in the generator; `llms.txt` §7.1 tabulates what each
 declaration in a model becomes here.
 
 ### What start.sh does before Docker
@@ -756,7 +756,7 @@ platform:
 
 The derived set describes the shape of the data and nothing about the business
 running on it. `%%report` is where the domain knowledge lives. See
-`llmdetailed.txt` §10.5.1 for how a model author is asked to produce them.
+`llms.txt` §1.1.7 for how a model author is asked to produce them.
 
 ---
 
@@ -880,6 +880,6 @@ variables the application ignores entirely.
    Workflows and `%%rbac` are not compiled by the `enterprise-reporting` target
    (§14). A model author who believes their access rules were generated has an
    unguarded application and no reason to look.
-6. **Point at the sibling spec for the language.** `llms-full.txt` covers EML and
+6. **Point at the sibling spec for the language.** `llms.txt` covers EML and
    the APPWITHAI generator in full; this file covers only how a model reaches
    the reporting platform.

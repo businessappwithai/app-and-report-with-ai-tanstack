@@ -20,7 +20,7 @@
  */
 
 // The published validator, not the copy inside the generator bundle. Same engine
-// either way — but this is the file `llms-full.txt` §10 tells a model to validate
+// either way — but this is the file `llms.txt` §1.3 tells a model to validate
 // against, so the page and the protocol cannot drift into disagreeing about
 // whether a document is acceptable. `fixer.js` carries the checker with it,
 // which is what lets it re-check what it repaired.

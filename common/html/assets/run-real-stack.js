@@ -18,7 +18,7 @@
  * StackBlitz's own service, which is the one thing here that is not local.
  */
 
-// The published validator — the same file `llms-full.txt` §10 points a model at.
+// The published validator — the same file `llms.txt` §1.3 points a model at.
 // Checking here, when the model is chosen, rather than only inside
 // `generateFullStack`: the reader is looking at the model now, and a document
 // with an error is not going to become an application by pressing Assemble.

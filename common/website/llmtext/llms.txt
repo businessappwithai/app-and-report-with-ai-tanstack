@@ -11,13 +11,9 @@
 > model attached or pasted, you are changing that model — whole, in place, losing
 > nothing. Without one, you are building a new one from their description. §1
 > is the procedure for both; §1.1.1 decides which you are in.
->
-> This document replaces the four that came before it — `llms-full.txt`,
-> `llmdetailed.txt`, `llmtextenhancement.txt` and `llmdetailedenhancement.txt`.
-> Everything they said about the language is here; their four protocols are §1.
 
 - **EML version**: 1.2.0 · **Based on**: Mermaid · **Updated**: 2026-10-19
-- **This document**: `https://www.appwithai.org/llms.md`
+- **This document**: `https://www.appwithai.org/llms.txt`
 - **Authority**: `language/appwithai-language.json`. Where this document and that
   file disagree, that file wins.
 - **Validators** (§8): `https://www.appwithai.org/guide/checker.js` and
@@ -28,6 +24,14 @@
   fact about your network and not a reason to skip validation or to stop** —
   §8.4's last two rows are the offline procedure, and they are real runs with
   real counts.
+- **Validation is mandatory, and it is two runs, not one.** Before you hand over a
+  model you run the checker **and** the audit (§8.5) on the file's own bytes, and
+  your delivery reports both verdicts, verbatim. A model that was not run through
+  both is not delivered, it is a draft. Do not offer the run, do not defer it to the
+  user, do not replace it with a review of your own, and never report counts you did
+  not get from a run. Every environment has a route that works (§8.4); finding it is
+  part of the job. Only when every route is exhausted does §1.3.5 apply, and it
+  changes what you may claim, not whether you tried.
 - **To check a model from a shell** (§1.3, §8.4) — nothing to install:
   `curl -sO https://www.appwithai.org/guide/check-model.mjs` then
   `node check-model.mjs my-business.mmd`. Exit `0` means the generator accepts
@@ -539,7 +543,7 @@ node check-model.mjs my-business.mmd
 
 It runs the three passes below against the published modules, prints the
 checker's own report, and exits `0` when the model is clean, `1` when the
-generator would refuse it. (`--write` saves the repairs it applied; §8.4 has the
+generator would refuse it, `2` when the runner could not run at all. (`--write` saves the repairs it applied; §8.4 has the
 rest, and the recipes for runtimes with no shell.) Written out:
 
 ```js
@@ -634,18 +638,21 @@ Repeat until a full review finds nothing to change.
 
 #### 1.3.5 If you cannot reach the checker
 
-That changes what you can *claim*, not what you deliver. First make sure it is
+That changes what you can *claim*, not whether you tried: validation is mandatory,
+so this section is the last step of a failed search, never a first step. First make sure it is
 actually true: §8.4 lists a route per runtime, and every observed case of "the
 checker could not be run" has been one route failing while the others went
 untried. Failing to reach GitHub says nothing about whether the checker can
 run — no route to it passes through a GitHub host. A host that will not resolve,
 or a proxy answering 403 or 502, is one route — the modules are two dependency-free files, and `check-model.mjs` runs
 against a local copy of them with no network at all (§8.4). Only when that is
-also impossible: walk §10 by hand, item by item, and hand over the file with one
-plain sentence — the checker could not be run here, this is what was verified by
-hand, and the user can validate it in their own browser at
-`https://www.appwithai.org/guide/11-check-a-model.html`. Never report a check of
-your own devising in the vocabulary of the real one.
+also impossible — and you have asked the user to attach `check-model-standalone.mjs` or to run the
+model in their own browser at `https://www.appwithai.org/guide/11-check-a-model.html`, where the **Check**
+and **Audit** buttons run the same two modules — walk §10 by hand, item by item, and hand
+over the file labelled **not validated**, with one plain sentence: the checker and the audit could not be run
+here, this is what was verified by hand, and no counts are given. The `.mmd` is still the deliverable. Never
+report a check of your own devising in the vocabulary of the real one, and never state a count, a verdict or a
+score that a run did not print.
 
 §10 asks whether the model is *right*. This table is the other half — the
 mechanical faults the checker catches by reading, which a human eye slides past:
@@ -2395,14 +2402,14 @@ row for a shell that resolves no host (`check-model-lite.mjs`) and bring that on
 | A shell with Node 18+, Bun or Deno | `curl -sO https://www.appwithai.org/guide/check-model.mjs` then `node check-model.mjs <business-name>.mmd` |
 | Bun or Deno, writing the code yourself | `import { check } from "https://www.appwithai.org/guide/checker.js"` — a URL import works as it stands |
 | Node, writing the code yourself | Node has no network imports: fetch both files, write them into one directory, `import()` them from there (below) |
-| A browser, a canvas, an HTML preview | `<script type="module">` with the same URL import — or paste the document into `https://www.appwithai.org/guide/11-check-a-model.html`, which runs these same modules in the tab. Either is a real run and its counts are reportable |
+| A browser, a canvas, an HTML preview | `<script type="module">` with the same URL import — or paste the document into `https://www.appwithai.org/guide/11-check-a-model.html`, which runs these same modules in the tab — **Check** for the checker and **Audit** for the audit. Either is a real run and its counts are reportable |
 | A browse or fetch tool **beside** a shell with no network | The split most assistants have, and a bridge rather than a blocker. Read `https://www.appwithai.org/guide/checker.js` and `https://www.appwithai.org/guide/fixer.js` with the layer that can reach them, write both into the shell's working directory — a heredoc will do, and a file too large for one write goes in pieces — then run the first row with `--base .`. The shell needs no network, only a file write |
 | **ChatGPT**, or any chat whose code sandbox has no network at all | ChatGPT's sandbox refuses every outbound connection — DNS, `8.8.8.8`, `1.1.1.1`, every host — by design, so no URL will ever download there and retrying proves nothing. **Ask the user to attach** `https://www.appwithai.org/guide/check-model-standalone.mjs` to the chat (one click to download, one to attach); it lands in `/mnt/data/`. Then `cd /mnt/data && node check-model-standalone.mjs <file>.mmd` and the same with `--audit`. Node is already in the sandbox. Report the checker's verdict line (`OK —` or `FAILED —`; after a repair it is not the last line), the audit's last line and both exit codes. A real run, counts reportable |
 | A shell with Node that **resolves no host**, and a text-only way in (a connector, a paste box, a file reader) | **Carry one small file.** `https://www.appwithai.org/guide/check-model-lite.mjs` is about 70KB and holds the published `checker.js` compressed inside it: `node check-model-lite.mjs <business-name>.mmd` runs the real `check()` on your file's bytes and prints the checker's own report, exit `0`/`1`/`2`. One pass, no repairs, so a clean result is a real official-checker pass and its counts are reportable. For the fixer and §8.5's score use `https://www.appwithai.org/guide/check-model-standalone.mjs` (about 150KB). Read either from `https://www.appwithai.org` only, write it into the shell's working directory in pieces if one write is too large, and run it. Nothing else is needed: no clone, no Bun, no second host |
 | A fetch layer that reads **pages** but refuses `application/javascript` | Commoner than it sounds, and it reports the module as inaccessible while the same host serves it pages without complaint — which reads as the site being broken. The modules are published inside pages for exactly this: `https://www.appwithai.org/guide/source/` links one page per file, each carrying that file base64-encoded with its SHA-256. Read the page, strip whitespace, `base64 -d`, check the hash, then the row above. Base64 is used rather than escaped source because it survives a reflow or a Markdown conversion — and because a corrupted copy then fails the hash instead of quietly becoming a checker that is not this one |
 | A shell that runs Node but **reaches no host at all**, and a text-only way in | **One file.** `https://www.appwithai.org/guide/check-model-standalone.mjs` is about 140KB and carries `checker.js`, `fixer.js` and **both** runners compressed inside it. Get that one file there by any means — paste it, print it from a layer that can read it, copy it off another machine — then `node check-model-standalone.mjs <business-name>.mmd`, and `node check-model-standalone.mjs <business-name>.mmd --audit` for §8.5's checklist score. It inflates them into a temp directory and runs the published runners against them: same three passes, same diagnostics, same `0`/`1`/`2`. **A real run, counts reportable.** The published files are smaller apart than this is together, so prefer them whenever anything can fetch |
 | A shell, but **no egress** — a sandbox, a proxy, an air-gapped runner | The modules are two dependency-free files, and both `check-model.mjs` and `audit-model.mjs` prefer a local copy of them to the network. Put `checker.js` and `fixer.js` in the directory you are working in, or beside the script, or name their directory with `--base <dir>` — a relative directory such as `--base ./` is fine — and run them exactly as above. **This is a real run**: same engines, same report, same exit codes, counts reportable |
-| No JavaScript runtime at all | Walk §10 by hand, and say in your delivery that the model was checked against the checklist and not against the checker |
+| No JavaScript runtime at all | Ask the user to paste the model into `https://www.appwithai.org/guide/11-check-a-model.html` and press **Check** and **Audit**, and report what they read back. Only if that is also impossible, walk §10 by hand and label the delivery **not validated**: checked against the checklist, not against the checker, no counts |
 
 **A blocked network is not a failed validation, and it is not a stopping
 point.** An agent sandbox usually reports it as a DNS failure or as a gateway
@@ -2435,9 +2442,9 @@ side that runs will find them. Naming the split and stopping is describing the
 transport, not the checker.
 
 **And whatever happens, do not stall.** If you cannot obtain a checker result,
-finish the work and say so in one sentence — *"delivered unvalidated: the
-published checker was unreachable from this environment (403 from the proxy), so
-these counts are absent rather than estimated"*. What you must never do is
+after the whole ladder, finish the work and say so in one sentence — *"delivered not validated:
+every route to the published checker and audit was tried and failed (403 from the proxy), so the
+verdict and the counts are absent rather than estimated"*. What you must never do is
 invent counts, and what you must not do instead is hold a phase open waiting for
 a host that this environment is never going to reach. An unvalidated model
 delivered with that sentence attached is useful; a protocol stopped at a gate is

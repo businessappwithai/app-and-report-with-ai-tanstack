@@ -38,9 +38,9 @@ before editing anything:
 
 ```bash
 for m in <marker> <marker>; do
-  for f in $A/website/llmtext/llms-full.txt \
-           $O/common/website/llmtext/llms-full.txt \
-           $W/llms-full.txt; do
+  for f in $A/website/llmtext/llms.txt \
+           $O/common/website/llmtext/llms.txt \
+           $W/llms.txt; do
     printf "%-60s " "$f"; grep -qF -- "$m" "$f" && echo yes || echo NO
   done
 done
@@ -109,7 +109,6 @@ bytes that CI will reject.
 | `$W/assets/js/appwithai-fullstack.js` | `$A/html/assets/appwithai-fullstack.js` |
 | `$W/viewers/eml-model.js` | `$A/website/viewers/eml-model.js` |
 | `$W/guide/wasm-app/sw.js` | `$A/html/wasm-app/sw.js` |
-| `$W/llmdetailed.txt` | `$A/website/llmtext/llmdetailed.txt` |
 
 **The orchestrator's two validators are no longer on that list — they are built.**
 `$O/common/html/checker.js` and `fixer.js` are bundled from its own
@@ -157,24 +156,21 @@ the website's CLAUDE.md tabulates; if it did not, leave them alone.
 
 ## 4. The protocol documents
 
-One protocol document, published two ways, plus four stubs. All of it is
-upstream's `$A/website/llmtext/`, copied byte for byte — nothing is authored or
-derived downstream any more.
+One protocol document, published as `llms.txt` and nothing else.
+All of it is upstream's `$A/website/llmtext/llms.txt`, copied byte for byte — nothing is
+authored or derived downstream. The four older `.txt` documents are deleted everywhere. There is no `llms.md`: GitHub Pages types `.md` as
+`text/markdown`, which ChatGPT's web reader refuses.
 
 | To | From |
 |---|---|
-| `$O/common/website/llmtext/llms.md` | `$A/website/llmtext/llms.md` |
 | `$O/common/website/llmtext/llms.txt` | `$A/website/llmtext/llms.txt` |
-| `$W/llms.md` | `$A/website/llmtext/llms.md` |
 | `$W/llms.txt` | `$A/website/llmtext/llms.txt` |
-| the four retired stubs (`llms-full`, `llmdetailed`, `llmtextenhancement`, `llmdetailedenhancement`, each `.txt`) in `$O/common/website/llmtext/` and at `$W/` | the same names in `$A/website/llmtext/` |
 
-`llms.txt` is `llms.md` under a name GitHub Pages serves as `text/plain`;
-ChatGPT's reader refuses the `text/markdown` it sends for `.md`. Verify:
+Verify the copies:
 
 ```bash
-for d in $A/website/llmtext $O/common/website/llmtext $W; do
-  cmp $d/llms.md $d/llms.txt && echo "ok $d"
+for d in $O/common/website/llmtext $W; do
+  cmp $d/llms.txt $A/website/llmtext/llms.txt && echo "ok $d"
 done
 ```
 

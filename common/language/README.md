@@ -284,5 +284,5 @@ See `spec/` for the full reference and `appwithai-language.json` for the
 machine-readable contract.
 
 For writing or changing a model — the whole language, the Application Dictionary
-and the procedure — see [`../website/llmtext/llms.md`](../website/llmtext/llms.md),
+and the procedure — see [`../website/llmtext/llms.txt`](../website/llmtext/llms.txt),
 which is the same material written as one context file for language models.
