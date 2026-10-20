@@ -38,10 +38,12 @@ before editing anything:
 
 ```bash
 for m in <marker> <marker>; do
-  for f in $A/website/llmtext/llms.txt \
-           $O/common/website/llmtext/llms.txt \
-           $W/llms.txt; do
-    printf "%-60s " "$f"; grep -qF -- "$m" "$f" && echo yes || echo NO
+  for c in llms.txt working-session.txt eml-syntax.txt eml-dictionary.txt eml-reporting.txt checker-rules.txt enhancement-examples.txt; do
+    for f in $A/website/llmtext/$c \
+             $O/common/website/llmtext/$c \
+             $W/$c; do
+      grep -qF -- "$m" "$f" && printf "%-70s yes\n" "$f"
+    done
   done
 done
 ```
@@ -156,21 +158,24 @@ the website's CLAUDE.md tabulates; if it did not, leave them alone.
 
 ## 4. The protocol documents
 
-One protocol document, published as `llms.txt` and nothing else.
-All of it is upstream's `$A/website/llmtext/llms.txt`, copied byte for byte — nothing is
+One protocol, published as a short controller `llms.txt` plus six lazy-loaded chunks
+(`working-session`, `eml-syntax`, `eml-dictionary`, `eml-reporting`, `checker-rules`, `enhancement-examples`, each `.txt`).
+All seven are upstream's `$A/website/llmtext/*.txt`, copied byte for byte — nothing is
 authored or derived downstream. The four older `.txt` documents are deleted everywhere. There is no `llms.md`: GitHub Pages types `.md` as
 `text/markdown`, which ChatGPT's web reader refuses.
 
 | To | From |
 |---|---|
-| `$O/common/website/llmtext/llms.txt` | `$A/website/llmtext/llms.txt` |
-| `$W/llms.txt` | `$A/website/llmtext/llms.txt` |
+| `$O/common/website/llmtext/<each of the seven>` | `$A/website/llmtext/<same name>` |
+| `$W/<each of the seven>` | `$A/website/llmtext/<same name>` |
 
 Verify the copies:
 
 ```bash
 for d in $O/common/website/llmtext $W; do
-  cmp $d/llms.txt $A/website/llmtext/llms.txt && echo "ok $d"
+  for c in llms.txt working-session.txt eml-syntax.txt eml-dictionary.txt eml-reporting.txt checker-rules.txt enhancement-examples.txt; do
+    cmp $d/$c $A/website/llmtext/$c && echo "ok $d/$c"
+  done
 done
 ```
 
