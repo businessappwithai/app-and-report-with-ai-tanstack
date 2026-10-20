@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(docker info:*)",
-      "Bash(bash /tmp/claude-0/-home-user/429e1103-14ad-567b-9ba7-d386d3441e2e/scratchpad/dl/upload.sh:*)"
+      "Bash(bash scripts/paxel/upload.sh:*)"
     ]
   }
 }
