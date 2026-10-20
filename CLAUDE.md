@@ -303,7 +303,7 @@ dependency for editors; nothing in a script runs `tsc`.
 
 `common/website/llmtext/llms.txt` is the document a language model is pointed at,
 and it is a copy of `app-with-ai-tanstack`'s `website/llmtext/llms.txt`. It is one
-office-hours protocol for both jobs: given a description of a business it builds
+working-session protocol for both jobs: given a description of a business it builds
 a new model, given a `.mmd` it changes that file in place, hands back the whole of
 it and proves nothing was lost. It asks the user's pace first — walk through it
 one decision at a time, or just build it — and it requires a complete
