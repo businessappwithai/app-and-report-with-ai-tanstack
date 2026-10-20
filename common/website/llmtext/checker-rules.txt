@@ -479,6 +479,33 @@ row for a shell that resolves no host (`check-model-lite.mjs`) and bring that on
 | A shell, but **no egress** — a sandbox, a proxy, an air-gapped runner | The modules are two dependency-free files, and both `check-model.mjs` and `audit-model.mjs` prefer a local copy of them to the network. Put `checker.js` and `fixer.js` in the directory you are working in, or beside the script, or name their directory with `--base <dir>` — a relative directory such as `--base ./` is fine — and run them exactly as above. **This is a real run**: same engines, same report, same exit codes, counts reportable |
 | No JavaScript runtime at all | Ask the user to paste the model into `https://www.appwithai.org/guide/11-check-a-model.html` and press **Check** and **Audit**, and report what they read back. Only if that is also impossible, walk §10 by hand and label the delivery **not validated**: checked against the checklist, not against the checker, no counts |
 
+#### 8.4.1 ChatGPT: install the TinyFish plugin first
+
+ChatGPT's code sandbox has no network, and its own reader does not reliably fetch
+`.js`/`.mjs` modules or the longer chunks of this protocol. The **TinyFish plugin**
+is the reading layer that does: it fetches a public page from a real browser and
+hands you the text. A ChatGPT run that has not got it installed does not start
+(`llms.txt` P1–P2) — it would otherwise reach this point, fail to read a validator,
+and report a validation state it never had.
+
+- **Install:** ChatGPT → **Plugins** → search **TinyFish** → **Install plugin** →
+  sign in to a TinyFish account (OAuth, no API key). In a Business, Enterprise or
+  Edu workspace an administrator may have to approve it first. The plugin's own
+  instructions are at `https://docs.tinyfish.ai/plugins`. If the plugin is not
+  offered, the fallback is a custom connector at `https://agent.tinyfish.ai/mcp/chatgpt`.
+- **Use it for reading, in this order:** each chunk the controller names, one at a
+  time as its step arrives; then, for the validator, the page-carried copies under
+  `https://www.appwithai.org/guide/source/` — read the page, strip whitespace,
+  base64-decode it in the sandbox, check the SHA-256 the page prints against the
+  decoded bytes, write the files, and run the ChatGPT row of the table above. A
+  decode whose hash does not match is not the published checker: fetch it again, and
+  do not report counts from it.
+- **Use it for `https://www.appwithai.org` only.** The user's model never goes into
+  a TinyFish request: it stays in the sandbox, where the checker runs.
+- **Say which route you took** in the delivery, in one line (for example: "read via
+  TinyFish; `guide/source/` pages decoded and SHA-256 verified; ran
+  `check-model-standalone.mjs`").
+
 **A blocked network is not a failed validation, and it is not a stopping
 point.** An agent sandbox usually reports it as a DNS failure or as a gateway
 error — 403, 407, 502 — and both read like the site being down when the site is
