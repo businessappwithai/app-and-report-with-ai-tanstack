@@ -199,7 +199,7 @@ longer takes the `common` build context.
 │   ├── html/             the published nine-chapter guide, checker.js, fixer.js, wasm-app
 │   │                     — the two validators are BUILT here, not vendored (below)
 │   ├── website/
-│   │   ├── llmtext/      llms.txt · llms-reporting.txt
+│   │   ├── llmtext/      llms.txt (controller) + 6 chunks · llms-reporting.txt
 │   │   └── viewers/      the ERD, rules and workflow model viewers
 │   └── examples/         analytics-reporting · drug-discovery · investment-planning · ERD sketches
 │
@@ -310,8 +310,11 @@ one decision at a time, or just build it — and it requires a complete
 Application Dictionary: help on every entity and column, the `FK` modifier and an
 enum binding wherever they apply, and **every form laid out as `%%section` rows**.
 
-It is published as `llms.txt` and nothing else — GitHub Pages types `.md` as `text/markdown`,
-which ChatGPT's web reader refuses — so there is no `llms.md`. Copy it from upstream, never edit it here.
+`llms.txt` is a ~1k-token controller; the detail lives in six chunks it names (`working-session`, `eml-syntax`,
+`eml-dictionary`, `eml-reporting`, `checker-rules`, `enhancement-examples`, each `.txt`), which a model fetches only
+when a step needs them. All seven are byte copies, held to the pinned upstream by `bun run check:protocol`. GitHub
+Pages types `.md` as `text/markdown`, which ChatGPT's web reader refuses, so there is no `llms.md`. Copy them from
+upstream, never edit them here.
 
 There is no other protocol file: the four older documents and `llms.md` are deleted, so a model is
 never pointed at a second account of the language. **Edit `llms.txt` upstream and copy it**, never
