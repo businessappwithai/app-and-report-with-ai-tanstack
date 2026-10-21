@@ -38,8 +38,8 @@
   checklist — every reference column's `FK` modifier, every enum binding, help on
   every entity, column and section, every form laid out in sections, a state
   machine per lifecycle, `%%rbac` on every entity — and exits `0` only when all
-  of it is there. **A bare ERD passes the checker with zero errors and fails
-  this audit nine ways.** Run both before you deliver.
+  of it is there. **A bare ERD passes the checker with zero errors — only
+  dictionary warnings — and fails this audit ten ways.** Run both before you deliver.
 - **Every example in this document is a complete model that the checker accepts
   with zero errors and zero warnings.** Paste any of them into `check()` and see.
   Imitate their shape.
