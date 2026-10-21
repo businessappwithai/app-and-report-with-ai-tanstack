@@ -600,6 +600,7 @@ var appwithai_language_default = {
       EML147: "%%entity ... parent: names an entity that is not declared, or the entity names itself.",
       EML148: "%%entity ... parent: is declared but the child has no foreign key back to the parent, so the detail tab has nothing to link on.",
       EML149: "info — an entity shaped like a line item that declares no parent:. Names the candidate parent and the column a tab would link on. Never an error: identifyingAChild's three questions are about the business, not the document.",
+      EML155: "info — a line item of a line item: parent: names an entity that is itself declared parent:. The dictionary has two levels, so the deeper entity is generated as a top-level one (own window and dashboard card, foreign key kept) rather than as a tab. Mirrors flattenNestedLineItems in the generator's parser; only a parent: that takes effect (declared parent, foreign key to it) counts.",
       EML150: "warning — an entity declared parent: is also named in a %%category. The category asks for a dashboard card the directive has taken away.",
       EML151: "warning — entity or column help that restates its own name instead of describing it. See helpText.mustBeDomainKnowledge.",
       EML152: "warning — an entity with no help text at all.",
@@ -3112,6 +3113,36 @@ class CheckEngine {
       this.warn("EML150", `"${child}" is a line item of "${parent}" but is named in a %%category.`, {
         line,
         hint: `A category lists what the dashboard shows, and a child has no card — it is reached by opening a ${parent}. Remove "${child}" from the entities: list.`
+      });
+    }
+    const effective = new Map;
+    for (const [child, parent] of parents) {
+      const entity = declared.get(child);
+      if (!entity || parent === child || !declared.has(parent))
+        continue;
+      if (this.linkColumnTo(entity, parent))
+        effective.set(child, parent);
+    }
+    const depth = (name) => {
+      let levels = 0;
+      const seen = new Set;
+      for (let current = effective.get(name);current !== undefined && !seen.has(current); current = effective.get(current)) {
+        seen.add(current);
+        levels++;
+      }
+      return levels;
+    };
+    const children = new Map(effective);
+    for (const child of [...effective.keys()].sort((a, b) => depth(a) - depth(b))) {
+      const parent = effective.get(child);
+      const grandparent = children.get(parent);
+      if (!grandparent)
+        continue;
+      children.delete(child);
+      const link = this.linkColumnTo(declared.get(child), parent);
+      this.info("EML155", `"${child}" is a line item of "${parent}", which is itself a line item of "${grandparent}", so "${child}" is generated as a top-level entity.`, {
+        line: this.src.findLine(new RegExp(`^\\s*%%entity\\s+${child}\\s+parent\\s*:`)),
+        hint: `A line item's tab sits one level inside a top-level entity's window; there is no third level. ` + `"${child}" keeps its foreign key ${link?.name} but gets a window and a dashboard card of its own, and the ${parent} page does not list it. ` + `If that is what you want, remove the \`parent:\` directive and the note goes; ` + `to list it under "${grandparent}" instead, give it a foreign key to "${grandparent}" and declare \`parent: ${grandparent}\`.`
       });
     }
     const LINE_ITEM_NOUNS = /(Line|LineItem|Item|Detail|Entry|Row)s?$/;

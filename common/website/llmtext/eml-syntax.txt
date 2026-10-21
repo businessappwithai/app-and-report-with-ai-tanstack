@@ -324,7 +324,7 @@ already in the ERD, marked `sys_column.is_parent` and stored as
 drop the relationship line: the directive names the parent, the ERD still draws
 the edge.
 
-Four codes police it:
+Five codes police it:
 
 | Code | Severity | Fires when |
 |---|---|---|
@@ -332,6 +332,7 @@ Four codes police it:
 | `EML148` | error | the child has no foreign key back — nothing for the tab to link on |
 | `EML149` | info | an entity is *shaped* like a line item and declares no `parent:` |
 | `EML150` | warning | a declared child is still named in a `%%category` |
+| `EML155` | info | a line item whose parent is itself a line item |
 
 `EML147` and `EML148` are errors because a line item with nothing to link on
 loses its own window and gains no tab, which is an entity that has quietly left
@@ -355,6 +356,15 @@ satisfy yourself that the entity is a thing in its own right and leave it — an
 `OK`. What is not acceptable is not having looked: if nobody decides, the default
 is a dashboard card listing every line ever written and a parent record that does
 not show its own lines.
+
+`EML155` is an **info**, because what happens is well defined and may be what you
+want: there are two levels, a top-level entity and the line items inside its
+window, and no third. `DangerousGoods parent: CargoItem` beside `CargoItem
+parent: Shipment` is generated with `DangerousGoods` as a top-level entity — its
+foreign key stays, it gets a window and a dashboard card of its own, and the
+`CargoItem` page does not list it. If you wanted a tab, point `parent:` at the
+top-level entity and give it a foreign key to that entity. If you wanted the
+card, delete the directive and the note goes.
 
 `EML150` is a warning rather than an error because nothing breaks — but the two
 directives contradict each other. `parent:` takes the child's dashboard card

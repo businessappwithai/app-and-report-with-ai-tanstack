@@ -214,7 +214,7 @@ not create (`EML150`).
 A child is still a real table with real rules, access control and a form. Only
 its *placement* changes.
 
-Four codes police it:
+Five codes police it:
 
 | Code | Severity | Fires when |
 |---|---|---|
@@ -222,6 +222,14 @@ Four codes police it:
 | `EML148` | error | the child has no foreign key back — nothing for the tab to link on |
 | `EML149` | info | an entity is *shaped* like a line item and declares no `parent:` |
 | `EML150` | warning | a declared child is named in a `%%category` |
+| `EML155` | info | a line item whose parent is itself a line item |
+
+`EML155` is an `info` too. The dictionary has two levels — a top-level entity and
+the line items in its window — so a line item whose parent is itself a line item
+is generated as a top-level entity: it keeps its foreign key and gains a window
+and a dashboard card, and the parent's page does not list it. The checker says so
+because `parent:` reads like a request for a tab. Remove the directive to accept
+that, or point it at the top-level entity to get the tab.
 
 `EML149` is an `info` and never an error, because the three questions above are
 about the business and not about the document — the checker can only name the

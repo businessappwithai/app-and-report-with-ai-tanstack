@@ -1265,6 +1265,64 @@ class CheckEngine {
     }
 
     /*
+     * EML155: a line item of a line item.
+     *
+     * The dictionary has two levels: a child's tab lives one level inside a
+     * top-level entity's window, so a child whose parent is itself a child
+     * names a window that does not exist. The generator makes the deeper entity
+     * a top-level one — its foreign key stays, but it gains a window and a
+     * dashboard card and the parent's detail page does not list it — and this
+     * says so, because `parent:` reads like a request and is answered as
+     * something else. An `info`, never a warning: the result is well defined and
+     * may be exactly what the author wants.
+     *
+     * It mirrors `flattenNestedLineItems` in the generator's parser and has to
+     * stay in step with it: only a `parent:` that takes effect counts (a declared
+     * parent and a foreign key to it — the cases EML147 and EML148 report
+     * otherwise), and the shallowest are taken first, so in a chain of three the
+     * second is reported and the third, whose parent is top-level by then, is not.
+     */
+    const effective = new Map<string, string>();
+    for (const [child, parent] of parents) {
+      const entity = declared.get(child);
+      if (!entity || parent === child || !declared.has(parent)) continue;
+      if (this.linkColumnTo(entity, parent)) effective.set(child, parent);
+    }
+    const depth = (name: string): number => {
+      let levels = 0;
+      const seen = new Set<string>();
+      for (
+        let current = effective.get(name);
+        current !== undefined && !seen.has(current);
+        current = effective.get(current)
+      ) {
+        seen.add(current);
+        levels++;
+      }
+      return levels;
+    };
+    const children = new Map(effective);
+    for (const child of [...effective.keys()].sort((a, b) => depth(a) - depth(b))) {
+      const parent = effective.get(child) as string;
+      const grandparent = children.get(parent);
+      if (!grandparent) continue;
+      children.delete(child);
+      const link = this.linkColumnTo(declared.get(child) as EmlEntity, parent);
+      this.info(
+        "EML155",
+        `"${child}" is a line item of "${parent}", which is itself a line item of "${grandparent}", so "${child}" is generated as a top-level entity.`,
+        {
+          line: this.src.findLine(new RegExp(`^\\s*%%entity\\s+${child}\\s+parent\\s*:`)),
+          hint:
+            `A line item's tab sits one level inside a top-level entity's window; there is no third level. ` +
+            `"${child}" keeps its foreign key ${link?.name} but gets a window and a dashboard card of its own, and the ${parent} page does not list it. ` +
+            `If that is what you want, remove the \`parent:\` directive and the note goes; ` +
+            `to list it under "${grandparent}" instead, give it a foreign key to "${grandparent}" and declare \`parent: ${grandparent}\`.`,
+        }
+      );
+    }
+
+    /*
      * EML149: an entity shaped like a line item that never says so.
      *
      * The ERD cannot tell a line item from a reference — `InvoiceLine.invoice_id`
