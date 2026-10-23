@@ -195,9 +195,9 @@ is its own document and is not part of this.
 - `$W/guide/models/crm.eml.mmd` and `drug-discovery.eml.mmd` must stay
   byte-identical to `$A/html/models/`; `dance-studio` twins
   `$A/language/examples/`.
-- The site's big `hospital-management-system.eml.mmd` has **diverged from
-  upstream on purpose** — it carries the EML287 snake_case repair that
-  `$A/docs/eml-sessions/` does not. Do not "re-vendor" it back.
+- The site's `hospital-management-system.eml.mmd` is byte-identical to
+  `$A/examples/hospital-management-system.mmd` again (88 entities); the
+  older, divergent rebuild is gone. `check-upstream.mjs` holds the pair.
 
 ---
 
