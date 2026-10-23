@@ -220,13 +220,13 @@ both are true, so the check now accepts either rather than either document
 being edited to suit it. The vendored copy keeps the product's wording; this
 repository's own bases keep theirs.
 
-**The published hospital model is not the product's hospital model.**
-`app-with-ai-tanstack/examples/hospital-management-system.mmd` (1057 lines)
-gained 28 `%%entity icon:` lines, and `common/examples/` twins *that* file, so
-it has them too. The 1771-line `hospital-management-system.eml.mmd` the site and
-this repository publish is a different document — the one rebuilt through the
-interactive protocol — and it has no entity icons. Adding them would be
-authoring, not syncing, and nothing checks the two against each other.
+**The hospital model is one document everywhere.**
+`app-with-ai-tanstack/examples/hospital-management-system.mmd`, the two twins
+in `common/examples/` and the site's `guide/models/` copy are the same 3465-line
+file: 88 entities, 51 state machines, one saga, 30 roles and 139 access
+restrictions, checking at 0 errors and 0 warnings and scoring 23/23 under the
+audit. It replaced both the product's 1057-line example and the site's
+1771-line rebuild, so the two no longer differ.
 
 Every `icon:` in every model here and on the site does resolve: 189 names
 checked against lucide 1.47.0's 2112 ids, through the same `normalizeIconName`
