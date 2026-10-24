@@ -16,14 +16,15 @@
 
 %%meta name: Education Management System
 %%meta kind: erd
-%%meta version: 1.0.0
+%%meta version: 1.1.0
 %%category name: Admissions; icon: file-text; entities: AdmissionApplication
 %%category name: People; icon: users; entities: Student, Guardian, Staff
 %%category name: Academics; icon: book-open; entities: Department, Course, AcademicTerm, Room, ClassSection, ClassSession
 %%category name: Enrolment; icon: clipboard-list; entities: Enrollment
 %%category name: Assessment; icon: graduation-cap; entities: Assessment
-%%category name: Finance; icon: credit-card; entities: FeeInvoice, Payment
+%%category name: Finance; icon: credit-card; entities: FeeInvoice, Payment, Refund
 %%category name: Conduct; icon: shield-alert; entities: DisciplineIncident
+%%category name: Student Support; icon: heart-handshake; entities: ConsentRecord, SupportPlan, SafeguardingConcern, CommunicationLog
 %%enum TermStatus: planned, current, closed
 %%enum StaffType: teaching, administrative, pastoral, leadership
 %%enum EmploymentStatus: active, on_leave, left
@@ -49,6 +50,17 @@
 %%enum IncidentSeverity: minor, moderate, serious, critical
 %%enum IncidentStatus: reported, under_review, action_taken, closed, dismissed
 %%enum Sanction: none, warning, detention, parental_meeting, suspension, exclusion
+%%enum ConsentType: medical_treatment, educational_trip, media_use, data_sharing, emergency_contact, digital_services
+%%enum ConsentStatus: draft, active, withdrawn, expired
+%%enum SupportPlanType: learning_support, accessibility, medical, behaviour, language
+%%enum SupportPlanStatus: draft, active, under_review, closed
+%%enum ConcernCategory: disclosure, neglect, abuse, exploitation, online_safety, welfare
+%%enum ConcernStatus: reported, triaged, investigating, referred, closed
+%%enum CommunicationChannel: email, sms, phone, post, portal, in_person
+%%enum CommunicationPurpose: attendance, academic, finance, safeguarding, admissions, general
+%%enum CommunicationStatus: queued, sent, delivered, failed
+%%enum RefundReason: duplicate_payment, overpayment, cancelled_service, approved_withdrawal, billing_error, other
+%%enum RefundStatus: requested, under_review, approved, paid, rejected, cancelled
 erDiagram
     Department {
         string   id PK
@@ -285,6 +297,81 @@ erDiagram
         date     closed_on OPTIONAL
     }
 
+    ConsentRecord {
+        string   id PK
+        string   student_id FK
+        string   guardian_id FK
+        string   consent_type
+        string   status
+        date     effective_on
+        date     expires_on OPTIONAL
+        datetime withdrawn_at OPTIONAL
+        text     withdrawal_reason OPTIONAL
+        string   evidence_url OPTIONAL
+    }
+
+    SupportPlan {
+        string   id PK
+        string   student_id FK
+        string   owner_id FK
+        string   plan_type
+        string   status
+        date     starts_on
+        date     review_due_on
+        date     closed_on OPTIONAL
+        text     needs_summary
+        text     adjustments
+        text     review_notes OPTIONAL
+    }
+
+    SafeguardingConcern {
+        string   id PK
+        string   reference UK
+        string   student_id FK
+        string   reported_by_id FK
+        string   owner_id FK OPTIONAL
+        datetime occurred_at OPTIONAL
+        datetime reported_at
+        string   category
+        string   status
+        string   risk_level
+        text     factual_account
+        text     immediate_action OPTIONAL
+        string   external_reference OPTIONAL
+        date     closed_on OPTIONAL
+        text     closure_reason OPTIONAL
+    }
+
+    CommunicationLog {
+        string   id PK
+        string   student_id FK OPTIONAL
+        string   guardian_id FK OPTIONAL
+        string   sent_by_id FK
+        string   channel
+        string   purpose
+        string   status
+        string   subject
+        text     summary
+        datetime sent_at OPTIONAL
+        datetime delivered_at OPTIONAL
+        text     failure_reason OPTIONAL
+    }
+
+    Refund {
+        string   id PK
+        string   payment_id FK
+        string   requested_by_id FK
+        string   approved_by_id FK OPTIONAL
+        decimal  amount
+        string   reason
+        string   status
+        datetime requested_at
+        datetime decided_at OPTIONAL
+        datetime paid_at OPTIONAL
+        text     decision_notes OPTIONAL
+        string   reference OPTIONAL
+    }
+
     Department   ||--o{ Course               : "offers"
     Department   ||--o{ Staff                : "employs"
     Course       ||--o{ ClassSection         : "taught as"
@@ -316,6 +403,17 @@ erDiagram
     Staff        ||--o{ Payment              : "received by"
     Student      ||--o{ DisciplineIncident   : "subject of"
     Staff        ||--o{ DisciplineIncident   : "reported by"
+    Student      ||--o{ ConsentRecord        : "has consent"
+    Guardian     ||--o{ ConsentRecord        : "grants consent"
+    Student      ||--o{ SupportPlan          : "supported by"
+    Staff        ||--o{ SupportPlan          : "owns"
+    Student      ||--o{ SafeguardingConcern  : "protected by"
+    Staff        ||--o{ SafeguardingConcern  : "reports and owns"
+    Student      ||--o{ CommunicationLog     : "concerns"
+    Guardian     ||--o{ CommunicationLog     : "receives"
+    Staff        ||--o{ CommunicationLog     : "sends"
+    Payment      ||--o{ Refund               : "reversed by"
+    Staff        ||--o{ Refund               : "requests and approves"
 
     %%entity Department help: A teaching department that owns a group of courses and employs the staff who teach them. Reference data, created once when the school's structure is set up.
     %%entity Room help: A teaching space with a legal capacity. A section's own capacity may be lower but is never allowed above the room's.
@@ -336,6 +434,11 @@ erDiagram
     %%entity FeeInvoiceLine help: One charge on an invoice — tuition, transport, examination entry or materials. Priced when the line is written and never repriced afterwards.
     %%entity Payment help: Money received against an invoice. Recorded once and never edited; a correction is a second, offsetting record.
     %%entity DisciplineIncident help: A recorded conduct event, its investigation and its outcome. Readable by pastoral staff and the principal only.
+    %%entity ConsentRecord help: One guardian's time-bounded decision about a student's participation, information use or emergency treatment. Withdrawal preserves the earlier authority and when it ended.
+    %%entity SupportPlan help: The controlled summary of a student's learning, accessibility, medical or behaviour support, its accountable owner and scheduled review. Teachers receive the adjustments they need without broad access to sensitive evidence.
+    %%entity SafeguardingConcern help: A confidential welfare or child-protection concern recorded in factual language, triaged to an accountable owner and retained through referral or closure. It is separate from discipline because the student may be at risk rather than at fault.
+    %%entity CommunicationLog help: An auditable record of an operational message to a guardian about a student, including delivery failure. It records the subject and outcome rather than storing unnecessary message content.
+    %%entity Refund help: A controlled reversal of money previously received, requested and approved by different staff where possible. It never edits or deletes the original payment.
 
     %%entity StudentGuardian parent: Student
     %%entity AttendanceRecord parent: ClassSession
@@ -501,6 +604,61 @@ erDiagram
     %%field DisciplineIncident.sanction help: none — recorded, no sanction; warning — spoken or written; detention — supervised time; parental_meeting — the family is asked in; suspension — the student is barred from sessions and their status changes; exclusion — permanent, and the governors are involved. Required before an incident can move to action_taken.
     %%field DisciplineIncident.sanction_notes help: The detail of the sanction — how long, when, who supervised. The field the appeal is answered from, and the reason a bare enum was not enough.
     %%field DisciplineIncident.closed_on help: When the matter was finished. The open-incidents report is everything with no date here, and the ageing on that list is the pastoral team's real workload.
+    %%field ConsentRecord.student_id help: The student whose participation or information use this decision governs. Consent is stored per student because siblings may have different decisions.
+    %%field ConsentRecord.guardian_id help: The guardian who gave or withdrew the decision and whose authority must be verified before staff rely on it.
+    %%field ConsentRecord.consent_type help: The controlled purpose the guardian agreed to, so approval for a trip is never treated as approval for media use or data sharing.
+    %%field ConsentRecord.status help: draft — captured but not yet relied on; active — currently valid; withdrawn — revoked by the guardian; expired — passed its stated end date and must be renewed.
+    %%field ConsentRecord.effective_on help: The first date staff may rely on this consent. A future-dated decision remains draft until this day.
+    %%field ConsentRecord.expires_on help: The final day the consent remains valid where the purpose is time-bounded. Blank means it continues until withdrawal.
+    %%field ConsentRecord.withdrawn_at help: When the guardian revoked consent. Kept with the original record so earlier authorised activity remains explainable.
+    %%field ConsentRecord.withdrawal_reason help: The guardian's reason where they chose to give one. It is optional and must not be used to pressure a family to keep consent active.
+    %%field ConsentRecord.evidence_url help: A protected link to the signed form or verified digital evidence. Access must follow the same restrictions as the consent record.
+    %%field SupportPlan.student_id help: The student receiving support. One student may have separate plans for learning, accessibility, medical needs or behaviour.
+    %%field SupportPlan.owner_id help: The member of staff accountable for coordinating the plan, arranging reviews and confirming that agreed adjustments reach teachers.
+    %%field SupportPlan.plan_type help: The primary support domain, used to route the plan to the right specialist without exposing it to unrelated roles.
+    %%field SupportPlan.status help: draft — being agreed; active — adjustments apply now; under_review — outcomes and needs are being reassessed; closed — no longer in force but retained for continuity and audit.
+    %%field SupportPlan.starts_on help: The date the agreed adjustments begin. Staff should not apply a draft plan before this date.
+    %%field SupportPlan.review_due_on help: The next date the owner must review outcomes, needs and adjustments with the student and guardian as appropriate.
+    %%field SupportPlan.closed_on help: When support under this plan ended. Required when the plan is closed so historic decisions have a clear boundary.
+    %%field SupportPlan.needs_summary help: A concise functional description of what affects learning, access, health or behaviour. Record only what staff need to support the student.
+    %%field SupportPlan.adjustments help: The practical changes staff must make in lessons, assessment, access or care; written so a teacher can act without reading sensitive background evidence.
+    %%field SupportPlan.review_notes help: The latest review outcome, including what worked, what changed and who was consulted. Earlier versions remain in the generated audit history.
+    %%field SafeguardingConcern.reference help: The unique case reference used in restricted meetings and external referrals without putting the student's name in an email subject.
+    %%field SafeguardingConcern.student_id help: The student whose safety or welfare may be affected. A concern is never filed only against an alleged perpetrator.
+    %%field SafeguardingConcern.reported_by_id help: The staff member who received or observed the information and can distinguish direct words from later interpretation.
+    %%field SafeguardingConcern.owner_id help: The designated safeguarding staff member accountable for triage, action, referral and closure. Blank only until triage assigns the case.
+    %%field SafeguardingConcern.occurred_at help: When the event is believed to have happened, if known. It may differ materially from when the school learned of it.
+    %%field SafeguardingConcern.reported_at help: When the concern reached the school. Response-time reporting starts here, so staff record it immediately rather than backdating it later.
+    %%field SafeguardingConcern.category help: The broad safeguarding theme used for routing and trend review; it is not a finding that an allegation has been proven.
+    %%field SafeguardingConcern.status help: reported — captured; triaged — risk and owner assigned; investigating — internal facts being gathered; referred — passed to an authorised external body; closed — action and rationale recorded.
+    %%field SafeguardingConcern.risk_level help: The current operational risk assessment, recorded in plain language because local safeguarding frameworks differ and professional judgement must remain visible.
+    %%field SafeguardingConcern.factual_account help: What was seen, heard or disclosed, separating direct quotations and observations from assumptions. This is the core evidential record.
+    %%field SafeguardingConcern.immediate_action help: Steps already taken to protect the student or preserve evidence before formal triage, including who authorised them.
+    %%field SafeguardingConcern.external_reference help: The case number supplied by an authorised external agency. Blank until a referral is accepted.
+    %%field SafeguardingConcern.closed_on help: The date the concern was formally closed after actions, referrals and review were recorded.
+    %%field SafeguardingConcern.closure_reason help: Why no further action remains with the school and where continuing responsibility sits. Required on closure.
+    %%field CommunicationLog.student_id help: The student the message concerns. Optional only for a general guardian communication not tied to one child.
+    %%field CommunicationLog.guardian_id help: The guardian contacted. Optional only for an internal or student-only communication, but at least one recipient context is required.
+    %%field CommunicationLog.sent_by_id help: The staff member accountable for the message or automated campaign that created it.
+    %%field CommunicationLog.channel help: How the message was attempted, which determines what delivery evidence and fallback action are possible.
+    %%field CommunicationLog.purpose help: Why the school contacted the family, used to keep sensitive safeguarding traffic out of broad academic and finance queues.
+    %%field CommunicationLog.status help: queued — waiting to send; sent — accepted by the channel; delivered — delivery confirmed; failed — no delivery and a reason requiring follow-up.
+    %%field CommunicationLog.subject help: A short non-sensitive description staff can recognise in a timeline. Do not place safeguarding details in this field.
+    %%field CommunicationLog.summary help: The minimum operational summary needed to understand the contact and promised follow-up, not a duplicate of the full message body.
+    %%field CommunicationLog.sent_at help: When the message left the school or the call occurred. Blank while it remains queued.
+    %%field CommunicationLog.delivered_at help: When the channel confirmed delivery. Blank for channels that do not provide confirmation.
+    %%field CommunicationLog.failure_reason help: Why delivery failed and what staff should correct before retrying, such as an invalid number or rejected email.
+    %%field Refund.payment_id help: The original payment being reversed. The payment remains immutable, so finance can reconcile both records together.
+    %%field Refund.requested_by_id help: The staff member who investigated the family request or reconciliation difference and opened the refund.
+    %%field Refund.approved_by_id help: The staff member who authorised repayment. Kept separate from the requester to support separation of duties.
+    %%field Refund.amount help: The amount to return. It must be positive and must not exceed the unreversed amount of the original payment.
+    %%field Refund.reason help: The controlled business reason for returning funds, used in reconciliation and management review.
+    %%field Refund.status help: requested — awaiting review; under_review — evidence being checked; approved — authorised for payment; paid — funds returned; rejected — not authorised; cancelled — withdrawn before payment.
+    %%field Refund.requested_at help: When the refund request entered the finance queue. Service-time reporting and escalation start here.
+    %%field Refund.decided_at help: When approval or rejection was recorded. Blank until a decision is made.
+    %%field Refund.paid_at help: When the money actually left the school. Required before the refund can be marked paid.
+    %%field Refund.decision_notes help: The evidence and reasoning behind approval, rejection or cancellation, written for reconciliation and later audit.
+    %%field Refund.reference help: The bank or payment-provider reference proving the repayment. Required where the channel supplies one.
 
     %% Form layout: headed sections of two-column rows (`|` between rows,
     %% `,` within one; a row of one spans the full width).
@@ -540,6 +698,16 @@ erDiagram
     %%section entity: Payment; name: Payment; help: Money received against a fee invoice — how much, how, by whom, and what was owed before it.; rows: fee_invoice_id, received_by_id | amount, balance_before | method, received_at | reference
     %%section entity: DisciplineIncident; name: Incident; help: What happened, to which student, when, who reported it, and how serious it is.; rows: reference, status | student_id, reported_by_id | occurred_at, closed_on | category, severity | summary
     %%section entity: DisciplineIncident; name: Sanction; help: What the school decided to do about it and why.; rows: sanction | sanction_notes
+    %%section entity: ConsentRecord; name: Consent; help: Who granted which authority for the student, when it takes effect, and whether staff may rely on it now.; rows: student_id, guardian_id | consent_type, status | effective_on, expires_on
+    %%section entity: ConsentRecord; name: Withdrawal and evidence; help: When consent ended, why the guardian withdrew it, and where the verified evidence is held.; rows: withdrawn_at | withdrawal_reason | evidence_url; collapsed: true
+    %%section entity: SupportPlan; name: Plan; help: The student, accountable owner, support domain and dates that control when the plan is active and reviewed.; rows: student_id, owner_id | plan_type, status | starts_on, review_due_on | closed_on
+    %%section entity: SupportPlan; name: Support in practice; help: What staff need to understand and the concrete adjustments they must make, with the latest review outcome.; rows: needs_summary | adjustments | review_notes
+    %%section entity: SafeguardingConcern; name: Concern; help: The restricted case identity, student, reporter, timing and factual account used for immediate safeguarding triage.; rows: reference, status | student_id, reported_by_id | occurred_at, reported_at | category, risk_level | factual_account
+    %%section entity: SafeguardingConcern; name: Action and ownership; help: Who owns the concern, what was done immediately, any external case reference and the evidence required to close it.; rows: owner_id | immediate_action | external_reference | closed_on | closure_reason
+    %%section entity: CommunicationLog; name: Communication; help: Who was contacted about which student, why, through which channel and by which staff member.; rows: student_id, guardian_id | sent_by_id, purpose | channel, status | subject
+    %%section entity: CommunicationLog; name: Outcome; help: The minimum useful account of the contact, its send and delivery times, and any failure that needs follow-up.; rows: summary | sent_at, delivered_at | failure_reason
+    %%section entity: Refund; name: Request; help: The original payment, requester, amount and business reason entering the controlled refund queue.; rows: payment_id, requested_by_id | amount, reason | status, requested_at
+    %%section entity: Refund; name: Decision and settlement; help: Who decided the request, when it was decided and paid, and the evidence finance needs to reconcile it.; rows: approved_by_id, decided_at | paid_at, reference | decision_notes
 
     %%field AcademicTerm.status enum: TermStatus
     %%field Staff.staff_type enum: StaffType
@@ -566,6 +734,17 @@ erDiagram
     %%field DisciplineIncident.severity enum: IncidentSeverity
     %%field DisciplineIncident.status enum: IncidentStatus
     %%field DisciplineIncident.sanction enum: Sanction
+    %%field ConsentRecord.consent_type enum: ConsentType
+    %%field ConsentRecord.status enum: ConsentStatus
+    %%field SupportPlan.plan_type enum: SupportPlanType
+    %%field SupportPlan.status enum: SupportPlanStatus
+    %%field SafeguardingConcern.category enum: ConcernCategory
+    %%field SafeguardingConcern.status enum: ConcernStatus
+    %%field CommunicationLog.channel enum: CommunicationChannel
+    %%field CommunicationLog.purpose enum: CommunicationPurpose
+    %%field CommunicationLog.status enum: CommunicationStatus
+    %%field Refund.reason enum: RefundReason
+    %%field Refund.status enum: RefundStatus
 
     %%index Student(status, year_group)
     %%index Enrollment(class_section_id, status)
@@ -581,6 +760,11 @@ erDiagram
     %%index AdmissionApplication(status, submitted_on)
     %%index DisciplineIncident(status, occurred_at)
     %%index StudentGuardian(student_id, contact_order)
+    %%index ConsentRecord(student_id, consent_type, status)
+    %%index SupportPlan(student_id, status, review_due_on)
+    %%index SafeguardingConcern(status, reported_at)
+    %%index CommunicationLog(guardian_id, status, sent_at)
+    %%index Refund(payment_id, status, requested_at)
 
     %%rbac role:principal|registrar|head_of_department|teacher on Department.read
     %%rbac role:principal on Department.update
@@ -650,6 +834,29 @@ erDiagram
     %%rbac role:counsellor|principal on DisciplineIncident.update
     %%rbac role:counsellor|principal on DisciplineIncident.apply_sanction
     %%rbac role:principal on DisciplineIncident.dismiss
+    %%rbac role:principal|registrar|counsellor|guardian on ConsentRecord.read
+    %%rbac role:registrar|counsellor on ConsentRecord.create
+    %%rbac role:registrar|counsellor on ConsentRecord.update
+    %%rbac role:registrar|counsellor|guardian on ConsentRecord.withdraw
+    %%rbac role:principal|registrar|head_of_department|teacher|counsellor on SupportPlan.read
+    %%rbac role:counsellor|registrar on SupportPlan.create
+    %%rbac role:counsellor|registrar on SupportPlan.update
+    %%rbac role:counsellor|principal on SupportPlan.activate
+    %%rbac role:counsellor|principal on SupportPlan.close
+    %%rbac role:principal|counsellor on SafeguardingConcern.read
+    %%rbac role:teacher|counsellor|principal on SafeguardingConcern.create
+    %%rbac role:counsellor|principal on SafeguardingConcern.update
+    %%rbac role:counsellor|principal on SafeguardingConcern.triage
+    %%rbac role:principal|counsellor on SafeguardingConcern.refer
+    %%rbac role:principal on SafeguardingConcern.close
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on CommunicationLog.read
+    %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor on CommunicationLog.create
+    %%rbac role:principal|registrar|finance_officer|counsellor on CommunicationLog.update
+    %%rbac role:principal|finance_officer|guardian on Refund.read
+    %%rbac role:finance_officer on Refund.create
+    %%rbac role:finance_officer|principal on Refund.update
+    %%rbac role:principal on Refund.approve
+    %%rbac role:finance_officer on Refund.pay
 
 %% ---- The reporting pass (llms.txt §1.1.7) -----------------------------------
 %%
@@ -719,6 +926,98 @@ erDiagram
     %%report guardian-child-attendance title: My child's attendance, by subject entity: Enrollment help: The number the school will quote in any conversation about progress, shown before that conversation rather than during it. A subject twenty points below the others is a timetable problem or a teacher problem, and either is worth asking about. sql: SELECT s.first_name || ' ' || s.last_name AS student, c.name AS course, e.attendance_rate FROM bus_enrollment e JOIN bus_student s ON s.id = e.student_id JOIN bus_class_section sec ON sec.id = e.class_section_id JOIN bus_course c ON c.id = sec.course_id WHERE e.deleted_at IS NULL AND e.status = 'enrolled' ORDER BY s.last_name, e.attendance_rate
     %%report guardian-child-results title: My child's marked work entity: AssessmentResult help: Marks as they were given, with the paper's own maximum beside them, because a 34 means nothing until you know it was out of 40. Newest first, which is the order a family reads them in. sql: SELECT s.first_name || ' ' || s.last_name AS student, c.name AS course, a.title, ar.score, ar.max_score, ROUND(100.0 * ar.score / NULLIF(ar.max_score, 0)) AS percent, ar.marked_at FROM bus_assessment_result ar JOIN bus_assessment a ON a.id = ar.assessment_id JOIN bus_class_section sec ON sec.id = a.class_section_id JOIN bus_course c ON c.id = sec.course_id JOIN bus_student s ON s.id = ar.student_id WHERE ar.deleted_at IS NULL AND a.deleted_at IS NULL AND ar.status = 'marked' ORDER BY ar.marked_at DESC
     %%report guardian-outstanding-fees title: What I still owe, and by when entity: FeeInvoice help: One row per unpaid invoice with the balance and the due date, so a family can see what is outstanding without ringing the office — which is most of what the office is rung about. sql: SELECT s.first_name || ' ' || s.last_name AS student, f.invoice_number, t.name AS term, f.due_on, f.total_amount, f.amount_paid, f.balance_due, f.status FROM bus_fee_invoice f JOIN bus_student s ON s.id = f.student_id JOIN bus_academic_term t ON t.id = f.academic_term_id WHERE f.deleted_at IS NULL AND f.status IN ('issued', 'part_paid', 'overdue') AND f.balance_due > 0 ORDER BY f.due_on
+
+%% -- enterprise controls: consent, support, safeguarding, delivery and refunds
+    %%report registrar-consents-expiring title: Student consents expiring in the next thirty days entity: ConsentRecord help: The renewal queue that prevents a trip, service or information use from continuing after the guardian's authority has ended. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, c.consent_type, c.expires_on, g.first_name || ' ' || g.last_name AS guardian FROM bus_consent_record c JOIN bus_student s ON s.id = c.student_id JOIN bus_guardian g ON g.id = c.guardian_id WHERE c.deleted_at IS NULL AND c.status = 'active' AND c.expires_on BETWEEN now()::date AND now()::date + 30 ORDER BY c.expires_on
+    %%report counsellor-support-reviews-due title: Active support plans due for review entity: SupportPlan help: The caseload ordered by review date, so adjustments are reconsidered before an outdated plan becomes the student's unofficial permanent provision. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, p.plan_type, p.review_due_on, st.first_name || ' ' || st.last_name AS owner FROM bus_support_plan p JOIN bus_student s ON s.id = p.student_id JOIN bus_staff st ON st.id = p.owner_id WHERE p.deleted_at IS NULL AND p.status IN ('active', 'under_review') AND p.review_due_on <= now()::date + 30 ORDER BY p.review_due_on
+    %%report principal-untriaged-safeguarding title: Safeguarding concerns awaiting triage entity: SafeguardingConcern help: Restricted concerns that have been recorded but still lack an accountable response, oldest and highest risk first. sql: SELECT c.reference, s.student_number, s.first_name || ' ' || s.last_name AS student, c.risk_level, c.reported_at, EXTRACT(EPOCH FROM now() - c.reported_at)::int / 3600 AS hours_waiting FROM bus_safeguarding_concern c JOIN bus_student s ON s.id = c.student_id WHERE c.deleted_at IS NULL AND c.status = 'reported' ORDER BY c.reported_at
+    %%report registrar-failed-communications title: Family communications needing another route entity: CommunicationLog help: Messages that did not reach the intended guardian, so staff can correct the contact detail or switch channel before an attendance, finance or safeguarding notice is missed. sql: SELECT s.student_number, s.first_name || ' ' || s.last_name AS student, g.first_name || ' ' || g.last_name AS guardian, c.purpose, c.channel, c.subject, c.failure_reason, c.created_at FROM bus_communication_log c LEFT JOIN bus_student s ON s.id = c.student_id LEFT JOIN bus_guardian g ON g.id = c.guardian_id WHERE c.deleted_at IS NULL AND c.status = 'failed' ORDER BY c.created_at
+    %%report finance-refunds-awaiting-decision title: Refund requests awaiting approval entity: Refund help: The finance control queue showing age, amount and separation of requester from approver before money is returned. sql: SELECT r.requested_at, r.amount, r.reason, r.status, p.reference AS payment_reference, req.first_name || ' ' || req.last_name AS requested_by FROM bus_refund r JOIN bus_payment p ON p.id = r.payment_id JOIN bus_staff req ON req.id = r.requested_by_id WHERE r.deleted_at IS NULL AND r.status IN ('requested', 'under_review') ORDER BY r.requested_at
+
+%% ---- Business rules — consent control -------------------------------------
+%%meta name: Consent Control
+%%meta kind: rules
+%%rule consentControl on ConsentRecord event: beforeUpdate priority: 10
+flowchart TD
+    A([Consent updated]) --> B{Withdrawn?}
+    B -->|Yes| C{Withdrawal time recorded?}
+    C -->|No| R[Refuse]
+    C -->|Yes| P[Accept]
+    B -->|No| P
+    R --> E([End])
+    P --> E
+
+    %%action requireConsentWithdrawalTime validation-error when: status == "withdrawn" and withdrawn_at == null message: Withdrawing consent requires the time authority ended so later activity cannot be mistaken for authorised activity.
+
+%% ---- Business rules — support-plan control --------------------------------
+%%meta name: Support Plan Control
+%%meta kind: rules
+%%rule supportPlanControl on SupportPlan event: beforeUpdate priority: 10
+flowchart TD
+    A([Plan updated]) --> B{Closing?}
+    B -->|Yes| C{Closure date recorded?}
+    C -->|No| R[Refuse]
+    C -->|Yes| P[Accept]
+    B -->|No| P
+    R --> E([End])
+    P --> E
+
+    %%action requireSupportPlanClosureDate validation-error when: status == "closed" and closed_on == null message: A closed support plan needs the date its adjustments stopped applying.
+
+%% ---- Business rules — safeguarding control --------------------------------
+%%meta name: Safeguarding Control
+%%meta kind: rules
+%%rule safeguardingControl on SafeguardingConcern event: beforeUpdate priority: 10
+flowchart TD
+    A([Concern updated]) --> B{Closing?}
+    B -->|Yes| C{Date and reason recorded?}
+    C -->|No| R[Refuse]
+    C -->|Yes| P[Accept]
+    B -->|No| P
+    R --> E([End])
+    P --> E
+
+    %%action requireConcernClosureDate validation-error when: status == "closed" and closed_on == null message: A safeguarding concern cannot close without the date continuing responsibility ended.
+    %%action requireConcernClosureReason validation-error when: status == "closed" and closure_reason == null message: A safeguarding concern cannot close without explaining the action taken and where any continuing responsibility sits.
+
+%% ---- Business rules — communication delivery ------------------------------
+%%meta name: Communication Delivery Control
+%%meta kind: rules
+%%rule communicationDeliveryControl on CommunicationLog event: beforeUpdate priority: 10
+flowchart TD
+    A([Communication updated]) --> B{Failed?}
+    B -->|Yes| C{Failure reason recorded?}
+    C -->|No| R[Refuse]
+    C -->|Yes| P[Accept]
+    B -->|No| P
+    R --> E([End])
+    P --> E
+
+    %%action requireCommunicationFailureReason validation-error when: status == "failed" and failure_reason == null message: A failed communication needs a reason so staff can correct the address or choose another channel.
+
+%% ---- Business rules — refund approval -------------------------------------
+%%meta name: Refund Control
+%%meta kind: rules
+%%rule refundControl on Refund event: beforeUpdate priority: 10
+flowchart TD
+    A([Refund updated]) --> B{Approved or rejected?}
+    B -->|Yes| C{Decision evidence present?}
+    C -->|No| R1[Refuse]
+    C -->|Yes| D{Marked paid?}
+    B -->|No| D
+    D -->|Yes| F{Payment time recorded?}
+    F -->|No| R2[Refuse]
+    F -->|Yes| P[Accept]
+    D -->|No| P
+    R1 --> E([End])
+    R2 --> E
+    P --> E
+
+    %%action refuseNonPositiveRefund validation-error when: amount <= 0 message: A refund must be a positive amount linked to the immutable payment it reverses.
+    %%action requireRefundDecisionTime validation-error when: status == "approved" and decided_at == null message: An approved refund needs the decision time for reconciliation and service reporting.
+    %%action requireRefundApproval validation-error when: status == "approved" and approved_by_id == null message: An approved refund needs the staff member who authorised the return of funds.
+    %%action requireRefundRejectionNotes validation-error when: status == "rejected" and decision_notes == null message: A rejected refund needs the reason finance will explain to the family.
+    %%action requireRefundPaidTime validation-error when: status == "paid" and paid_at == null message: A refund is paid only when the money actually left the school.
 
 %% ---- Business rules — admission assessment (decides only, cannot act) -------
 %% This section carries a node graph and no %%action directives, deliberately.
@@ -1080,6 +1379,76 @@ stateDiagram-v2
     active   --> left     : leave_school
     on_leave --> left     : leave_school
     left --> [*]
+
+%% ---- Workflow — consent lifecycle ----------------------------------------
+%%meta name: Consent Lifecycle
+%%meta kind: workflow
+%%workflow ConsentLifecycle entity: ConsentRecord kind: state
+stateDiagram-v2
+    [*] --> draft
+    draft  --> active    : activate
+    active --> withdrawn : withdraw
+    active --> expired   : expire
+    draft     --> [*]
+    withdrawn --> [*]
+    expired   --> [*]
+
+%% ---- Workflow — support-plan lifecycle -----------------------------------
+%%meta name: Support Plan Lifecycle
+%%meta kind: workflow
+%%workflow SupportPlanLifecycle entity: SupportPlan kind: state
+stateDiagram-v2
+    [*] --> draft
+    draft        --> active       : activate
+    active       --> under_review : begin_review
+    under_review --> active       : renew
+    active       --> closed       : close
+    under_review --> closed       : close
+    draft  --> [*]
+    closed --> [*]
+
+%% ---- Workflow — safeguarding lifecycle -----------------------------------
+%%meta name: Safeguarding Concern Lifecycle
+%%meta kind: workflow
+%%workflow SafeguardingConcernLifecycle entity: SafeguardingConcern kind: state
+stateDiagram-v2
+    [*] --> reported
+    reported      --> triaged       : triage
+    triaged       --> investigating : begin_investigation
+    triaged       --> referred      : refer
+    investigating --> referred      : refer
+    investigating --> closed        : close
+    referred      --> closed        : close
+    closed --> [*]
+
+%% ---- Workflow — communication lifecycle ----------------------------------
+%%meta name: Communication Lifecycle
+%%meta kind: workflow
+%%workflow CommunicationLifecycle entity: CommunicationLog kind: state
+stateDiagram-v2
+    [*] --> queued
+    queued --> sent      : send
+    queued --> failed    : fail
+    sent   --> delivered : confirm_delivery
+    sent   --> failed    : fail
+    delivered --> [*]
+    failed    --> [*]
+
+%% ---- Workflow — refund lifecycle -----------------------------------------
+%%meta name: Refund Lifecycle
+%%meta kind: workflow
+%%workflow RefundLifecycle entity: Refund kind: state
+stateDiagram-v2
+    [*] --> requested
+    requested    --> under_review : begin_review
+    requested    --> cancelled    : cancel
+    under_review --> approved     : approve
+    under_review --> rejected     : reject
+    under_review --> cancelled    : cancel
+    approved     --> paid         : pay
+    paid      --> [*]
+    rejected  --> [*]
+    cancelled --> [*]
 
 %% ---- Workflow — admission to enrolment (saga) -----------------------------
 %%meta name: Admission To Enrolment
