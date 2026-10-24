@@ -1,14 +1,14 @@
 %% ============================================================================
 %% EML Model — Education Management System
 %%
-%% A fee-charging secondary school, modelled end to end: twenty-four entities,
+%% A fee-charging secondary school, modelled end to end: twenty-five entities,
 %% the sixteen lifecycles the school actually runs on, the admission decision it
 %% takes by judgement today, the capacity, overpayment and refund-approval
-%% refusals that must act, and the five sagas that turn an accepted application
-%% into an enrolled, invoiced student, a payment into a settled invoice, a
-%% cancelled section into withdrawn enrolments and a suspension into a
-%% suspended student. Consent, support plans, safeguarding concerns and the log
-%% of what was sent to families sit beside them, because a school answers for
+%% refusals that must act, and the seven sagas that turn an accepted application
+%% into an enrolled, invoiced student, a payment into a settled invoice, a paid
+%% refund back into an open one, a cancelled section into withdrawn enrolments
+%% and a suspension into a suspended student. Consent, support plans, safeguarding concerns (and the outcome a
+%% reporter hears back) and the log of what was sent to families sit beside them, because a school answers for
 %% those as much as for its fees.
 %%
 %% Built through the interactive authoring protocol (now llms.txt §1), so
@@ -28,7 +28,7 @@
 %%category name: Assessment; icon: graduation-cap; entities: Assessment
 %%category name: Finance; icon: credit-card; entities: FeeInvoice, Payment, Refund
 %%category name: Conduct; icon: shield-alert; entities: DisciplineIncident
-%%category name: Student Support; icon: heart-handshake; entities: ConsentRecord, SupportPlan, SafeguardingConcern, CommunicationLog
+%%category name: Student Support; icon: heart-handshake; entities: ConsentRecord, SupportPlan, SafeguardingConcern, ConcernFeedback, CommunicationLog
 %%enum TermStatus: planned, current, closed
 %%enum StaffType: teaching, administrative, pastoral, leadership
 %%enum EmploymentStatus: active, on_leave, left
@@ -60,6 +60,7 @@
 %%enum SupportPlanStatus: draft, active, under_review, closed
 %%enum ConcernCategory: disclosure, neglect, abuse, exploitation, online_safety, welfare
 %%enum ConcernStatus: reported, triaged, investigating, referred, closed
+%%enum ConcernFeedbackOutcome: received, triaged, action_taken, referred, closed
 %%enum CommunicationChannel: email, sms, phone, post, portal, in_person
 %%enum CommunicationPurpose: attendance, academic, finance, safeguarding, admissions, general
 %%enum CommunicationStatus: queued, sent, delivered, failed
@@ -346,6 +347,16 @@ erDiagram
         text     closure_reason OPTIONAL
     }
 
+    ConcernFeedback {
+        string   id PK
+        string   safeguarding_concern_id FK
+        string   reported_by_id FK
+        string   reference
+        string   outcome
+        datetime given_at
+        text     message
+    }
+
     CommunicationLog {
         string   id PK
         string   student_id FK OPTIONAL
@@ -373,6 +384,9 @@ erDiagram
         datetime decided_at OPTIONAL
         datetime paid_at OPTIONAL
         text     decision_notes OPTIONAL
+        string   fee_invoice_id FK OPTIONAL
+        string   invoice_status_after OPTIONAL
+        datetime applied_to_invoice_at OPTIONAL
         string   reference OPTIONAL
     }
 
@@ -413,11 +427,14 @@ erDiagram
     Staff        ||--o{ SupportPlan          : "owns"
     Student      ||--o{ SafeguardingConcern  : "protected by"
     Staff        ||--o{ SafeguardingConcern  : "reports and owns"
+    SafeguardingConcern ||--o{ ConcernFeedback : "reported back by"
+    Staff        ||--o{ ConcernFeedback      : "hears back through"
     Student      ||--o{ CommunicationLog     : "concerns"
     Guardian     ||--o{ CommunicationLog     : "receives"
     Staff        ||--o{ CommunicationLog     : "sends"
     Payment      ||--o{ Refund               : "reversed by"
     Staff        ||--o{ Refund               : "requests and approves"
+    FeeInvoice   ||--o{ Refund               : "credited back by"
 
     %%entity Department help: A teaching department that owns a group of courses and employs the staff who teach them. Reference data, created once when the school's structure is set up.
     %%entity Room help: A teaching space with a legal capacity. A section's own capacity may be lower but is never allowed above the room's.
@@ -440,9 +457,10 @@ erDiagram
     %%entity DisciplineIncident help: A recorded conduct event, its investigation and its outcome. Readable by pastoral staff and the principal only.
     %%entity ConsentRecord help: One guardian's time-bounded decision about a student's participation, information use or emergency treatment. Withdrawal preserves the earlier authority and when it ended.
     %%entity SupportPlan help: The controlled summary of a student's learning, accessibility, medical or behaviour support, its accountable owner and scheduled review. Teachers receive the adjustments they need without broad access to sensitive evidence.
-    %%entity SafeguardingConcern help: A confidential welfare or child-protection concern recorded in factual language, triaged to an accountable owner and retained through referral or closure. It is separate from discipline because the student may be at risk rather than at fault.
+    %%entity SafeguardingConcern help: A confidential welfare or child-protection concern recorded in factual language, triaged to an accountable owner and retained through referral or closure. It is separate from discipline because the student may be at risk rather than at fault. Whoever reported it does not read it back; they hear the outcome through ConcernFeedback.
     %%entity CommunicationLog help: An auditable record of an operational message to a guardian about a student, including delivery failure. It records the subject and outcome rather than storing unnecessary message content.
-    %%entity Refund help: A controlled reversal of money previously received, requested and approved by different staff where possible. It never edits or deletes the original payment.
+    %%entity ConcernFeedback help: What a member of staff who reported a safeguarding concern is told about it afterwards: that it was received, triaged, acted on, referred or closed. It carries the case reference and an outcome in neutral words and never the student, the account or the risk, so a teacher who raised a concern can read it back without being able to read the concern.
+    %%entity Refund help: A controlled reversal of money previously received, requested and approved by different people, which the system enforces. It never edits or deletes the original payment; when it is paid, the invoice it was paid against is moved back to reflect the money returned.
 
     %%entity StudentGuardian parent: Student
     %%entity AttendanceRecord parent: ClassSession
@@ -499,7 +517,7 @@ erDiagram
     %%field Student.withdrawn_on help: The date the student left. Set with the status; the term's invoice is not cancelled by it, which is what makes the leavers report a finance report as well as a registry one.
     %%field Student.withdrawal_reason help: Why the student left, in the family's terms — relocation, transfer, financial, exclusion. Required on withdrawal, because the retention report is built from it and an unexplained leaver is the one the governors ask about.
     %%field Student.school_email help: The account the student signs in with. Optional: it is issued at year 7 and some transfers arrive without one.
-    %%field Student.has_support_plan help: Set when the student has a formal learning-support plan. It is a flag, not the plan: the plan itself is held outside this system, and this field exists so a teacher opening the register knows to ask for it.
+    %%field Student.has_support_plan help: True while the student has a support plan that is active or under review; a draft or closed plan does not count. It is kept in step with the plans by the support-plan hooks and never keyed by hand, so a teacher opening the register can trust it as the prompt to read the student's plan, which sits in this system as a SupportPlan record.
     %%field StudentGuardian.student_id help: The child. This is the link back to the parent record, so guardians appear as a tab on the student rather than as a screen of their own.
     %%field StudentGuardian.guardian_id help: The adult. One guardian may be linked to several students, which is why this is a link record rather than a column on the student.
     %%field StudentGuardian.relationship help: mother, father, step_parent, grandparent, carer — the relationship as the family states it; local_authority — a corporate parent, which changes who may consent; other — anything else, and the detail belongs in the student's pastoral record.
@@ -641,6 +659,12 @@ erDiagram
     %%field SafeguardingConcern.external_reference help: The case number supplied by an authorised external agency. Blank until a referral is accepted.
     %%field SafeguardingConcern.closed_on help: The date the concern was formally closed after actions, referrals and review were recorded.
     %%field SafeguardingConcern.closure_reason help: Why no further action remains with the school and where continuing responsibility sits. Required on closure.
+    %%field ConcernFeedback.safeguarding_concern_id help: The concern this feedback answers. The feedback names it for the designated staff; it is not a way for the reader to open it.
+    %%field ConcernFeedback.reported_by_id help: The member of staff who reported the concern and is being told about it, copied from the concern by the feedback hook.
+    %%field ConcernFeedback.reference help: The concern's case reference, copied onto the feedback so a reporter can match it to the note they made. The reference carries no name, so it can be read by staff who may not read the concern.
+    %%field ConcernFeedback.outcome help: received — the designated lead has the concern; triaged — risk and an owner are assigned; action_taken — the school is acting on it; referred — passed to an external body; closed — nothing further remains with the school.
+    %%field ConcernFeedback.given_at help: When the reporter was told. It is stamped as the concern changes state, so the reporter can see the school responded promptly.
+    %%field ConcernFeedback.message help: A short neutral note for the reporter, such as that the concern was referred and they need do nothing more. It must not contain the student's name, what was alleged or the assessed risk.
     %%field CommunicationLog.student_id help: The student the message concerns. Optional only for a general guardian communication not tied to one child.
     %%field CommunicationLog.guardian_id help: The guardian contacted. Optional only for an internal or student-only communication, but at least one recipient context is required.
     %%field CommunicationLog.sent_by_id help: The staff member accountable for the message or automated campaign that created it.
@@ -663,6 +687,9 @@ erDiagram
     %%field Refund.paid_at help: When the money actually left the school. Required before the refund can be marked paid.
     %%field Refund.decision_notes help: The evidence and reasoning behind approval, rejection or cancellation, written for reconciliation and later audit.
     %%field Refund.reference help: The bank or payment-provider reference proving the repayment. Required where the channel supplies one.
+    %%field Refund.fee_invoice_id help: The invoice the original payment was made against, copied onto the refund by the refund hook so the invoice rules can read it. It is derived from the payment and never chosen.
+    %%field Refund.invoice_status_after help: What the invoice becomes once this refund is paid, worked out by the refund hook: part_paid when money remains paid against it, issued when the refund returns all of it. Blank when the invoice stays as it is, as with an overdue, draft or cancelled invoice. The rule reads it because it can only see the record being written.
+    %%field Refund.applied_to_invoice_at help: When the paid refund was taken off the invoice's amount paid. It is stamped once by the refund hook; while it is blank the refund has not reached the invoice, and once it is set no later edit applies it a second time.
 
     %% Form layout: headed sections of two-column rows (`|` between rows,
     %% `,` within one; a row of one spans the full width).
@@ -710,8 +737,9 @@ erDiagram
     %%section entity: SafeguardingConcern; name: Action and ownership; help: Who owns the concern, what was done immediately, any external case reference and the evidence required to close it.; rows: owner_id | immediate_action | external_reference | closed_on | closure_reason
     %%section entity: CommunicationLog; name: Communication; help: Who was contacted about which student, why, through which channel and by which staff member.; rows: student_id, guardian_id | sent_by_id, purpose | channel, status | subject
     %%section entity: CommunicationLog; name: Outcome; help: The minimum useful account of the contact, its send and delivery times, and any failure that needs follow-up.; rows: summary | sent_at, delivered_at | failure_reason
+    %%section entity: ConcernFeedback; name: Feedback; help: Which concern the reporter is hearing about, who they are and the neutral outcome they are told.; rows: safeguarding_concern_id, reported_by_id | reference, outcome | given_at | message
     %%section entity: Refund; name: Request; help: The original payment, requester, amount and business reason entering the controlled refund queue.; rows: payment_id, requested_by_id | amount, reason | status, requested_at
-    %%section entity: Refund; name: Decision and settlement; help: Who decided the request, when it was decided and paid, and the evidence finance needs to reconcile it.; rows: approved_by_id, decided_at | paid_at, reference | decision_notes
+    %%section entity: Refund; name: Decision and settlement; help: Who decided the request, when it was decided and paid, and the evidence finance needs to reconcile it.; rows: approved_by_id, decided_at | paid_at, reference | decision_notes | fee_invoice_id, invoice_status_after | applied_to_invoice_at
 
     %%field AcademicTerm.status enum: TermStatus
     %%field Staff.staff_type enum: StaffType
@@ -747,6 +775,8 @@ erDiagram
     %%field CommunicationLog.channel enum: CommunicationChannel
     %%field CommunicationLog.purpose enum: CommunicationPurpose
     %%field CommunicationLog.status enum: CommunicationStatus
+    %%field ConcernFeedback.outcome enum: ConcernFeedbackOutcome
+    %%field Refund.invoice_status_after enum: InvoiceStatus
     %%field Refund.reason enum: RefundReason
     %%field Refund.status enum: RefundStatus
 
@@ -768,6 +798,7 @@ erDiagram
     %%index SupportPlan(student_id, status, review_due_on)
     %%index SafeguardingConcern(status, reported_at)
     %%index CommunicationLog(guardian_id, status, sent_at)
+    %%index ConcernFeedback(reported_by_id, given_at)
     %%index Refund(payment_id, status, requested_at)
 
     %%rbac role:principal|registrar|head_of_department|teacher on Department.read
@@ -853,6 +884,9 @@ erDiagram
     %%rbac role:counsellor|principal on SafeguardingConcern.triage
     %%rbac role:principal|counsellor on SafeguardingConcern.refer
     %%rbac role:principal on SafeguardingConcern.close
+    %%rbac role:principal|head_of_department|teacher|counsellor on ConcernFeedback.read
+    %%rbac role:counsellor|principal on ConcernFeedback.create
+    %%rbac role:counsellor|principal on ConcernFeedback.update
     %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on CommunicationLog.read
     %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor on CommunicationLog.create
     %%rbac role:principal|registrar|finance_officer|counsellor on CommunicationLog.update
@@ -1011,10 +1045,18 @@ flowchart TD
     B -->|No| D
     D -->|Yes| F{Payment time recorded?}
     F -->|No| R2[Refuse]
-    F -->|Yes| P[Accept]
-    D -->|No| P
+    F -->|Yes| G{Approver is the requester?}
+    G -->|Yes| R3[Refuse: separation of duties]
+    G -->|No| H{Reaches the invoice?}
+    H -->|Part paid| T1[Return the invoice to part paid]
+    H -->|Issued| T2[Return the invoice to issued]
+    H -->|No| P[Accept]
+    D -->|No| G
     R1 --> E([End])
     R2 --> E
+    R3 --> E
+    T1 --> E
+    T2 --> E
     P --> E
 
     %%action refuseNonPositiveRefund validation-error when: amount <= 0 message: A refund must be a positive amount linked to the immutable payment it reverses.
@@ -1022,6 +1064,9 @@ flowchart TD
     %%action requireRefundApproval validation-error when: status == "approved" and approved_by_id == null message: An approved refund needs the staff member who authorised the return of funds.
     %%action requireRefundRejectionNotes validation-error when: status == "rejected" and decision_notes == null message: A rejected refund needs the reason finance will explain to the family.
     %%action requireRefundPaidTime validation-error when: status == "paid" and paid_at == null message: A refund is paid only when the money actually left the school.
+    %%action refuseSelfApprovedRefund validation-error when: approved_by_id != null and approved_by_id == requested_by_id message: The person who approves a refund cannot be the person who requested it. A second member of staff must authorise the return of funds.
+    %%action returnInvoiceToPartPaid trigger-workflow when: status == "paid" and applied_to_invoice_at == null and invoice_status_after == "part_paid" workflow: RefundReopensInvoice
+    %%action returnInvoiceToIssued trigger-workflow when: status == "paid" and applied_to_invoice_at == null and invoice_status_after == "issued" workflow: RefundReissuesInvoice
 
 %% ---- Business rules — admission assessment (decides only, cannot act) -------
 %% This section carries a node graph and no %%action directives, deliberately.
@@ -1345,7 +1390,9 @@ stateDiagram-v2
     part_paid --> overdue   : mark_overdue
     overdue   --> part_paid : record_part_payment
     overdue   --> paid      : settle
-    paid      --> [*]
+    paid      --> part_paid : reopen_after_refund
+    paid      --> issued    : reissue_after_refund
+    part_paid --> issued    : reissue_after_refund
     cancelled --> [*]
 
 %% ---- Workflow — the conduct lifecycle -------------------------------------
@@ -1488,6 +1535,25 @@ flowchart TD
 
     %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: part_paid
 
+%% ---- Workflow — a paid refund reopens its invoice (sagas) ------------------
+%%meta name: Refund Reopens Invoice
+%%meta kind: workflow
+%%workflow RefundReopensInvoice entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Refund paid, money still held against the invoice]) --> B[Mark the invoice part paid]
+    B --> C([Reopened])
+
+    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: part_paid
+
+%%meta name: Refund Reissues Invoice
+%%meta kind: workflow
+%%workflow RefundReissuesInvoice entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Refund paid, nothing left paid against the invoice]) --> B[Mark the invoice issued]
+    B --> C([Reissued])
+
+    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: issued
+
 %% ---- Workflow — cancelling a section (saga) -------------------------------
 %%meta name: Section Cancellation
 %%meta kind: workflow
@@ -1564,6 +1630,47 @@ flowchart TD
 
     %%hook beforeCreate resolveInvoiceBalance on Payment
     %%hook afterCreate applyPaymentToInvoice on Payment
+
+%% ---- Workflow — refund hooks -----------------------------------------------
+%%meta name: Refund Hooks
+%%meta kind: workflow
+%%workflow RefundHooks entity: Refund kind: hook
+flowchart TD
+    A[Refund edited] --> B[beforeUpdate: resolveRefundInvoiceEffect]
+    B --> C[Store the refund]
+    C --> D[afterUpdate: applyRefundToInvoice]
+    D --> E[Response]
+
+    %%hook beforeUpdate resolveRefundInvoiceEffect on Refund
+    %%hook afterUpdate applyRefundToInvoice on Refund
+
+%% ---- Workflow — support plan hooks -----------------------------------------
+%%meta name: Support Plan Hooks
+%%meta kind: workflow
+%%workflow SupportPlanHooks entity: SupportPlan kind: hook
+flowchart TD
+    A[Plan written] --> B[Store the plan]
+    B --> C[afterCreate: syncStudentSupportFlagOnCreate]
+    C --> D[afterUpdate: syncStudentSupportFlagOnUpdate]
+    D --> E[afterDelete: syncStudentSupportFlagOnDelete]
+    E --> F[Response]
+
+    %%hook afterCreate syncStudentSupportFlagOnCreate on SupportPlan
+    %%hook afterUpdate syncStudentSupportFlagOnUpdate on SupportPlan
+    %%hook afterDelete syncStudentSupportFlagOnDelete on SupportPlan
+
+%% ---- Workflow — safeguarding feedback hooks --------------------------------
+%%meta name: Safeguarding Feedback Hooks
+%%meta kind: workflow
+%%workflow SafeguardingFeedbackHooks entity: SafeguardingConcern kind: hook
+flowchart TD
+    A[Concern written] --> B[Store the concern]
+    B --> C[afterCreate: acknowledgeConcernToReporter]
+    C --> D[afterUpdate: reportOutcomeToReporter]
+    D --> E[Response]
+
+    %%hook afterCreate acknowledgeConcernToReporter on SafeguardingConcern
+    %%hook afterUpdate reportOutcomeToReporter on SafeguardingConcern
 
 %% ---- Workflow — invoice line hooks -----------------------------------------
 %%meta name: Invoice Line Hooks
