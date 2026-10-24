@@ -1,6 +1,6 @@
 %%meta name: Investment Planning & Wealth Management System
 %%meta kind: erd
-%%meta version: 1.0.1
+%%meta version: 1.1.0
 
 %%category name: Party and Household; entities: Party, Person, Organization, Household, Client, Address, ContactPoint, Nominee, PowerOfAttorney
 %%category name: Advisor and Organization; entities: OrganizationUnit, Advisor, Team
@@ -2606,3 +2606,541 @@ flowchart TD
     %%report admin-integrations-not-healthy title: Integrations that are not running entity: ExternalIntegration help: Every connection to the outside world with its last successful sync. One that has failed or paused is data the rest of the system is quietly working without. sql: SELECT i.integration_type, i.provider_name, i.status, i.last_sync_at, (current_date - i.last_sync_at::date) AS days_since_sync FROM bus_external_integration i WHERE i.deleted_at IS NULL AND i.status IN ('failed', 'paused') ORDER BY i.last_sync_at NULLS FIRST
     %%report admin-audit-changes-without-detail title: Changes recorded without what changed entity: AuditEvent help: An audit entry that says an update happened and not what it was is a log that cannot answer the question it exists for. Some are system events; the rest are a collector that stopped recording values. sql: SELECT a."timestamp" AS occurred_at, a.action, a.entity_type, a.entity_reference, a.source FROM bus_audit_event a WHERE a.deleted_at IS NULL AND a.before_value IS NULL AND a.after_value IS NULL AND a.action ILIKE '%update%' AND a."timestamp" > now() - interval '30 days' ORDER BY a."timestamp" DESC
     %%report admin-parties-without-contact title: Active parties with no way to reach them entity: Party help: A client record with no contact point is one the firm cannot warn about a lapsed document or a market event. It is the cheapest data-quality gap to close and the most embarrassing to discover during an incident. sql: SELECT p.display_name, p.status, p.party_type FROM bus_party p LEFT JOIN bus_contact_point cp ON cp.party_id = p.id AND cp.deleted_at IS NULL WHERE p.deleted_at IS NULL AND p.status = 'active' GROUP BY p.id, p.display_name, p.status, p.party_type HAVING COUNT(cp.id) = 0 ORDER BY p.display_name LIMIT 200
+
+%% ---- India regulatory control enhancement ---------------------------------
+%%meta kind: erd
+%%category name: Regulatory Governance and Client Protection; entities: DataConsent, BeneficialOwner, AMLScreening, ComplianceCase, ClientAgreement, ConflictDisclosure, FeeInvoice, InvestorComplaint, RegulatoryFiling, ComplianceBreach, RetentionPolicy, LegalHold
+
+%%enum ConsentStatus: requested, granted, declined, withdrawn, expired
+%%enum ConsentPurpose: onboarding, investment_advice, transaction_processing, regulatory_reporting, marketing, data_sharing
+%%enum BeneficialOwnerStatus: declared, verification_pending, verified, rejected, ceased
+%%enum AMLScreeningStatus: queued, screening, clear, potential_match, confirmed_match, error
+%%enum ComplianceCaseStatus: opened, investigating, awaiting_information, escalated, reported, cleared, closed
+%%enum AgreementStatus: draft, issued, signed, active, superseded, terminated, expired
+%%enum ConflictStatus: identified, under_review, mitigated, disclosed, accepted, prohibited, closed
+%%enum FeeInvoiceStatus: draft, issued, due, partially_paid, paid, disputed, waived, cancelled, overdue
+%%enum ComplaintStatus: received, acknowledged, investigating, awaiting_client, resolved, rejected, escalated, closed
+%%enum FilingStatus: preparing, pending_approval, approved, submitted, accepted, rejected, correction_required
+%%enum BreachStatus: detected, contained, investigating, remediating, reported, resolved, closed
+%%enum BreachSeverity: low, medium, high, critical
+%%enum RetentionStatus: draft, active, suspended, superseded, retired
+%%enum LegalHoldStatus: proposed, active, released, cancelled
+
+erDiagram
+    DataConsent {
+        string id PK
+        string client_id FK
+        string document_id FK OPTIONAL
+        string purpose
+        string status
+        string notice_version
+        datetime requested_at
+        datetime decided_at OPTIONAL
+        datetime valid_until OPTIONAL
+        string collection_channel
+        string evidence_reference
+        string withdrawal_reason OPTIONAL
+    }
+    BeneficialOwner {
+        string id PK
+        string organization_id FK
+        string party_id FK
+        string status
+        decimal ownership_percentage OPTIONAL
+        boolean control_through_other_means
+        string control_description OPTIONAL
+        date effective_from
+        date effective_to OPTIONAL
+        date verified_on OPTIONAL
+    }
+    AMLScreening {
+        string id PK
+        string client_id FK
+        string party_id FK
+        string status
+        string screening_type
+        string provider
+        datetime screened_at
+        string provider_reference OPTIONAL
+        decimal match_score OPTIONAL
+        string match_summary OPTIONAL
+        date next_screening_date OPTIONAL
+    }
+    ComplianceCase {
+        string id PK
+        string client_id FK
+        string aml_screening_id FK OPTIONAL
+        string advisor_id FK OPTIONAL
+        string case_number UK
+        string case_type
+        string status
+        string priority
+        datetime opened_at
+        datetime due_at OPTIONAL
+        datetime closed_at OPTIONAL
+        string decision OPTIONAL
+        string rationale OPTIONAL
+    }
+    ClientAgreement {
+        string id PK
+        string client_id FK
+        string fee_schedule_id FK OPTIONAL
+        string document_id FK OPTIONAL
+        string agreement_number UK
+        string agreement_type
+        string status
+        string version_number
+        date issued_date
+        date signed_date OPTIONAL
+        date effective_date OPTIONAL
+        date expiry_date OPTIONAL
+        string termination_reason OPTIONAL
+    }
+    ConflictDisclosure {
+        string id PK
+        string client_id FK OPTIONAL
+        string advisor_id FK
+        string security_id FK OPTIONAL
+        string conflict_type
+        string status
+        date identified_date
+        string description
+        string mitigation OPTIONAL
+        datetime disclosed_at OPTIONAL
+        datetime accepted_at OPTIONAL
+    }
+    FeeInvoice {
+        string id PK
+        string client_id FK
+        string fee_schedule_id FK
+        string agreement_id FK
+        string invoice_number UK
+        string status
+        date invoice_date
+        date due_date
+        money gross_amount
+        money tax_amount OPTIONAL
+        money net_amount
+        money paid_amount OPTIONAL
+        date paid_date OPTIONAL
+        string dispute_reason OPTIONAL
+    }
+    InvestorComplaint {
+        string id PK
+        string client_id FK
+        string advisor_id FK OPTIONAL
+        string complaint_number UK
+        string channel
+        string category
+        string priority
+        string status
+        datetime received_at
+        datetime acknowledged_at OPTIONAL
+        datetime response_due_at
+        datetime resolved_at OPTIONAL
+        string scores_reference OPTIONAL
+        string summary
+        string resolution OPTIONAL
+    }
+    RegulatoryFiling {
+        string id PK
+        string compliance_case_id FK OPTIONAL
+        string document_id FK OPTIONAL
+        string filing_number UK
+        string regulator
+        string filing_type
+        string reporting_period
+        string status
+        date due_date
+        datetime submitted_at OPTIONAL
+        datetime accepted_at OPTIONAL
+        string acknowledgement_reference OPTIONAL
+        string rejection_reason OPTIONAL
+    }
+    ComplianceBreach {
+        string id PK
+        string client_id FK OPTIONAL
+        string advisor_id FK OPTIONAL
+        string external_integration_id FK OPTIONAL
+        string breach_number UK
+        string breach_type
+        string severity
+        string status
+        datetime detected_at
+        datetime contained_at OPTIONAL
+        datetime reported_at OPTIONAL
+        datetime resolved_at OPTIONAL
+        string description
+        string root_cause OPTIONAL
+        string remediation OPTIONAL
+    }
+    RetentionPolicy {
+        string id PK
+        string name UK
+        string record_category
+        string status
+        integer retention_years
+        string trigger_event
+        string legal_basis
+        date effective_date
+        date review_date
+        boolean destruction_requires_approval
+    }
+    LegalHold {
+        string id PK
+        string client_id FK OPTIONAL
+        string retention_policy_id FK
+        string compliance_case_id FK OPTIONAL
+        string hold_number UK
+        string status
+        string reason
+        datetime imposed_at
+        datetime released_at OPTIONAL
+        string scope
+        string authority_reference OPTIONAL
+    }
+
+    Client ||--o{ DataConsent : "records choices"
+    Document ||--o{ DataConsent : "evidences"
+    Organization ||--o{ BeneficialOwner : "declares controllers"
+    Party ||--o{ BeneficialOwner : "identifies controller"
+    Client ||--o{ AMLScreening : "is screened"
+    Party ||--o{ AMLScreening : "is matched"
+    Client ||--o{ ComplianceCase : "is investigated"
+    AMLScreening ||--o{ ComplianceCase : "raises"
+    Advisor ||--o{ ComplianceCase : "owns review"
+    Client ||--o{ ClientAgreement : "signs"
+    FeeSchedule ||--o{ ClientAgreement : "prices"
+    Document ||--o{ ClientAgreement : "stores executed copy"
+    Client ||--o{ ConflictDisclosure : "receives disclosure"
+    Advisor ||--o{ ConflictDisclosure : "declares"
+    Security ||--o{ ConflictDisclosure : "concerns"
+    Client ||--o{ FeeInvoice : "is billed"
+    FeeSchedule ||--o{ FeeInvoice : "calculates"
+    ClientAgreement ||--o{ FeeInvoice : "authorizes"
+    Client ||--o{ InvestorComplaint : "raises"
+    Advisor ||--o{ InvestorComplaint : "handles"
+    ComplianceCase ||--o{ RegulatoryFiling : "requires"
+    Document ||--o{ RegulatoryFiling : "attaches evidence"
+    Client ||--o{ ComplianceBreach : "is affected"
+    Advisor ||--o{ ComplianceBreach : "owns remediation"
+    ExternalIntegration ||--o{ ComplianceBreach : "causes"
+    RetentionPolicy ||--o{ LegalHold : "governs"
+    Client ||--o{ LegalHold : "preserves records for"
+    ComplianceCase ||--o{ LegalHold : "requires preservation"
+
+%%field DataConsent.purpose enum: ConsentPurpose
+%%field DataConsent.status enum: ConsentStatus
+%%field BeneficialOwner.status enum: BeneficialOwnerStatus
+%%field AMLScreening.status enum: AMLScreeningStatus
+%%field ComplianceCase.status enum: ComplianceCaseStatus
+%%field ClientAgreement.status enum: AgreementStatus
+%%field ConflictDisclosure.status enum: ConflictStatus
+%%field FeeInvoice.status enum: FeeInvoiceStatus
+%%field InvestorComplaint.status enum: ComplaintStatus
+%%field RegulatoryFiling.status enum: FilingStatus
+%%field ComplianceBreach.status enum: BreachStatus
+%%field ComplianceBreach.severity enum: BreachSeverity
+%%field RetentionPolicy.status enum: RetentionStatus
+%%field LegalHold.status enum: LegalHoldStatus
+
+%%entity DataConsent help: One informed decision by a client for one stated purpose and notice version. Keep separate records when purposes differ so withdrawing marketing consent never blocks regulated account servicing.
+%%field DataConsent.client_id help: The client whose choice is recorded; downstream processing must check the matching purpose before using personal data.
+%%field DataConsent.document_id help: The signed notice, recording or uploaded evidence that proves what the client saw when making the choice.
+%%field DataConsent.purpose help: onboarding permits account setup; investment_advice supports planning; transaction_processing supports orders; regulatory_reporting covers mandatory disclosures; marketing and data_sharing remain independently withdrawable.
+%%field DataConsent.status help: requested awaits a decision; granted permits the stated purpose; declined forbids it; withdrawn stops future discretionary use; expired requires renewal.
+%%field DataConsent.notice_version help: The exact privacy notice wording presented, so later policy changes do not rewrite historical consent.
+%%field DataConsent.requested_at help: When the client was asked, used to prove the notice preceded any consent-dependent processing.
+%%field DataConsent.decided_at help: When the client granted, declined or withdrew the choice; empty while no decision has been made.
+%%field DataConsent.valid_until help: The last date the decision may be relied on where the purpose or policy requires renewal.
+%%field DataConsent.collection_channel help: Where the choice was captured, such as portal, paper, recorded call or branch desk.
+%%field DataConsent.evidence_reference help: The immutable receipt, signature envelope or recording locator used during an audit or dispute.
+%%field DataConsent.withdrawal_reason help: Why the client withdrew permission, retained to explain which future processing and communications must stop.
+%%section entity: DataConsent; name: Decision; help: Who made the choice, for which purpose, against which notice, and whether it currently permits processing.; rows: client_id, purpose | status, notice_version
+%%section entity: DataConsent; name: Evidence; help: When and where the choice was captured and the proof an auditor can retrieve.; rows: requested_at, decided_at | collection_channel, evidence_reference | document_id, valid_until
+%%section entity: DataConsent; name: Withdrawal; help: Why an earlier permission ended; complete this only when the client withdraws it.; rows: withdrawal_reason; collapsed: true
+
+%%entity BeneficialOwner help: A natural person who owns or ultimately controls an organizational client. The record supports KYC verification and must preserve former controllers rather than overwrite them.
+%%field BeneficialOwner.organization_id help: The legal entity whose ownership or control chain is being established before onboarding or periodic review.
+%%field BeneficialOwner.party_id help: The natural person identified as an ultimate owner or controller and subjected to identity and AML checks.
+%%field BeneficialOwner.status help: declared is untested; verification_pending is being checked; verified may support onboarding; rejected is inconsistent or unsupported; ceased preserves a former controller.
+%%field BeneficialOwner.ownership_percentage help: Direct and indirect economic ownership attributed to this person after tracing intermediate entities.
+%%field BeneficialOwner.control_through_other_means help: Marks a controller identified through voting, appointment rights or influence rather than ownership percentage.
+%%field BeneficialOwner.control_description help: How control is exercised when share ownership alone does not explain the determination.
+%%field BeneficialOwner.effective_from help: When this ownership or control relationship began, used to reconstruct the KYC position at any past date.
+%%field BeneficialOwner.effective_to help: When the relationship ended; leave empty while the person remains an owner or controller.
+%%field BeneficialOwner.verified_on help: When evidence was last checked; periodic review uses this date to identify stale ownership declarations.
+%%section entity: BeneficialOwner; name: Controller; help: The organization, natural person and basis on which ultimate control has been attributed.; rows: organization_id, party_id | ownership_percentage, control_through_other_means | control_description
+%%section entity: BeneficialOwner; name: Verification; help: Where the determination stands and the period for which it is supported by evidence.; rows: status, verified_on | effective_from, effective_to
+
+%%entity AMLScreening help: One sanctions, politically exposed person, adverse-media or watch-list screening attempt. Re-screening creates another record so changes in lists and provider results remain provable.
+%%field AMLScreening.client_id help: The client relationship being assessed; a confirmed match can suspend onboarding, advice and transaction execution.
+%%field AMLScreening.party_id help: The person or organization name submitted to the screening provider for matching.
+%%field AMLScreening.status help: queued and screening are incomplete; clear permits ordinary processing; potential_match needs human review; confirmed_match requires escalation; error must be rerun.
+%%field AMLScreening.screening_type help: The control performed, such as sanctions, PEP, adverse media or internal watch-list screening.
+%%field AMLScreening.provider help: The service or internal list that returned the result, needed to reproduce the check.
+%%field AMLScreening.screened_at help: When the provider result was obtained, which determines which list version and client facts applied.
+%%field AMLScreening.provider_reference help: The external result identifier used to retrieve match candidates and evidence without copying restricted data.
+%%field AMLScreening.match_score help: The provider's similarity measure; it is a triage aid and never substitutes for an investigator's decision.
+%%field AMLScreening.match_summary help: The minimum facts explaining why a candidate matched and what must be compared by compliance.
+%%field AMLScreening.next_screening_date help: When periodic monitoring must run again if no event-driven re-screening occurs first.
+%%section entity: AMLScreening; name: Subject; help: The client and party checked, the control used, and the provider that performed it.; rows: client_id, party_id | screening_type, provider
+%%section entity: AMLScreening; name: Result; help: The returned state, timing and match information that determines whether investigation is required.; rows: status, screened_at | match_score, provider_reference | match_summary
+%%section entity: AMLScreening; name: Monitoring; help: The next routine check due after this result remains valid.; rows: next_screening_date
+
+%%entity ComplianceCase help: The controlled investigation of an AML, KYC, conduct or regulatory concern. It separates machine-generated alerts from the documented human decision and any filing.
+%%field ComplianceCase.client_id help: The client relationship affected by the concern and any restrictions imposed while it is investigated.
+%%field ComplianceCase.aml_screening_id help: The screening result that opened the case, when the concern originated in name matching.
+%%field ComplianceCase.advisor_id help: The accountable staff owner coordinating evidence and deadlines; this does not make the advisor the subject.
+%%field ComplianceCase.case_number help: The stable internal reference quoted in approvals, filings and audit correspondence.
+%%field ComplianceCase.case_type help: The regulatory concern being handled, such as AML match, KYC discrepancy, suitability exception or conduct review.
+%%field ComplianceCase.status help: opened awaits triage; investigating gathers evidence; awaiting_information is blocked; escalated needs senior review; reported has gone to an authority; cleared or closed are terminal.
+%%field ComplianceCase.priority help: The response urgency based on legal deadline, client impact and risk rather than commercial value.
+%%field ComplianceCase.opened_at help: When the concern became a managed case and regulatory response clocks began.
+%%field ComplianceCase.due_at help: The internal deadline set early enough to meet the applicable external reporting or remediation limit.
+%%field ComplianceCase.closed_at help: When all investigation, filing and remediation work finished; empty while any obligation remains.
+%%field ComplianceCase.decision help: The investigator's outcome, such as false positive, monitor, restrict, exit or report.
+%%field ComplianceCase.rationale help: The evidence-based reasoning that lets an independent reviewer understand and reproduce the decision.
+%%section entity: ComplianceCase; name: Case; help: The reference, concern, affected client, owner and current point in the investigation.; rows: case_number, status | case_type, priority | client_id, advisor_id | aml_screening_id
+%%section entity: ComplianceCase; name: Timelines; help: When the case began, when action is due, and when every obligation was completed.; rows: opened_at, due_at | closed_at
+%%section entity: ComplianceCase; name: Decision; help: The final outcome and evidence-based reasoning retained for regulatory review.; rows: decision | rationale
+
+%%entity ClientAgreement help: A versioned contract governing advisory or portfolio-management services, fees, conflicts and termination. A new signed version supersedes rather than overwrites the old one.
+%%field ClientAgreement.client_id help: The client legally bound by these service terms and fee arrangements.
+%%field ClientAgreement.fee_schedule_id help: The agreed pricing schedule; invoices must reference the same terms unless an amendment is signed.
+%%field ClientAgreement.document_id help: The executed document retained as evidence of the clauses and disclosures accepted.
+%%field ClientAgreement.agreement_number help: The unique reference used in invoices, service records and regulator correspondence.
+%%field ClientAgreement.agreement_type help: The regulated service covered, such as investment advice, distribution or portfolio management.
+%%field ClientAgreement.status help: draft is editable; issued awaits signature; signed awaits its effective date; active governs service; superseded, terminated and expired are historical.
+%%field ClientAgreement.version_number help: The business version printed on the agreement so amendments can be traced without changing prior terms.
+%%field ClientAgreement.issued_date help: When this version was sent to the client for review and signature.
+%%field ClientAgreement.signed_date help: When all required parties completed execution; service must not start earlier where signature is mandatory.
+%%field ClientAgreement.effective_date help: The first day this version governs the relationship, fees and obligations.
+%%field ClientAgreement.expiry_date help: The last scheduled day of the agreement when it is not open-ended.
+%%field ClientAgreement.termination_reason help: Why the relationship ended, retained to distinguish expiry, client exit, compliance exit and breach.
+%%section entity: ClientAgreement; name: Agreement; help: The client, regulated service, reference, version and current legal standing.; rows: agreement_number, status | client_id, agreement_type | version_number
+%%section entity: ClientAgreement; name: Terms and evidence; help: The agreed fee basis and executed document that prove what the client accepted.; rows: fee_schedule_id, document_id
+%%section entity: ClientAgreement; name: Effective period; help: When this version was issued, signed, effective and no longer applicable.; rows: issued_date, signed_date | effective_date, expiry_date | termination_reason
+
+%%entity ConflictDisclosure help: A potential or actual conflict involving an adviser, client or product, with the mitigation and disclosure required before advice proceeds.
+%%field ConflictDisclosure.client_id help: The client whose interests may be affected; empty only for a firm-wide conflict.
+%%field ConflictDisclosure.advisor_id help: The adviser or accountable employee connected to the conflict and responsible for following the mitigation.
+%%field ConflictDisclosure.security_id help: The product involved when remuneration, ownership or issuer relationships create the conflict.
+%%field ConflictDisclosure.conflict_type help: The source of competing interest, such as commission, personal holding, related party, referral or product bias.
+%%field ConflictDisclosure.status help: identified awaits review; under_review assesses materiality; mitigated has controls; disclosed has reached the client; accepted permits documented continuation; prohibited stops the activity; closed is historical.
+%%field ConflictDisclosure.identified_date help: When the firm first knew or should have known of the competing interest.
+%%field ConflictDisclosure.description help: The facts creating the conflict, written so a reviewer can judge materiality without relying on a category code.
+%%field ConflictDisclosure.mitigation help: The control applied, such as recusal, independent review, fee rebate, product exclusion or information barrier.
+%%field ConflictDisclosure.disclosed_at help: When the client received clear disclosure before making the affected decision.
+%%field ConflictDisclosure.accepted_at help: When the client acknowledged the disclosure where informed continuation is permitted.
+%%section entity: ConflictDisclosure; name: Conflict; help: Who and what are affected, the source of competing interest, and its present disposition.; rows: conflict_type, status | client_id, advisor_id | security_id, identified_date | description
+%%section entity: ConflictDisclosure; name: Control and disclosure; help: How the conflict was neutralized or explained before the client proceeded.; rows: mitigation | disclosed_at, accepted_at
+
+%%entity FeeInvoice help: A client charge calculated under a signed agreement and fee schedule. It separates advisory revenue owed directly by the client from product commission.
+%%field FeeInvoice.client_id help: The client responsible for the invoice and entitled to a transparent calculation.
+%%field FeeInvoice.fee_schedule_id help: The pricing rule used to derive the charge, allowing finance and compliance to reproduce it.
+%%field FeeInvoice.agreement_id help: The signed agreement authorizing the service and fee basis for this billing period.
+%%field FeeInvoice.invoice_number help: The unique reference printed on the invoice and used when matching receipts or disputes.
+%%field FeeInvoice.status help: draft is unissued; issued is delivered; due awaits payment; partially_paid has a balance; paid is settled; disputed needs review; waived and cancelled end collection; overdue has missed its due date.
+%%field FeeInvoice.invoice_date help: The accounting and communication date on which the charge was formally raised.
+%%field FeeInvoice.due_date help: The promised payment deadline used for reminders and overdue escalation.
+%%field FeeInvoice.gross_amount help: The service fee before tax, rebates, credits or prior payments.
+%%field FeeInvoice.tax_amount help: The indirect tax charged under the applicable invoice rules.
+%%field FeeInvoice.net_amount help: The total amount payable after tax and adjustments; it must reconcile to the invoice document.
+%%field FeeInvoice.paid_amount help: The money matched to the invoice so far, supporting partial-payment and outstanding-balance reporting.
+%%field FeeInvoice.paid_date help: When the invoice became fully settled; empty while any balance remains.
+%%field FeeInvoice.dispute_reason help: The client's stated objection to amount, service period or fee basis and the starting point for resolution.
+%%section entity: FeeInvoice; name: Invoice; help: The client, agreement, pricing basis, reference and collection state for the charge.; rows: invoice_number, status | client_id, agreement_id | fee_schedule_id
+%%section entity: FeeInvoice; name: Amounts and dates; help: What was charged, the tax applied, what has been paid and when the balance is due.; rows: invoice_date, due_date | gross_amount, tax_amount | net_amount, paid_amount | paid_date
+%%section entity: FeeInvoice; name: Dispute; help: Why collection has paused while the client challenges the charge.; rows: dispute_reason; collapsed: true
+
+%%entity InvestorComplaint help: A client grievance managed from receipt through response and escalation, including the external SCORES reference when applicable.
+%%field InvestorComplaint.client_id help: The complainant whose service, advice, transaction or data issue must be investigated.
+%%field InvestorComplaint.advisor_id help: The accountable handler coordinating the response; it need not be the person complained about.
+%%field InvestorComplaint.complaint_number help: The internal reference supplied in every acknowledgement, response and escalation.
+%%field InvestorComplaint.channel help: Where the grievance arrived, such as branch, email, telephone, portal or SCORES.
+%%field InvestorComplaint.category help: The business area complained about, used to route ownership and identify systemic patterns.
+%%field InvestorComplaint.priority help: The urgency set from financial harm, vulnerability, legal deadline and reputational impact.
+%%field InvestorComplaint.status help: received awaits acknowledgement; acknowledged has entered the response clock; investigating gathers facts; awaiting_client is blocked; resolved or rejected has a decision; escalated is externally or internally reviewed; closed confirms completion.
+%%field InvestorComplaint.received_at help: When any part of the firm first received the grievance, which starts the response timetable.
+%%field InvestorComplaint.acknowledged_at help: When the client was told the complaint reference, owner and expected response route.
+%%field InvestorComplaint.response_due_at help: The internal deadline aligned to the applicable redressal period and escalation buffer.
+%%field InvestorComplaint.resolved_at help: When the final response and remedy were completed, not merely drafted.
+%%field InvestorComplaint.scores_reference help: The external SEBI complaint reference where the grievance is lodged or escalated through SCORES.
+%%field InvestorComplaint.summary help: The client's issue in neutral language, including the service, date and harm alleged.
+%%field InvestorComplaint.resolution help: The findings, remedy, rejection grounds and further escalation rights communicated to the client.
+%%section entity: InvestorComplaint; name: Complaint; help: The complainant, reference, channel, issue category, handler and current response state.; rows: complaint_number, status | client_id, advisor_id | channel, category | priority, scores_reference | summary
+%%section entity: InvestorComplaint; name: Response clock; help: Receipt, acknowledgement, deadline and completion dates used to prevent silent overdue grievances.; rows: received_at, acknowledged_at | response_due_at, resolved_at
+%%section entity: InvestorComplaint; name: Outcome; help: The investigated response, remedy and escalation information delivered to the client.; rows: resolution
+
+%%entity RegulatoryFiling help: One statutory or supervisory submission, its approval, delivery and regulator acknowledgement. Corrections remain linked through the stable filing number and period.
+%%field RegulatoryFiling.compliance_case_id help: The investigation requiring the filing when submission is event-driven rather than periodic.
+%%field RegulatoryFiling.document_id help: The approved return, report or evidence package exactly as submitted.
+%%field RegulatoryFiling.filing_number help: The firm's unique reference connecting preparation, approval, transmission and acknowledgement.
+%%field RegulatoryFiling.regulator help: The authority or reporting utility receiving the submission, such as SEBI, FIU-IND or another competent body.
+%%field RegulatoryFiling.filing_type help: The return or notification required, including periodic reports, suspicious-transaction reports, breach notices or complaint reports.
+%%field RegulatoryFiling.reporting_period help: The date range or event reference covered, preventing duplicate or missing submissions.
+%%field RegulatoryFiling.status help: preparing is editable; pending_approval awaits sign-off; approved may be transmitted; submitted awaits response; accepted is complete; rejected or correction_required must be fixed.
+%%field RegulatoryFiling.due_date help: The legal submission deadline; internal approval should be scheduled before it.
+%%field RegulatoryFiling.submitted_at help: When the payload left the firm's control and was sent to the named authority.
+%%field RegulatoryFiling.accepted_at help: When the authority acknowledged successful receipt or validation.
+%%field RegulatoryFiling.acknowledgement_reference help: The regulator's receipt identifier proving timely and complete submission.
+%%field RegulatoryFiling.rejection_reason help: The validation or content problem that must be corrected before the filing can be accepted.
+%%section entity: RegulatoryFiling; name: Filing; help: The authority, return, period, case and internal reference that identify the obligation.; rows: filing_number, status | regulator, filing_type | reporting_period, due_date | compliance_case_id, document_id
+%%section entity: RegulatoryFiling; name: Submission; help: When the filing was sent and accepted and the acknowledgement that proves completion.; rows: submitted_at, accepted_at | acknowledgement_reference | rejection_reason
+
+%%entity ComplianceBreach help: A confirmed or suspected failure of law, policy, control or service obligation, managed through containment, investigation, notification and remediation.
+%%field ComplianceBreach.client_id help: The affected client when the breach concerns one relationship; empty for a firm-wide event.
+%%field ComplianceBreach.advisor_id help: The accountable remediation owner, not necessarily the person who caused the failure.
+%%field ComplianceBreach.external_integration_id help: The connected system involved where failed synchronization, leakage or incorrect data caused the event.
+%%field ComplianceBreach.breach_number help: The immutable reference used across incident meetings, notifications, filings and corrective actions.
+%%field ComplianceBreach.breach_type help: The obligation or control that failed, such as privacy, AML, suitability, conduct, reporting or cybersecurity.
+%%field ComplianceBreach.severity help: low has limited effect; medium needs managed correction; high risks material client or regulatory harm; critical requires immediate executive and regulator response.
+%%field ComplianceBreach.status help: detected awaits containment; contained limits further harm; investigating finds scope and cause; remediating applies correction; reported has reached authorities; resolved completes action; closed confirms review.
+%%field ComplianceBreach.detected_at help: When the firm first identified the failure, which starts incident and notification clocks.
+%%field ComplianceBreach.contained_at help: When immediate steps stopped continuing exposure or harm.
+%%field ComplianceBreach.reported_at help: When required internal, client or regulatory notifications were completed.
+%%field ComplianceBreach.resolved_at help: When remediation was verified effective rather than merely assigned.
+%%field ComplianceBreach.description help: What happened, which records and people were affected, and the observed or potential harm.
+%%field ComplianceBreach.root_cause help: The underlying process, system, control or human cause established after investigation.
+%%field ComplianceBreach.remediation help: Corrective and preventive actions, including ownership and evidence of effectiveness.
+%%section entity: ComplianceBreach; name: Incident; help: The reference, kind, severity, affected relationship, responsible owner and current response state.; rows: breach_number, status | breach_type, severity | client_id, advisor_id | external_integration_id | description
+%%section entity: ComplianceBreach; name: Response timeline; help: Detection, containment, notification and verified resolution dates for the incident clock.; rows: detected_at, contained_at | reported_at, resolved_at
+%%section entity: ComplianceBreach; name: Cause and remediation; help: Why the failure occurred and the corrective action that prevents recurrence.; rows: root_cause | remediation
+
+%%entity RetentionPolicy help: An approved rule stating how long a category of records is preserved, which event starts the period, and why destruction is lawful.
+%%field RetentionPolicy.name help: The recognizable policy title used when assigning legal holds and reviewing disposal decisions.
+%%field RetentionPolicy.record_category help: The business records governed, such as KYC evidence, advice, orders, complaints, invoices or audit events.
+%%field RetentionPolicy.status help: draft awaits approval; active governs records; suspended prevents disposal; superseded preserves history; retired no longer applies to new records.
+%%field RetentionPolicy.retention_years help: The minimum full years records remain available after the trigger event, subject to any longer legal hold.
+%%field RetentionPolicy.trigger_event help: The event from which the period runs, such as account closure, transaction date, case closure or agreement termination.
+%%field RetentionPolicy.legal_basis help: The regulation, contract, limitation period or defensible business need supporting retention.
+%%field RetentionPolicy.effective_date help: The first day this version governs new retention calculations.
+%%field RetentionPolicy.review_date help: When compliance must confirm that law, business need and disposal controls remain current.
+%%field RetentionPolicy.destruction_requires_approval help: Whether a second person must approve disposal after retention expires and no hold remains.
+%%section entity: RetentionPolicy; name: Policy; help: The record class, status, duration, trigger and legal reason controlling preservation.; rows: name, status | record_category, retention_years | trigger_event | legal_basis
+%%section entity: RetentionPolicy; name: Governance; help: When the rule applies, when it must be reviewed and whether destruction needs dual control.; rows: effective_date, review_date | destruction_requires_approval
+
+%%entity LegalHold help: A temporary instruction preventing disposal of records relevant to an investigation, complaint, litigation or regulator request, regardless of normal retention expiry.
+%%field LegalHold.client_id help: The client whose records must be preserved when the hold is relationship-specific.
+%%field LegalHold.retention_policy_id help: The ordinary retention rule being overridden while the hold remains active.
+%%field LegalHold.compliance_case_id help: The investigation or regulatory concern requiring preservation and defining eventual release.
+%%field LegalHold.hold_number help: The unique reference communicated to custodians and used to prove the preservation instruction.
+%%field LegalHold.status help: proposed awaits authorization; active blocks disposal; released resumes ordinary retention calculation; cancelled records a hold that never took effect.
+%%field LegalHold.reason help: The matter and preservation need stated without exposing privileged investigative detail unnecessarily.
+%%field LegalHold.imposed_at help: When disposal must stop across all systems and physical repositories in scope.
+%%field LegalHold.released_at help: When authorized release ended the hold after the matter and appeal windows closed.
+%%field LegalHold.scope help: The record types, people, date range, systems and custodians covered by the preservation instruction.
+%%field LegalHold.authority_reference help: The court order, regulator request, legal instruction or internal authorization supporting the hold.
+%%section entity: LegalHold; name: Hold; help: The reference, state, client, case and policy identifying what overrides normal disposal.; rows: hold_number, status | client_id, compliance_case_id | retention_policy_id
+%%section entity: LegalHold; name: Preservation; help: Why, when and across which records the hold prevents destruction.; rows: imposed_at, released_at | reason | scope | authority_reference
+
+%%index DataConsent(client_id, purpose, status)
+%%index BeneficialOwner(organization_id, status)
+%%index AMLScreening(client_id, screened_at)
+%%index ComplianceCase(status, due_at)
+%%index ClientAgreement(client_id, status)
+%%index ConflictDisclosure(status, identified_date)
+%%index FeeInvoice(status, due_date)
+%%index InvestorComplaint(status, response_due_at)
+%%index RegulatoryFiling(status, due_date)
+%%index ComplianceBreach(severity, status)
+%%index RetentionPolicy(status, review_date)
+%%index LegalHold(status, imposed_at)
+
+%%rbac role:administrator|advisor|compliance_officer|client on DataConsent.read
+%%rbac role:administrator|compliance_officer on BeneficialOwner.read
+%%rbac role:administrator|compliance_officer on AMLScreening.read
+%%rbac role:administrator|compliance_officer on ComplianceCase.read
+%%rbac role:administrator|advisor|compliance_officer|client on ClientAgreement.read
+%%rbac role:administrator|advisor|compliance_officer on ConflictDisclosure.read
+%%rbac role:administrator|finance|compliance_officer|client on FeeInvoice.read
+%%rbac role:administrator|advisor|compliance_officer|client on InvestorComplaint.read
+%%rbac role:administrator|compliance_officer on RegulatoryFiling.read
+%%rbac role:administrator|compliance_officer on ComplianceBreach.read
+%%rbac role:administrator|compliance_officer on RetentionPolicy.read
+%%rbac role:administrator|compliance_officer on LegalHold.read
+
+%%hook customValidate validateConsentPurpose on DataConsent
+%%hook customValidate validateBeneficialOwnership on BeneficialOwner
+%%hook customValidate validateAMLDisposition on ComplianceCase
+%%hook customValidate validateAgreementBeforeService on ClientAgreement
+%%hook customValidate validateConflictMitigation on ConflictDisclosure
+%%hook customValidate validateFeeAgainstAgreement on FeeInvoice
+%%hook customValidate validateComplaintDeadline on InvestorComplaint
+%%hook customValidate validateFilingEvidence on RegulatoryFiling
+%%hook customValidate validateBreachNotification on ComplianceBreach
+%%hook customValidate validateLegalHoldRelease on LegalHold
+
+%%meta name: Compliance Case Lifecycle
+%%meta kind: workflow
+%%workflow ComplianceCaseLifecycle entity: ComplianceCase kind: state
+stateDiagram-v2
+    [*] --> opened
+    opened --> investigating : triage accepted
+    investigating --> awaiting_information : evidence missing
+    awaiting_information --> investigating : evidence received
+    investigating --> escalated : senior decision required
+    escalated --> reported : external report submitted
+    investigating --> cleared : concern disproved
+    escalated --> cleared : escalation clears concern
+    reported --> closed : obligations completed
+    cleared --> closed : closure approved
+    closed --> [*]
+
+%%meta name: Investor Complaint Lifecycle
+%%meta kind: workflow
+%%workflow InvestorComplaintLifecycle entity: InvestorComplaint kind: state
+stateDiagram-v2
+    [*] --> received
+    received --> acknowledged : reference issued
+    acknowledged --> investigating : owner starts review
+    investigating --> awaiting_client : information requested
+    awaiting_client --> investigating : client responds
+    investigating --> resolved : remedy approved
+    investigating --> rejected : grounds approved
+    resolved --> escalated : client disputes outcome
+    rejected --> escalated : client escalates
+    resolved --> closed : response accepted
+    rejected --> closed : response final
+    escalated --> closed : external review completed
+    closed --> [*]
+
+%%meta name: Compliance Breach Lifecycle
+%%meta kind: workflow
+%%workflow ComplianceBreachLifecycle entity: ComplianceBreach kind: state
+stateDiagram-v2
+    [*] --> detected
+    detected --> contained : exposure stopped
+    contained --> investigating : scope review starts
+    investigating --> remediating : cause confirmed
+    remediating --> reported : notification required
+    remediating --> resolved : action verified
+    reported --> resolved : obligations completed
+    resolved --> closed : independent closure approved
+    closed --> [*]
+
+%%meta name: Regulatory Filing Lifecycle
+%%meta kind: workflow
+%%workflow RegulatoryFilingLifecycle entity: RegulatoryFiling kind: state
+stateDiagram-v2
+    [*] --> preparing
+    preparing --> pending_approval : return complete
+    pending_approval --> preparing : changes requested
+    pending_approval --> approved : sign-off recorded
+    approved --> submitted : transmitted
+    submitted --> accepted : acknowledgement received
+    submitted --> rejected : authority rejects
+    rejected --> correction_required : correction opened
+    correction_required --> preparing : revision starts
+    accepted --> [*]
+
+%%report compliance-open-cases-due title: Compliance cases approaching or past deadline entity: ComplianceCase help: Investigations whose internal deadline is within seven days or already missed. The list is ordered by deadline because a late case can become a late statutory report. sql: SELECT case_number, case_type, priority, status, due_at, EXTRACT(day FROM due_at - now())::int AS days_left FROM bus_compliance_case WHERE deleted_at IS NULL AND status NOT IN ('cleared', 'closed') AND due_at <= now() + interval '7 days' ORDER BY due_at
+%%report compliance-aml-potential-matches title: AML screenings requiring human disposition entity: AMLScreening help: Potential or confirmed matches that cannot be treated as clear until compliance documents its decision in a case. sql: SELECT screened_at, screening_type, provider, status, match_score, provider_reference FROM bus_aml_screening WHERE deleted_at IS NULL AND status IN ('potential_match', 'confirmed_match', 'error') ORDER BY screened_at
+%%report compliance-beneficial-owners-unverified title: Beneficial owners not yet verified entity: BeneficialOwner help: Organizational controllers whose declarations cannot yet support completed KYC. Rejected records remain visible because the discrepancy itself requires resolution. sql: SELECT organization_id, party_id, status, ownership_percentage, effective_from, verified_on FROM bus_beneficial_owner WHERE deleted_at IS NULL AND status IN ('declared', 'verification_pending', 'rejected') ORDER BY effective_from
+%%report compliance-complaints-overdue title: Complaints past their response deadline entity: InvestorComplaint help: Open grievances whose response date has passed. These are the records most likely to escalate externally and must be handled before routine service work. sql: SELECT complaint_number, category, priority, status, received_at, response_due_at, scores_reference FROM bus_investor_complaint WHERE deleted_at IS NULL AND status NOT IN ('resolved', 'rejected', 'closed') AND response_due_at < now() ORDER BY response_due_at
+%%report compliance-filings-due title: Regulatory filings due within fourteen days entity: RegulatoryFiling help: Periodic and event-driven submissions needing preparation, approval or correction before the legal deadline. sql: SELECT filing_number, regulator, filing_type, reporting_period, status, due_date FROM bus_regulatory_filing WHERE deleted_at IS NULL AND status NOT IN ('accepted') AND due_date <= current_date + 14 ORDER BY due_date
+%%report compliance-open-breaches title: Material breaches not yet resolved entity: ComplianceBreach chart: bar x: severity y: breaches help: Active compliance failures by severity, keeping high and critical incidents visible until remediation and notification are verified. sql: SELECT severity, COUNT(*) AS breaches FROM bus_compliance_breach WHERE deleted_at IS NULL AND status NOT IN ('resolved', 'closed') GROUP BY severity ORDER BY breaches DESC
+%%report finance-fee-invoices-outstanding title: Client fees issued and not fully paid entity: FeeInvoice help: Advisory invoices with an unpaid balance, including disputes and overdue amounts, kept separate from product commission revenue. sql: SELECT invoice_number, status, invoice_date, due_date, net_amount, COALESCE(paid_amount, 0) AS paid_amount, net_amount - COALESCE(paid_amount, 0) AS outstanding FROM bus_fee_invoice WHERE deleted_at IS NULL AND status IN ('issued', 'due', 'partially_paid', 'disputed', 'overdue') ORDER BY due_date
+%%report administrator-retention-reviews-due title: Retention policies due for review entity: RetentionPolicy help: Active or suspended policies whose legal basis and disposal controls need reassessment within ninety days. sql: SELECT name, record_category, status, retention_years, review_date, legal_basis FROM bus_retention_policy WHERE deleted_at IS NULL AND status IN ('active', 'suspended') AND review_date <= current_date + 90 ORDER BY review_date
+%%report administrator-active-legal-holds title: Active legal holds preventing record disposal entity: LegalHold help: Preservation instructions still overriding normal retention, with their matter, scope and imposition date for custodian follow-up. sql: SELECT hold_number, status, imposed_at, reason, scope, authority_reference FROM bus_legal_hold WHERE deleted_at IS NULL AND status = 'active' ORDER BY imposed_at
