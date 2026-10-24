@@ -32,6 +32,10 @@
  *           section, two per row
  *   EML174  A %%section row of three or more columns → split it into rows of two
  *   EML175  A column placed in two %%section rows → remove the later placement
+ *   EML178  The state field placed in a %%section row → remove it (the state is
+ *           shown read-only in the form's header); a section left empty goes too
+ *   EML215  %%rbac granting a state transition → delete the line (only
+ *           background workflows change a state)
  *
  * All other codes are reported but left for the developer to fix manually.
  */
@@ -160,6 +164,10 @@ function applyFix(lines: string[], issue: Issue): FixResult {
       return fixWideRow(lines, issue, base);
     case "EML175":
       return fixDoublePlacement(lines, issue, base);
+    case "EML178":
+      return fixPlacedStateField(lines, issue, base);
+    case "EML215":
+      return fixTransitionGrant(lines, issue, base);
     default:
       base.description = `No auto-fix strategy for ${issue.code}.`;
       return base;
@@ -281,6 +289,59 @@ function fixDoublePlacement(lines: string[], issue: Issue, base: FixResult): Fix
     },
     `Removed the second placement of "${column}".`
   );
+}
+
+/**
+ * EML178: the state field is shown read-only in the form's header, so a row
+ * that places it is removed from the row. A section whose only column it was
+ * would be a heading over nothing, so that line goes as well.
+ */
+function fixPlacedStateField(lines: string[], issue: Issue, base: FixResult): FixResult {
+  const match = issue.message.match(/^%%section places "\w+\.(\w+)", the state field/);
+  const column = match?.[1];
+  if (!column) {
+    base.description = "Could not read the state field from the issue message.";
+    return base;
+  }
+  const index = (issue.line ?? 0) - 1;
+  const before = lines[index];
+  const span = before === undefined ? undefined : rowsSpan(before);
+  if (before === undefined || !span) {
+    base.description = `Line ${issue.line ?? "?"} is not a %%section with rows:; left alone.`;
+    return base;
+  }
+  const rows = parseRows(before.slice(span.start, span.end))
+    .map((row) => row.filter((name) => name !== column))
+    .filter((row) => row.length > 0);
+  if (rows.length === 0) {
+    lines.splice(index, 1);
+    base.applied = true;
+    base.description = `Removed the section that placed only "${column}"; the state is shown in the form's header.`;
+    base.changes = [{ lineNo: index + 1, before, after: "", action: "delete" }];
+    return base;
+  }
+  return rewriteRows(
+    lines,
+    issue,
+    base,
+    () => rows,
+    `Removed "${column}" from the section; the state is shown read-only in the form's header.`
+  );
+}
+
+/** EML215: a transition is not a permission a role can hold. */
+function fixTransitionGrant(lines: string[], issue: Issue, base: FixResult): FixResult {
+  const index = (issue.line ?? 0) - 1;
+  const before = lines[index];
+  if (before === undefined || !/^\s*%%rbac\b/.test(before)) {
+    base.description = `Line ${issue.line ?? "?"} is not a %%rbac line; left alone.`;
+    return base;
+  }
+  lines.splice(index, 1);
+  base.applied = true;
+  base.description = "Removed a %%rbac line granting a state transition; only background workflows change a state.";
+  base.changes = [{ lineNo: index + 1, before, after: "", action: "delete" }];
+  return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -914,6 +975,8 @@ ${c.bold("AUTO-FIXABLE CODES")}
   EML172   columns no %%section row places → append them to the last section
   EML174   a %%section row of three or more → split it into rows of two
   EML175   a column placed in two %%section rows → remove the later one
+  EML178   the state field placed in a %%section row → remove it from the row
+  EML215   %%rbac granting a state transition → delete the line
   EML117   No primary key → insert  string id PK  as first attribute
   EML421   State workflow: no [*]→First transition → insert it
   EML422   State workflow: no terminal state (→[*]) → insert it

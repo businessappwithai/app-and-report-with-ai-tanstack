@@ -4,12 +4,16 @@
 %% A fee-charging secondary school, modelled end to end: twenty-five entities,
 %% the sixteen lifecycles the school actually runs on, the admission decision it
 %% takes by judgement today, the capacity, overpayment and refund-approval
-%% refusals that must act, and the seven sagas that turn an accepted application
+%% refusals that must act, and the sagas that turn an accepted application
 %% into an enrolled, invoiced student, a payment into a settled invoice, a paid
 %% refund back into an open one, a cancelled section into withdrawn enrolments
 %% and a suspension into a suspended student. Consent, support plans, safeguarding concerns (and the outcome a
 %% reporter hears back) and the log of what was sent to families sit beside them, because a school answers for
 %% those as much as for its fees.
+%%
+%% No person changes a status. Each lifecycle's moves are made by background
+%% workflows: recording the fact a move rests on (a `<state>_at` time) lets the
+%% entity's StateProgress rule start the saga that writes the new state.
 %%
 %% Built through the interactive authoring protocol (now llms.txt §1), so
 %% it holds that section's standard: help text on every entity and every column,
@@ -93,6 +97,8 @@ erDiagram
         date     ends_on
         date     census_on
         string   status
+        datetime current_at OPTIONAL
+        datetime closed_at OPTIONAL
     }
 
     Staff {
@@ -107,6 +113,9 @@ erDiagram
         string   status
         date     started_on
         phone    phone OPTIONAL
+        datetime on_leave_at OPTIONAL
+        datetime active_at OPTIONAL
+        datetime left_at OPTIONAL
     }
 
     Course {
@@ -144,6 +153,10 @@ erDiagram
         text     withdrawal_reason OPTIONAL
         email    school_email OPTIONAL
         boolean  has_support_plan
+        datetime on_leave_at OPTIONAL
+        datetime enrolled_at OPTIONAL
+        datetime graduated_at OPTIONAL
+        datetime withdrawn_at OPTIONAL
     }
 
     StudentGuardian {
@@ -174,6 +187,12 @@ erDiagram
         boolean  has_sibling_enrolled
         string   admission_band OPTIONAL
         text     decision_notes OPTIONAL
+        datetime under_review_at OPTIONAL
+        datetime offer_made_at OPTIONAL
+        datetime rejected_at OPTIONAL
+        datetime accepted_at OPTIONAL
+        datetime declined_at OPTIONAL
+        datetime withdrawn_at OPTIONAL
     }
 
     ClassSection {
@@ -189,6 +208,10 @@ erDiagram
         integer  period
         string   status
         text     cancellation_reason OPTIONAL
+        datetime open_at OPTIONAL
+        datetime in_progress_at OPTIONAL
+        datetime completed_at OPTIONAL
+        datetime cancelled_at OPTIONAL
     }
 
     ClassSession {
@@ -202,6 +225,8 @@ erDiagram
         boolean  register_taken
         string   topic OPTIONAL
         text     cancellation_reason OPTIONAL
+        datetime held_at OPTIONAL
+        datetime cancelled_at OPTIONAL
     }
 
     Enrollment {
@@ -214,6 +239,9 @@ erDiagram
         text     withdrawal_reason OPTIONAL
         string   final_grade OPTIONAL
         decimal  attendance_rate
+        datetime enrolled_at OPTIONAL
+        datetime completed_at OPTIONAL
+        datetime failed_at OPTIONAL
     }
 
     AttendanceRecord {
@@ -238,6 +266,10 @@ erDiagram
         date     due_on
         string   status
         text     instructions OPTIONAL
+        datetime published_at OPTIONAL
+        datetime marking_at OPTIONAL
+        datetime marked_at OPTIONAL
+        datetime cancelled_at OPTIONAL
     }
 
     AssessmentResult {
@@ -250,6 +282,9 @@ erDiagram
         string   status
         datetime marked_at OPTIONAL
         text     feedback OPTIONAL
+        datetime submitted_at OPTIONAL
+        datetime missing_at OPTIONAL
+        datetime excused_at OPTIONAL
     }
 
     FeeInvoice {
@@ -264,6 +299,8 @@ erDiagram
         decimal  amount_paid
         decimal  balance_due
         text     cancellation_reason OPTIONAL
+        datetime cancelled_at OPTIONAL
+        datetime overdue_at OPTIONAL
     }
 
     FeeInvoiceLine {
@@ -300,6 +337,10 @@ erDiagram
         string   sanction OPTIONAL
         text     sanction_notes OPTIONAL
         date     closed_on OPTIONAL
+        datetime under_review_at OPTIONAL
+        datetime dismissed_at OPTIONAL
+        datetime action_taken_at OPTIONAL
+        datetime closed_at OPTIONAL
     }
 
     ConsentRecord {
@@ -313,6 +354,8 @@ erDiagram
         datetime withdrawn_at OPTIONAL
         text     withdrawal_reason OPTIONAL
         string   evidence_url OPTIONAL
+        datetime active_at OPTIONAL
+        datetime expired_at OPTIONAL
     }
 
     SupportPlan {
@@ -327,6 +370,9 @@ erDiagram
         text     needs_summary
         text     adjustments
         text     review_notes OPTIONAL
+        datetime active_at OPTIONAL
+        datetime under_review_at OPTIONAL
+        datetime closed_at OPTIONAL
     }
 
     SafeguardingConcern {
@@ -345,6 +391,10 @@ erDiagram
         string   external_reference OPTIONAL
         date     closed_on OPTIONAL
         text     closure_reason OPTIONAL
+        datetime triaged_at OPTIONAL
+        datetime investigating_at OPTIONAL
+        datetime referred_at OPTIONAL
+        datetime closed_at OPTIONAL
     }
 
     ConcernFeedback {
@@ -370,6 +420,7 @@ erDiagram
         datetime sent_at OPTIONAL
         datetime delivered_at OPTIONAL
         text     failure_reason OPTIONAL
+        datetime failed_at OPTIONAL
     }
 
     Refund {
@@ -388,6 +439,10 @@ erDiagram
         string   invoice_status_after OPTIONAL
         datetime applied_to_invoice_at OPTIONAL
         string   reference OPTIONAL
+        datetime under_review_at OPTIONAL
+        datetime cancelled_at OPTIONAL
+        datetime approved_at OPTIONAL
+        datetime rejected_at OPTIONAL
     }
 
     Department   ||--o{ Course               : "offers"
@@ -695,50 +750,50 @@ erDiagram
     %% `,` within one; a row of one spans the full width).
     %%section entity: Department; name: Department; help: The teaching department, the code timetables use for it, its head, and whether it still runs courses.; rows: name, code | staff_id, is_active
     %%section entity: Room; name: Room; help: The teaching room, where it is, and how many students it seats — the cap on any class booked into it.; rows: name, code | building, capacity | is_active
-    %%section entity: AcademicTerm; name: Term; help: The term, the year it belongs to, and whether enrolment and invoicing are open for it.; rows: name, code | academic_year, status
+    %%section entity: AcademicTerm; name: Term; help: The term, the year it belongs to, and whether enrolment and invoicing are open for it.; rows: name, code | academic_year
     %%section entity: AcademicTerm; name: Dates; help: When teaching starts and ends, and the census day enrolment numbers are reported on.; rows: starts_on, ends_on | census_on
     %%section entity: Staff; name: Person; help: Who the staff member is and how the school reaches them.; rows: first_name, last_name | staff_number, email | phone
-    %%section entity: Staff; name: Role; help: Where they work, what they do, and whether they can be timetabled.; rows: department_id, job_title | staff_type, status | started_on
+    %%section entity: Staff; name: Role; help: Where they work, what they do, and whether they can be timetabled.; rows: department_id, job_title | staff_type | started_on
     %%section entity: Course; name: Course; help: What is taught, by which department, at what level, and how many credits it carries.; rows: name, code | department_id, level | credit_hours, is_active
     %%section entity: Guardian; name: Guardian; help: Who the guardian is and the way they prefer the school to get in touch.; rows: first_name, last_name | email, phone | preferred_contact_method
     %%section entity: Guardian; name: Address; help: Where letters about the student are posted.; rows: address_line | city, postcode
     %%section entity: Student; name: Student; help: Who the student is, the number every record is matched on, and their year group.; rows: first_name, last_name | student_number, date_of_birth | year_group, school_email
-    %%section entity: Student; name: Enrolment; help: Whether the student is on roll, since when, and whether a support plan applies to their teaching.; rows: status, enrolled_on | has_support_plan
+    %%section entity: Student; name: Enrolment; help: Whether the student is on roll, since when, and whether a support plan applies to their teaching.; rows: enrolled_on | has_support_plan
     %%section entity: Student; name: Withdrawal; help: When and why the student left; set only once they are off roll.; rows: withdrawn_on | withdrawal_reason; collapsed: true
     %%section entity: StudentGuardian; name: Relationship; help: How this guardian is related to the student, and what they may do on the student's behalf.; rows: student_id, guardian_id | relationship, contact_order | is_primary_contact, may_collect
-    %%section entity: AdmissionApplication; name: Application; help: The application, who made it, the term it is for, and where it stands.; rows: reference, status | guardian_id, academic_term_id | submitted_on
+    %%section entity: AdmissionApplication; name: Application; help: The application, who made it, the term it is for, and where it stands.; rows: reference | guardian_id, academic_term_id | submitted_on
     %%section entity: AdmissionApplication; name: Applicant; help: The child applying, before they become a student — the details the decision is taken on.; rows: applicant_first_name, applicant_last_name | applicant_date_of_birth, year_group_applied_for
     %%section entity: AdmissionApplication; name: Assessment; help: What the admissions policy weighs — prior attainment, a sibling at the school, and the band that results.; rows: prior_attainment_score, has_sibling_enrolled | admission_band
     %%section entity: AdmissionApplication; name: Decision; help: Who decided, when, why, and the student record created if the place was taken up.; rows: decided_by_id, decided_on | student_id | decision_notes
-    %%section entity: ClassSection; name: Class; help: One taught group of a course in a term — its code, teacher and room.; rows: code, status | course_id, academic_term_id | staff_id, room_id
+    %%section entity: ClassSection; name: Class; help: One taught group of a course in a term — its code, teacher and room.; rows: code | course_id, academic_term_id | staff_id, room_id
     %%section entity: ClassSection; name: Timetable and size; help: When the class meets and how many students it holds against how many are enrolled.; rows: day_of_week, period | capacity, enrolled_count
     %%section entity: ClassSection; name: Cancellation; help: Why the class will not run; every enrolment on it is withdrawn when this is set.; rows: cancellation_reason; collapsed: true
-    %%section entity: ClassSession; name: Lesson; help: One meeting of a class — when, where, with whom, and what it covers.; rows: class_section_id, status | starts_at, ends_at | room_id, staff_id | topic
+    %%section entity: ClassSession; name: Lesson; help: One meeting of a class — when, where, with whom, and what it covers.; rows: class_section_id | starts_at, ends_at | room_id, staff_id | topic
     %%section entity: ClassSession; name: Register; help: Whether attendance has been taken, and why the lesson was cancelled if it was.; rows: register_taken | cancellation_reason
-    %%section entity: Enrollment; name: Enrolment; help: A student's place in a class, and where that place stands.; rows: student_id, class_section_id | status, enrolled_on
+    %%section entity: Enrollment; name: Enrolment; help: A student's place in a class, and where that place stands.; rows: student_id, class_section_id | enrolled_on
     %%section entity: Enrollment; name: Outcome; help: The grade and attendance the place ended with, and why it was given up if it was.; rows: final_grade, attendance_rate | withdrawn_on | withdrawal_reason
     %%section entity: AttendanceRecord; name: Mark; help: The register mark for one student in one lesson, and who took it.; rows: class_session_id, student_id | status, minutes_late | marked_by_id, marked_at
     %%section entity: AttendanceRecord; name: Absence; help: Whether an absence is authorised and the reason given — what safeguarding and attendance reports read.; rows: is_authorised | absence_reason
-    %%section entity: Assessment; name: Assessment; help: The piece of assessed work, for which class, and when it is due.; rows: title, class_section_id | assessment_type, status | due_on
+    %%section entity: Assessment; name: Assessment; help: The piece of assessed work, for which class, and when it is due.; rows: title, class_section_id | assessment_type | due_on
     %%section entity: Assessment; name: Scoring; help: What it is marked out of, how much it counts towards the final grade, and what students are told to do.; rows: max_score, weight_percent | instructions
-    %%section entity: AssessmentResult; name: Result; help: One student's mark on the assessment, who marked it, and whether it is released.; rows: assessment_id, student_id | score, max_score | status, marked_by_id | marked_at | feedback
-    %%section entity: FeeInvoice; name: Invoice; help: The fee bill, the student and term it is for, and where it stands.; rows: invoice_number, status | student_id, academic_term_id | issued_on, due_on
+    %%section entity: AssessmentResult; name: Result; help: One student's mark on the assessment, who marked it, and whether it is released.; rows: assessment_id, student_id | score, max_score | marked_by_id | marked_at | feedback
+    %%section entity: FeeInvoice; name: Invoice; help: The fee bill, the student and term it is for, and where it stands.; rows: invoice_number | student_id, academic_term_id | issued_on, due_on
     %%section entity: FeeInvoice; name: Amounts; help: What was billed, what has been paid, and what is still owed.; rows: total_amount, amount_paid | balance_due
     %%section entity: FeeInvoice; name: Cancellation; help: Why the invoice was voided, kept for the audit trail.; rows: cancellation_reason; collapsed: true
     %%section entity: FeeInvoiceLine; name: Charge; help: One fee on the invoice, what it is for, and what it adds to the total.; rows: fee_invoice_id, charge_type | description | quantity, unit_amount | line_total
     %%section entity: Payment; name: Payment; help: Money received against a fee invoice — how much, how, by whom, and what was owed before it.; rows: fee_invoice_id, received_by_id | amount, balance_before | method, received_at | reference
-    %%section entity: DisciplineIncident; name: Incident; help: What happened, to which student, when, who reported it, and how serious it is.; rows: reference, status | student_id, reported_by_id | occurred_at, closed_on | category, severity | summary
+    %%section entity: DisciplineIncident; name: Incident; help: What happened, to which student, when, who reported it, and how serious it is.; rows: reference | student_id, reported_by_id | occurred_at, closed_on | category, severity | summary
     %%section entity: DisciplineIncident; name: Sanction; help: What the school decided to do about it and why.; rows: sanction | sanction_notes
-    %%section entity: ConsentRecord; name: Consent; help: Who granted which authority for the student, when it takes effect, and whether staff may rely on it now.; rows: student_id, guardian_id | consent_type, status | effective_on, expires_on
+    %%section entity: ConsentRecord; name: Consent; help: Who granted which authority for the student, when it takes effect, and whether staff may rely on it now.; rows: student_id, guardian_id | consent_type | effective_on, expires_on
     %%section entity: ConsentRecord; name: Withdrawal and evidence; help: When consent ended, why the guardian withdrew it, and where the verified evidence is held.; rows: withdrawn_at | withdrawal_reason | evidence_url; collapsed: true
-    %%section entity: SupportPlan; name: Plan; help: The student, accountable owner, support domain and dates that control when the plan is active and reviewed.; rows: student_id, owner_id | plan_type, status | starts_on, review_due_on | closed_on
+    %%section entity: SupportPlan; name: Plan; help: The student, accountable owner, support domain and dates that control when the plan is active and reviewed.; rows: student_id, owner_id | plan_type | starts_on, review_due_on | closed_on
     %%section entity: SupportPlan; name: Support in practice; help: What staff need to understand and the concrete adjustments they must make, with the latest review outcome.; rows: needs_summary | adjustments | review_notes
-    %%section entity: SafeguardingConcern; name: Concern; help: The restricted case identity, student, reporter, timing and factual account used for immediate safeguarding triage.; rows: reference, status | student_id, reported_by_id | occurred_at, reported_at | category, risk_level | factual_account
+    %%section entity: SafeguardingConcern; name: Concern; help: The restricted case identity, student, reporter, timing and factual account used for immediate safeguarding triage.; rows: reference | student_id, reported_by_id | occurred_at, reported_at | category, risk_level | factual_account
     %%section entity: SafeguardingConcern; name: Action and ownership; help: Who owns the concern, what was done immediately, any external case reference and the evidence required to close it.; rows: owner_id | immediate_action | external_reference | closed_on | closure_reason
-    %%section entity: CommunicationLog; name: Communication; help: Who was contacted about which student, why, through which channel and by which staff member.; rows: student_id, guardian_id | sent_by_id, purpose | channel, status | subject
+    %%section entity: CommunicationLog; name: Communication; help: Who was contacted about which student, why, through which channel and by which staff member.; rows: student_id, guardian_id | sent_by_id, purpose | channel | subject
     %%section entity: CommunicationLog; name: Outcome; help: The minimum useful account of the contact, its send and delivery times, and any failure that needs follow-up.; rows: summary | sent_at, delivered_at | failure_reason
     %%section entity: ConcernFeedback; name: Feedback; help: Which concern the reporter is hearing about, who they are and the neutral outcome they are told.; rows: safeguarding_concern_id, reported_by_id | reference, outcome | given_at | message
-    %%section entity: Refund; name: Request; help: The original payment, requester, amount and business reason entering the controlled refund queue.; rows: payment_id, requested_by_id | amount, reason | status, requested_at
+    %%section entity: Refund; name: Request; help: The original payment, requester, amount and business reason entering the controlled refund queue.; rows: payment_id, requested_by_id | amount, reason | requested_at
     %%section entity: Refund; name: Decision and settlement; help: Who decided the request, when it was decided and paid, and the evidence finance needs to reconcile it.; rows: approved_by_id, decided_at | paid_at, reference | decision_notes | fee_invoice_id, invoice_status_after | applied_to_invoice_at
 
     %%field AcademicTerm.status enum: TermStatus
@@ -820,46 +875,33 @@ erDiagram
     %%rbac role:registrar|admissions_officer on Student.create
     %%rbac role:registrar|principal on Student.update
     %%rbac role:principal on Student.delete
-    %%rbac role:counsellor|principal on Student.suspend
-    %%rbac role:counsellor|principal on Student.reinstate
-    %%rbac role:registrar|principal on Student.withdraw
-    %%rbac role:principal on Student.graduate
     %%rbac role:principal|registrar|admissions_officer|counsellor|finance_officer on StudentGuardian.read
     %%rbac role:registrar|admissions_officer on StudentGuardian.create
     %%rbac role:registrar|counsellor on StudentGuardian.update
     %%rbac role:principal|admissions_officer|registrar on AdmissionApplication.read
     %%rbac role:admissions_officer on AdmissionApplication.create
     %%rbac role:admissions_officer|principal on AdmissionApplication.update
-    %%rbac role:admissions_officer|principal on AdmissionApplication.make_offer
-    %%rbac role:principal on AdmissionApplication.reject
     %%rbac role:principal|registrar|admissions_officer|head_of_department|teacher|finance_officer|counsellor|guardian on ClassSection.read
     %%rbac role:registrar on ClassSection.create
     %%rbac role:registrar|head_of_department on ClassSection.update
-    %%rbac role:principal|registrar on ClassSection.cancel
     %%rbac role:principal|registrar|head_of_department|teacher|counsellor on ClassSession.read
     %%rbac role:registrar on ClassSession.create
     %%rbac role:registrar|teacher on ClassSession.update
-    %%rbac role:registrar|head_of_department on ClassSession.cancel
     %%rbac role:principal|registrar|head_of_department|teacher|finance_officer|guardian on Enrollment.read
     %%rbac role:registrar on Enrollment.create
     %%rbac role:registrar|head_of_department on Enrollment.update
-    %%rbac role:registrar|principal on Enrollment.withdraw
     %%rbac role:principal|registrar|head_of_department|teacher|counsellor|guardian on AttendanceRecord.read
     %%rbac role:teacher|registrar on AttendanceRecord.create
     %%rbac role:teacher|registrar on AttendanceRecord.update
     %%rbac role:principal|registrar|head_of_department|teacher|guardian on Assessment.read
     %%rbac role:teacher|head_of_department on Assessment.create
     %%rbac role:teacher|head_of_department on Assessment.update
-    %%rbac role:head_of_department|principal on Assessment.cancel
     %%rbac role:principal|registrar|head_of_department|teacher|guardian on AssessmentResult.read
     %%rbac role:teacher|head_of_department on AssessmentResult.create
     %%rbac role:teacher|head_of_department on AssessmentResult.update
-    %%rbac role:teacher|head_of_department on AssessmentResult.mark
     %%rbac role:principal|finance_officer|registrar|guardian on FeeInvoice.read
     %%rbac role:finance_officer on FeeInvoice.create
     %%rbac role:finance_officer on FeeInvoice.update
-    %%rbac role:finance_officer on FeeInvoice.issue
-    %%rbac role:principal|finance_officer on FeeInvoice.cancel_issued
     %%rbac role:principal|finance_officer|registrar|guardian on FeeInvoiceLine.read
     %%rbac role:finance_officer on FeeInvoiceLine.create
     %%rbac role:principal|finance_officer|guardian on Payment.read
@@ -867,23 +909,15 @@ erDiagram
     %%rbac role:principal|counsellor on DisciplineIncident.read
     %%rbac role:counsellor|principal on DisciplineIncident.create
     %%rbac role:counsellor|principal on DisciplineIncident.update
-    %%rbac role:counsellor|principal on DisciplineIncident.apply_sanction
-    %%rbac role:principal on DisciplineIncident.dismiss
     %%rbac role:principal|registrar|counsellor|guardian on ConsentRecord.read
     %%rbac role:registrar|counsellor on ConsentRecord.create
     %%rbac role:registrar|counsellor on ConsentRecord.update
-    %%rbac role:registrar|counsellor|guardian on ConsentRecord.withdraw
     %%rbac role:principal|registrar|head_of_department|teacher|counsellor on SupportPlan.read
     %%rbac role:counsellor|registrar on SupportPlan.create
     %%rbac role:counsellor|registrar on SupportPlan.update
-    %%rbac role:counsellor|principal on SupportPlan.activate
-    %%rbac role:counsellor|principal on SupportPlan.close
     %%rbac role:principal|counsellor on SafeguardingConcern.read
     %%rbac role:teacher|counsellor|principal on SafeguardingConcern.create
     %%rbac role:counsellor|principal on SafeguardingConcern.update
-    %%rbac role:counsellor|principal on SafeguardingConcern.triage
-    %%rbac role:principal|counsellor on SafeguardingConcern.refer
-    %%rbac role:principal on SafeguardingConcern.close
     %%rbac role:principal|head_of_department|teacher|counsellor on ConcernFeedback.read
     %%rbac role:counsellor|principal on ConcernFeedback.create
     %%rbac role:counsellor|principal on ConcernFeedback.update
@@ -893,8 +927,6 @@ erDiagram
     %%rbac role:principal|finance_officer|guardian on Refund.read
     %%rbac role:finance_officer on Refund.create
     %%rbac role:finance_officer|principal on Refund.update
-    %%rbac role:principal on Refund.approve
-    %%rbac role:finance_officer on Refund.pay
 
 %% ---- The reporting pass (llms.txt §1.1.7) -----------------------------------
 %%
@@ -1001,6 +1033,7 @@ flowchart TD
     P --> E
 
     %%action requireSupportPlanClosureDate validation-error when: status == "closed" and closed_on == null message: A closed support plan needs the date its adjustments stopped applying.
+    %%action requireSupportPlanClosureDateOnMove validation-error when: closed_at != null and closed_on == null message: A closed support plan needs the date its adjustments stopped applying.
 
 %% ---- Business rules — safeguarding control --------------------------------
 %%meta name: Safeguarding Control
@@ -1016,7 +1049,9 @@ flowchart TD
     P --> E
 
     %%action requireConcernClosureDate validation-error when: status == "closed" and closed_on == null message: A safeguarding concern cannot close without the date continuing responsibility ended.
+    %%action requireConcernClosureDateOnMove validation-error when: closed_at != null and closed_on == null message: A safeguarding concern cannot close without the date continuing responsibility ended.
     %%action requireConcernClosureReason validation-error when: status == "closed" and closure_reason == null message: A safeguarding concern cannot close without explaining the action taken and where any continuing responsibility sits.
+    %%action requireConcernClosureReasonOnMove validation-error when: closed_at != null and closure_reason == null message: A safeguarding concern cannot close without explaining the action taken and where any continuing responsibility sits.
 
 %% ---- Business rules — communication delivery ------------------------------
 %%meta name: Communication Delivery Control
@@ -1032,6 +1067,7 @@ flowchart TD
     P --> E
 
     %%action requireCommunicationFailureReason validation-error when: status == "failed" and failure_reason == null message: A failed communication needs a reason so staff can correct the address or choose another channel.
+    %%action requireCommunicationFailureReasonOnMove validation-error when: failed_at != null and failure_reason == null message: A failed communication needs a reason so staff can correct the address or choose another channel.
 
 %% ---- Business rules — refund approval -------------------------------------
 %%meta name: Refund Control
@@ -1061,8 +1097,11 @@ flowchart TD
 
     %%action refuseNonPositiveRefund validation-error when: amount <= 0 message: A refund must be a positive amount linked to the immutable payment it reverses.
     %%action requireRefundDecisionTime validation-error when: status == "approved" and decided_at == null message: An approved refund needs the decision time for reconciliation and service reporting.
+    %%action requireRefundDecisionTimeOnMove validation-error when: approved_at != null and decided_at == null message: An approved refund needs the decision time for reconciliation and service reporting.
     %%action requireRefundApproval validation-error when: status == "approved" and approved_by_id == null message: An approved refund needs the staff member who authorised the return of funds.
+    %%action requireRefundApprovalOnMove validation-error when: approved_at != null and approved_by_id == null message: An approved refund needs the staff member who authorised the return of funds.
     %%action requireRefundRejectionNotes validation-error when: status == "rejected" and decision_notes == null message: A rejected refund needs the reason finance will explain to the family.
+    %%action requireRefundRejectionNotesOnMove validation-error when: rejected_at != null and decision_notes == null message: A rejected refund needs the reason finance will explain to the family.
     %%action requireRefundPaidTime validation-error when: status == "paid" and paid_at == null message: A refund is paid only when the money actually left the school.
     %%action refuseSelfApprovedRefund validation-error when: approved_by_id != null and approved_by_id == requested_by_id message: The person who approves a refund cannot be the person who requested it. A second member of staff must authorise the return of funds.
     %%action returnInvoiceToPartPaid trigger-workflow when: status == "paid" and applied_to_invoice_at == null and invoice_status_after == "part_paid" workflow: RefundReopensInvoice
@@ -1109,6 +1148,7 @@ flowchart TD
     %%action bandStandard transform when: has_sibling_enrolled == false and prior_attainment_score < 70 field: admission_band value: standard
     %%action bandForReview transform when: prior_attainment_score == null field: admission_band value: review
     %%action requireDecisionNotesOnRejection validation-error when: status == "rejected" and decision_notes == null message: A rejected application needs a note — it is what the appeal is answered from.
+    %%action requireDecisionNotesOnRejectionOnMove validation-error when: rejected_at != null and decision_notes == null message: A rejected application needs a note — it is what the appeal is answered from.
     %%action enrolOnAcceptance trigger-workflow when: status == "accepted" workflow: AdmissionToEnrolment
 
 %% ---- Business rules — the student record ----------------------------------
@@ -1125,7 +1165,9 @@ flowchart TD
     P --> E
 
     %%action requireWithdrawalReason validation-error when: status == "withdrawn" and withdrawal_reason == null message: A withdrawal needs a reason — the retention report is built from it.
+    %%action requireWithdrawalReasonOnMove validation-error when: withdrawn_at != null and withdrawal_reason == null message: A withdrawal needs a reason — the retention report is built from it.
     %%action requireWithdrawalDate validation-error when: status == "withdrawn" and withdrawn_on == null message: A withdrawal needs the date the student left.
+    %%action requireWithdrawalDateOnMove validation-error when: withdrawn_at != null and withdrawn_on == null message: A withdrawal needs the date the student left.
 
 %% ---- Business rules — enrolment -------------------------------------------
 %%meta name: Enrolment Control
@@ -1146,6 +1188,7 @@ flowchart TD
     %%action requireEnrolmentWithdrawalReason validation-error when: status == "withdrawn" and withdrawal_reason == null message: A student leaving a group needs a reason — the subject-change reports are built from it.
     %%action refuseGradeBeforeCompletion validation-error when: status == "pending" and final_grade != null message: A final grade cannot be recorded on an enrolment that has not been placed yet.
     %%action requireGradeOnCompletion validation-error when: status == "completed" and final_grade == null message: A completed enrolment needs a final grade.
+    %%action requireGradeOnCompletionOnMove validation-error when: completed_at != null and final_grade == null message: A completed enrolment needs a final grade.
 
 %% ---- Business rules — the register ----------------------------------------
 %%meta name: Attendance Marking
@@ -1187,6 +1230,7 @@ flowchart TD
     %%action refuseScoreAboveMaximum validation-error when: score > max_score message: A score cannot exceed the paper's maximum as it stood when the result was created.
     %%action refuseNegativeScore validation-error when: score < 0 message: A score cannot be negative. A missing piece of work is the missing status, not a negative mark.
     %%action requireScoreWhenMarked validation-error when: status == "marked" and score == null message: A marked result needs a score. A blank is not a zero and the reports keep the two apart.
+    %%action requireScoreWhenMarkedOnMove validation-error when: marked_at != null and score == null message: A marked result needs a score. A blank is not a zero and the reports keep the two apart.
 
 %% ---- Business rules — invoicing -------------------------------------------
 %%meta name: Invoice Control
@@ -1207,6 +1251,7 @@ flowchart TD
     P --> E
 
     %%action requireInvoiceCancellationReason validation-error when: status == "cancelled" and cancellation_reason == null message: A cancelled invoice is money the school chose not to collect — every one of them needs a reason.
+    %%action requireInvoiceCancellationReasonOnMove validation-error when: cancelled_at != null and cancellation_reason == null message: A cancelled invoice is money the school chose not to collect — every one of them needs a reason.
     %%action requireIssueDate validation-error when: status == "issued" and issued_on == null message: An issued invoice needs its issue date — the due date and every reminder are measured from it.
 
 %% ---- Business rules — taking money ----------------------------------------
@@ -1243,6 +1288,7 @@ flowchart TD
     P --> E
 
     %%action requireSectionCancellationReason validation-error when: status == "cancelled" and cancellation_reason == null message: Families are told why a group was pulled, so the reason is written for them and it is required.
+    %%action requireSectionCancellationReasonOnMove validation-error when: cancelled_at != null and cancellation_reason == null message: Families are told why a group was pulled, so the reason is written for them and it is required.
     %%action withdrawEnrolmentsOnCancellation trigger-workflow when: status == "cancelled" workflow: SectionCancellation
 
 %% ---- Business rules — conduct ---------------------------------------------
@@ -1264,8 +1310,10 @@ flowchart TD
     P --> E
 
     %%action requireSanction validation-error when: status == "action_taken" and sanction == null message: An incident cannot move to action taken with no sanction recorded — including a sanction of none, which is itself a decision.
+    %%action requireSanctionOnMove validation-error when: action_taken_at != null and sanction == null message: An incident cannot move to action taken with no sanction recorded — including a sanction of none, which is itself a decision.
     %%action requireSanctionNotes validation-error when: sanction == "suspension" and sanction_notes == null message: A suspension needs its detail — how long, from when, and who agreed it. The appeal is answered from this field.
     %%action requireClosureDate validation-error when: status == "closed" and closed_on == null message: A closed incident needs the date it was closed; the ageing on the open list is measured from it.
+    %%action requireClosureDateOnMove validation-error when: closed_at != null and closed_on == null message: A closed incident needs the date it was closed; the ageing on the open list is measured from it.
     %%action suspendOnSuspension trigger-workflow when: sanction == "suspension" workflow: SuspensionEscalation
 
 %% ---- Workflow — the student lifecycle -------------------------------------
@@ -1523,7 +1571,7 @@ flowchart TD
     A([Payment covers the balance]) --> B[Mark the invoice paid]
     B --> C([Settled])
 
-    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: paid
+    %%step B UpdateEntity entity: FeeInvoice targetSource: fee_invoice_id field: status value: paid
 
 %% ---- Workflow — posting a part payment (saga) -----------------------------
 %%meta name: Part Payment Posting
@@ -1533,7 +1581,7 @@ flowchart TD
     A([Payment is less than the balance]) --> B[Mark the invoice part paid]
     B --> C([Posted])
 
-    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: part_paid
+    %%step B UpdateEntity entity: FeeInvoice targetSource: fee_invoice_id field: status value: part_paid
 
 %% ---- Workflow — a paid refund reopens its invoice (sagas) ------------------
 %%meta name: Refund Reopens Invoice
@@ -1543,7 +1591,7 @@ flowchart TD
     A([Refund paid, money still held against the invoice]) --> B[Mark the invoice part paid]
     B --> C([Reopened])
 
-    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: part_paid
+    %%step B UpdateEntity entity: FeeInvoice targetSource: fee_invoice_id field: status value: part_paid
 
 %%meta name: Refund Reissues Invoice
 %%meta kind: workflow
@@ -1552,7 +1600,7 @@ flowchart TD
     A([Refund paid, nothing left paid against the invoice]) --> B[Mark the invoice issued]
     B --> C([Reissued])
 
-    %%step B UpdateEntity entity: FeeInvoice targetField: fee_invoice_id field: status value: issued
+    %%step B UpdateEntity entity: FeeInvoice targetSource: fee_invoice_id field: status value: issued
 
 %% ---- Workflow — cancelling a section (saga) -------------------------------
 %%meta name: Section Cancellation
@@ -1572,7 +1620,7 @@ flowchart TD
     A([Suspension decided]) --> B[Suspend the student]
     B --> C([Suspended])
 
-    %%step B UpdateEntity entity: Student targetField: student_id field: status value: suspended
+    %%step B UpdateEntity entity: Student targetSource: student_id field: status value: suspended
 
 %% ---- Workflow — lifecycle hooks -------------------------------------------
 %%meta name: Enrolment Hooks
@@ -1704,3 +1752,904 @@ flowchart TD
     %%hook beforeCreate assignApplicationReference on AdmissionApplication
     %%hook beforeCreate assignIncidentReference on DisciplineIncident
     %%hook beforeCreate deriveSessionEndTime on ClassSession
+
+%% ---- The state field is system-managed: each move is a rule and a saga ----
+%% Nobody changes a state by hand. Recording the time a move depends on starts
+%% the saga that sets the state; generated by the state-rule migration.
+%%field Student.on_leave_at help: When the move to on leave was recorded on this student. Recording it moves a student from enrolled to on leave: the workflows set the status, which nobody changes by hand.
+%%field Student.enrolled_at help: When the move to enrolled was recorded on this student. Recording it moves a student from on leave or suspended to enrolled: the workflows set the status, which nobody changes by hand.
+%%field Student.graduated_at help: When the move to graduated was recorded on this student. Recording it moves a student from enrolled to graduated: the workflows set the status, which nobody changes by hand.
+%%field Student.withdrawn_at help: When the move to withdrawn was recorded on this student. Recording it moves a student from enrolled, on leave or suspended to withdrawn: the workflows set the status, which nobody changes by hand.
+%%section entity: Student; name: Progress; help: The times that move this student along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: on_leave_at, enrolled_at | graduated_at, withdrawn_at
+
+%%meta name: Student on leave move
+%%meta kind: workflow
+%%workflow StudentOnLeaveMove entity: Student kind: saga trigger: rule
+flowchart TD
+    A([Move to on leave recorded]) --> B[Set the status to on leave]
+    B --> C[Clear enrolled at for the next move]
+    C --> D[Clear withdrawn at for the next move]
+    D --> Z([On Leave])
+
+    %%step B UpdateEntity field: status value: on_leave
+    %%step C UpdateEntity field: enrolled_at value: null
+    %%step D UpdateEntity field: withdrawn_at value: null
+
+%%meta name: Student enrolled move
+%%meta kind: workflow
+%%workflow StudentEnrolledMove entity: Student kind: saga trigger: rule
+flowchart TD
+    A([Move to enrolled recorded]) --> B[Set the status to enrolled]
+    B --> C[Clear on leave at for the next move]
+    C --> D[Clear graduated at for the next move]
+    D --> E[Clear withdrawn at for the next move]
+    E --> Z([Enrolled])
+
+    %%step B UpdateEntity field: status value: enrolled
+    %%step C UpdateEntity field: on_leave_at value: null
+    %%step D UpdateEntity field: graduated_at value: null
+    %%step E UpdateEntity field: withdrawn_at value: null
+
+%%meta name: Student graduated move
+%%meta kind: workflow
+%%workflow StudentGraduatedMove entity: Student kind: saga trigger: rule
+flowchart TD
+    A([Move to graduated recorded]) --> B[Set the status to graduated]
+    B --> Z([Graduated])
+
+    %%step B UpdateEntity field: status value: graduated
+
+%%meta name: Student withdrawn move
+%%meta kind: workflow
+%%workflow StudentWithdrawnMove entity: Student kind: saga trigger: rule
+flowchart TD
+    A([Move to withdrawn recorded]) --> B[Set the status to withdrawn]
+    B --> Z([Withdrawn])
+
+    %%step B UpdateEntity field: status value: withdrawn
+
+%%meta name: Student State Progress
+%%meta kind: rules
+%%rule studentStateProgress on Student event: beforeUpdate priority: 90
+flowchart TD
+    A([Student updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveEnrolledToOnLeave trigger-workflow when: status == "enrolled" and on_leave_at != null workflow: StudentOnLeaveMove
+    %%action moveOnLeaveToEnrolled trigger-workflow when: status == "on_leave" and enrolled_at != null workflow: StudentEnrolledMove
+    %%action moveSuspendedToEnrolled trigger-workflow when: status == "suspended" and enrolled_at != null workflow: StudentEnrolledMove
+    %%action moveEnrolledToGraduated trigger-workflow when: status == "enrolled" and graduated_at != null workflow: StudentGraduatedMove
+    %%action moveEnrolledToWithdrawn trigger-workflow when: status == "enrolled" and withdrawn_at != null workflow: StudentWithdrawnMove
+    %%action moveOnLeaveToWithdrawn trigger-workflow when: status == "on_leave" and withdrawn_at != null workflow: StudentWithdrawnMove
+    %%action moveSuspendedToWithdrawn trigger-workflow when: status == "suspended" and withdrawn_at != null workflow: StudentWithdrawnMove
+%%field AdmissionApplication.under_review_at help: When the move to under review was recorded on this admission application. Recording it moves an admission application from submitted to under review: the workflows set the status, which nobody changes by hand.
+%%field AdmissionApplication.offer_made_at help: When the move to offer made was recorded on this admission application. Recording it moves an admission application from under review to offer made: the workflows set the status, which nobody changes by hand.
+%%field AdmissionApplication.rejected_at help: When the move to rejected was recorded on this admission application. Recording it moves an admission application from under review to rejected: the workflows set the status, which nobody changes by hand.
+%%field AdmissionApplication.accepted_at help: When the move to accepted was recorded on this admission application. Recording it moves an admission application from offer made to accepted: the workflows set the status, which nobody changes by hand.
+%%field AdmissionApplication.declined_at help: When the move to declined was recorded on this admission application. Recording it moves an admission application from offer made to declined: the workflows set the status, which nobody changes by hand.
+%%field AdmissionApplication.withdrawn_at help: When the move to withdrawn was recorded on this admission application. Recording it moves an admission application from submitted, under review or offer made to withdrawn: the workflows set the status, which nobody changes by hand.
+%%section entity: AdmissionApplication; name: Progress; help: The times that move this admission application along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: under_review_at, offer_made_at | rejected_at, accepted_at | declined_at, withdrawn_at
+
+%%meta name: Admission Application under review move
+%%meta kind: workflow
+%%workflow AdmissionApplicationUnderReviewMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to under review recorded]) --> B[Set the status to under review]
+    B --> C[Clear offer made at for the next move]
+    C --> D[Clear rejected at for the next move]
+    D --> E[Clear withdrawn at for the next move]
+    E --> Z([Under Review])
+
+    %%step B UpdateEntity field: status value: under_review
+    %%step C UpdateEntity field: offer_made_at value: null
+    %%step D UpdateEntity field: rejected_at value: null
+    %%step E UpdateEntity field: withdrawn_at value: null
+
+%%meta name: Admission Application offer made move
+%%meta kind: workflow
+%%workflow AdmissionApplicationOfferMadeMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to offer made recorded]) --> B[Set the status to offer made]
+    B --> C[Clear accepted at for the next move]
+    C --> D[Clear declined at for the next move]
+    D --> E[Clear withdrawn at for the next move]
+    E --> Z([Offer Made])
+
+    %%step B UpdateEntity field: status value: offer_made
+    %%step C UpdateEntity field: accepted_at value: null
+    %%step D UpdateEntity field: declined_at value: null
+    %%step E UpdateEntity field: withdrawn_at value: null
+
+%%meta name: Admission Application rejected move
+%%meta kind: workflow
+%%workflow AdmissionApplicationRejectedMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to rejected recorded]) --> B[Set the status to rejected]
+    B --> Z([Rejected])
+
+    %%step B UpdateEntity field: status value: rejected
+
+%%meta name: Admission Application accepted move
+%%meta kind: workflow
+%%workflow AdmissionApplicationAcceptedMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to accepted recorded]) --> B[Set the status to accepted]
+    B --> Z([Accepted])
+
+    %%step B UpdateEntity field: status value: accepted
+
+%%meta name: Admission Application declined move
+%%meta kind: workflow
+%%workflow AdmissionApplicationDeclinedMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to declined recorded]) --> B[Set the status to declined]
+    B --> Z([Declined])
+
+    %%step B UpdateEntity field: status value: declined
+
+%%meta name: Admission Application withdrawn move
+%%meta kind: workflow
+%%workflow AdmissionApplicationWithdrawnMove entity: AdmissionApplication kind: saga trigger: rule
+flowchart TD
+    A([Move to withdrawn recorded]) --> B[Set the status to withdrawn]
+    B --> Z([Withdrawn])
+
+    %%step B UpdateEntity field: status value: withdrawn
+
+%%meta name: Admission Application State Progress
+%%meta kind: rules
+%%rule admissionApplicationStateProgress on AdmissionApplication event: beforeUpdate priority: 90
+flowchart TD
+    A([Admission Application updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveSubmittedToUnderReview trigger-workflow when: status == "submitted" and under_review_at != null workflow: AdmissionApplicationUnderReviewMove
+    %%action moveUnderReviewToOfferMade trigger-workflow when: status == "under_review" and offer_made_at != null workflow: AdmissionApplicationOfferMadeMove
+    %%action moveUnderReviewToRejected trigger-workflow when: status == "under_review" and rejected_at != null workflow: AdmissionApplicationRejectedMove
+    %%action moveOfferMadeToAccepted trigger-workflow when: status == "offer_made" and accepted_at != null workflow: AdmissionApplicationAcceptedMove
+    %%action moveOfferMadeToDeclined trigger-workflow when: status == "offer_made" and declined_at != null workflow: AdmissionApplicationDeclinedMove
+    %%action moveSubmittedToWithdrawn trigger-workflow when: status == "submitted" and withdrawn_at != null workflow: AdmissionApplicationWithdrawnMove
+    %%action moveUnderReviewToWithdrawn trigger-workflow when: status == "under_review" and withdrawn_at != null workflow: AdmissionApplicationWithdrawnMove
+    %%action moveOfferMadeToWithdrawn trigger-workflow when: status == "offer_made" and withdrawn_at != null workflow: AdmissionApplicationWithdrawnMove
+%%field ClassSection.open_at help: When the move to open was recorded on this class section. Recording it moves a class section from planned to open: the workflows set the status, which nobody changes by hand.
+%%field ClassSection.in_progress_at help: When the move to in progress was recorded on this class section. Recording it moves a class section from open to in progress: the workflows set the status, which nobody changes by hand.
+%%field ClassSection.completed_at help: When the move to completed was recorded on this class section. Recording it moves a class section from in progress to completed: the workflows set the status, which nobody changes by hand.
+%%field ClassSection.cancelled_at help: When the move to cancelled was recorded on this class section. Recording it moves a class section from planned or open to cancelled: the workflows set the status, which nobody changes by hand.
+%%section entity: ClassSection; name: Progress; help: The times that move this class section along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: open_at, in_progress_at | completed_at, cancelled_at
+
+%%meta name: Class Section open move
+%%meta kind: workflow
+%%workflow ClassSectionOpenMove entity: ClassSection kind: saga trigger: rule
+flowchart TD
+    A([Move to open recorded]) --> B[Set the status to open]
+    B --> C[Clear in progress at for the next move]
+    C --> D[Clear cancelled at for the next move]
+    D --> Z([Open])
+
+    %%step B UpdateEntity field: status value: open
+    %%step C UpdateEntity field: in_progress_at value: null
+    %%step D UpdateEntity field: cancelled_at value: null
+
+%%meta name: Class Section in progress move
+%%meta kind: workflow
+%%workflow ClassSectionInProgressMove entity: ClassSection kind: saga trigger: rule
+flowchart TD
+    A([Move to in progress recorded]) --> B[Set the status to in progress]
+    B --> C[Clear completed at for the next move]
+    C --> Z([In Progress])
+
+    %%step B UpdateEntity field: status value: in_progress
+    %%step C UpdateEntity field: completed_at value: null
+
+%%meta name: Class Section completed move
+%%meta kind: workflow
+%%workflow ClassSectionCompletedMove entity: ClassSection kind: saga trigger: rule
+flowchart TD
+    A([Move to completed recorded]) --> B[Set the status to completed]
+    B --> Z([Completed])
+
+    %%step B UpdateEntity field: status value: completed
+
+%%meta name: Class Section cancelled move
+%%meta kind: workflow
+%%workflow ClassSectionCancelledMove entity: ClassSection kind: saga trigger: rule
+flowchart TD
+    A([Move to cancelled recorded]) --> B[Set the status to cancelled]
+    B --> Z([Cancelled])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Class Section State Progress
+%%meta kind: rules
+%%rule classSectionStateProgress on ClassSection event: beforeUpdate priority: 90
+flowchart TD
+    A([Class Section updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action movePlannedToOpen trigger-workflow when: status == "planned" and open_at != null workflow: ClassSectionOpenMove
+    %%action moveOpenToInProgress trigger-workflow when: status == "open" and in_progress_at != null workflow: ClassSectionInProgressMove
+    %%action moveInProgressToCompleted trigger-workflow when: status == "in_progress" and completed_at != null workflow: ClassSectionCompletedMove
+    %%action movePlannedToCancelled trigger-workflow when: status == "planned" and cancelled_at != null workflow: ClassSectionCancelledMove
+    %%action moveOpenToCancelled trigger-workflow when: status == "open" and cancelled_at != null workflow: ClassSectionCancelledMove
+%%field ClassSession.held_at help: When the move to held was recorded on this class session. Recording it moves a class session from scheduled to held: the workflows set the status, which nobody changes by hand.
+%%field ClassSession.cancelled_at help: When the move to cancelled was recorded on this class session. Recording it moves a class session from scheduled to cancelled: the workflows set the status, which nobody changes by hand.
+%%section entity: ClassSession; name: Progress; help: The times that move this class session along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: held_at, cancelled_at
+
+%%meta name: Class Session held move
+%%meta kind: workflow
+%%workflow ClassSessionHeldMove entity: ClassSession kind: saga trigger: rule
+flowchart TD
+    A([Move to held recorded]) --> B[Set the status to held]
+    B --> Z([Held])
+
+    %%step B UpdateEntity field: status value: held
+
+%%meta name: Class Session cancelled move
+%%meta kind: workflow
+%%workflow ClassSessionCancelledMove entity: ClassSession kind: saga trigger: rule
+flowchart TD
+    A([Move to cancelled recorded]) --> B[Set the status to cancelled]
+    B --> Z([Cancelled])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Class Session State Progress
+%%meta kind: rules
+%%rule classSessionStateProgress on ClassSession event: beforeUpdate priority: 90
+flowchart TD
+    A([Class Session updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveScheduledToHeld trigger-workflow when: status == "scheduled" and held_at != null workflow: ClassSessionHeldMove
+    %%action moveScheduledToCancelled trigger-workflow when: status == "scheduled" and cancelled_at != null workflow: ClassSessionCancelledMove
+%%field Enrollment.enrolled_at help: When the move to enrolled was recorded on this enrollment. Recording it moves an enrollment from pending to enrolled: the workflows set the status, which nobody changes by hand.
+%%field Enrollment.completed_at help: When the move to completed was recorded on this enrollment. Recording it moves an enrollment from enrolled to completed: the workflows set the status, which nobody changes by hand.
+%%field Enrollment.failed_at help: When the move to failed was recorded on this enrollment. Recording it moves an enrollment from enrolled to failed: the workflows set the status, which nobody changes by hand.
+%%section entity: Enrollment; name: Progress; help: The times that move this enrollment along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: enrolled_at, completed_at | failed_at
+
+%%meta name: Enrollment enrolled move
+%%meta kind: workflow
+%%workflow EnrollmentEnrolledMove entity: Enrollment kind: saga trigger: rule
+flowchart TD
+    A([Move to enrolled recorded]) --> B[Set the status to enrolled]
+    B --> C[Clear completed at for the next move]
+    C --> D[Clear failed at for the next move]
+    D --> Z([Enrolled])
+
+    %%step B UpdateEntity field: status value: enrolled
+    %%step C UpdateEntity field: completed_at value: null
+    %%step D UpdateEntity field: failed_at value: null
+
+%%meta name: Enrollment completed move
+%%meta kind: workflow
+%%workflow EnrollmentCompletedMove entity: Enrollment kind: saga trigger: rule
+flowchart TD
+    A([Move to completed recorded]) --> B[Set the status to completed]
+    B --> Z([Completed])
+
+    %%step B UpdateEntity field: status value: completed
+
+%%meta name: Enrollment failed move
+%%meta kind: workflow
+%%workflow EnrollmentFailedMove entity: Enrollment kind: saga trigger: rule
+flowchart TD
+    A([Move to failed recorded]) --> B[Set the status to failed]
+    B --> Z([Failed])
+
+    %%step B UpdateEntity field: status value: failed
+
+%%meta name: Enrollment State Progress
+%%meta kind: rules
+%%rule enrollmentStateProgress on Enrollment event: beforeUpdate priority: 90
+flowchart TD
+    A([Enrollment updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action movePendingToEnrolled trigger-workflow when: status == "pending" and enrolled_at != null workflow: EnrollmentEnrolledMove
+    %%action moveEnrolledToCompleted trigger-workflow when: status == "enrolled" and completed_at != null workflow: EnrollmentCompletedMove
+    %%action moveEnrolledToFailed trigger-workflow when: status == "enrolled" and failed_at != null workflow: EnrollmentFailedMove
+%%field Assessment.published_at help: When the move to published was recorded on this assessment. Recording it moves an assessment from draft to published: the workflows set the status, which nobody changes by hand.
+%%field Assessment.marking_at help: When the move to marking was recorded on this assessment. Recording it moves an assessment from published to marking: the workflows set the status, which nobody changes by hand.
+%%field Assessment.marked_at help: When the move to marked was recorded on this assessment. Recording it moves an assessment from marking to marked: the workflows set the status, which nobody changes by hand.
+%%field Assessment.cancelled_at help: When the move to cancelled was recorded on this assessment. Recording it moves an assessment from draft or published to cancelled: the workflows set the status, which nobody changes by hand.
+%%section entity: Assessment; name: Progress; help: The times that move this assessment along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: published_at, marking_at | marked_at, cancelled_at
+
+%%meta name: Assessment published move
+%%meta kind: workflow
+%%workflow AssessmentPublishedMove entity: Assessment kind: saga trigger: rule
+flowchart TD
+    A([Move to published recorded]) --> B[Set the status to published]
+    B --> C[Clear marking at for the next move]
+    C --> D[Clear cancelled at for the next move]
+    D --> Z([Published])
+
+    %%step B UpdateEntity field: status value: published
+    %%step C UpdateEntity field: marking_at value: null
+    %%step D UpdateEntity field: cancelled_at value: null
+
+%%meta name: Assessment marking move
+%%meta kind: workflow
+%%workflow AssessmentMarkingMove entity: Assessment kind: saga trigger: rule
+flowchart TD
+    A([Move to marking recorded]) --> B[Set the status to marking]
+    B --> C[Clear marked at for the next move]
+    C --> Z([Marking])
+
+    %%step B UpdateEntity field: status value: marking
+    %%step C UpdateEntity field: marked_at value: null
+
+%%meta name: Assessment marked move
+%%meta kind: workflow
+%%workflow AssessmentMarkedMove entity: Assessment kind: saga trigger: rule
+flowchart TD
+    A([Move to marked recorded]) --> B[Set the status to marked]
+    B --> Z([Marked])
+
+    %%step B UpdateEntity field: status value: marked
+
+%%meta name: Assessment cancelled move
+%%meta kind: workflow
+%%workflow AssessmentCancelledMove entity: Assessment kind: saga trigger: rule
+flowchart TD
+    A([Move to cancelled recorded]) --> B[Set the status to cancelled]
+    B --> Z([Cancelled])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Assessment State Progress
+%%meta kind: rules
+%%rule assessmentStateProgress on Assessment event: beforeUpdate priority: 90
+flowchart TD
+    A([Assessment updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveDraftToPublished trigger-workflow when: status == "draft" and published_at != null workflow: AssessmentPublishedMove
+    %%action movePublishedToMarking trigger-workflow when: status == "published" and marking_at != null workflow: AssessmentMarkingMove
+    %%action moveMarkingToMarked trigger-workflow when: status == "marking" and marked_at != null workflow: AssessmentMarkedMove
+    %%action moveDraftToCancelled trigger-workflow when: status == "draft" and cancelled_at != null workflow: AssessmentCancelledMove
+    %%action movePublishedToCancelled trigger-workflow when: status == "published" and cancelled_at != null workflow: AssessmentCancelledMove
+%%field AssessmentResult.submitted_at help: When the move to submitted was recorded on this assessment result. Recording it moves an assessment result from pending or missing to submitted: the workflows set the status, which nobody changes by hand.
+%%field AssessmentResult.missing_at help: When the move to missing was recorded on this assessment result. Recording it moves an assessment result from pending to missing: the workflows set the status, which nobody changes by hand.
+%%field AssessmentResult.excused_at help: When the move to excused was recorded on this assessment result. Recording it moves an assessment result from pending to excused: the workflows set the status, which nobody changes by hand.
+%%section entity: AssessmentResult; name: Progress; help: The times that move this assessment result along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: submitted_at, missing_at | excused_at
+
+%%meta name: Assessment Result submitted move
+%%meta kind: workflow
+%%workflow AssessmentResultSubmittedMove entity: AssessmentResult kind: saga trigger: rule
+flowchart TD
+    A([Move to submitted recorded]) --> B[Set the status to submitted]
+    B --> C[Clear marked at for the next move]
+    C --> Z([Submitted])
+
+    %%step B UpdateEntity field: status value: submitted
+    %%step C UpdateEntity field: marked_at value: null
+
+%%meta name: Assessment Result missing move
+%%meta kind: workflow
+%%workflow AssessmentResultMissingMove entity: AssessmentResult kind: saga trigger: rule
+flowchart TD
+    A([Move to missing recorded]) --> B[Set the status to missing]
+    B --> C[Clear submitted at for the next move]
+    C --> Z([Missing])
+
+    %%step B UpdateEntity field: status value: missing
+    %%step C UpdateEntity field: submitted_at value: null
+
+%%meta name: Assessment Result excused move
+%%meta kind: workflow
+%%workflow AssessmentResultExcusedMove entity: AssessmentResult kind: saga trigger: rule
+flowchart TD
+    A([Move to excused recorded]) --> B[Set the status to excused]
+    B --> Z([Excused])
+
+    %%step B UpdateEntity field: status value: excused
+
+%%meta name: Assessment Result marked move
+%%meta kind: workflow
+%%workflow AssessmentResultMarkedMove entity: AssessmentResult kind: saga trigger: rule
+flowchart TD
+    A([Move to marked recorded]) --> B[Set the status to marked]
+    B --> Z([Marked])
+
+    %%step B UpdateEntity field: status value: marked
+
+%%meta name: Assessment Result State Progress
+%%meta kind: rules
+%%rule assessmentResultStateProgress on AssessmentResult event: beforeUpdate priority: 90
+flowchart TD
+    A([Assessment Result updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action movePendingToSubmitted trigger-workflow when: status == "pending" and submitted_at != null workflow: AssessmentResultSubmittedMove
+    %%action movePendingToMissing trigger-workflow when: status == "pending" and missing_at != null workflow: AssessmentResultMissingMove
+    %%action movePendingToExcused trigger-workflow when: status == "pending" and excused_at != null workflow: AssessmentResultExcusedMove
+    %%action moveSubmittedToMarked trigger-workflow when: status == "submitted" and marked_at != null workflow: AssessmentResultMarkedMove
+    %%action moveMissingToSubmitted trigger-workflow when: status == "missing" and submitted_at != null workflow: AssessmentResultSubmittedMove
+%%field FeeInvoice.cancelled_at help: When the move to cancelled was recorded on this fee invoice. Recording it moves a fee invoice from draft or issued to cancelled: the workflows set the status, which nobody changes by hand.
+%%field FeeInvoice.overdue_at help: When the move to overdue was recorded on this fee invoice. Recording it moves a fee invoice from issued or part paid to overdue: the workflows set the status, which nobody changes by hand.
+%%section entity: FeeInvoice; name: Progress; help: The times that move this fee invoice along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: cancelled_at, overdue_at
+
+%%meta name: Fee Invoice cancelled move
+%%meta kind: workflow
+%%workflow FeeInvoiceCancelledMove entity: FeeInvoice kind: saga trigger: rule
+flowchart TD
+    A([Move to cancelled recorded]) --> B[Set the status to cancelled]
+    B --> Z([Cancelled])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Fee Invoice overdue move
+%%meta kind: workflow
+%%workflow FeeInvoiceOverdueMove entity: FeeInvoice kind: saga trigger: rule
+flowchart TD
+    A([Move to overdue recorded]) --> B[Set the status to overdue]
+    B --> Z([Overdue])
+
+    %%step B UpdateEntity field: status value: overdue
+
+%%meta name: Fee Invoice State Progress
+%%meta kind: rules
+%%rule feeInvoiceStateProgress on FeeInvoice event: beforeUpdate priority: 90
+flowchart TD
+    A([Fee Invoice updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveDraftToCancelled trigger-workflow when: status == "draft" and cancelled_at != null workflow: FeeInvoiceCancelledMove
+    %%action moveIssuedToOverdue trigger-workflow when: status == "issued" and overdue_at != null workflow: FeeInvoiceOverdueMove
+    %%action moveIssuedToCancelled trigger-workflow when: status == "issued" and cancelled_at != null workflow: FeeInvoiceCancelledMove
+    %%action movePartPaidToOverdue trigger-workflow when: status == "part_paid" and overdue_at != null workflow: FeeInvoiceOverdueMove
+%%field DisciplineIncident.under_review_at help: When the move to under review was recorded on this discipline incident. Recording it moves a discipline incident from reported to under review: the workflows set the status, which nobody changes by hand.
+%%field DisciplineIncident.dismissed_at help: When the move to dismissed was recorded on this discipline incident. Recording it moves a discipline incident from reported or under review to dismissed: the workflows set the status, which nobody changes by hand.
+%%field DisciplineIncident.action_taken_at help: When the move to action taken was recorded on this discipline incident. Recording it moves a discipline incident from under review to action taken: the workflows set the status, which nobody changes by hand.
+%%field DisciplineIncident.closed_at help: When the move to closed was recorded on this discipline incident. Recording it moves a discipline incident from action taken to closed: the workflows set the status, which nobody changes by hand.
+%%section entity: DisciplineIncident; name: Progress; help: The times that move this discipline incident along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: under_review_at, dismissed_at | action_taken_at, closed_at
+
+%%meta name: Discipline Incident under review move
+%%meta kind: workflow
+%%workflow DisciplineIncidentUnderReviewMove entity: DisciplineIncident kind: saga trigger: rule
+flowchart TD
+    A([Move to under review recorded]) --> B[Set the status to under review]
+    B --> C[Clear action taken at for the next move]
+    C --> D[Clear dismissed at for the next move]
+    D --> Z([Under Review])
+
+    %%step B UpdateEntity field: status value: under_review
+    %%step C UpdateEntity field: action_taken_at value: null
+    %%step D UpdateEntity field: dismissed_at value: null
+
+%%meta name: Discipline Incident dismissed move
+%%meta kind: workflow
+%%workflow DisciplineIncidentDismissedMove entity: DisciplineIncident kind: saga trigger: rule
+flowchart TD
+    A([Move to dismissed recorded]) --> B[Set the status to dismissed]
+    B --> Z([Dismissed])
+
+    %%step B UpdateEntity field: status value: dismissed
+
+%%meta name: Discipline Incident action taken move
+%%meta kind: workflow
+%%workflow DisciplineIncidentActionTakenMove entity: DisciplineIncident kind: saga trigger: rule
+flowchart TD
+    A([Move to action taken recorded]) --> B[Set the status to action taken]
+    B --> C[Clear closed at for the next move]
+    C --> Z([Action Taken])
+
+    %%step B UpdateEntity field: status value: action_taken
+    %%step C UpdateEntity field: closed_at value: null
+
+%%meta name: Discipline Incident closed move
+%%meta kind: workflow
+%%workflow DisciplineIncidentClosedMove entity: DisciplineIncident kind: saga trigger: rule
+flowchart TD
+    A([Move to closed recorded]) --> B[Set the status to closed]
+    B --> Z([Closed])
+
+    %%step B UpdateEntity field: status value: closed
+
+%%meta name: Discipline Incident State Progress
+%%meta kind: rules
+%%rule disciplineIncidentStateProgress on DisciplineIncident event: beforeUpdate priority: 90
+flowchart TD
+    A([Discipline Incident updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveReportedToUnderReview trigger-workflow when: status == "reported" and under_review_at != null workflow: DisciplineIncidentUnderReviewMove
+    %%action moveReportedToDismissed trigger-workflow when: status == "reported" and dismissed_at != null workflow: DisciplineIncidentDismissedMove
+    %%action moveUnderReviewToActionTaken trigger-workflow when: status == "under_review" and action_taken_at != null workflow: DisciplineIncidentActionTakenMove
+    %%action moveUnderReviewToDismissed trigger-workflow when: status == "under_review" and dismissed_at != null workflow: DisciplineIncidentDismissedMove
+    %%action moveActionTakenToClosed trigger-workflow when: status == "action_taken" and closed_at != null workflow: DisciplineIncidentClosedMove
+%%field AcademicTerm.current_at help: When the move to current was recorded on this academic term. Recording it moves an academic term from planned to current: the workflows set the status, which nobody changes by hand.
+%%field AcademicTerm.closed_at help: When the move to closed was recorded on this academic term. Recording it moves an academic term from current to closed: the workflows set the status, which nobody changes by hand.
+%%section entity: AcademicTerm; name: Progress; help: The times that move this academic term along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: current_at, closed_at
+
+%%meta name: Academic Term current move
+%%meta kind: workflow
+%%workflow AcademicTermCurrentMove entity: AcademicTerm kind: saga trigger: rule
+flowchart TD
+    A([Move to current recorded]) --> B[Set the status to current]
+    B --> C[Clear closed at for the next move]
+    C --> Z([Current])
+
+    %%step B UpdateEntity field: status value: current
+    %%step C UpdateEntity field: closed_at value: null
+
+%%meta name: Academic Term closed move
+%%meta kind: workflow
+%%workflow AcademicTermClosedMove entity: AcademicTerm kind: saga trigger: rule
+flowchart TD
+    A([Move to closed recorded]) --> B[Set the status to closed]
+    B --> Z([Closed])
+
+    %%step B UpdateEntity field: status value: closed
+
+%%meta name: Academic Term State Progress
+%%meta kind: rules
+%%rule academicTermStateProgress on AcademicTerm event: beforeUpdate priority: 90
+flowchart TD
+    A([Academic Term updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action movePlannedToCurrent trigger-workflow when: status == "planned" and current_at != null workflow: AcademicTermCurrentMove
+    %%action moveCurrentToClosed trigger-workflow when: status == "current" and closed_at != null workflow: AcademicTermClosedMove
+%%field Staff.on_leave_at help: When the move to on leave was recorded on this staff. Recording it moves a staff from active to on leave: the workflows set the status, which nobody changes by hand.
+%%field Staff.active_at help: When the move to active was recorded on this staff. Recording it moves a staff from on leave to active: the workflows set the status, which nobody changes by hand.
+%%field Staff.left_at help: When the move to left was recorded on this staff. Recording it moves a staff from active or on leave to left: the workflows set the status, which nobody changes by hand.
+%%section entity: Staff; name: Progress; help: The times that move this staff along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: on_leave_at, active_at | left_at
+
+%%meta name: Staff on leave move
+%%meta kind: workflow
+%%workflow StaffOnLeaveMove entity: Staff kind: saga trigger: rule
+flowchart TD
+    A([Move to on leave recorded]) --> B[Set the status to on leave]
+    B --> C[Clear active at for the next move]
+    C --> D[Clear left at for the next move]
+    D --> Z([On Leave])
+
+    %%step B UpdateEntity field: status value: on_leave
+    %%step C UpdateEntity field: active_at value: null
+    %%step D UpdateEntity field: left_at value: null
+
+%%meta name: Staff active move
+%%meta kind: workflow
+%%workflow StaffActiveMove entity: Staff kind: saga trigger: rule
+flowchart TD
+    A([Move to active recorded]) --> B[Set the status to active]
+    B --> C[Clear on leave at for the next move]
+    C --> D[Clear left at for the next move]
+    D --> Z([Active])
+
+    %%step B UpdateEntity field: status value: active
+    %%step C UpdateEntity field: on_leave_at value: null
+    %%step D UpdateEntity field: left_at value: null
+
+%%meta name: Staff left move
+%%meta kind: workflow
+%%workflow StaffLeftMove entity: Staff kind: saga trigger: rule
+flowchart TD
+    A([Move to left recorded]) --> B[Set the status to left]
+    B --> Z([Left])
+
+    %%step B UpdateEntity field: status value: left
+
+%%meta name: Staff State Progress
+%%meta kind: rules
+%%rule staffStateProgress on Staff event: beforeUpdate priority: 90
+flowchart TD
+    A([Staff updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveActiveToOnLeave trigger-workflow when: status == "active" and on_leave_at != null workflow: StaffOnLeaveMove
+    %%action moveOnLeaveToActive trigger-workflow when: status == "on_leave" and active_at != null workflow: StaffActiveMove
+    %%action moveActiveToLeft trigger-workflow when: status == "active" and left_at != null workflow: StaffLeftMove
+    %%action moveOnLeaveToLeft trigger-workflow when: status == "on_leave" and left_at != null workflow: StaffLeftMove
+%%field ConsentRecord.active_at help: When the move to active was recorded on this consent record. Recording it moves a consent record from draft to active: the workflows set the status, which nobody changes by hand.
+%%field ConsentRecord.expired_at help: When the move to expired was recorded on this consent record. Recording it moves a consent record from active to expired: the workflows set the status, which nobody changes by hand.
+%%section entity: ConsentRecord; name: Progress; help: The times that move this consent record along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: active_at, expired_at
+
+%%meta name: Consent Record active move
+%%meta kind: workflow
+%%workflow ConsentRecordActiveMove entity: ConsentRecord kind: saga trigger: rule
+flowchart TD
+    A([Move to active recorded]) --> B[Set the status to active]
+    B --> C[Clear withdrawn at for the next move]
+    C --> D[Clear expired at for the next move]
+    D --> Z([Active])
+
+    %%step B UpdateEntity field: status value: active
+    %%step C UpdateEntity field: withdrawn_at value: null
+    %%step D UpdateEntity field: expired_at value: null
+
+%%meta name: Consent Record withdrawn move
+%%meta kind: workflow
+%%workflow ConsentRecordWithdrawnMove entity: ConsentRecord kind: saga trigger: rule
+flowchart TD
+    A([Move to withdrawn recorded]) --> B[Set the status to withdrawn]
+    B --> Z([Withdrawn])
+
+    %%step B UpdateEntity field: status value: withdrawn
+
+%%meta name: Consent Record expired move
+%%meta kind: workflow
+%%workflow ConsentRecordExpiredMove entity: ConsentRecord kind: saga trigger: rule
+flowchart TD
+    A([Move to expired recorded]) --> B[Set the status to expired]
+    B --> Z([Expired])
+
+    %%step B UpdateEntity field: status value: expired
+
+%%meta name: Consent Record State Progress
+%%meta kind: rules
+%%rule consentRecordStateProgress on ConsentRecord event: beforeUpdate priority: 90
+flowchart TD
+    A([Consent Record updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveDraftToActive trigger-workflow when: status == "draft" and active_at != null workflow: ConsentRecordActiveMove
+    %%action moveActiveToWithdrawn trigger-workflow when: status == "active" and withdrawn_at != null workflow: ConsentRecordWithdrawnMove
+    %%action moveActiveToExpired trigger-workflow when: status == "active" and expired_at != null workflow: ConsentRecordExpiredMove
+%%field SupportPlan.active_at help: When the move to active was recorded on this support plan. Recording it moves a support plan from draft or under review to active: the workflows set the status, which nobody changes by hand.
+%%field SupportPlan.under_review_at help: When the move to under review was recorded on this support plan. Recording it moves a support plan from active to under review: the workflows set the status, which nobody changes by hand.
+%%field SupportPlan.closed_at help: When the move to closed was recorded on this support plan. Recording it moves a support plan from active or under review to closed: the workflows set the status, which nobody changes by hand.
+%%section entity: SupportPlan; name: Progress; help: The times that move this support plan along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: active_at, under_review_at | closed_at
+
+%%meta name: Support Plan active move
+%%meta kind: workflow
+%%workflow SupportPlanActiveMove entity: SupportPlan kind: saga trigger: rule
+flowchart TD
+    A([Move to active recorded]) --> B[Set the status to active]
+    B --> C[Clear under review at for the next move]
+    C --> D[Clear closed at for the next move]
+    D --> Z([Active])
+
+    %%step B UpdateEntity field: status value: active
+    %%step C UpdateEntity field: under_review_at value: null
+    %%step D UpdateEntity field: closed_at value: null
+
+%%meta name: Support Plan under review move
+%%meta kind: workflow
+%%workflow SupportPlanUnderReviewMove entity: SupportPlan kind: saga trigger: rule
+flowchart TD
+    A([Move to under review recorded]) --> B[Set the status to under review]
+    B --> C[Clear active at for the next move]
+    C --> D[Clear closed at for the next move]
+    D --> Z([Under Review])
+
+    %%step B UpdateEntity field: status value: under_review
+    %%step C UpdateEntity field: active_at value: null
+    %%step D UpdateEntity field: closed_at value: null
+
+%%meta name: Support Plan closed move
+%%meta kind: workflow
+%%workflow SupportPlanClosedMove entity: SupportPlan kind: saga trigger: rule
+flowchart TD
+    A([Move to closed recorded]) --> B[Set the status to closed]
+    B --> Z([Closed])
+
+    %%step B UpdateEntity field: status value: closed
+
+%%meta name: Support Plan State Progress
+%%meta kind: rules
+%%rule supportPlanStateProgress on SupportPlan event: beforeUpdate priority: 90
+flowchart TD
+    A([Support Plan updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveDraftToActive trigger-workflow when: status == "draft" and active_at != null workflow: SupportPlanActiveMove
+    %%action moveActiveToUnderReview trigger-workflow when: status == "active" and under_review_at != null workflow: SupportPlanUnderReviewMove
+    %%action moveUnderReviewToActive trigger-workflow when: status == "under_review" and active_at != null workflow: SupportPlanActiveMove
+    %%action moveActiveToClosed trigger-workflow when: status == "active" and closed_at != null workflow: SupportPlanClosedMove
+    %%action moveUnderReviewToClosed trigger-workflow when: status == "under_review" and closed_at != null workflow: SupportPlanClosedMove
+%%field SafeguardingConcern.triaged_at help: When the move to triaged was recorded on this safeguarding concern. Recording it moves a safeguarding concern from reported to triaged: the workflows set the status, which nobody changes by hand.
+%%field SafeguardingConcern.investigating_at help: When the move to investigating was recorded on this safeguarding concern. Recording it moves a safeguarding concern from triaged to investigating: the workflows set the status, which nobody changes by hand.
+%%field SafeguardingConcern.referred_at help: When the move to referred was recorded on this safeguarding concern. Recording it moves a safeguarding concern from triaged or investigating to referred: the workflows set the status, which nobody changes by hand.
+%%field SafeguardingConcern.closed_at help: When the move to closed was recorded on this safeguarding concern. Recording it moves a safeguarding concern from investigating or referred to closed: the workflows set the status, which nobody changes by hand.
+%%section entity: SafeguardingConcern; name: Progress; help: The times that move this safeguarding concern along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: triaged_at, investigating_at | referred_at, closed_at
+
+%%meta name: Safeguarding Concern triaged move
+%%meta kind: workflow
+%%workflow SafeguardingConcernTriagedMove entity: SafeguardingConcern kind: saga trigger: rule
+flowchart TD
+    A([Move to triaged recorded]) --> B[Set the status to triaged]
+    B --> C[Clear investigating at for the next move]
+    C --> D[Clear referred at for the next move]
+    D --> Z([Triaged])
+
+    %%step B UpdateEntity field: status value: triaged
+    %%step C UpdateEntity field: investigating_at value: null
+    %%step D UpdateEntity field: referred_at value: null
+
+%%meta name: Safeguarding Concern investigating move
+%%meta kind: workflow
+%%workflow SafeguardingConcernInvestigatingMove entity: SafeguardingConcern kind: saga trigger: rule
+flowchart TD
+    A([Move to investigating recorded]) --> B[Set the status to investigating]
+    B --> C[Clear referred at for the next move]
+    C --> D[Clear closed at for the next move]
+    D --> Z([Investigating])
+
+    %%step B UpdateEntity field: status value: investigating
+    %%step C UpdateEntity field: referred_at value: null
+    %%step D UpdateEntity field: closed_at value: null
+
+%%meta name: Safeguarding Concern referred move
+%%meta kind: workflow
+%%workflow SafeguardingConcernReferredMove entity: SafeguardingConcern kind: saga trigger: rule
+flowchart TD
+    A([Move to referred recorded]) --> B[Set the status to referred]
+    B --> C[Clear closed at for the next move]
+    C --> Z([Referred])
+
+    %%step B UpdateEntity field: status value: referred
+    %%step C UpdateEntity field: closed_at value: null
+
+%%meta name: Safeguarding Concern closed move
+%%meta kind: workflow
+%%workflow SafeguardingConcernClosedMove entity: SafeguardingConcern kind: saga trigger: rule
+flowchart TD
+    A([Move to closed recorded]) --> B[Set the status to closed]
+    B --> Z([Closed])
+
+    %%step B UpdateEntity field: status value: closed
+
+%%meta name: Safeguarding Concern State Progress
+%%meta kind: rules
+%%rule safeguardingConcernStateProgress on SafeguardingConcern event: beforeUpdate priority: 90
+flowchart TD
+    A([Safeguarding Concern updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveReportedToTriaged trigger-workflow when: status == "reported" and triaged_at != null workflow: SafeguardingConcernTriagedMove
+    %%action moveTriagedToInvestigating trigger-workflow when: status == "triaged" and investigating_at != null workflow: SafeguardingConcernInvestigatingMove
+    %%action moveTriagedToReferred trigger-workflow when: status == "triaged" and referred_at != null workflow: SafeguardingConcernReferredMove
+    %%action moveInvestigatingToReferred trigger-workflow when: status == "investigating" and referred_at != null workflow: SafeguardingConcernReferredMove
+    %%action moveInvestigatingToClosed trigger-workflow when: status == "investigating" and closed_at != null workflow: SafeguardingConcernClosedMove
+    %%action moveReferredToClosed trigger-workflow when: status == "referred" and closed_at != null workflow: SafeguardingConcernClosedMove
+%%field CommunicationLog.failed_at help: When the move to failed was recorded on this communication log. Recording it moves a communication log from queued or sent to failed: the workflows set the status, which nobody changes by hand.
+%%section entity: CommunicationLog; name: Progress; help: The times that move this communication log along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: failed_at
+
+%%meta name: Communication Log sent move
+%%meta kind: workflow
+%%workflow CommunicationLogSentMove entity: CommunicationLog kind: saga trigger: rule
+flowchart TD
+    A([Move to sent recorded]) --> B[Set the status to sent]
+    B --> C[Clear delivered at for the next move]
+    C --> D[Clear failed at for the next move]
+    D --> Z([Sent])
+
+    %%step B UpdateEntity field: status value: sent
+    %%step C UpdateEntity field: delivered_at value: null
+    %%step D UpdateEntity field: failed_at value: null
+
+%%meta name: Communication Log failed move
+%%meta kind: workflow
+%%workflow CommunicationLogFailedMove entity: CommunicationLog kind: saga trigger: rule
+flowchart TD
+    A([Move to failed recorded]) --> B[Set the status to failed]
+    B --> Z([Failed])
+
+    %%step B UpdateEntity field: status value: failed
+
+%%meta name: Communication Log delivered move
+%%meta kind: workflow
+%%workflow CommunicationLogDeliveredMove entity: CommunicationLog kind: saga trigger: rule
+flowchart TD
+    A([Move to delivered recorded]) --> B[Set the status to delivered]
+    B --> Z([Delivered])
+
+    %%step B UpdateEntity field: status value: delivered
+
+%%meta name: Communication Log State Progress
+%%meta kind: rules
+%%rule communicationLogStateProgress on CommunicationLog event: beforeUpdate priority: 90
+flowchart TD
+    A([Communication Log updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveQueuedToSent trigger-workflow when: status == "queued" and sent_at != null workflow: CommunicationLogSentMove
+    %%action moveQueuedToFailed trigger-workflow when: status == "queued" and failed_at != null workflow: CommunicationLogFailedMove
+    %%action moveSentToDelivered trigger-workflow when: status == "sent" and delivered_at != null workflow: CommunicationLogDeliveredMove
+    %%action moveSentToFailed trigger-workflow when: status == "sent" and failed_at != null workflow: CommunicationLogFailedMove
+%%field Refund.under_review_at help: When the move to under review was recorded on this refund. Recording it moves a refund from requested to under review: the workflows set the status, which nobody changes by hand.
+%%field Refund.cancelled_at help: When the move to cancelled was recorded on this refund. Recording it moves a refund from requested or under review to cancelled: the workflows set the status, which nobody changes by hand.
+%%field Refund.approved_at help: When the move to approved was recorded on this refund. Recording it moves a refund from under review to approved: the workflows set the status, which nobody changes by hand.
+%%field Refund.rejected_at help: When the move to rejected was recorded on this refund. Recording it moves a refund from under review to rejected: the workflows set the status, which nobody changes by hand.
+%%section entity: Refund; name: Progress; help: The times that move this refund along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: under_review_at, cancelled_at | approved_at, rejected_at
+
+%%meta name: Refund under review move
+%%meta kind: workflow
+%%workflow RefundUnderReviewMove entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Move to under review recorded]) --> B[Set the status to under review]
+    B --> C[Clear approved at for the next move]
+    C --> D[Clear rejected at for the next move]
+    D --> E[Clear cancelled at for the next move]
+    E --> Z([Under Review])
+
+    %%step B UpdateEntity field: status value: under_review
+    %%step C UpdateEntity field: approved_at value: null
+    %%step D UpdateEntity field: rejected_at value: null
+    %%step E UpdateEntity field: cancelled_at value: null
+
+%%meta name: Refund cancelled move
+%%meta kind: workflow
+%%workflow RefundCancelledMove entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Move to cancelled recorded]) --> B[Set the status to cancelled]
+    B --> Z([Cancelled])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Refund approved move
+%%meta kind: workflow
+%%workflow RefundApprovedMove entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Move to approved recorded]) --> B[Set the status to approved]
+    B --> C[Clear paid at for the next move]
+    C --> Z([Approved])
+
+    %%step B UpdateEntity field: status value: approved
+    %%step C UpdateEntity field: paid_at value: null
+
+%%meta name: Refund rejected move
+%%meta kind: workflow
+%%workflow RefundRejectedMove entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Move to rejected recorded]) --> B[Set the status to rejected]
+    B --> Z([Rejected])
+
+    %%step B UpdateEntity field: status value: rejected
+
+%%meta name: Refund paid move
+%%meta kind: workflow
+%%workflow RefundPaidMove entity: Refund kind: saga trigger: rule
+flowchart TD
+    A([Move to paid recorded]) --> B[Set the status to paid]
+    B --> Z([Paid])
+
+    %%step B UpdateEntity field: status value: paid
+
+%%meta name: Refund State Progress
+%%meta kind: rules
+%%rule refundStateProgress on Refund event: beforeUpdate priority: 90
+flowchart TD
+    A([Refund updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveRequestedToUnderReview trigger-workflow when: status == "requested" and under_review_at != null workflow: RefundUnderReviewMove
+    %%action moveRequestedToCancelled trigger-workflow when: status == "requested" and cancelled_at != null workflow: RefundCancelledMove
+    %%action moveUnderReviewToApproved trigger-workflow when: status == "under_review" and approved_at != null workflow: RefundApprovedMove
+    %%action moveUnderReviewToRejected trigger-workflow when: status == "under_review" and rejected_at != null workflow: RefundRejectedMove
+    %%action moveUnderReviewToCancelled trigger-workflow when: status == "under_review" and cancelled_at != null workflow: RefundCancelledMove
+    %%action moveApprovedToPaid trigger-workflow when: status == "approved" and paid_at != null workflow: RefundPaidMove

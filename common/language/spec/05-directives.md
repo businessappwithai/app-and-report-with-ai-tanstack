@@ -449,9 +449,10 @@ How to lay a form out:
 | `EML175` | warning · auto-fix | a column placed twice |
 | `EML176` | error | a row names a column the entity lacks, or its primary key |
 | `EML177` | warning · completeness | a section with no `help:`, or help that restates its name |
+| `EML178` | warning · auto-fix | a row places the state field — it is shown read-only in the form's header and always in the list grid, never in the body |
 
 ```
-%%section entity: Order; name: Order; help: Who placed the order, when, and where it stands.; rows: order_number, order_date | customer_id, status
+%%section entity: Order; name: Order; help: Who placed the order and when. Where it stands is shown in the header.; rows: order_number, order_date | customer_id
 %%section entity: Order; name: Delivery; help: Where the goods go and how they travel there.; rows: shipping_address | carrier, tracking_number
 %%section entity: Order; name: Notes; help: Anything the next person handling this order should know.; rows: notes; collapsed: true
 ```
@@ -522,7 +523,7 @@ guards must pass; there is no OR. See
 %%guard order.total gt 1000
 ```
 
-## `%%rbac` — restrict an operation or a transition *(compiled)*
+## `%%rbac` — restrict an operation *(compiled)*
 
 ```
 %%rbac <roleExpr> on <Entity>.<op>
@@ -547,7 +548,7 @@ directives are written lower-case (`role:manager`), and an exact match would
 make such a rule unsatisfiable — locking out precisely the people it was written
 to admit, invisibly, until someone is refused.
 
-### `<op>` is a CRUD operation or a transition
+### `<op>` is a CRUD operation — never a transition
 
 **CRUD**: `create` `read` `update` `delete`, or `*` for all four. Aliases are
 accepted (`insert`/`add`, `view`/`select`/`list`, `edit`/`write`/`modify`,
@@ -559,27 +560,12 @@ accepted (`insert`/`add`, `view`/`select`/`list`, `edit`/`write`/`modify`,
 %%rbac role:admin on Customer.*
 ```
 
-**Transition**: any other name is resolved against the entity's
-`stateDiagram-v2` transition events.
-
-```
-%%workflow QuoteLifecycle entity: Quote kind: state
-stateDiagram-v2
-    draft --> pending : submit
-    pending --> approved : approve
-
-%%rbac role:sales_manager on Quote.approve
-```
-
-A generated application has **no named-transition endpoint** — moving a record
-along an edge is an ordinary status update — so the rule is stored as the
-`(from_state, to_state)` pair it covers, and the guard recognises the move by the
-states the write crosses. Both ends are kept because one event can sit on several
-edges and two events can reach the same state: restricting `approve` must not
-incidentally restrict a different event that happens to land on `approved`.
-
-An event written with spaces or dashes in the diagram (`close won`) is named in
-one token in the directive (`close_won`).
+**A transition is not an operation a role can hold.** The state field an entity's
+`stateDiagram-v2` drives is system-managed: no person changes it, only background
+workflows do (`spec/03-workflows.md`). So a name that matches a transition event —
+`%%rbac role:sales_manager on Quote.approve` — is `EML215`, and the fixer deletes
+the line. To say who may approve, restrict who may record the approval: the
+column the approval rule reads is written under `Quote.update`.
 
 ### `read` decides which functional role an entity belongs to
 
@@ -633,7 +619,6 @@ invitation to check.
 | | |
 |---|---|
 | CRUD rules | `sys_operation_access` (table, operation, role) |
-| Transition rules | `sys_transition_access` (table, transition, status field, from, to, role) |
 | Enforcement | `EntityAccessGuard`, applied to the generated `/bus` CRUD routes |
 | Roles | every role a directive names is created in `sys_role`, with one account holding it |
 | `read` rules | additionally narrow the dictionary window scope and the entity navigation |
@@ -665,8 +650,9 @@ regeneration. Rules an administrator adds in the running application are marked
 ### Validation
 
 `EML210` malformed syntax · `EML211` names no role · `EML212` suspicious role
-expression · `EML213` undeclared entity · `EML214` the target is neither a CRUD
-operation nor a transition of that entity.
+expression · `EML213` undeclared entity · `EML214` the target is not a CRUD operation ·
+`EML215` the target is a transition — a state is changed only by background
+workflows.
 
 All but `EML212` are **errors**, not warnings: a `%%rbac` rule that does not
 compile is not a rule that does nothing — it is an access restriction its author

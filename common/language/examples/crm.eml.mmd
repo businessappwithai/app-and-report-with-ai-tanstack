@@ -273,6 +273,10 @@ erDiagram
         string  owner_id FK
         datetime converted_at OPTIONAL
         string  disqualification_reason OPTIONAL
+        datetime working_at OPTIONAL
+        datetime nurturing_at OPTIONAL
+        datetime qualified_at OPTIONAL
+        datetime disqualified_at OPTIONAL
     }
 
     Campaign {
@@ -318,6 +322,12 @@ erDiagram
         string  next_step OPTIONAL
         string  loss_reason OPTIONAL
         string  owner_id FK
+        datetime qualification_at OPTIONAL
+        datetime needs_analysis_at OPTIONAL
+        datetime closed_lost_at OPTIONAL
+        datetime proposal_at OPTIONAL
+        datetime negotiation_at OPTIONAL
+        datetime closed_won_at OPTIONAL
     }
 
     OpportunityLineItem {
@@ -361,6 +371,11 @@ erDiagram
         datetime approved_at OPTIONAL
         text     approval_notes OPTIONAL
         string   owner_id FK
+        datetime rejected_at OPTIONAL
+        datetime draft_at OPTIONAL
+        datetime presented_at OPTIONAL
+        datetime expired_at OPTIONAL
+        datetime accepted_at OPTIONAL
     }
 
     QuoteLineItem {
@@ -389,6 +404,12 @@ erDiagram
         string   signed_by_id FK OPTIONAL
         datetime signed_at OPTIONAL
         string   owner_id FK
+        datetime in_approval_at OPTIONAL
+        datetime draft_at OPTIONAL
+        datetime active_at OPTIONAL
+        datetime terminated_at OPTIONAL
+        datetime renewed_at OPTIONAL
+        datetime expired_at OPTIONAL
     }
 
     SupportCase {
@@ -412,6 +433,10 @@ erDiagram
         integer  satisfaction_score OPTIONAL
         string   escalated_by_id FK OPTIONAL
         string   owner_id FK
+        datetime assigned_at OPTIONAL
+        datetime in_progress_at OPTIONAL
+        datetime waiting_on_customer_at OPTIONAL
+        datetime closed_at OPTIONAL
     }
 
     SlaPolicy {
@@ -788,7 +813,7 @@ erDiagram
     %%section entity: Contact; name: Ownership; help: Whether the contact is current, who looks after them, and where they first came from.; rows: status, owner_id | lead_source
     %%section entity: Lead; name: Lead; help: The person who showed interest and how to get back to them.; rows: first_name, last_name | email, phone | job_title
     %%section entity: Lead; name: Company; help: The business behind the lead — what decides whether it is worth a sales rep's time.; rows: company_name, industry | employee_count, annual_revenue
-    %%section entity: Lead; name: Qualification; help: Where the lead stands, who is working it, how warm it is, and which campaign produced it.; rows: status, owner_id | rating, score | lead_source, campaign_id
+    %%section entity: Lead; name: Qualification; help: Where the lead stands, who is working it, how warm it is, and which campaign produced it.; rows: owner_id | rating, score | lead_source, campaign_id
     %%section entity: Lead; name: Outcome; help: How the lead ended — converted into an account and opportunity, or ruled out and why.; rows: converted_at | disqualification_reason
     %%section entity: Campaign; name: Campaign; help: What the campaign is, who runs it, and whom it is aimed at.; rows: name, campaign_type | status, owner_id | target_audience
     %%section entity: Campaign; name: Schedule; help: When the campaign runs; members can only respond inside these dates.; rows: start_date, end_date
@@ -797,23 +822,23 @@ erDiagram
     %%section entity: CampaignMember; name: Response; help: Whether and when the member answered, which is what the campaign's results are counted from.; rows: member_status, has_responded | responded_at
     %%section entity: Opportunity; name: Deal; help: What is being sold, to which account and buyer, and who is selling it.; rows: name, owner_id | account_id, contact_id | description
     %%section entity: Opportunity; name: Value; help: What the deal is worth and in which currency — the figure the forecast adds up.; rows: amount, currency_code
-    %%section entity: Opportunity; name: Pipeline; help: How far the deal has got and when it is expected to close; probability and forecast follow from the stage.; rows: stage, probability | forecast_category, expected_close_date | next_step
+    %%section entity: Opportunity; name: Pipeline; help: How far the deal has got and when it is expected to close; probability and forecast follow from the stage.; rows: probability | forecast_category, expected_close_date | next_step
     %%section entity: Opportunity; name: Origin; help: Where the deal came from, so marketing is credited with what it produced.; rows: lead_source, campaign_id
     %%section entity: Opportunity; name: Outcome; help: When the deal closed and, if it was lost, the reason — what the win-loss review is built on.; rows: actual_close_date | loss_reason
     %%section entity: OpportunityLineItem; name: Line; help: Which product this line of the deal is for, in the words the buyer will read.; rows: opportunity_id, product_id | line_description
     %%section entity: OpportunityLineItem; name: Pricing; help: How many, at what price and discount, and what the line adds to the deal's amount.; rows: quantity, unit_price | discount_percent, line_total
     %%section entity: Product; name: Product; help: What is sold, the code it is ordered by, its product family, and whether it can still be quoted.; rows: name, product_code | family, is_active | description
     %%section entity: Product; name: Price; help: What the product lists at, what it costs to deliver, and how often it is billed.; rows: list_price, unit_cost | billing_frequency
-    %%section entity: Quote; name: Quote; help: Which quote this is, the deal and account it prices, where it stands, and how long it is valid.; rows: quote_number, version_number | name | opportunity_id, account_id | status, owner_id | valid_until
+    %%section entity: Quote; name: Quote; help: Which quote this is, the deal and account it prices, where it stands, and how long it is valid.; rows: quote_number, version_number | name | opportunity_id, account_id | owner_id | valid_until
     %%section entity: Quote; name: Totals; help: What the customer is asked to pay — the lines' subtotal, the discount, tax, and the grand total.; rows: subtotal, discount_percent | discount_amount, tax_amount | grand_total
     %%section entity: Quote; name: Approval; help: Who signed off a discount beyond a rep's authority, when, and on what grounds.; rows: approved_by_id, approved_at | approval_notes
     %%section entity: QuoteLineItem; name: Line; help: Which product this line prices and where it sits on the printed quote.; rows: quote_id, sort_order | product_id
     %%section entity: QuoteLineItem; name: Pricing; help: How many, at what price and discount, and what the line adds to the quote's subtotal.; rows: quantity, unit_price | discount_percent, line_total
-    %%section entity: Contract; name: Contract; help: The agreement, the account it binds, the quote it came from, and who manages it.; rows: contract_number, status | account_id, quote_id | owner_id
+    %%section entity: Contract; name: Contract; help: The agreement, the account it binds, the quote it came from, and who manages it.; rows: contract_number | account_id, quote_id | owner_id
     %%section entity: Contract; name: Term; help: When the contract runs and what it is worth a year — what revenue recognition reads.; rows: start_date, end_date | term_months, annual_value
     %%section entity: Contract; name: Renewal; help: Whether the contract renews itself and how much notice either side must give to stop it.; rows: auto_renew, renewal_notice_days
     %%section entity: Contract; name: Signature; help: Who signed for the customer and when; the contract is not in force until both are set.; rows: signed_by_id, signed_at
-    %%section entity: SupportCase; name: Case; help: The number the customer quotes, where the case stands, and what is wrong in their words.; rows: case_number, status | subject | description
+    %%section entity: SupportCase; name: Case; help: The number the customer quotes, where the case stands, and what is wrong in their words.; rows: case_number | subject | description
     %%section entity: SupportCase; name: Customer; help: Who raised the case and which account it is charged against.; rows: account_id, contact_id
     %%section entity: SupportCase; name: Triage; help: What kind of problem it is, how urgent, how it arrived, and who is working it.; rows: case_type, priority | origin, owner_id | escalated_by_id
     %%section entity: SupportCase; name: Service level; help: The response and resolution deadlines the account's SLA sets, and whether either was missed.; rows: sla_policy_id, is_sla_breached | first_response_due_at, first_response_at | resolution_due_at, resolved_at
@@ -1071,6 +1096,7 @@ flowchart TD
     %% agent to notice it.
     %%action escalateCriticalCase trigger-workflow when: priority == "critical" workflow: CriticalCaseEscalation message: Critical case — escalating and raising an escalation task
     %%action requireResolutionNotes validation-error when: status == "resolved" and resolution_notes == null message: A resolved case needs resolution notes
+    %%action requireResolutionNotesOnMove validation-error when: resolved_at != null and resolution_notes == null message: A resolved case needs resolution notes
 
 %% ---- Section 9: Business rule — renewal risk -------------------------------
 %% Grades a contract as its renewal window opens. The renewal playbook in
@@ -1118,8 +1144,6 @@ stateDiagram-v2
     disqualified --> [*]
 
     %%rbac role:sales_rep|account_executive|sales_manager on Lead.update
-    %%rbac role:sales_manager|sales_ops on Lead.convert
-    %%rbac role:sales_manager on Lead.disqualify
     %%trigger webhook:marketing -> ingestInboundLead on Lead
     %%trigger cron:0 7 * * 1 -> recycleStaleLeads on Lead
 
@@ -1143,7 +1167,6 @@ stateDiagram-v2
     closed_lost     --> [*]
 
     %%rbac role:sales_rep|account_executive on Opportunity.update
-    %%rbac role:sales_manager on Opportunity.close_won
     %%rbac role:sales_manager|sales_ops on Opportunity.delete
     %%trigger cron:0 7 * * * -> nudgeStalledOpportunities on Opportunity
 
@@ -1166,8 +1189,6 @@ stateDiagram-v2
     expired   --> [*]
 
     %%rbac role:sales_rep|account_executive on Quote.update
-    %%rbac role:sales_manager|sales_ops on Quote.approve
-    %%rbac role:sales_manager on Quote.reject
     %%trigger cron:0 6 * * * -> expireStaleQuotes on Quote
 
 %% ---- Section 13: Workflow — support case lifecycle (state machine) ---------
@@ -1188,7 +1209,6 @@ stateDiagram-v2
     closed              --> [*]
 
     %%rbac role:support_agent|support_manager on SupportCase.update
-    %%rbac role:support_manager on SupportCase.escalate
     %%rbac role:support_manager|administrator on SupportCase.delete
     %%trigger cron:*/15 * * * * -> checkSlaBreaches on SupportCase
     %%trigger webhook:helpdesk -> ingestInboundCase on SupportCase
@@ -1212,8 +1232,6 @@ stateDiagram-v2
     terminated  --> [*]
 
     %%rbac role:sales_manager|sales_ops on Contract.update
-    %%rbac role:sales_ops|administrator on Contract.counter_signed
-    %%rbac role:administrator on Contract.terminate
     %%trigger cron:0 8 * * * -> openRenewalWindows on Contract
     %%trigger message:billing.invoice.paid -> markContractActive on Contract
 
@@ -1504,3 +1522,436 @@ flowchart TD
     %%step E CreateEntity entity: Activity as: renewalReviewId fields: {"activity_type":"meeting","subject":"Renewal review","status":"planned","priority":"high","account_id":"account_id","contract_id":"id","opportunity_id":"renewalOpportunityId","owner_id":"owner_id"}
     %%step F UpdateEntity field: status value: expiring
     %%step G UpdateEntity entity: Opportunity targetSource: renewalOpportunityId field: next_step source: renewalGrade
+
+%% ---- The state field is system-managed: each move is a rule and a saga ----
+%% Nobody changes a state by hand. Recording the time a move depends on starts
+%% the saga that sets the state; generated by the state-rule migration.
+%%field Lead.working_at help: When the move to working was recorded on this lead. Recording it moves a lead from new, nurturing or qualified to working: the workflows set the status, which nobody changes by hand.
+%%field Lead.nurturing_at help: When the move to nurturing was recorded on this lead. Recording it moves a lead from working to nurturing: the workflows set the status, which nobody changes by hand.
+%%field Lead.qualified_at help: When the move to qualified was recorded on this lead. Recording it moves a lead from working to qualified: the workflows set the status, which nobody changes by hand.
+%%field Lead.disqualified_at help: When the move to disqualified was recorded on this lead. Recording it moves a lead from working, nurturing or new to disqualified: the workflows set the status, which nobody changes by hand.
+%%section entity: Lead; name: Progress; help: The times that move this lead along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: working_at, nurturing_at | qualified_at, disqualified_at
+
+%%meta name: Lead working move
+%%meta kind: workflow
+%%workflow LeadWorkingMove entity: Lead kind: saga trigger: rule
+flowchart TD
+    A([Move to working recorded]) --> B[Set the status to working]
+    B --> C[Clear nurturing at for the next move]
+    C --> D[Clear qualified at for the next move]
+    D --> E[Clear disqualified at for the next move]
+    E --> Z([Working])
+
+    %%step B UpdateEntity field: status value: working
+    %%step C UpdateEntity field: nurturing_at value: null
+    %%step D UpdateEntity field: qualified_at value: null
+    %%step E UpdateEntity field: disqualified_at value: null
+
+%%meta name: Lead nurturing move
+%%meta kind: workflow
+%%workflow LeadNurturingMove entity: Lead kind: saga trigger: rule
+flowchart TD
+    A([Move to nurturing recorded]) --> B[Set the status to nurturing]
+    B --> C[Clear working at for the next move]
+    C --> D[Clear disqualified at for the next move]
+    D --> Z([Nurturing])
+
+    %%step B UpdateEntity field: status value: nurturing
+    %%step C UpdateEntity field: working_at value: null
+    %%step D UpdateEntity field: disqualified_at value: null
+
+%%meta name: Lead qualified move
+%%meta kind: workflow
+%%workflow LeadQualifiedMove entity: Lead kind: saga trigger: rule
+flowchart TD
+    A([Move to qualified recorded]) --> B[Set the status to qualified]
+    B --> C[Clear working at for the next move]
+    C --> Z([Qualified])
+
+    %%step B UpdateEntity field: status value: qualified
+    %%step C UpdateEntity field: working_at value: null
+
+%%meta name: Lead disqualified move
+%%meta kind: workflow
+%%workflow LeadDisqualifiedMove entity: Lead kind: saga trigger: rule
+flowchart TD
+    A([Move to disqualified recorded]) --> B[Set the status to disqualified]
+    B --> Z([Disqualified])
+
+    %%step B UpdateEntity field: status value: disqualified
+
+%%meta name: Lead State Progress
+%%meta kind: rules
+%%rule leadStateProgress on Lead event: beforeUpdate priority: 90
+flowchart TD
+    A([Lead updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveNewToWorking trigger-workflow when: status == "new" and working_at != null workflow: LeadWorkingMove
+    %%action moveWorkingToNurturing trigger-workflow when: status == "working" and nurturing_at != null workflow: LeadNurturingMove
+    %%action moveNurturingToWorking trigger-workflow when: status == "nurturing" and working_at != null workflow: LeadWorkingMove
+    %%action moveWorkingToQualified trigger-workflow when: status == "working" and qualified_at != null workflow: LeadQualifiedMove
+    %%action moveQualifiedToWorking trigger-workflow when: status == "qualified" and working_at != null workflow: LeadWorkingMove
+    %%action moveWorkingToDisqualified trigger-workflow when: status == "working" and disqualified_at != null workflow: LeadDisqualifiedMove
+    %%action moveNurturingToDisqualified trigger-workflow when: status == "nurturing" and disqualified_at != null workflow: LeadDisqualifiedMove
+    %%action moveNewToDisqualified trigger-workflow when: status == "new" and disqualified_at != null workflow: LeadDisqualifiedMove
+%%field Opportunity.qualification_at help: When the move to qualification was recorded on this opportunity. Recording it moves an opportunity from prospecting to qualification: the workflows set the stage, which nobody changes by hand.
+%%field Opportunity.needs_analysis_at help: When the move to needs analysis was recorded on this opportunity. Recording it moves an opportunity from qualification to needs analysis: the workflows set the stage, which nobody changes by hand.
+%%field Opportunity.closed_lost_at help: When the move to closed lost was recorded on this opportunity. Recording it moves an opportunity from qualification, needs analysis, proposal or negotiation to closed lost: the workflows set the stage, which nobody changes by hand.
+%%field Opportunity.proposal_at help: When the move to proposal was recorded on this opportunity. Recording it moves an opportunity from needs analysis or negotiation to proposal: the workflows set the stage, which nobody changes by hand.
+%%field Opportunity.negotiation_at help: When the move to negotiation was recorded on this opportunity. Recording it moves an opportunity from proposal to negotiation: the workflows set the stage, which nobody changes by hand.
+%%field Opportunity.closed_won_at help: When the move to closed won was recorded on this opportunity. Recording it moves an opportunity from negotiation to closed won: the workflows set the stage, which nobody changes by hand.
+%%section entity: Opportunity; name: Progress; help: The times that move this opportunity along its lifecycle. Recording one is how its stage changes; the stage itself is shown in the header.; rows: qualification_at, needs_analysis_at | closed_lost_at, proposal_at | negotiation_at, closed_won_at
+
+%%meta name: Opportunity qualification move
+%%meta kind: workflow
+%%workflow OpportunityQualificationMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to qualification recorded]) --> B[Set the stage to qualification]
+    B --> C[Clear needs analysis at for the next move]
+    C --> D[Clear closed lost at for the next move]
+    D --> Z([Qualification])
+
+    %%step B UpdateEntity field: stage value: qualification
+    %%step C UpdateEntity field: needs_analysis_at value: null
+    %%step D UpdateEntity field: closed_lost_at value: null
+
+%%meta name: Opportunity needs analysis move
+%%meta kind: workflow
+%%workflow OpportunityNeedsAnalysisMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to needs analysis recorded]) --> B[Set the stage to needs analysis]
+    B --> C[Clear proposal at for the next move]
+    C --> D[Clear closed lost at for the next move]
+    D --> Z([Needs Analysis])
+
+    %%step B UpdateEntity field: stage value: needs_analysis
+    %%step C UpdateEntity field: proposal_at value: null
+    %%step D UpdateEntity field: closed_lost_at value: null
+
+%%meta name: Opportunity closed lost move
+%%meta kind: workflow
+%%workflow OpportunityClosedLostMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to closed lost recorded]) --> B[Set the stage to closed lost]
+    B --> Z([Closed Lost])
+
+    %%step B UpdateEntity field: stage value: closed_lost
+
+%%meta name: Opportunity proposal move
+%%meta kind: workflow
+%%workflow OpportunityProposalMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to proposal recorded]) --> B[Set the stage to proposal]
+    B --> C[Clear negotiation at for the next move]
+    C --> D[Clear closed lost at for the next move]
+    D --> Z([Proposal])
+
+    %%step B UpdateEntity field: stage value: proposal
+    %%step C UpdateEntity field: negotiation_at value: null
+    %%step D UpdateEntity field: closed_lost_at value: null
+
+%%meta name: Opportunity negotiation move
+%%meta kind: workflow
+%%workflow OpportunityNegotiationMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to negotiation recorded]) --> B[Set the stage to negotiation]
+    B --> C[Clear closed won at for the next move]
+    C --> D[Clear closed lost at for the next move]
+    D --> E[Clear proposal at for the next move]
+    E --> Z([Negotiation])
+
+    %%step B UpdateEntity field: stage value: negotiation
+    %%step C UpdateEntity field: closed_won_at value: null
+    %%step D UpdateEntity field: closed_lost_at value: null
+    %%step E UpdateEntity field: proposal_at value: null
+
+%%meta name: Opportunity closed won move
+%%meta kind: workflow
+%%workflow OpportunityClosedWonMove entity: Opportunity kind: saga trigger: rule
+flowchart TD
+    A([Move to closed won recorded]) --> B[Set the stage to closed won]
+    B --> Z([Closed Won])
+
+    %%step B UpdateEntity field: stage value: closed_won
+
+%%meta name: Opportunity State Progress
+%%meta kind: rules
+%%rule opportunityStateProgress on Opportunity event: beforeUpdate priority: 90
+flowchart TD
+    A([Opportunity updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveProspectingToQualification trigger-workflow when: stage == "prospecting" and qualification_at != null workflow: OpportunityQualificationMove
+    %%action moveQualificationToNeedsAnalysis trigger-workflow when: stage == "qualification" and needs_analysis_at != null workflow: OpportunityNeedsAnalysisMove
+    %%action moveQualificationToClosedLost trigger-workflow when: stage == "qualification" and closed_lost_at != null workflow: OpportunityClosedLostMove
+    %%action moveNeedsAnalysisToProposal trigger-workflow when: stage == "needs_analysis" and proposal_at != null workflow: OpportunityProposalMove
+    %%action moveNeedsAnalysisToClosedLost trigger-workflow when: stage == "needs_analysis" and closed_lost_at != null workflow: OpportunityClosedLostMove
+    %%action moveProposalToNegotiation trigger-workflow when: stage == "proposal" and negotiation_at != null workflow: OpportunityNegotiationMove
+    %%action moveProposalToClosedLost trigger-workflow when: stage == "proposal" and closed_lost_at != null workflow: OpportunityClosedLostMove
+    %%action moveNegotiationToClosedWon trigger-workflow when: stage == "negotiation" and closed_won_at != null workflow: OpportunityClosedWonMove
+    %%action moveNegotiationToClosedLost trigger-workflow when: stage == "negotiation" and closed_lost_at != null workflow: OpportunityClosedLostMove
+    %%action moveNegotiationToProposal trigger-workflow when: stage == "negotiation" and proposal_at != null workflow: OpportunityProposalMove
+%%field Quote.rejected_at help: When the move to rejected was recorded on this quote. Recording it moves a quote from in review to rejected: the workflows set the status, which nobody changes by hand.
+%%field Quote.draft_at help: When the move to draft was recorded on this quote. Recording it moves a quote from rejected or presented to draft: the workflows set the status, which nobody changes by hand.
+%%field Quote.presented_at help: When the move to presented was recorded on this quote. Recording it moves a quote from approved to presented: the workflows set the status, which nobody changes by hand.
+%%field Quote.expired_at help: When the move to expired was recorded on this quote. Recording it moves a quote from approved or presented to expired: the workflows set the status, which nobody changes by hand.
+%%field Quote.accepted_at help: When the move to accepted was recorded on this quote. Recording it moves a quote from presented to accepted: the workflows set the status, which nobody changes by hand.
+%%section entity: Quote; name: Progress; help: The times that move this quote along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: rejected_at, draft_at | presented_at, expired_at | accepted_at
+
+%%meta name: Quote approved move
+%%meta kind: workflow
+%%workflow QuoteApprovedMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to approved recorded]) --> B[Set the status to approved]
+    B --> C[Clear presented at for the next move]
+    C --> D[Clear expired at for the next move]
+    D --> Z([Approved])
+
+    %%step B UpdateEntity field: status value: approved
+    %%step C UpdateEntity field: presented_at value: null
+    %%step D UpdateEntity field: expired_at value: null
+
+%%meta name: Quote rejected move
+%%meta kind: workflow
+%%workflow QuoteRejectedMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to rejected recorded]) --> B[Set the status to rejected]
+    B --> C[Clear draft at for the next move]
+    C --> Z([Rejected])
+
+    %%step B UpdateEntity field: status value: rejected
+    %%step C UpdateEntity field: draft_at value: null
+
+%%meta name: Quote draft move
+%%meta kind: workflow
+%%workflow QuoteDraftMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to draft recorded]) --> B[Set the status to draft]
+    B --> Z([Draft])
+
+    %%step B UpdateEntity field: status value: draft
+
+%%meta name: Quote presented move
+%%meta kind: workflow
+%%workflow QuotePresentedMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to presented recorded]) --> B[Set the status to presented]
+    B --> C[Clear accepted at for the next move]
+    C --> D[Clear draft at for the next move]
+    D --> E[Clear expired at for the next move]
+    E --> Z([Presented])
+
+    %%step B UpdateEntity field: status value: presented
+    %%step C UpdateEntity field: accepted_at value: null
+    %%step D UpdateEntity field: draft_at value: null
+    %%step E UpdateEntity field: expired_at value: null
+
+%%meta name: Quote expired move
+%%meta kind: workflow
+%%workflow QuoteExpiredMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to expired recorded]) --> B[Set the status to expired]
+    B --> Z([Expired])
+
+    %%step B UpdateEntity field: status value: expired
+
+%%meta name: Quote accepted move
+%%meta kind: workflow
+%%workflow QuoteAcceptedMove entity: Quote kind: saga trigger: rule
+flowchart TD
+    A([Move to accepted recorded]) --> B[Set the status to accepted]
+    B --> Z([Accepted])
+
+    %%step B UpdateEntity field: status value: accepted
+
+%%meta name: Quote State Progress
+%%meta kind: rules
+%%rule quoteStateProgress on Quote event: beforeUpdate priority: 90
+flowchart TD
+    A([Quote updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveInReviewToApproved trigger-workflow when: status == "in_review" and approved_at != null workflow: QuoteApprovedMove
+    %%action moveInReviewToRejected trigger-workflow when: status == "in_review" and rejected_at != null workflow: QuoteRejectedMove
+    %%action moveRejectedToDraft trigger-workflow when: status == "rejected" and draft_at != null workflow: QuoteDraftMove
+    %%action moveApprovedToPresented trigger-workflow when: status == "approved" and presented_at != null workflow: QuotePresentedMove
+    %%action moveApprovedToExpired trigger-workflow when: status == "approved" and expired_at != null workflow: QuoteExpiredMove
+    %%action movePresentedToAccepted trigger-workflow when: status == "presented" and accepted_at != null workflow: QuoteAcceptedMove
+    %%action movePresentedToDraft trigger-workflow when: status == "presented" and draft_at != null workflow: QuoteDraftMove
+    %%action movePresentedToExpired trigger-workflow when: status == "presented" and expired_at != null workflow: QuoteExpiredMove
+%%field SupportCase.assigned_at help: When the move to assigned was recorded on this support case. Recording it moves a support case from new to assigned: the workflows set the status, which nobody changes by hand.
+%%field SupportCase.in_progress_at help: When the move to in progress was recorded on this support case. Recording it moves a support case from assigned, waiting on customer, escalated or resolved to in progress: the workflows set the status, which nobody changes by hand.
+%%field SupportCase.waiting_on_customer_at help: When the move to waiting on customer was recorded on this support case. Recording it moves a support case from in progress to waiting on customer: the workflows set the status, which nobody changes by hand.
+%%field SupportCase.closed_at help: When the move to closed was recorded on this support case. Recording it moves a support case from resolved to closed: the workflows set the status, which nobody changes by hand.
+%%section entity: SupportCase; name: Progress; help: The times that move this support case along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: assigned_at, in_progress_at | waiting_on_customer_at, closed_at
+
+%%meta name: Support Case assigned move
+%%meta kind: workflow
+%%workflow SupportCaseAssignedMove entity: SupportCase kind: saga trigger: rule
+flowchart TD
+    A([Move to assigned recorded]) --> B[Set the status to assigned]
+    B --> C[Clear in progress at for the next move]
+    C --> Z([Assigned])
+
+    %%step B UpdateEntity field: status value: assigned
+    %%step C UpdateEntity field: in_progress_at value: null
+
+%%meta name: Support Case in progress move
+%%meta kind: workflow
+%%workflow SupportCaseInProgressMove entity: SupportCase kind: saga trigger: rule
+flowchart TD
+    A([Move to in progress recorded]) --> B[Set the status to in progress]
+    B --> C[Clear waiting on customer at for the next move]
+    C --> D[Clear resolved at for the next move]
+    D --> Z([In Progress])
+
+    %%step B UpdateEntity field: status value: in_progress
+    %%step C UpdateEntity field: waiting_on_customer_at value: null
+    %%step D UpdateEntity field: resolved_at value: null
+
+%%meta name: Support Case waiting on customer move
+%%meta kind: workflow
+%%workflow SupportCaseWaitingOnCustomerMove entity: SupportCase kind: saga trigger: rule
+flowchart TD
+    A([Move to waiting on customer recorded]) --> B[Set the status to waiting on customer]
+    B --> C[Clear in progress at for the next move]
+    C --> Z([Waiting On Customer])
+
+    %%step B UpdateEntity field: status value: waiting_on_customer
+    %%step C UpdateEntity field: in_progress_at value: null
+
+%%meta name: Support Case resolved move
+%%meta kind: workflow
+%%workflow SupportCaseResolvedMove entity: SupportCase kind: saga trigger: rule
+flowchart TD
+    A([Move to resolved recorded]) --> B[Set the status to resolved]
+    B --> C[Clear in progress at for the next move]
+    C --> D[Clear closed at for the next move]
+    D --> Z([Resolved])
+
+    %%step B UpdateEntity field: status value: resolved
+    %%step C UpdateEntity field: in_progress_at value: null
+    %%step D UpdateEntity field: closed_at value: null
+
+%%meta name: Support Case closed move
+%%meta kind: workflow
+%%workflow SupportCaseClosedMove entity: SupportCase kind: saga trigger: rule
+flowchart TD
+    A([Move to closed recorded]) --> B[Set the status to closed]
+    B --> Z([Closed])
+
+    %%step B UpdateEntity field: status value: closed
+
+%%meta name: Support Case State Progress
+%%meta kind: rules
+%%rule supportCaseStateProgress on SupportCase event: beforeUpdate priority: 90
+flowchart TD
+    A([Support Case updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveNewToAssigned trigger-workflow when: status == "new" and assigned_at != null workflow: SupportCaseAssignedMove
+    %%action moveAssignedToInProgress trigger-workflow when: status == "assigned" and in_progress_at != null workflow: SupportCaseInProgressMove
+    %%action moveInProgressToWaitingOnCustomer trigger-workflow when: status == "in_progress" and waiting_on_customer_at != null workflow: SupportCaseWaitingOnCustomerMove
+    %%action moveWaitingOnCustomerToInProgress trigger-workflow when: status == "waiting_on_customer" and in_progress_at != null workflow: SupportCaseInProgressMove
+    %%action moveEscalatedToInProgress trigger-workflow when: status == "escalated" and in_progress_at != null workflow: SupportCaseInProgressMove
+    %%action moveInProgressToResolved trigger-workflow when: status == "in_progress" and resolved_at != null workflow: SupportCaseResolvedMove
+    %%action moveResolvedToInProgress trigger-workflow when: status == "resolved" and in_progress_at != null workflow: SupportCaseInProgressMove
+    %%action moveResolvedToClosed trigger-workflow when: status == "resolved" and closed_at != null workflow: SupportCaseClosedMove
+%%field Contract.in_approval_at help: When the move to in approval was recorded on this contract. Recording it moves a contract from draft to in approval: the workflows set the status, which nobody changes by hand.
+%%field Contract.draft_at help: When the move to draft was recorded on this contract. Recording it moves a contract from in approval to draft: the workflows set the status, which nobody changes by hand.
+%%field Contract.active_at help: When the move to active was recorded on this contract. Recording it moves a contract from in approval or renewed to active: the workflows set the status, which nobody changes by hand.
+%%field Contract.terminated_at help: When the move to terminated was recorded on this contract. Recording it moves a contract from active or expiring to terminated: the workflows set the status, which nobody changes by hand.
+%%field Contract.renewed_at help: When the move to renewed was recorded on this contract. Recording it moves a contract from expiring to renewed: the workflows set the status, which nobody changes by hand.
+%%field Contract.expired_at help: When the move to expired was recorded on this contract. Recording it moves a contract from expiring to expired: the workflows set the status, which nobody changes by hand.
+%%section entity: Contract; name: Progress; help: The times that move this contract along its lifecycle. Recording one is how its status changes; the status itself is shown in the header.; rows: in_approval_at, draft_at | active_at, terminated_at | renewed_at, expired_at
+
+%%meta name: Contract in approval move
+%%meta kind: workflow
+%%workflow ContractInApprovalMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to in approval recorded]) --> B[Set the status to in approval]
+    B --> C[Clear draft at for the next move]
+    C --> D[Clear active at for the next move]
+    D --> Z([In Approval])
+
+    %%step B UpdateEntity field: status value: in_approval
+    %%step C UpdateEntity field: draft_at value: null
+    %%step D UpdateEntity field: active_at value: null
+
+%%meta name: Contract draft move
+%%meta kind: workflow
+%%workflow ContractDraftMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to draft recorded]) --> B[Set the status to draft]
+    B --> C[Clear in approval at for the next move]
+    C --> Z([Draft])
+
+    %%step B UpdateEntity field: status value: draft
+    %%step C UpdateEntity field: in_approval_at value: null
+
+%%meta name: Contract active move
+%%meta kind: workflow
+%%workflow ContractActiveMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to active recorded]) --> B[Set the status to active]
+    B --> C[Clear terminated at for the next move]
+    C --> Z([Active])
+
+    %%step B UpdateEntity field: status value: active
+    %%step C UpdateEntity field: terminated_at value: null
+
+%%meta name: Contract terminated move
+%%meta kind: workflow
+%%workflow ContractTerminatedMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to terminated recorded]) --> B[Set the status to terminated]
+    B --> Z([Terminated])
+
+    %%step B UpdateEntity field: status value: terminated
+
+%%meta name: Contract renewed move
+%%meta kind: workflow
+%%workflow ContractRenewedMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to renewed recorded]) --> B[Set the status to renewed]
+    B --> C[Clear active at for the next move]
+    C --> Z([Renewed])
+
+    %%step B UpdateEntity field: status value: renewed
+    %%step C UpdateEntity field: active_at value: null
+
+%%meta name: Contract expired move
+%%meta kind: workflow
+%%workflow ContractExpiredMove entity: Contract kind: saga trigger: rule
+flowchart TD
+    A([Move to expired recorded]) --> B[Set the status to expired]
+    B --> Z([Expired])
+
+    %%step B UpdateEntity field: status value: expired
+
+%%meta name: Contract State Progress
+%%meta kind: rules
+%%rule contractStateProgress on Contract event: beforeUpdate priority: 90
+flowchart TD
+    A([Contract updated]) --> B{Is the time of a move recorded?}
+    B -->|Yes| C[Start that move's workflow]
+    B -->|No| E([Nothing to move])
+    C --> E
+
+    %%action moveDraftToInApproval trigger-workflow when: status == "draft" and in_approval_at != null workflow: ContractInApprovalMove
+    %%action moveInApprovalToDraft trigger-workflow when: status == "in_approval" and draft_at != null workflow: ContractDraftMove
+    %%action moveInApprovalToActive trigger-workflow when: status == "in_approval" and active_at != null workflow: ContractActiveMove
+    %%action moveActiveToTerminated trigger-workflow when: status == "active" and terminated_at != null workflow: ContractTerminatedMove
+    %%action moveExpiringToRenewed trigger-workflow when: status == "expiring" and renewed_at != null workflow: ContractRenewedMove
+    %%action moveExpiringToExpired trigger-workflow when: status == "expiring" and expired_at != null workflow: ContractExpiredMove
+    %%action moveExpiringToTerminated trigger-workflow when: status == "expiring" and terminated_at != null workflow: ContractTerminatedMove
+    %%action moveRenewedToActive trigger-workflow when: status == "renewed" and active_at != null workflow: ContractActiveMove

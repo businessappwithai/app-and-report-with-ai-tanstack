@@ -307,16 +307,19 @@ yourself.
    flow silently depends on, and the line items that have no life away from
    their owner (§3.5.1).
 3. **What happens to each record over its life?** The states from creation to
-   the terminal one, the event that moves it along each edge, and who may make
-   each move. An entity with a `status` has a state machine whether or not
-   anyone drew it; draw it (§5.2).
+   the terminal one, the event that moves it along each edge, and the **fact a
+   person records** that makes each move (a confirmation time, an approver, a
+   reason). No person sets a state: the workflows do, when that fact is recorded,
+   so every move needs a rule and a saga (§5.2). An entity with a `status` has a
+   state machine whether or not anyone drew it; draw it.
 4. **What has to be decided or checked?** Pricing, eligibility, approval
    thresholds, limits, validation beyond types — for each, the inputs it reads
    and whether it merely **decides** or must also **act** (`%%action`, §4.2).
 5. **When one thing happens, what else must happen?** Cross-entity effects —
    stock decremented by an order line, a ledger entry written by an approval, a
    slot released by a cancellation. Name the trigger, the target entity and
-   whether it is a create, an update or a transition. These are the ones most
+   whether it is a create, an update or a move of the target's state (always a
+   saga step — a state is never written by hand). These are the ones most
    often missed; they become hooks, rule actions or saga steps (§5.3).
 6. **What does a person fill in together, on one screen?** The form layout:
    which fields are read side by side, which belong under one heading, what is
@@ -411,11 +414,12 @@ is not finished.
 #### 1.1.7 Behaviour — Gate D
 
 Last, the cross-cutting pass, over the agreed dossiers: the state machine for
-every lifecycle column (§5.2), the rules and their actions (§4), the hooks and
+every lifecycle column (§5.2) with the rule and saga that make each of its
+moves, the rules and their actions (§4), the hooks and
 sagas for every cross-entity effect (§5.1, §5.3) — for a write to another
 entity, which of its rows the step aims at (`targetSource` or `targetField`,
 else `EML265`) — one `%%rbac … .read` line per entity and the restrictions on
-writes and transitions (§6), and the `%%report` questions per role (§7). Present
+writes (§6; a transition is never granted — `EML215`), and the `%%report` questions per role (§7). Present
 it as one table per kind; in *walk me through it*, this is the last gate before
 the file is finished.
 

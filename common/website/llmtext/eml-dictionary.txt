@@ -182,7 +182,7 @@ the name does not*:
 | An entity | what the record is for in this business, when one comes into existence, and what it must not be confused with | `A contact record.` |
 | A column | why the value matters, what is expected in it, what reads it downstream | `The contact's email.` |
 | A reference | what the reference is *for* — `The ward this bed stands in` | `The ward id.` |
-| An enum-bound column | what each value means, and which moves are possible | `The status.` |
+| An enum-bound column | what each value means — for a state field, which recorded fact moves a record into it, since only the workflows set it | `The status.` |
 | A section | what the person filling it in is doing there, and when it is complete | `Contact fields.` |
 
 `EML152` reports an entity with no help, `EML153` names the columns of an entity
@@ -209,7 +209,17 @@ decided:
 - `help` may contain `;`; no other value may.
 
 **It is mandatory.** Every entity — line items included — declares its sections,
-and **every column but the primary key is placed in exactly one row**:
+and **every column but the primary key and the state field is placed in exactly
+one row**.
+
+**The state field is not in the form body — it is in the header and the grid.**
+On an entity with a `kind: state` machine, the column it drives (`status`, else
+`state`, else `stage`) is changed only by background workflows (§5.2), so it is
+never an input. The generated form shows it **read-only in its top header**,
+beside the record's title, labelled from its enum; the list grid **always**
+shows it as a column, and an administrator's grid-visibility toggle cannot hide
+it. No `%%section` row places it (`EML178`, auto-fixed by removing it), and
+leaving it out of every row is not a gap: `EML170` and `EML172` do not count it.
 
 | Code | Severity | Meaning |
 |---|---|---|
@@ -221,15 +231,17 @@ and **every column but the primary key is placed in exactly one row**:
 | `EML175` | warning · auto-fix | a column placed twice — the fixer removes the later one |
 | `EML176` | error | a row names a column the entity lacks, or its primary key |
 | `EML177` | warning · completeness | a section with no `help:`, or help that restates its heading |
+| `EML178` | warning · auto-fix | a row places the state field — the fixer removes it; the state is shown in the form's header |
 
 **How to lay a form out:**
 
 1. **Open with what identifies the record** — the display-value columns (§3.7.3)
    and the one or two values someone checks first: `name, account_number`,
-   `case_number, status`.
+   `case_number, subject`. Never the state field — the header already shows it.
 2. **Pair what is filled in or read together** — `first_name, last_name`;
-   `start_date, end_date`; `quantity, unit_price`; a reference beside the status
-   it moves through; a `_due_at` beside its `_at`.
+   `start_date, end_date`; `quantity, unit_price`; the fact a move depends on
+   beside the person who records it (`approved_at, approved_by_id`); a `_due_at`
+   beside its `_at`.
 3. **Give a row of one to what needs the width** — `text` columns, an address
    line, a long description, a subject line, a reference whose label is long.
    Never use a row of one to avoid deciding what pairs with what.
@@ -245,7 +257,7 @@ and **every column but the primary key is placed in exactly one row**:
 A complete example, for a support case:
 
 ```
-%%section entity: SupportCase; name: Case; help: The number the customer quotes, where the case stands, and what is wrong in their words.; rows: case_number, status | subject | description
+%%section entity: SupportCase; name: Case; help: The number the customer quotes and what is wrong in their words. Where the case stands is in the header.; rows: case_number, subject | description
 %%section entity: SupportCase; name: Customer; help: Who raised the case and which account it is charged against.; rows: account_id, contact_id
 %%section entity: SupportCase; name: Triage; help: What kind of problem it is, how urgent, how it arrived, and who is working it.; rows: case_type, priority | origin, owner_id | escalated_by_id
 %%section entity: SupportCase; name: Service level; help: The deadlines the account's SLA sets, and whether either was missed.; rows: sla_policy_id, is_sla_breached | first_response_due_at, first_response_at | resolution_due_at, resolved_at

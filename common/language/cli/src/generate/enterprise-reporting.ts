@@ -31,6 +31,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { EmlAttribute, EmlEntity, EmlIndex, EmlModel } from "../model.ts";
 import { kebabCase, plural, toSnakeCase } from "../util.ts";
+import { STATE_FIELD_REFUSAL_CODE, stateFieldOf } from "../../../state-field.ts";
 
 export interface EnterpriseReportingOptions {
   outDir: string;
@@ -102,6 +103,26 @@ function ddlType(attr: EmlAttribute): string {
   }
 }
 
+/**
+ * The entity's state field, when it has a state machine: the one column no
+ * person changes. It starts at the machine's initial state, is never a form
+ * input or part of an update, is shown read-only in the detail page's header,
+ * and is always a column of the list. Only background workflows move it.
+ */
+interface StateField {
+  field: string;
+  initial: string | null;
+}
+
+function stateFieldFor(e: EmlEntity, model: EmlModel): StateField | undefined {
+  const machine = model.workflows.find((w) => w.kind === "state" && w.entity === e.name);
+  if (!machine) return undefined;
+  const field = stateFieldOf(e.attributes.map((a) => a.name));
+  if (!field) return undefined;
+  const initial = machine.transitions.find((t) => t.from === "[*]")?.to ?? null;
+  return { field, initial };
+}
+
 // --- Main entry point ---------------------------------------------------------
 
 export function generateEnterpriseReporting(
@@ -121,11 +142,11 @@ export function generateEnterpriseReporting(
     written.push(sfFile);
 
     const listFile = `src/routes/_authed/${slug(e)}/index.tsx`;
-    writeFileSync(path.join(outDir, listFile), listPageFile(e));
+    writeFileSync(path.join(outDir, listFile), listPageFile(e, stateFieldFor(e, model)));
     written.push(listFile);
 
     const detailFile = `src/routes/_authed/${slug(e)}/$id.tsx`;
-    writeFileSync(path.join(outDir, detailFile), detailPageFile(e));
+    writeFileSync(path.join(outDir, detailFile), detailPageFile(e, stateFieldFor(e, model)));
     written.push(detailFile);
   }
 
@@ -152,8 +173,10 @@ function serverFnsFile(e: EmlEntity, model: EmlModel): string {
   const pk = e.primaryKey || "id";
   const editable = e.attributes.filter((a) => !a.isPrimaryKey);
   const enumMap = Object.fromEntries(model.enums.map((en) => [en.name, en.values]));
+  const state = stateFieldFor(e, model);
 
   const zodFields = editable
+    .filter((a) => a.name !== state?.field)
     .map((a) => {
       const enumRef = a.enumRef ? enumMap[a.enumRef] : undefined;
       let zodExpr: string;
@@ -247,7 +270,7 @@ export const create${Type}Fn = createServerFn({ method: "POST" })
     const id = crypto.randomUUID();
     await getDb()
       .insertInto("${tableName}")
-      .values({ ${pk}: id, ...data })
+      .values({ ${pk}: id, ...data${state ? `, ${state.field}: ${JSON.stringify(state.initial)}` : ""} })
       .execute();
     return { id };
   });
@@ -273,7 +296,22 @@ export const update${Type}Fn = createServerFn({ method: "POST" })
       updated_at: _updatedAt,
       ...rest
     } = data as Record<string, unknown> & { id: string };
-    delete rest["${pk}"];
+    delete rest["${pk}"];${state ? `
+    // ${state.field} is system-managed: only background workflows change it. A
+    // value sent back unchanged is dropped; a different one is refused.
+    if ("${state.field}" in rest) {
+      const stored = await getDb()
+        .selectFrom("${tableName}")
+        .select("${state.field}")
+        .where("${pk}", "=", id)
+        .executeTakeFirst();
+      if (stored && String(stored.${state.field} ?? "") !== String(rest["${state.field}"] ?? "")) {
+        throw new Error(
+          "${STATE_FIELD_REFUSAL_CODE}: ${state.field} is changed only by background workflows, never by a person."
+        );
+      }
+      delete rest["${state.field}"];
+    }` : ""}
     const expected = version === undefined || version === "" ? undefined : Number(version);
     let query = getDb()
       .updateTable("${tableName}")
@@ -309,14 +347,18 @@ export const delete${Type}Fn = createServerFn({ method: "POST" })
 
 // --- List page ----------------------------------------------------------------
 
-function listPageFile(e: EmlEntity): string {
+function listPageFile(e: EmlEntity, state?: StateField): string {
   const Type = e.name;
   const tableName = tbl(e);
   const routePath = slug(e);
   const sfModule = toSnakeCase(e.name);
   const pluralLabel = plural(toLabel(e.name));
   const pk = e.primaryKey || "id";
-  const displayCols = e.attributes.filter((a) => !a.isPrimaryKey).slice(0, 4);
+  const firstCols = e.attributes.filter((a) => !a.isPrimaryKey).slice(0, 4);
+  // The state is always a column of the list, whatever else is shown.
+  const stateAttr = state ? e.attributes.find((a) => a.name === state.field) : undefined;
+  const displayCols =
+    stateAttr && !firstCols.includes(stateAttr) ? [...firstCols, stateAttr] : firstCols;
 
   const headCells = displayCols
     .map((a) => `                <TableHead>${toLabel(a.name)}</TableHead>`)
@@ -439,12 +481,13 @@ ${bodyCells}
 
 // --- Detail page --------------------------------------------------------------
 
-function detailPageFile(e: EmlEntity): string {
+function detailPageFile(e: EmlEntity, state?: StateField): string {
   const Type = e.name;
   const tableName = tbl(e);
   const routePath = slug(e);
   const sfModule = toSnakeCase(e.name);
-  const editableAttrs = e.attributes.filter((a) => !a.isPrimaryKey);
+  // The state field is not a form input: it is shown read-only in the header.
+  const editableAttrs = e.attributes.filter((a) => !a.isPrimaryKey && a.name !== state?.field);
 
   const formFields = editableAttrs
     .map(
@@ -542,9 +585,20 @@ function ${Type}DetailPage() {
 
   return (
     <div className="p-6 max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">
-        {isNew ? "New ${toLabel(e.name)}" : "Edit ${toLabel(e.name)}"}
-      </h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold">
+          {isNew ? "New ${toLabel(e.name)}" : "Edit ${toLabel(e.name)}"}
+        </h1>${state ? `
+        {!isNew && form.${state.field} ? (
+          <span
+            data-testid="record-state"
+            title="Changed only by background workflows"
+            className="rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase"
+          >
+            {form.${state.field}.replace(/_/g, " ")}
+          </span>
+        ) : null}` : ""}
+      </div>
 
       {conflict && (
         <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-4 space-y-3">
