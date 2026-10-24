@@ -68,6 +68,10 @@ erDiagram
         string   dance_class_id FK
         string   status
         datetime requested_at
+        datetime confirmed_at OPTIONAL
+        datetime checked_in_at OPTIONAL
+        datetime absent_marked_at OPTIONAL
+        datetime cancelled_at OPTIONAL
         text     cancellation_reason OPTIONAL
     }
 
@@ -113,15 +117,20 @@ erDiagram
 %%entity Booking help: One member's place on one session, from the moment they ask for it to the moment they turn up or do not. It is what capacity is counted against, so a cancellation frees a place and a no-show does not — which is the distinction the whole waiting list depends on.
 %%field Booking.member_id help: Who is booked. It is what the class register is built from and who a cancellation notice is sent to.
 %%field Booking.dance_class_id help: The session being booked. Its capacity and booked count are what the admission rule checks before the booking is accepted.
-%%field Booking.status help: requested — asked for, not yet accepted; confirmed — the place is held; attended — the member came; cancelled — the place is released; no_show — the place was held and wasted, which is what a repeat-offender policy is built on.
+%%field Booking.status help: requested — asked for, not yet accepted; confirmed — the place is held; attended — the member came; cancelled — the place is released; no_show — the place was held and wasted, which is what a repeat-offender policy is built on. Set only by the booking workflows, when reception records the time below that each move depends on; nobody changes it by hand.
 %%field Booking.requested_at help: When the member asked, not when reception confirmed. It orders the waiting list, so it is the only fair basis for who gets a freed place.
+%%field Booking.confirmed_at help: When reception accepted the booking. Recording it confirms a requested booking and takes a seat in the class.
+%%field Booking.checked_in_at help: When the member arrived. Recording it on a confirmed booking marks it attended.
+%%field Booking.absent_marked_at help: When reception recorded that the member did not come. Recording it on a confirmed booking marks it a no-show, which keeps the seat counted.
+%%field Booking.cancelled_at help: When the booking was rejected or cancelled. Recording it releases the place, whether the booking was still requested or already confirmed.
 %%field Booking.cancellation_reason help: Why the place was given up, in the member's words. It is the difference between a member the studio should call and one who simply changed their mind.
 %%section entity: Instructor; name: Instructor; help: Who teaches, how the studio reaches them, and whether they can be timetabled.; rows: full_name, is_active | email, phone
 %%section entity: Room; name: Room; help: The studio room and how many dancers it safely holds.; rows: name, capacity
 %%section entity: Member; name: Member; help: Who dances here, how to reach them, and the membership they hold.; rows: full_name, email | tier, joined_on | credits
 %%section entity: DanceClass; name: Class; help: What is taught, by whom, where, and whether it is going ahead.; rows: title, status | instructor_id, room_id
 %%section entity: DanceClass; name: Session; help: When it runs, how many it takes and have booked, and what a drop-in pays.; rows: starts_at, price | capacity, booked_count
-%%section entity: Booking; name: Booking; help: Who booked which class, where the booking stands, and why it was cancelled if it was.; rows: member_id, dance_class_id | status, requested_at | cancellation_reason
+%%section entity: Booking; name: Booking; help: Who booked which class and when they asked. Where the booking stands is shown in the header.; rows: member_id, dance_class_id | requested_at
+%%section entity: Booking; name: Progress; help: The times reception records as the booking moves on — each one is what moves it, and the reason if it was given up.; rows: confirmed_at, checked_in_at | absent_marked_at, cancelled_at | cancellation_reason
 
 %%meta name: Booking Admission
 %%meta kind: rules
@@ -140,7 +149,6 @@ flowchart TD
     H --> Z
 
     %%action refuseFullClass validation-error when: status == "requested" and booked_count >= capacity message: This class is full — offer the member the waitlist
-    %%action confirmBooking trigger-workflow when: status == "confirmed" workflow: ClassFillTracking message: Booking confirmed — updating the class headcount
 
 %%meta name: Booking Lifecycle
 %%meta kind: workflow
@@ -156,9 +164,28 @@ stateDiagram-v2
     cancelled --> [*]
     no_show   --> [*]
 
-    %%rbac role:reception|manager on Booking.confirm
-    %%rbac role:manager on Booking.cancel
+    %%rbac role:reception|manager on Booking.update
     %%rbac role:manager on Booking.delete
+
+%%meta name: Booking Progress
+%%meta kind: rules
+%%rule bookingProgress on Booking event: beforeUpdate priority: 10
+flowchart TD
+    A([Booking updated]) --> B{Which time was recorded?}
+    B -->|Confirmed| C[Confirm and take a seat]
+    B -->|Cancelled| D[Release the place]
+    B -->|Checked in| F[Mark it attended]
+    B -->|Absent| G[Mark it a no-show]
+    C --> Z([End])
+    D --> Z
+    F --> Z
+    G --> Z
+
+    %%action confirmBooking trigger-workflow when: status == "requested" and confirmed_at != null and cancelled_at == null workflow: ClassFillTracking message: Booking confirmed — updating the class headcount
+    %%action cancelRequestedBooking trigger-workflow when: status == "requested" and cancelled_at != null workflow: BookingCancellation
+    %%action cancelConfirmedBooking trigger-workflow when: status == "confirmed" and cancelled_at != null workflow: BookingCancellation
+    %%action checkInBooking trigger-workflow when: status == "confirmed" and checked_in_at != null and cancelled_at == null workflow: BookingAttendance
+    %%action markBookingAbsent trigger-workflow when: status == "confirmed" and absent_marked_at != null and checked_in_at == null and cancelled_at == null workflow: BookingNoShow
 
 %%meta name: Class Fill Tracking
 %%meta kind: workflow
@@ -166,8 +193,37 @@ stateDiagram-v2
 flowchart TD
     A([Booking confirmed]) --> B(Count the seat)
     B --> C[Raise the class headcount]
-    C --> Z([Headcount updated])
+    C --> D[Mark the booking confirmed]
+    D --> Z([Headcount updated])
 
     %%step B Formula target: seatCount source: booked_count operation: add operand: 1
-    %%step C UpdateEntity entity: DanceClass targetField: dance_class_id field: booked_count source: seatCount
+    %%step C UpdateEntity entity: DanceClass targetSource: dance_class_id field: booked_count source: seatCount
+    %%step D UpdateEntity field: status value: confirmed
+
+%%meta name: Booking Cancellation
+%%meta kind: workflow
+%%workflow BookingCancellation entity: Booking kind: saga trigger: rule
+flowchart TD
+    A([Cancellation recorded]) --> B[Mark the booking cancelled]
+    B --> Z([Place released])
+
+    %%step B UpdateEntity field: status value: cancelled
+
+%%meta name: Booking Attendance
+%%meta kind: workflow
+%%workflow BookingAttendance entity: Booking kind: saga trigger: rule
+flowchart TD
+    A([Arrival recorded]) --> B[Mark the booking attended]
+    B --> Z([Attended])
+
+    %%step B UpdateEntity field: status value: attended
+
+%%meta name: Booking No Show
+%%meta kind: workflow
+%%workflow BookingNoShow entity: Booking kind: saga trigger: rule
+flowchart TD
+    A([Absence recorded]) --> B[Mark the booking a no-show]
+    B --> Z([No-show])
+
+    %%step B UpdateEntity field: status value: no_show
 ```

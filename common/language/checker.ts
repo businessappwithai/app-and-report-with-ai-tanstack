@@ -29,6 +29,7 @@ import { parseEml } from "./cli/src/parser";
 import { caps } from "./cli/src/util";
 import { loadLanguageDefinition, stepNodeTypes } from "./index";
 import { parseSectionDirectives, sectionsByEntity, UNPLACED_SECTION } from "./sections";
+import { stateFieldOf } from "./state-field";
 
 // ---------------------------------------------------------------------------
 // Diagnostic types
@@ -311,6 +312,12 @@ export function isForeignKeyColumnName(columnName: string): boolean {
 
 class CheckEngine {
   private issues: Issue[] = [];
+  /**
+   * `Entity.field=value` for every value a saga's UpdateEntity step writes.
+   * Filled by checkStepDirectives and read by EML507, which asks whether every
+   * state a machine can move into has a background workflow that puts it there.
+   */
+  private sagaWrites = new Set<string>();
   private src: SourceIndex;
   private def = loadLanguageDefinition();
   private validHookTypes: Set<string>;
@@ -1574,11 +1581,17 @@ class CheckEngine {
     }
 
     const byEntity = sectionsByEntity(directives);
+    const stateFieldsByEntity = this.stateFields();
 
     for (const entity of this.model.entities) {
       const entityLine = this.src.findLine(new RegExp(`^\\s*${entity.name}\\s*\\{`));
       const sections = byEntity.get(entity.name);
-      const columns = entity.attributes.filter((attribute) => !attribute.isPrimaryKey);
+      // The state field is shown read-only in the form's header, never in its
+      // body, so no row places it and its absence from every row is correct.
+      const stateField = stateFieldsByEntity.get(entity.name);
+      const columns = entity.attributes.filter(
+        (attribute) => !attribute.isPrimaryKey && attribute.name !== stateField
+      );
 
       if (!sections || sections.length === 0) {
         if (columns.length === 0) continue;
@@ -1640,6 +1653,17 @@ class CheckEngine {
                   hint: near
                     ? `Did you mean \`${near}\`? Rows name columns exactly as the erDiagram declares them.`
                     : `Rows name columns of ${entity.name} exactly as the erDiagram declares them: ${[...known].filter((name) => name !== key).join(", ")}.`,
+                }
+              );
+              continue;
+            }
+            if (column === stateField) {
+              this.warn(
+                "EML178",
+                `%%section places "${entity.name}.${column}", the state field, in the form body.`,
+                {
+                  line: directive.line,
+                  hint: `Remove ${column} from the row. The state is shown read-only in the header of ${entity.name}'s form and as a column of its list, and only background workflows change it — a field in the body would offer a change nobody may make.`,
                 }
               );
               continue;
@@ -1756,6 +1780,21 @@ class CheckEngine {
   // for that reason.
   // -------------------------------------------------------------------------
 
+  /**
+   * Entity → its state field, for every entity a `kind: state` workflow drives.
+   * See language/state-field.ts: that column is system-managed.
+   */
+  private stateFields(): Map<string, string> {
+    const fields = new Map<string, string>();
+    for (const wf of this.model.workflows) {
+      if (wf.kind !== "state" || !wf.entity) continue;
+      const entity = this.model.entities.find((candidate) => candidate.name === wf.entity);
+      const field = entity && stateFieldOf(entity.attributes.map((attribute) => attribute.name));
+      if (field) fields.set(wf.entity, field);
+    }
+    return fields;
+  }
+
   private checkRbac(): void {
     const entityNames = new Set(this.model.entities.map((e) => e.name));
     const crudOps = new Set([
@@ -1847,7 +1886,20 @@ class CheckEngine {
       if (crudOps.has(lower)) continue;
 
       const events = eventsFor(entity);
-      if (events.has(lower)) continue;
+      // EML215: a state is moved only by background workflows, so a transition
+      // is not something a role can be granted. The line used to compile into
+      // sys_transition_access and let that role move the record by hand.
+      if (events.has(lower)) {
+        this.error(
+          "EML215",
+          `%%rbac on ${entity}.${target} grants a transition; a state is changed only by background workflows.`,
+          {
+            line: lineNo,
+            hint: `Remove the line. Nobody moves ${entity} to another state through a form: a %%rule's trigger-workflow starts a saga whose UpdateEntity step writes the state, when a person records the fact the move depends on (a decision, a date, an approver). Grant that column's write with ${entity}.update instead.`,
+          }
+        );
+        continue;
+      }
 
       this.error(
         "EML214",
@@ -2379,6 +2431,11 @@ class CheckEngine {
 
         const has = (key: string) => (props[key] ?? "").trim().length > 0;
 
+        if (typeName === "UpdateEntity" && has("field") && has("value")) {
+          const target = (props.entity ?? section.entity).trim();
+          this.sagaWrites.add(`${target}.${props.field!.trim()}=${props.value!.trim()}`);
+        }
+
         // EML262: properties the step cannot run without.
         const missing: string[] = [];
         for (const key of contract.required ?? []) {
@@ -2544,6 +2601,40 @@ class CheckEngine {
               hint: "Set targetSource to a context key holding the row id, or targetField to a foreign key column. The executor refuses this rather than guessing a row.",
             }
           );
+        }
+
+        // EML275: targetField names a column of the *target* table, matched
+        // against the triggering record's id. A child reaching its parent with
+        // `entity: Invoice targetField: invoice_id` asks for invoices whose
+        // invoice_id is this payment's id — a column the invoice does not have —
+        // so the step updates nothing, and the parent never moves.
+        if (
+          (typeName === "UpdateEntity" || typeName === "DeleteEntity") &&
+          entityProp &&
+          !has("targetSource") &&
+          has("targetField") &&
+          props.targetField!.trim() !== "id"
+        ) {
+          const wanted = entityProp.toLowerCase().replace(/^bus_/, "");
+          const target = this.model.entities.find(
+            (candidate) =>
+              candidate.name.toLowerCase() === wanted ||
+              candidate.name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase() === wanted
+          );
+          const column = props.targetField!.trim();
+          if (target && !target.attributes.some((attribute) => attribute.name === column)) {
+            const ownColumn = trigger?.attributes.some((attribute) => attribute.name === column);
+            this.error(
+              "EML275",
+              `%%step ${nodeId} (${typeName}) matches ${target.name}.${column}, which ${target.name} does not declare.`,
+              {
+                line: lineNo,
+                hint: ownColumn
+                  ? `${column} is a column of the record that started the workflow. To reach the ${target.name} it names, write  targetSource: ${column}  (and drop targetField, which defaults to id).`
+                  : `targetField is a column of ${target.name} matched against the triggering record's id — a foreign key on ${target.name} pointing back at it. To reach a ${target.name} the triggering record names, use targetSource with that column.`,
+              }
+            );
+          }
         }
 
         // EML264: reading a variable nothing has published yet. Entity columns
@@ -3280,6 +3371,62 @@ class CheckEngine {
       }
     }
 
+    // EML507: every state a machine can move into needs a background workflow
+    // that moves it there, because nobody may change the state through a form.
+    // The initial state is the system's to set on create; any other target of
+    // an edge must be written by a saga's UpdateEntity step.
+    const stateFields = this.stateFields();
+    for (const wf of this.model.workflows) {
+      if (wf.kind !== "state" || !wf.entity) continue;
+      const field = stateFields.get(wf.entity);
+      if (!field) continue;
+      const unwritten = new Set<string>();
+      for (const t of wf.transitions) {
+        if (t.from === "[*]" || t.to === "[*]" || !t.to) continue;
+        const to = t.to.trim();
+        if (!this.sagaWrites.has(`${wf.entity}.${field}=${to}`)) unwritten.add(to);
+      }
+      if (unwritten.size > 0) {
+        const states = [...unwritten];
+        this.warn(
+          "EML507",
+          `State workflow "${wf.name}" can move ${wf.entity} into ${states.length} state${states.length === 1 ? "" : "s"} no background workflow writes: ${states.join(", ")}.`,
+          {
+            line: this.src.findLine(new RegExp(`^%%workflow\\s+${wf.name}\\b`)),
+            hint: `Only background workflows change ${wf.entity}.${field}. For each state, declare a saga whose step is  %%step B UpdateEntity entity: ${wf.entity} targetField: id field: ${field} value: <state>, and a %%rule action that starts it (trigger-workflow) when the fact the move depends on is recorded on the record.`,
+          }
+        );
+      }
+    }
+
+    // EML508: a saga writing a state its entity's machine never draws would put
+    // the record somewhere every rule and workflow downstream was written without.
+    for (const write of this.sagaWrites) {
+      const match = write.match(/^(\w+)\.(\w+)=(.+)$/);
+      if (!match) continue;
+      const [, entity = "", field = "", value = ""] = match;
+      if (stateFields.get(entity) !== field) continue;
+      const drawn = new Set<string>();
+      for (const wf of this.model.workflows) {
+        if (wf.kind !== "state" || wf.entity !== entity) continue;
+        for (const state of wf.states) drawn.add(state);
+        for (const t of wf.transitions) {
+          drawn.add(t.from);
+          drawn.add(t.to);
+        }
+      }
+      if (!drawn.has(value)) {
+        this.warn(
+          "EML508",
+          `A saga writes ${entity}.${field} = ${value}, a state ${entity}'s state machine does not draw.`,
+          {
+            line: this.src.findLine(new RegExp(`UpdateEntity\\b.*\\bfield:\\s*${field}\\b.*\\bvalue:\\s*${value}\\b`)),
+            hint: `Draw ${value} in ${entity}'s stateDiagram-v2 with an edge into it, or write one of its states.`,
+          }
+        );
+      }
+    }
+
     // EML501: %%field enum references — check they exist
     // (done already in checkFieldDirectives, but also check attributes with enumRef from parser)
     for (const entity of this.model.entities) {
@@ -3430,6 +3577,8 @@ export const AUTO_FIXABLE_CODES = new Set([
   "EML172", // columns no %%section row places → append them to the entity's last section
   "EML174", // a %%section row of three or more → split it into rows of two
   "EML175", // a column placed twice → remove the later placement
+  "EML178", // the state field placed in a %%section row → remove it from the row
+  "EML215", // %%rbac granting a state transition → delete the line
 ]);
 
 /** Structured output written to <file>.error for the fixer to consume. */
