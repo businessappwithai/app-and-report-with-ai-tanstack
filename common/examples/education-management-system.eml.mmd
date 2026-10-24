@@ -1,11 +1,15 @@
 %% ============================================================================
 %% EML Model — Education Management System
 %%
-%% A fee-charging secondary school, modelled end to end: nineteen entities, the
-%% five lifecycles the school actually runs on, the admission decision it takes
-%% by judgement today, the capacity and overpayment refusals that must act, and
-%% the two sagas that turn an accepted application into an enrolled, invoiced
-%% student and a payment into a settled invoice.
+%% A fee-charging secondary school, modelled end to end: twenty-four entities,
+%% the sixteen lifecycles the school actually runs on, the admission decision it
+%% takes by judgement today, the capacity, overpayment and refund-approval
+%% refusals that must act, and the five sagas that turn an accepted application
+%% into an enrolled, invoiced student, a payment into a settled invoice, a
+%% cancelled section into withdrawn enrolments and a suspension into a
+%% suspended student. Consent, support plans, safeguarding concerns and the log
+%% of what was sent to families sit beside them, because a school answers for
+%% those as much as for its fees.
 %%
 %% Built through the interactive authoring protocol (now llms.txt §1), so
 %% it holds that section's standard: help text on every entity and every column,
